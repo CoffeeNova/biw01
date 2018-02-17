@@ -1,0 +1,243 @@
+FUNCTION_BLOCK "SSA_NORD"
+TITLE =NORDAC
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        NORDAC Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1817.2.0     M.Wedler            AEB41                            25-Okt-2007
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//State Word NORDAC
+    ACTUAL_VALUE_OK : BOOL ;	//0=Actual value doesn't match setpoint  1=Actual value matches required setpoint
+    GUIDANCE : BOOL ;	//0=Local guidance                       1=Guidance requested
+    ACTUAL_MFR1_VALUE : BOOL ;	//0=Actual MFR 1 value below reference value    1=MFR 1 value has been equalled
+    ROTAT_DIRECTION_RIGHT : BOOL ;	//1=Inverter output voltage is turning right
+    ROTAT_DIRECTION_LEFT : BOOL ;	//1=Inverter output voltage is turning left
+    ACTUAL_MFR4_VALUE : BOOL ;	//Only with SK 700E/750E with posicon extension Status MFR 4
+    PARAMETER_SET_0 : BOOL ;	//00=Parameter set 1 01=Parameter set 2 10=Parameter set 3 11=Parameter set 4  
+    PARAMETER_SET_1 : BOOL ;	//00=Parameter set 1 01=Parameter set 2 10=Parameter set 3 11=Parameter set 4  
+    READY_TO_START : BOOL ;	//0=Not ready to start                   1=Ready to start
+    READY_FOR_OPERATION : BOOL ;	//0=Not ready for operation              1=Ready for operation 
+    OPERATION_ENABLED : BOOL ;	//0=Operation disabled                   1=Operation enabled
+    FAULT : BOOL ;	//0=No fault                             1=Fault
+    OFF2 : BOOL ;	//0=OFF2 command applied                 1=no OFF2
+    OFF3 : BOOL ;	//0=OFF3 command applied                 1=no OFF3
+    STARTING_DISABLED : BOOL ;	//0=Starting not disabled                1=Starting disabled
+    WARNING : BOOL ;	//0=No warning                           1=Warning
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//Actual frequency. 4000H = 100%, C000H = -100% of maximum frequency
+   ActualValue02 : INT ;	//Process Data PZD3
+   ActualValue03 : INT ;	//Process Data PZD4
+   ActualValue04 : INT ;	//Not used
+   ActualValue05 : INT ;	//Not used
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Control Word NORDAC
+    RESERVED_8 : BOOL ;	//Reserved
+    RESERVED_9 : BOOL ;	//Reserved
+    PZD_VALID : BOOL ;	//0=The transmitted process data is invalid  1=Valid process data transferred
+    ROTAT_DIRECTION_RIGHT : BOOL ;	//1=Rotational direction right ON
+    ROTAT_DIRECTION_LEFT : BOOL ;	//1=Rotational direction left ON
+    RESERVED_13 : BOOL ;	//Reserved
+    SWITCH_PARAMETER_SET_0 : BOOL ;	//00=Parameter set 1 01=Parameter set 2 10=Parameter set 3 11=Parameter set 4  
+    SWITCH_PARAMETER_SET_1 : BOOL ;	//00=Parameter set 1 01=Parameter set 2 10=Parameter set 3 11=Parameter set 4  
+    OFF1 : BOOL ;	//0=Reverse with the brake ramp              1=Ready for operation
+    OFF2 : BOOL ;	//0=Inverter output voltage is switched off  1=OFF 2 is cancelled
+    OFF3 : BOOL ;	//0=Quick stop with programmed quick stop time  1=OFF 3 is cancelled
+    ENABLE_OPERATION : BOOL ;	//0=Disable operation                        1=Enable operation
+    LOCK_RAMP_GENERATOR : BOOL ;	//0=Ramp generator is set to zero            1=Enable ramp generator
+    STOP_RAMP_GENERATOR : BOOL ;	//0=The setpoint currently provided by the ramp generator is "frozen"  
+    DISABLE_SETPOINT : BOOL ;	//0=Selected setpoint value is set to zero on the ramp generator
+    ACKNOWLEDGE : BOOL ;	//0->1=Acknowledgement of faults which are no longer active
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//Setpoint frequency. 4000H = 100%, C000H = -100% of maximum frequency
+   SetpointValue02 : INT ;	//Process Data PZD3
+   SetpointValue03 : INT ;	//Process Data PZD4
+   SetpointValue04 : INT ;	//Not used
+   SetpointValue05 : INT ;	//Not used
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMovidrive : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+
+      L     P##Input; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands Par.ParNord
+
+      UN    #Par.ParNord; 
+      SPB   NOJ0; 
+//Load Status Word
+//      LAR1  #tmpAddrInputFU
+//      L     DIW [AR1,P#0.0]             //Status Word
+//      LAR1  P##NORD_StateWord
+//      T     LW [AR1,P#0.0]              // NORD_StateWord
+// prepare steuerword
+      L     W#16#47E; // Stopp=OFF1
+      U     #InEnableFwd; 
+      O     #InEnableRev; 
+      SPBN  NOJ1; 
+      L     W#16#147F; // Start direction left 
+      U     #InEnableRev; 
+      SPB   NOJ1; 
+      L     W#16#C7F; // Start direction right
+NOJ1: LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+//-----------------------------------------
+// Fault Reset ins Steuerwort
+      U     #CmdFaultReset; 
+      U     #Input.StateWord_1.FAULT; // Fehler von FU
+      SPBN  NOR1; 
+      L     W#16#4FE; // OFF1 + ACKNOWLEDGE
+      LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+NOR1: NOP   0; 
+//- Feedback for motor
+      U     #Input.StateWord_1.OPERATION_ENABLED; 
+      UN    #Input.StateWord_1.FAULT; 
+      U     #InEnableRev; 
+      =     #OutRunningRev; 
+
+      U     #Input.StateWord_1.OPERATION_ENABLED; 
+      UN    #Input.StateWord_1.FAULT; 
+      U     #InEnableFwd; 
+      =     #OutRunningFwd; 
+
+      U     #Input.StateWord_1.FAULT; 
+      =     #OutFault; 
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     1.638400e+000; 
+      *R    ; 
+      RND   ; 
+      T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     1.638400e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =Read Inputs of Inverter
+
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#8.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#8.0]; 
+NETWORK
+TITLE =Write Outputs of Inverter
+
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#4.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#8.0]; 
+
+NETWORK
+TITLE =
+
+NOJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

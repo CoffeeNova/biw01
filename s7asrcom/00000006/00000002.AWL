@@ -1,0 +1,182 @@
+FUNCTION "Standard_MC07" : VOID
+TITLE =
+//Dieses Programmbeispiel zeigt nur die prinzipielle Vorgehensweise.
+//Für fehlerhafte Programmfunktionen und deren Folgen
+//kann weder eine juristische, noch irgendeine Haftung übernommen werden!
+AUTHOR : 'GE-AT'
+FAMILY : PROFIBUS
+NAME : MC07_UFP
+VERSION : 1.0
+
+
+VAR_INPUT
+  DRIVE_IO_ADDRESS : INT ;	
+  ENABLE_RAPID_STOP : BOOL ;	
+  ENABLE : BOOL ;	
+  RESET : BOOL ;	
+  SETPOINT_SPEED : INT ;	
+  RAMP : INT ;	
+END_VAR
+VAR_OUTPUT
+  COMMUNICATION_OK : BOOL ;	//SFC14/SFC15: Return Value = 0
+  INVERTER_READY : BOOL ;	
+  FAULT_OF_AXIS : BOOL ;	
+  FAULT_NO : INT ;	
+  ACTUAL_SPEED : INT ;	
+  OUTPUT_CURRENT : INT ;	
+END_VAR
+VAR_TEMP
+  PI : STRUCT 	
+   STATUS : BYTE ;	
+   ENABLE_OUTPUT_STAGE : BOOL ;	
+   INVERTER_READY : BOOL ;	
+   PO_DATA_ENABLE : BOOL ;	
+   STW_Bit_3 : BOOL ;	
+   STW_Bit_4 : BOOL ;	
+   ERROR : BOOL ;	
+   STW_Bit_6 : BOOL ;	
+   STW_Bit_7 : BOOL ;	
+   ACTUAL_SPEED : INT ;	
+   OUTPUT_CURRENT : INT ;	
+  END_STRUCT ;	
+  PO : STRUCT 	
+   DIRECTION_MOTOR_POTI : BOOL ;	
+   MOTOR_POTI_UP : BOOL ;	
+   MOTOR_POTI_DOWN : BOOL ;	
+   FIXED_INTERNAL_SETPOINTS : BOOL ;	
+   FIXED_INTERNAL_SETP_1 : BOOL ;	
+   FIXED_SETP_SWITCHOVER : BOOL ;	
+   CTW_Bit_14 : BOOL ;	
+   CTW_Bit_15 : BOOL ;	
+   CONTR_INHIBIT : BOOL ;	
+   RAPID_STOP : BOOL ;	
+   STOP : BOOL ;	
+   CTW_Bit_3 : BOOL ;	
+   CTW_Bit_4 : BOOL ;	
+   CTW_Bit_5 : BOOL ;	
+   RESET_FAULT : BOOL ;	
+   CTW_Bit_7 : BOOL ;	
+   SETPOINT_SPEED : INT ;	
+   RAMP : INT ;	
+  END_STRUCT ;	
+  RETURNCODE_SFC14 : INT ;	
+  RETURNCODE_SFC15 : INT ;	
+  ADDR : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Prozeßeingangsdaten aufbereiten
+
+      L     #DRIVE_IO_ADDRESS; //Adresse von "INT" nach "WORD" wandeln
+      T     #ADDR; 
+
+      CALL "DPRD_DAT" (//konsistente Daten eines DP-Normslaves lesen
+           LADDR                    := #ADDR,//Peripherieadresse => Hardwarekonfig.
+           RET_VAL                  := #RETURNCODE_SFC14,//<> 0 => ein Fehler ist während der Bearbeitung aufgetreten
+           RECORD                   := #PI);//Zielbereich für die gelesenen Nutzdaten.
+
+      L     #RETURNCODE_SFC14; 
+      L     0; 
+      <>I   ; //Tritt während der Abarbeitung der SFC ein Fehler auf,
+      SPB   END; //so wird die Funktion verlassen => NW7
+
+      L     #PI.ACTUAL_SPEED; 
+      T     #ACTUAL_SPEED; 
+
+      L     #PI.OUTPUT_CURRENT; 
+      L     10; //Anpassung 1 digit = 0.1% In auf 1% In
+      /I    ; 
+      T     #OUTPUT_CURRENT; 
+
+      U     #PI.INVERTER_READY; 
+// MW 2008.10.25
+      U     #PI.PO_DATA_ENABLE; 
+      =     #INVERTER_READY; 
+
+      U     #PI.ERROR; 
+      =     #FAULT_OF_AXIS; 
+NETWORK
+TITLE =Fehlermeldungen auswerten/rangieren
+//Ist das Fehlerbit gesetzt, so wird die Fehlernummer ausgegeben.
+//Liegt kein Fehler vor, so wird eine Null ausgegeben.
+      U(    ; 
+      U     #PI.ERROR; 
+      SPBNB _001; 
+      L     #PI.STATUS; 
+      T     #FAULT_NO; 
+      SET   ; 
+      SAVE  ; 
+      CLR   ; 
+_001: U     BIE; 
+      )     ; 
+      NOT   ; 
+      SPBNB _002; 
+      L     0; 
+      T     #FAULT_NO; 
+_002: NOP   0; 
+NETWORK
+TITLE =Prozeßausgangsdaten: Freigabe / Schnellstopp rangieren
+
+      U     #ENABLE_RAPID_STOP; 
+      =     #PO.RAPID_STOP; 
+NETWORK
+TITLE =Prozeßausgangsdaten: Regler-Freigabe
+
+      U     #ENABLE; 
+      =     #PO.STOP; 
+NETWORK
+TITLE =Fault_Reset
+
+      U     #RESET; 
+      =     #PO.RESET_FAULT; 
+NETWORK
+TITLE =Prozeßausgangsdaten aufbereiten
+
+      SET   ; //Rücksetzen aller nicht verwendeten Steuerwort-Bits
+      R     #PO.CONTR_INHIBIT; 
+      R     #PO.CTW_Bit_3; 
+      R     #PO.CTW_Bit_4; 
+      R     #PO.CTW_Bit_5; 
+      R     #PO.CTW_Bit_7; 
+
+      R     #PO.DIRECTION_MOTOR_POTI; 
+      R     #PO.MOTOR_POTI_UP; 
+      R     #PO.MOTOR_POTI_DOWN; 
+      R     #PO.FIXED_INTERNAL_SETPOINTS; 
+      R     #PO.FIXED_INTERNAL_SETP_1; 
+      R     #PO.FIXED_SETP_SWITCHOVER; 
+      R     #PO.CTW_Bit_14; 
+      R     #PO.CTW_Bit_15; 
+
+      L     #SETPOINT_SPEED; 
+      T     #PO.SETPOINT_SPEED; 
+      L     #RAMP; 
+      T     #PO.RAMP; 
+
+      CALL "DPWR_DAT" (//Daten konsistent auf einen DP-Normslave schreiben
+           LADDR                    := #ADDR,//Peripherieadresse => Hardwarekonfig.
+           RECORD                   := #PO,//Quellbereich für die zu schreibenden Nutzdaten
+           RET_VAL                  := #RETURNCODE_SFC15);//<> 0 => ein Fehler ist während der Bearbeitung aufgetreten
+
+      L     #RETURNCODE_SFC15; //Tritt während der Abarbeitung des SFCs ein Fehler auf, 
+      L     0; 
+      <>I   ; 
+      SPB   END; //so wird die Funktion verlassen. => NW7
+      =     #COMMUNICATION_OK; 
+      BEA   ; //Ende der Funktion
+NETWORK
+TITLE =Kommunikationsfehler auswerten
+//Ist die Abarbeitung der SFCs fehlerhaft, so werden alle Ausgänge der Funktion 
+//abgelöscht
+//
+END:  L     0; 
+      T     #FAULT_NO; 
+      T     #ACTUAL_SPEED; 
+      T     #OUTPUT_CURRENT; 
+      SET   ; 
+      R     #COMMUNICATION_OK; 
+      R     #FAULT_OF_AXIS; 
+      R     #INVERTER_READY; 
+
+END_FUNCTION
+

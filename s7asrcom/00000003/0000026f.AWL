@@ -1,0 +1,80 @@
+	DATA_BLOCK DB 2
+	TITLE =ChangeBit-DB PC0
+	//
+	//COPYRIGHT:    (C) 2009 BY BUHLER LTD.
+	//                          CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        ChangeBit-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB002.1.0 K.Renz              CSB41             30.Sep.2009
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE:  
+	//
+	//MANUAL : CTRxxMAN
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : GCS7
+	NAME    : CBITDB
+	VERSION : 00.00
+	
+	
+	  STRUCT 	
+	   Spare0 : WORD ;	
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   ParNextDB : INT :=0 ;	//Next Change-Bit DB
+	   Spare8 : WORD ;	
+	   ParDWCopyBits : INT  := 512;	//Byte address of Copy[1]
+	   ParBlockLen   : INT  := 220;	//Byte per CBit
+	   Spare14 : WORD ;	
+	   Spare16 : WORD ;	
+	   Spare18 : WORD ;	
+	   VarTemp : ARRAY  [1 .. 10 ] OF //Working memory
+	   WORD ;	
+	   RBit : ARRAY  [1 .. 1280 ] OF //-- PC Write ---------
+	   BOOL ;	
+	   CBIT : ARRAY  [1 .. 1280 ] OF //-- PC Read  ------------
+	   BOOL ;	
+	   PLCLifeValue : INT :=0 ; 	//PCC read that value to detect, if the PLC is alive or not
+	   Value : ARRAY  [1 .. 75 ] OF //Fast value for PC
+	   INT ;	
+	   Copy : ARRAY  [1 .. 1280 ] OF //Internal used
+	   BOOL ;	
+	   ParPointer : STRUCT 	//-- Configuaration source address --
+	    B0001 : STRUCT 	// Log                Interface[001]
+	     DBNr   : INT := 5;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0005 : STRUCT 	// PC Direct Control  Interface[002]
+	     DBNr   : INT := 3;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0009 : STRUCT 	// VDU Message        Interface[003]
+	     DBNr   : INT := 0;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0013 : STRUCT 	// spare           Interface[004]
+	     DBNr : INT := -1;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	  END_STRUCT ;	
+	BEGIN
+	   ParNextDB:=61;
+	    ParPointer.B0001.DBNr:= 5;
+	    ParPointer.B0005.DBNr:= 40;
+	END_DATA_BLOCK

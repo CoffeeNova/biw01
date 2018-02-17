@@ -1,0 +1,534 @@
+FUNCTION_BLOCK "G126M_Code"
+TITLE =G126M HORIZONTAL AND LIFTING SCREW GERM 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        HORIZONTAL AND LIFTING SCREW GERM 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB226.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  RunDiagonalScrew : BOOL ;	//Data for user
+  RunHorizontalScrew : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2215_UM15VA_COM : "SSA_SEW_MOVIDRIVE";	// FU_Siemens 
+  A_2215_MXZ11MA : "A_2215_MXZ11MA_Code";	// Motor+6DI 
+  A_2215_MXZ15MA : "A_2215_MXZ15MA_Code";	// Motor+6DI 
+  A_2215_UM15VA_PD1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2215_UM15VA_PD2 : "GCS7_E_AnalogInput";	// AnaInp 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[126]; 
+      R     "GCS7_GrCtrlDB".ParWGR[126]; 
+      R     "GCS7_GrCtrlDB".ParGGR[126]; 
+      R     "GCS7_GrCtrlDB".ParFeed[126]; 
+      R     "GCS7_GrCtrlDB".ParShare[126]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[126]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[126]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[126]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[126]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[126]; 
+      R     "GCS7_GrCtrlDB".CmdNext[126]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[126]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[126]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[126]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[126]
+//      O     "GCS7_GrCtrlDB".OutOccupied[126]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[126]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[126]; 
+      O     "G127M".A_2215_KCL01I8.StTrue; // pushbutton start screw
+      R     "GCS7_GrCtrlDB".CmdContinue[126]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[126]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      U     "G127M".A_2215_KCL01I8.StTrue; // pushbutton start screw
+      U     #Gr.InOccupied; 
+      UN    "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      S     "G126M".RunDiagonalScrew; 
+
+      U     "G127M".A_2215_KCL01I7.StTrue; // pushbutton start screw
+      UN    "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      U     #Gr.InOccupied; 
+      S     "G126M".RunHorizontalScrew; 
+
+      ON    #Gr.InOccupied; 
+      O     "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+//BRT090310      O     "G127M".A_2215_KCL01I9.StTrue    // pushbutton stop screws
+      ON    "G127M".A_2215_KCL01I9.StTrue; // pushbutton stop screws
+      R     "G126M".RunDiagonalScrew; 
+      R     "G126M".RunHorizontalScrew; 
+
+// set speed in screw FC
+      U(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "G125M".SlowSpeedFwd; 
+      )     ; 
+      O(    ; 
+      U     "G125M".A_2211_BZS46.StTrue; // stop endposition unloading
+      UN    "MAL1S018Par".Par.FlagFunction_0.Inf29; //Wartezeit 180s abgelaufen = 1
+      )     ; 
+      O     "MAL1S018Par".Par.FlagGen.Flag0026; // unloading leftover   
+      L     6000; // 60% => 30Hz
+      SPB   SP06; 
+      L     10000; // 100% => 50Hz
+SP06: T     "G126M".A_2215_UM15VA_COM.OutValuePC; 
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+//BRT200310      CLR   
+      ON    "G113M".Gr.OutAutostart; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     "G113M".Gr.OutEnablePrevGr; //BRT200310
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     "G113M".Gr.OutEnablePrevGr; //BRT200310
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[3].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G126M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 3,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-2215-MXZ11MA : HORIZONTAL SCREW
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2215_MXZ11MA.Ma.InLocal; 
+//
+//-Interlocking---
+
+//BRT100310
+      U     #A_2215_MXZ15MA.Ma.StStartedFwd; 
+      U     #Gr.OutEnableEl; 
+      U(    ; 
+      O     "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      O(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      UN    "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      U     "G126M".RunHorizontalScrew; 
+      )     ; 
+      )     ; 
+      =     #A_2215_MXZ11MA.Ma.InEnableFwd; 
+//
+      U     #tmpCmdNext; 
+      O     "G127M".A_2215_KCL01I7.StTrue; // pushbutton start screw  //BRT200310
+      S     #A_2215_MXZ11MA.Ma.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_2215_MXZ11MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-2215-BTT11---
+//      CLR
+//      S     #A_2215_MXZ11MA.A_2215_BTT11.CmdRunTimeOutTime
+//-=A-2215-BSA12---
+//      CLR
+//      S     #A_2215_MXZ11MA.A_2215_BSA12.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_2215_BTT11_I1"; 
+      =     #A_2215_MXZ11MA.A_2215_BTT11.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ11MA.A_2215_BTT11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[25]; 
+      =     #A_2215_MXZ11MA.A_2215_BTT11.InDPFault; 
+      U     "A_2215_BSA12_I1"; 
+      =     #A_2215_MXZ11MA.A_2215_BSA12.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ11MA.A_2215_BSA12.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[25]; 
+      =     #A_2215_MXZ11MA.A_2215_BSA12.InDPFault; 
+      U     "A_2215_MXZ11_I1"; 
+      =     #A_2215_MXZ11MA.A_2215_MXZ11.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ11MA.A_2215_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[22]; 
+      =     #A_2215_MXZ11MA.A_2215_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2215_MXZ11MA ;
+// 
+//-Write outputs---
+      U     #A_2215_MXZ11MA.A_2215_MXZ11.OutpRunFwd; 
+      =     "A_2215_MXZ11_O1"; 
+NETWORK
+TITLE ==A-2215-MXZ15MA : LIFTING SCREW
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2215_MXZ15MA.Ma.InLocal; 
+//
+//-Interlocking---
+//BRT200310      U     #A_2215_MXZ11MA.Ma.StStartedFwd
+//BRT200310
+      U     #Gr.OutEnableEl; 
+      U(    ; 
+      O     "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      O(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      UN    "MAL1S018Par".Par.FlagFunction_1.UnloadingStarted; 
+      U     "G126M".RunDiagonalScrew; 
+      )     ; 
+      )     ; 
+      =     #A_2215_MXZ15MA.Ma.InEnableFwd; 
+//
+      U     #tmpCmdNext; 
+      O     "G127M".A_2215_KCL01I8.StTrue; // pushbutton start screw   //BRT100310
+      S     #A_2215_MXZ15MA.Ma.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_2215_MXZ15MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-2215-BTT15---
+//      CLR
+//      S     #A_2215_MXZ15MA.A_2215_BTT15.CmdRunTimeOutTime
+//-=A-2215-BSA17---
+//      CLR
+//      S     #A_2215_MXZ15MA.A_2215_BSA17.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_2215_BTT15_I1"; 
+      =     #A_2215_MXZ15MA.A_2215_BTT15.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ15MA.A_2215_BTT15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[25]; 
+      =     #A_2215_MXZ15MA.A_2215_BTT15.InDPFault; 
+      U     "A_2215_BSA17_I1"; 
+      =     #A_2215_MXZ15MA.A_2215_BSA17.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ15MA.A_2215_BSA17.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[25]; 
+      =     #A_2215_MXZ15MA.A_2215_BSA17.InDPFault; 
+      U     "A_2215_MXZ15_I1"; 
+      =     #A_2215_MXZ15MA.A_2215_MXZ15.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_MXZ15MA.A_2215_MXZ15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[22]; 
+      =     #A_2215_MXZ15MA.A_2215_MXZ15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2215_MXZ15MA ;
+// 
+//-Write outputs---
+      U     #A_2215_MXZ15MA.A_2215_MXZ15.OutpRunFwd; 
+      =     "A_2215_MXZ15_O1"; 
+NETWORK
+TITLE ==A-2215-UM15VA_COM : FREQUENCY INVERTOR LIFTING SCREW
+
+      NOP   0; 
+//====>BRT200310 - nicht von GCPro auskompiliert! Adresse FU im DB eintragen!
+      U     #A_2215_MXZ15MA.A_2215_MXZ15.OutpRunFwd; 
+      =     #A_2215_UM15VA_COM.InEnableFwd; 
+//BRT200310      U     #A_2215_MXZ15MA.A_2215_MXZ15.OutpRunRev
+      CLR   ; 
+      =     #A_2215_UM15VA_COM.InEnableRev; 
+
+      U     #Gr.CmdFaultReset; 
+      O     #A_2215_MXZ15MA.A_2215_BTT15.OutpFaultReset; 
+      S     #A_2215_UM15VA_COM.CmdFaultReset; 
+//<====BRT200310
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2215_UM15VA_COM ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2215-UM15VA_PD1 : FREQUENCY FREQ. LIFTING SCREW
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2215_UM15VA_PD1.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD1.InMonLL; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD1.InMonL; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD1.InMonMid; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD1.InMonH; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD1.InMonHH; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_UM15VA_PD1.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2215_UM15VA_PD1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2215-UM15VA_PD2 : CURRENT FREQ. LIFTING SCREW
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2215_UM15VA_PD2.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD2.InMonLL; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD2.InMonL; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD2.InMonMid; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD2.InMonH; 
+      CLR   ; 
+      =     #A_2215_UM15VA_PD2.InMonHH; 
+// 
+//-Read inputs---
+//BRT200310
+      L     #A_2215_UM15VA_COM.Input.ActualValue02; 
+      T     #A_2215_UM15VA_PD2.InpValue; 
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2215_UM15VA_PD2.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2215_UM15VA_PD2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2215_MXZ11MA.Ma.StFault; 
+      O     #A_2215_MXZ15MA.Ma.StFault; 
+//BRT200310      O     #A_2215_UM15VA_PD1.OutFaulted
+//BRT200310      O     #A_2215_UM15VA_PD2.OutFaulted
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2215_UM15VA_PD1.OutWarning; 
+      O     #A_2215_UM15VA_PD2.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//BRT200310      U     #A_2215_MXZ11MA.Ma.StStopped
+//BRT200310      U     #A_2215_MXZ15MA.Ma.StStopped
+//BRT200310      UN    #Gr.VarFault
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_2215_MXZ11MA.Ma.StStartedFwd; 
+      U     #A_2215_MXZ15MA.Ma.StStartedFwd; 
+//BRT200310      UN    #Gr.VarStopped
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[126]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[126]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[126]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[126]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[126]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[126]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[126]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[126]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[126]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[126]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

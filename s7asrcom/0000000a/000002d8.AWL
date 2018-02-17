@@ -1,0 +1,297 @@
+	DATA_BLOCK DB126
+	TITLE =DBG026G  Alarm horns
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Alarm horns
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB126.1.0 K.Renz              CSB41             14.Mrz.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG026G 
+	VERSION : 00.00
+	
+	FB126
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=2600; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=99;
+	//Parameter G_ALARM_FLASHER : Alarm flasher
+	      #G_ALARM_FLASHER.Par.ParObjectNo                             :=2601;
+	      #G_ALARM_FLASHER.Par.ParMsgType                              :=7002;
+	      #G_ALARM_FLASHER.Par.ParHornCode                             :=99;
+	      #G_ALARM_FLASHER.Par.ParOnTime                               :=300;
+	      #G_ALARM_FLASHER.Par.ParOffTime                              :=0;
+	      #G_ALARM_FLASHER.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_FLASHER.Par.ParDelayTime                            :=0;
+	      #G_ALARM_FLASHER.Par.ParLogOff                               :=False;
+	      #G_ALARM_FLASHER.Par.ParManual                               :=True;
+	      #G_ALARM_FLASHER.Par.ParContinuous                           :=False;
+	      #G_ALARM_FLASHER.Par.ParPulse                                :=True;
+	      #G_ALARM_FLASHER.Par.ParPulsing                              :=False;
+	      #G_ALARM_FLASHER.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_STEEPS : Alarm horn STEEPS
+	      #G_ALARM_HORN_STEEPS.Par.ParObjectNo                             :=2602;
+	      #G_ALARM_HORN_STEEPS.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_STEEPS.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_STEEPS.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_STEEPS.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_STEEPS.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_STEEPS.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_STEEPS.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_STEEPS.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_STEEPS.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_STEEPS.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_STEEPS.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_STEEPS.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM1 : Alarm horn GERM 1
+	      #G_ALARM_HORN_GERM1.Par.ParObjectNo                             :=2603;
+	      #G_ALARM_HORN_GERM1.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM1.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM1.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM1.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM1.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM1.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM1.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM1.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM1.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM1.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM1.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM1.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM2 : Alarm horn GERM 2
+	      #G_ALARM_HORN_GERM2.Par.ParObjectNo                             :=2604;
+	      #G_ALARM_HORN_GERM2.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM2.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM2.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM2.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM2.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM2.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM2.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM2.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM2.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM2.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM2.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM2.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM3 : Alarm horn GERM 3
+	      #G_ALARM_HORN_GERM3.Par.ParObjectNo                             :=2605;
+	      #G_ALARM_HORN_GERM3.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM3.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM3.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM3.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM3.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM3.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM3.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM3.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM3.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM3.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM3.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM3.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM4 : Alarm horn GERM 4
+	      #G_ALARM_HORN_GERM4.Par.ParObjectNo                             :=2606;
+	      #G_ALARM_HORN_GERM4.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM4.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM4.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM4.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM4.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM4.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM4.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM4.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM4.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM4.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM4.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM4.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM5 : Alarm horn GERM 5
+	      #G_ALARM_HORN_GERM5.Par.ParObjectNo                             :=2607;
+	      #G_ALARM_HORN_GERM5.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM5.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM5.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM5.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM5.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM5.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM5.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM5.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM5.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM5.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM5.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM5.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM6 : Alarm horn GERM 6
+	      #G_ALARM_HORN_GERM6.Par.ParObjectNo                             :=2608;
+	      #G_ALARM_HORN_GERM6.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM6.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM6.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM6.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM6.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM6.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM6.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM6.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM6.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM6.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM6.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM6.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM7 : Alarm horn GERM 7
+	      #G_ALARM_HORN_GERM7.Par.ParObjectNo                             :=2609;
+	      #G_ALARM_HORN_GERM7.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM7.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM7.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM7.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM7.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM7.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM7.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM7.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM7.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM7.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM7.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM7.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_GERM8 : Alarm horn GERM 8
+	      #G_ALARM_HORN_GERM8.Par.ParObjectNo                             :=2610;
+	      #G_ALARM_HORN_GERM8.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_GERM8.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_GERM8.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_GERM8.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_GERM8.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_GERM8.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_GERM8.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_GERM8.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_GERM8.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_GERM8.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_GERM8.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_GERM8.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_KILN1 : Alarm horn KILN 1
+	      #G_ALARM_HORN_KILN1.Par.ParObjectNo                             :=2611;
+	      #G_ALARM_HORN_KILN1.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_KILN1.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_KILN1.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_KILN1.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_KILN1.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_KILN1.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_KILN1.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_KILN1.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_KILN1.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_KILN1.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_KILN1.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_KILN1.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_KILN2 : Alarm horn KILN 2
+	      #G_ALARM_HORN_KILN2.Par.ParObjectNo                             :=2613;
+	      #G_ALARM_HORN_KILN2.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_KILN2.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_KILN2.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_KILN2.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_KILN2.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_KILN2.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_KILN2.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_KILN2.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_KILN2.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_KILN2.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_KILN2.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_KILN2.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_UNL_KILN : Alarm horn UNL KILN
+	      #G_ALARM_HORN_UNL_KILN.Par.ParObjectNo                             :=2612;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_UNL_KILN.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_C29 : Alarm Horn Transport +C29
+	      #G_ALARM_HORN_C29.Par.ParObjectNo                             :=2614;
+	      #G_ALARM_HORN_C29.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_C29.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_C29.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_C29.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_C29.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_C29.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_C29.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_C29.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_C29.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_C29.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_C29.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_C29.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_C19 : Alarm horn Transport +C19
+	      #G_ALARM_HORN_C19.Par.ParObjectNo                             :=2615;
+	      #G_ALARM_HORN_C19.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_C19.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_C19.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_C19.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_C19.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_C19.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_C19.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_C19.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_C19.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_C19.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_C19.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_C19.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter G_ALARM_HORN_15 : Alarm horn 15
+	      #G_ALARM_HORN_15.Par.ParObjectNo                             :=2616;
+	      #G_ALARM_HORN_15.Par.ParMsgType                              :=7002;
+	      #G_ALARM_HORN_15.Par.ParHornCode                             :=99;
+	      #G_ALARM_HORN_15.Par.ParOnTime                               :=300;
+	      #G_ALARM_HORN_15.Par.ParOffTime                              :=0;
+	      #G_ALARM_HORN_15.Par.ParIdlingTime                           :=0;
+	      #G_ALARM_HORN_15.Par.ParDelayTime                            :=0;
+	      #G_ALARM_HORN_15.Par.ParLogOff                               :=False;
+	      #G_ALARM_HORN_15.Par.ParManual                               :=True;
+	      #G_ALARM_HORN_15.Par.ParContinuous                           :=False;
+	      #G_ALARM_HORN_15.Par.ParPulse                                :=True;
+	      #G_ALARM_HORN_15.Par.ParPulsing                              :=False;
+	      #G_ALARM_HORN_15.Par.ParFilter                               :=False;
+	//
+	//
+	END_DATA_BLOCK

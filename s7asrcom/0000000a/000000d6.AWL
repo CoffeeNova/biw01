@@ -1,0 +1,92 @@
+	FUNCTION FC111 : WORD
+	TITLE =Test functions
+	//
+	//COPYRIGHT:    (C) 2009 BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//                           
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:         Test functions and simulation
+	//
+	//               Testfunktionen und Simulationen
+	//
+	// 
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:         AUTOR:              DEPT:                             DATE:
+	//
+	//P01_FC111.1.0 K.Renz              CSB41                              21.Okt.2009
+	//               1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE:      
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR_INPUT
+	  code_no : INT ;   //code number
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =T00 Temporary functions (0000)
+	
+	      L     #code_no; 
+	      L     0; 
+	      <>I   ; 
+	      SPB   T000; 
+	      BEA   ; 
+	T000: NOP   0; 
+	NETWORK
+	TITLE =T11 IOSimuli (1001)
+	
+	      L     #code_no; 
+	      L     1001; 
+	      <>I   ; 
+	      SPB   T110; 
+	      
+	      BEA   ; 
+	T110: NOP   0; 
+	NETWORK
+	TITLE =T12.......................... (1002)
+	
+	      L     #code_no; 
+	      L     1002; 
+	      <>I   ; 
+	      SPB   T120; 
+	
+	      BEA   ; 
+	T120: NOP   0; 
+	
+	NETWORK
+	TITLE =T21.......................... (2001)
+	
+	      L     #code_no; 
+	      L     2001; 
+	      <>I   ; 
+	      SPB   T210; 
+	
+	      BEA   ; 
+	T210: NOP   0; 
+	NETWORK
+	TITLE =T22.......................... (2002)
+	
+	      L     #code_no; 
+	      L     2002; 
+	      <>I   ; 
+	      SPB   T220; 
+	
+	      BEA   ; 
+	T220: NOP   0; 
+	
+	NETWORK
+	TITLE =End of block
+	
+	      BE    ; 
+	
+	END_FUNCTION

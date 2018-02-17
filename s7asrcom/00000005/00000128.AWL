@@ -1,0 +1,934 @@
+FUNCTION_BLOCK "GCS7_E_MOZE"
+TITLE =MOZE Liquids Flow Control
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element MOZE Liquids Flow Control
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                      DATE:
+//
+//FB24.5.0      A.Egli              CT3                        05-Jan-2005
+//              Parameter Upload (uses DB10)
+//FB24.4.0      A. Egli             CT3                        17-Jun-2002
+//              New Release with one block 
+//FB24.2.2      A. Egli             CT3                        17-Mar-2000
+//              Length for answer telegram
+//FB24.2.1      S. Kalberer         CT3                        06-Dec-1999
+//              No horn if InLocal
+//FB24.2A       A. Egli             CT3                        04-Mai-1998
+//              StFault = StCode 32
+//FB24.1B       A. Egli             CT3                        16-Apr-1998
+//              Test
+//FB24.1A       S. Kalberer         AEE61                      15-Aug-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LFCxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//  1  ext 5 VDC not available     = #OutLCAlarm.Ext5NotAvailable
+//  2  ext 24 VDC not available    = #OutLCAlarm.Ext24NotAvailable
+//  3  overload of an output       = #OutLCAlarm.OverloadOutput
+//  4  overload output operation   = #OutLCAlarm.OverloadOutputOper
+//  5  turbine flowmeter faulty    = #OutLCAlarm.TurbineFlowFaulty
+//  6  turbine flowmeter 1 faulty  = #OutLCAlarm.TurbineFlow1Faulty
+//  7  alarm during closing        = #OutLCAlarm.AlarmClosing
+//  8  alarm during opening        = #OutLCAlarm.AlarmOpening
+//  9  no valid nominal value      = #OutLCAlarm.NoValidNominalValue
+//  10 AD alarm                    = #OutLCAlarm.ADAlarm
+//  11 invalid nominal value       = #OutLCAlarm.InvalidNominalValue
+//  13 fault cancelled
+//  14 fault communication         = OutComFault
+//  15 exception error
+//  16 stopped
+//  17 started
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32   StFault                 
+// 1   StStopped                      Stopped
+//41   Stopped.HWStop                 StStopped + InHWStop 
+//51   Stopped.DPFault                StStopped + DPFault
+// 3   StStarted               
+// 5   StFalse                 
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MOZE
+VERSION : 5.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run the element (manual and automatic mode)
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  CmdNewValue : BOOL ;	//Send new target values
+  CmdNewJob : BOOL ;	//Clear actual values
+  spare0206 : BOOL ;	//DI product alarm
+  spare0207 : BOOL ;	//DI group alarm
+  CmdOff : BOOL ;	//Pulse to stop the element (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual / 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutComFault : BOOL ;	//Communication fault
+  spare0401 : BOOL ;	
+  OutRequestActive : BOOL ;	//Aux. signal request active
+  OutFaultResetDone : BOOL ;	//Aux. signal fault reset done
+  spare0406 : BOOL ;	
+  OutpDosingEnable : BOOL ;	//DO dosing enable
+  StStopped : BOOL ;	//Element is stopped
+  spare0501 : BOOL ;	
+  StStarted : BOOL ;	//Element is started
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Element has a communication or device fault
+  StFalse : BOOL ;	//Element is in local mode and has a fault
+  InFlowrateWater : DINT ;	//Is send to LC [0.1 l/h]
+  InMinFlowrate : DINT ;	//Is send to LC [0.1 l/h]
+  InMaxFlowrate : DINT ;	//Is send to LC [0.1 l/h]
+  InNoOfValuesAverage : INT  := 1;	//Is send to LC [1..30]
+  InVolumePerImpulse : INT ;	//Is send to LC [0.1 l]
+  OutAlarmNr : INT ;	//Is read from LC [0..99]
+  OutFlowrateWater : DINT ;	//Is read from LC [0.1 l/h]
+  OutNotErasableWater : DINT ;	//Is read from LC (sum2) [0.1 l]
+  OutTotalWater : DINT ;	//Is calulated by element 
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParFilter : STRUCT 	//Filter to alarm 1=Ignore alarm    
+    spare00 : BOOL ;	
+    Ext5NotAvailable : BOOL ;	//Ext  5 VDC not available
+    Ext24NotAvailable : BOOL ;	//Ext 24 VDC not available
+    OverloadOutput : BOOL ;	//Overload of an output
+    OverloadOutputOper : BOOL ;	//Overload output operation
+    TurbineFlowFaulty : BOOL ;	//Turbine flowmeter faulty
+    TurbineFlow1Faulty : BOOL ;	//Turbine flowmeter 1 faulty
+    AlarmClosing : BOOL ;	//Alarm during closing
+    AlarmOpening : BOOL ;	//Alarm during opening
+    NoValidNominalValue : BOOL ;	//No valid nominal value
+    ADAlarm : BOOL ;	//AD converter alarm
+    InvalidNominalValue : BOOL ;	//Invalid nominal value
+   END_STRUCT ;	
+   ParComFlags : STRUCT 	
+    spare00 : BYTE ;	
+    Without_Q : BOOL ;	//Nominal output
+    Without_N : BOOL ;	//Minimum nominal output
+    Without_X : BOOL ;	//Maximum nominal output
+    Without_D : BOOL ;	//Number of values to be averaged
+    Without_G : BOOL ;	//Volume per impulse
+    spare15 : BOOL ;	
+    spare16 : BOOL ;	
+    spare17 : BOOL ;	
+   END_STRUCT ;	
+   ParComDB : INT ;	//Communication DB
+   ParLCIdx : INT ;	//Index of data record
+   ParLCAddr : INT ;	//Address of LC
+   OutLCState : STRUCT 	//Is read from LC
+    spare00 : BYTE ;	
+    HostActive : BOOL ;	//Host control active
+    DosingRelease : BOOL ;	//Dosing release
+    AlarmActive : BOOL ;	//Alarm active
+    spare13 : BOOL ;	
+    PowerFailure : BOOL ;	//Power failure
+    OperationMessage : BOOL ;	//Operation message
+    NominalValueReached : BOOL ;	//Nominal value reached
+    DosingRunning : BOOL ;	//Dosing is running
+   END_STRUCT ;	
+   OutLCAlarm : STRUCT 	//Alarm bit mask of OutAlarmNumber
+    spare00 : BOOL ;	
+    Ext5NotAvailable : BOOL ;	//Ext  5 VDC not available
+    Ext24NotAvailable : BOOL ;	//Ext 24 VDC not available
+    OverloadOutput : BOOL ;	//Overload of an output
+    OverloadOutputOper : BOOL ;	//Overload output operation
+    TurbineFlowFaulty : BOOL ;	//Turbine flowmeter faulty
+    TurbineFlow1Faulty : BOOL ;	//Turbine flowmeter 1 faulty
+    AlarmClosing : BOOL ;	//Alarm during closing
+    AlarmOpening : BOOL ;	//Alarm during opening
+    NoValidNominalValue : BOOL ;	//No valid nominal value
+    ADAlarm : BOOL ;	//AD Alarm
+    InvalidNominalValue : BOOL ;	//Invalid nominal value
+    spare14 : BOOL ;	
+    spare15 : BOOL ;	
+    spare16 : BOOL ;	
+    spare17 : BOOL ;	
+   END_STRUCT ;	
+   OutStateTarget : STRUCT 	//Command for LC, is send to LC
+    spare00 : BYTE ;	
+    spare10 : BOOL ;	
+    spare11 : BOOL ;	
+    AlarmReset : BOOL ;	//Alarm reset
+    spare13 : BOOL ;	
+    ClearPowerFlag : BOOL ;	//Clear powerfailure flag
+    SetDosingRelease : BOOL ;	//Set dosing release
+    ClearErasableTotal : BOOL ;	//Clear erasable total
+    spare17 : BOOL ;	
+   END_STRUCT ;	
+   OutComFlags : STRUCT 	//Flags for communication
+    d_Done : BOOL ;	//Actual value block 2 done
+    Q_Done : BOOL ;	//Nominal output
+    N_Done : BOOL ;	//Minimum nominal output
+    X_Done : BOOL ;	//Maximum nominal output
+    D_Done1 : BOOL ;	//Number of values to be averaged
+    G_Done : BOOL ;	//Volume per impulse
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrOffset : DWORD ;	//store the Instance Pointer
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpCommand : INT ;	
+  tmpFBNO : INT ;	//Number of the actual FB
+  tmpFault : BOOL ;	
+  tmpComActive : BOOL ;	//Put or get is in queue
+  tmpClearCmdFlag : BOOL ;	//Clear pattern Commands
+  tmpOff : BOOL ;	
+  tmpOn : BOOL ;	
+  tmpReport : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpAddrParFilter : DWORD ;	//Pointer to ParFilter
+  tmpAddrOutLCState : DWORD ;	//Pointer to OutLCState
+  tmpAddrOutLCAlarm : DWORD ;	//Pointer to OutLCAlarm
+  tmpAddrOutStateTarget : DWORD ;	//Pointer to OutLCStateTarget
+  tmpWt : DINT ;	
+  tmpComDB : INT ;	
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     24; 
+      T     #tmpFBNO; 
+      L     64; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; //-->Addr Para
+
+      L     P##Par; 
+      L     #tmpAddrOffset; 
+      +D    ; 
+      LAR1  ; 
+      L     P#8.0; // P##ParFilter
+      +D    ; 
+      T     #tmpAddrParFilter; //-->Pointer to ParFilter
+
+      TAR1  ; 
+      L     P#18.0; //P##Par.OutLCState
+      +D    ; 
+      T     #tmpAddrOutLCState; //-->Pointer to OutLCState
+
+      TAR1  ; 
+      L     P#20.0; //P##Par.OutLCAlarm
+      +D    ; 
+      T     #tmpAddrOutLCAlarm; //-->Pointer to OutLCAlarm
+
+      TAR1  ; 
+      L     P#22.0; //P##Par.OutStateTarget
+      +D    ; 
+      T     #tmpAddrOutStateTarget; //-->Pointer to OutStateTarget
+
+
+      L     #Par.ParComDB; 
+      T     #tmpComDB; 
+
+NETWORK
+TITLE = Call back function
+//*****This functions are called by FBxxx (COM) ******
+      AUF   DB [#tmpComDB]; 
+      L     0; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   PC; 
+      L     DBB   76; //COM.Telegram.Command;
+      T     #tmpCommand; 
+      L     1; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   Send; 
+      L     2; 
+      ==I   ; 
+      SPB   Rcv; 
+      L     4; //NAK
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      S     #OutComFault; //fault MYEB communication
+      SPA   STOR; 
+//Read telegram length
+Send: L     #tmpCommand; 
+      L     'd'; 
+      ==I   ; 
+      L     18; //Lenght in byte
+      SPB   Sndx; 
+      SPA   SndA; 
+Sndx: T     DBW   86; //COM.Telegram.LenAnswer
+      SPA   STOR; 
+SndA: NOP   0; 
+//Send Q
+      L     #tmpCommand; 
+      L     'Q'; 
+      <>I   ; 
+      SPB   SndN; 
+      L     #InFlowrateWater; 
+      SPA   Sd16; 
+//Send N
+SndN: L     #tmpCommand; 
+      L     'N'; 
+      <>I   ; 
+      SPB   SndX; 
+      L     #InMinFlowrate; 
+      SPA   Sd16; 
+//Send X
+SndX: L     #tmpCommand; 
+      L     'X'; 
+      <>I   ; 
+      SPB   SndD; 
+      L     #InMaxFlowrate; 
+      SPA   Sd16; 
+//Send D
+SndD: L     #tmpCommand; 
+      L     'D'; 
+      <>I   ; 
+      SPB   SndG; 
+      L     #InNoOfValuesAverage; 
+      SPA   Sd14; 
+//Send G
+SndG: L     #tmpCommand; 
+      L     'G'; 
+      <>I   ; 
+      SPB   SndS; 
+      L     #InVolumePerImpulse; 
+Sd14: T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert Integer to 4-ASCII
+      T     DBW    0; //COM.CODE;
+      L     4; //Lenght in byte
+      SPA   Snd1; 
+//Send S
+SndS: L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   SndZ; 
+      LAR1  #tmpAddrOutStateTarget; 
+      L     B [AR1,P#1.0]; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     32; //Convert Hex to 2-ASCII
+      T     DBW    0; //COM.CODE
+      L     2; //Lenght in byte
+      SPA   Snd1; 
+Sd16: T     DBD   36; //COM.Element.InOutValue
+      L     16; //Convert DInt to 6-ASCII
+      T     DBW    0; //COM.CODE
+      L     6; //Lenght in byte
+Snd1: T     DBW   78; //COM.Telegram.Len
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+SndZ: SPA   STOR; 
+//--- Get done ---------------
+//Copy reveived data to element
+Rcv:  R     #OutComFault; 
+      L     #tmpCommand; 
+      L     'd'; 
+      <>I   ; 
+      SPB   RcvS; 
+      R     #Par.OutStateTarget.ClearPowerFlag; 
+//LC status
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     42; //Convert 2-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      LAR1  #tmpAddrOutLCState; 
+      T     B [AR1,P#1.0]; //-->#OutLCState
+//Alarm number / LC alarm bit mask
+      L     2; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     22; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutAlarmNr; 
+      L     1; 
+      SLD   ; 
+      SRD   1; //Clear Alarm Bit 0
+      SLD   1; 
+      TAW   ; //Replace akku to correct bit order
+      LAR1  #tmpAddrOutLCAlarm; 
+      T     W [AR1,P#0.0]; //#OutLCAlarm
+//Acutal output
+      L     4; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     26; //Convert 6-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutFlowrateWater; 
+//Not erasable total
+      L     10; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     28; //Convert 8-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //ERH.Element.InOutValue
+      T     #tmpWt; 
+//---  Init first, if old value < 0  ---
+      L     #OutNotErasableWater; 
+      L     0; 
+      <D    ; 
+      SPB   rgZ2; 
+//---  Calculate Weight ---
+      L     #tmpWt; 
+      L     #OutNotErasableWater; 
+      -D    ; 
+      SPM   rgZ1; 
+      SPA   rgPo; 
+rgZ1: L     L#100000000; 
+      +D    ; 
+rgPo: L     10000; // Maximum change by relaod software
+      >D    ; 
+      SPB   rgZ2; 
+      TAK   ; 
+      L     #OutTotalWater; 
+      +D    ; 
+      T     #OutTotalWater; //--> Total weight
+rgZ2: L     #tmpWt; 
+      T     #OutNotErasableWater; 
+      SPA   STOR; 
+//--- Put done ---------------
+RcvS: L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   RcvX; 
+      U     #Par.OutStateTarget.AlarmReset; 
+      R     #CmdFaultReset; 
+      S     #OutFaultResetDone; 
+      UN    #Par.OutStateTarget.ClearErasableTotal; 
+      SPB   STOR; 
+      R     #CmdNewJob; 
+RcvX: NOP   0; 
+STOR: BEA   ; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+PC:   L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1024; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]  =CmdNewValue
+      S     #CmdNewValue; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[5]; //Cmd1[5]  =CmdNewJob
+      S     #CmdNewJob; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]  =CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]  =CmdOn
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10] =CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14] =CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14] =CmdReportOff
+      R     #InReport; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBD [AR1,P#6.0]; 
+      T     #InFlowrateWater; 
+      L     DBD [AR1,P#10.0]; 
+      T     #InMinFlowrate; 
+      L     DBD [AR1,P#14.0]; 
+      T     #InMaxFlowrate; 
+      L     DBW [AR1,P#18.0]; 
+      T     #InNoOfValuesAverage; 
+      L     DBW [AR1,P#20.0]; 
+      T     #InVolumePerImpulse; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; //-->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =[5.0] LCParameter
+
+      L     #Par.ParObjectNo; 
+      L     "SYS_DirectCtrlLCDB".PC.ObjectNo; 
+      <>I   ; 
+      SPB   LCP0; 
+      T     "SYS_DirectCtrlLCDB".GC.InObjectNo; 
+      L     #Par.ParComDB; 
+      T     "SYS_DirectCtrlLCDB".GC.InDBNr; 
+      L     #Par.ParLCAddr; 
+      T     "SYS_DirectCtrlLCDB".GC.InLCAddr; 
+LCP0: NOP   0; 
+NETWORK
+TITLE = Read LC data
+
+      AUF   DB [#tmpComDB]; 
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index;
+      L     1; //Read LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    "GCS7_RS485Ctrl"; 
+      TDB   ; 
+      L     #tmpFBNO; 
+      T     DBW   52; //COM.LC0.FBNO;
+      L     DINO; 
+      T     DBW   54; //COM.LC0.DINO;
+      TAR2  DBD   56; //COM.LC0.AddrDyn;        
+      L     #tmpAddrOffset; 
+      T     DBD   60; //COM.LC0.AddrPara;       
+      L     #Par.ParLCAddr; 
+      T     DBD   64; //COM.Telegram.LCAddr;
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+      SET   ; 
+      R     #tmpClearCmdFlag; 
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Global.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Global.InManualMode
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//---tmpLocal---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Off---
+      UN    #InEnable; 
+      UN    #InManual; 
+      O     #tmpLocal; 
+      O     #CmdOff; 
+      =     #tmpOff; 
+//---On---
+      O     #CmdNext; 
+      UN    #InManual; 
+      O     #CmdOn; 
+      UN    #tmpOff; 
+      =     #tmpOn; 
+//--- tmpFault   
+      LAR1  #tmpAddrOutLCAlarm; 
+      L     W [AR1,P#0.0]; //#OutLCAlarm
+      LAR1  #tmpAddrParFilter; 
+      L     W [AR1,P#0.0]; //#Par.ParFilter;
+      INVI  ; //Invers filter mask
+      UW    ; 
+      L     0; 
+      <>I   ; 
+      O(    ; 
+      L     #OutAlarmNr; 
+      L     11; //---Exception faults
+      >I    ; 
+      )     ; 
+      O     #OutComFault; //---Communication fault
+      =     #tmpFault; 
+      U     DBX   50.0; //COM.LC0.CmdPut
+      O     DBX   50.1; //COM.LC0.CmdGet
+      =     #tmpComActive; 
+
+//--- New Job
+      UN    #CmdNewJob; 
+      SPB   nJob; 
+      L     0; 
+      T     #OutTotalWater; //--> Total weight
+
+//---LC State target commands
+nJob: U     #StStarted; //Set dosing release...
+      XN    #Par.OutStateTarget.SetDosingRelease; // ..if both signals are different
+      UN    #CmdFaultReset; 
+      UN    #CmdNewJob; 
+      O     #tmpComActive; 
+      O     #OutRequestActive; 
+      O     #OutComFault; 
+      SPB   nVal; 
+      U     #CmdFaultReset; 
+      =     #Par.OutStateTarget.AlarmReset; 
+      =     #Par.OutStateTarget.ClearPowerFlag; 
+      U     #StStarted; 
+      =     #Par.OutStateTarget.SetDosingRelease; 
+      U     #CmdNewJob; 
+      =     #Par.OutStateTarget.ClearErasableTotal; 
+      SPA   CmdS; 
+//--- New Value
+nVal: UN    #CmdNewValue; 
+      SPB   nReq; 
+      U     #tmpComActive; 
+      O     #OutComFault; 
+      O     #OutRequestActive; 
+      O     #StFault; 
+      O     #StFalse; 
+      SPB   nReq; 
+      UN    #Par.OutComFlags.Q_Done; 
+      UN    #Par.ParComFlags.Without_Q; 
+      SPB   CmdQ; 
+      UN    #Par.OutComFlags.N_Done; 
+      UN    #Par.ParComFlags.Without_N; 
+      SPB   CmdN; 
+      UN    #Par.OutComFlags.X_Done; 
+      UN    #Par.ParComFlags.Without_X; 
+      SPB   CmdX; 
+      UN    #Par.OutComFlags.d_Done; 
+      UN    #Par.ParComFlags.Without_D; 
+      SPB   CmdD; 
+      UN    #Par.OutComFlags.G_Done; 
+      UN    #Par.ParComFlags.Without_G; 
+      SPB   CmdG; 
+      R     #CmdNewValue; 
+      S     #tmpClearCmdFlag; 
+//---New Request
+nReq: U     #tmpComActive; 
+      SPB   STAT; 
+      UN    #Par.OutComFlags.d_Done; 
+      S     #OutRequestActive; 
+      SPB   Cmdd; 
+      S     #tmpClearCmdFlag; 
+      R     #OutRequestActive; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =States
+//===State machine===
+STAT: U     #StStopped; 
+      SPB   S0; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StFault; 
+      SPB   S4; 
+      U     #StFalse; 
+      SPB   S5; 
+      S     #StStopped; //Init
+      SPA   S0; 
+
+NETWORK
+TITLE = StStopped
+
+xS0:  S     #StStopped; 
+      R     #StStarted; 
+      U     #StFalse; 
+      O     #StFault; 
+      R     #StFalse; 
+      R     #StFault; 
+      R     #CmdFaultReset; 
+      R     #OutFaultResetDone; 
+      L     B#(3, 13); //Message Operator ('fault cancelled' )
+      SPB   LOG; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 16); //Message Information ('stopped')
+      SPA   LOG; 
+S0:   U     #tmpFault; //Condition for StFault/StFalse
+      SPB   xS45; //StXxx -> StFault transition flag
+      U     #tmpOn; 
+      SPB   xS2; 
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStarted
+
+xS2:  S     #StStarted; 
+      R     #StStopped; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 17); //Message Information ('started')
+      SPA   LOG; 
+S2:   U     #tmpFault; //Condition for StFault/StFalse
+      SPB   xS45; //StXxx -> StFault transition flag
+      U     #tmpOff; 
+      SPB   xS0; 
+      SPA   OUT; 
+
+NETWORK
+TITLE = StFault
+
+S4:   UN    #tmpFault; //---Condition for StStopped
+      U     #CmdFaultReset; 
+      SPB   xS0; 
+      U     #tmpLocal; //---Condition for StFalse
+      SPB   xS45; 
+      U     #OutFaultResetDone; //reLOG fault
+      SPB   xS45; 
+      SPA   OUT; 
+
+NETWORK
+TITLE = StFalse
+//Automatic fault reset
+S5:   UN    #tmpFault; //---Condition for StStopped
+      SPB   xS0; 
+      UN    #tmpLocalFault; //---Condition for StFault
+      SPB   xS45; //StXxx -> StFault transition flag
+      U     #OutFaultResetDone; //---Fault reset
+      S     #CmdFaultReset; 
+      R     #OutFaultResetDone; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =Communication start
+
+Cmdd: S     #Par.OutComFlags.d_Done; 
+      L     'd'; 
+      SPA   GET; 
+CmdQ: U     #Par.ParComFlags.Without_Q; 
+      SPB   OUT; 
+      S     #Par.OutComFlags.Q_Done; 
+      L     'Q'; 
+      SPA   PUT; 
+CmdN: U     #Par.ParComFlags.Without_N; 
+      SPB   OUT; 
+      S     #Par.OutComFlags.N_Done; 
+      L     'N'; 
+      SPA   PUT; 
+CmdX: U     #Par.ParComFlags.Without_X; 
+      SPB   OUT; 
+      S     #Par.OutComFlags.X_Done; 
+      L     'X'; 
+      SPA   PUT; 
+CmdD: U     #Par.ParComFlags.Without_D; 
+      SPB   OUT; 
+      S     #Par.OutComFlags.d_Done; 
+      L     'D'; 
+      SPA   PUT; 
+CmdG: U     #Par.ParComFlags.Without_G; 
+      SPB   OUT; 
+      S     #Par.OutComFlags.G_Done; 
+      L     'G'; 
+      SPA   PUT; 
+CmdS: L     'S'; 
+      SPA   PUT; 
+PUT:  SET   ; 
+      S     DBX   50.0; //COM.LC0.CmdPut ;
+      SPA   ALL1; 
+GET:  SET   ; 
+      S     DBX   50.1; //COM.LC0.CmdGet ;
+ALL1: S     #tmpComActive; 
+      T     DBB   51; //COM.LC0.Command;
+      SPA   OUT; 
+
+NETWORK
+TITLE =LOG
+
+xS45: S     #tmpClearCmdFlag; //to clear x_done flags
+      R     #StStopped; 
+      R     #StStarted; 
+      R     #OutFaultResetDone; 
+      R     #OutRequestActive; 
+      U     #InLocal; //---InLocal=1 -> StFalse -> no LOG message
+      S     #StFalse; 
+      R     #StFault; 
+      SPB   OUT; 
+      U     #StFault; // 2.1: Fault flag only when transition -> StFault
+      SPB   S4J2; 
+      S     "GCS7_Gr_InFaultFlag"; // 2.1: Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1024,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+S4J2: SET   ; // 2.1:
+      S     #StFault; 
+      R     #StFalse; 
+      L     B#(1, 14); //COM communication fault
+      U     #OutComFault; 
+      SPB   LOG; 
+      L     B#(1, 1); 
+      U     #Par.OutLCAlarm.Ext5NotAvailable; 
+      SPB   LOG; 
+      L     B#(1, 2); 
+      U     #Par.OutLCAlarm.Ext24NotAvailable; 
+      SPB   LOG; 
+      L     B#(1, 3); 
+      U     #Par.OutLCAlarm.OverloadOutput; 
+      SPB   LOG; 
+      L     B#(1, 4); 
+      U     #Par.OutLCAlarm.OverloadOutputOper; 
+      SPB   LOG; 
+      L     B#(1, 5); 
+      U     #Par.OutLCAlarm.TurbineFlowFaulty; 
+      SPB   LOG; 
+      L     B#(1, 6); 
+      U     #Par.OutLCAlarm.TurbineFlow1Faulty; 
+      SPB   LOG; 
+      L     B#(1, 7); 
+      U     #Par.OutLCAlarm.AlarmClosing; 
+      SPB   LOG; 
+      L     B#(1, 8); 
+      U     #Par.OutLCAlarm.AlarmOpening; 
+      SPB   LOG; 
+      L     B#(1, 9); 
+      U     #Par.OutLCAlarm.NoValidNominalValue; 
+      SPB   LOG; 
+      L     B#(1, 10); 
+      U     #Par.OutLCAlarm.ADAlarm; 
+      SPB   LOG; 
+      L     B#(1, 11); 
+      U     #Par.OutLCAlarm.InvalidNominalValue; 
+      SPB   LOG; 
+      L     #OutAlarmNr; 
+      L     11; 
+      >I    ; 
+      L     B#(1, 15); //exception error
+      SPB   LOG; 
+      L     B#(1, 14); //COM communication
+      SPA   LOG; 
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1024);
+
+NETWORK
+TITLE =Global End
+
+OUT:  U     #StStarted; 
+      =     #OutpDosingEnable; 
+      SET   ; //---Clear all commands
+      R     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+      UN    #tmpClearCmdFlag; //---Clear command flags (x_done)
+      SPB   STC0; 
+      R     #Par.OutComFlags.d_Done; 
+      R     #Par.OutComFlags.Q_Done; 
+      R     #Par.OutComFlags.N_Done; 
+      R     #Par.OutComFlags.X_Done; 
+      R     #Par.OutComFlags.d_Done; 
+      R     #Par.OutComFlags.G_Done; 
+//--Output for group 
+STC0: UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; // Code: stopped
+      SPB   STC; 
+//--------------------
+STC2: L     3; //Code: StStarted
+      U     #StStarted; 
+      SPB   STC; 
+      L     5; //Code: false
+      U     #StFalse; 
+      SPB   STC; 
+      L     32; //Code: fault
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+NETWORK
+TITLE = Store LC data
+
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index; 
+      L     2; //Store LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    "GCS7_RS485Ctrl"; 
+      TDB   ; 
+
+END_FUNCTION_BLOCK
+

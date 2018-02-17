@@ -1,0 +1,270 @@
+FUNCTION_BLOCK "SSA_DANFOSS_VLT5000"
+TITLE =DANFOSS VLT5000
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        DANFOSS VLT5000 Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1815.2.0     M.Wedler            AEB41                            29-Aug-2008
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//Statuswort VLT 5000
+    _ACT_VALUE : BOOL ;	//0=Set <> act                                  1=set==act value
+    _MODE : BOOL ;	//0=local mode                                  1=Profibus mode
+    _FREQUENZ_OK : BOOL ;	//0=Frequenz out of limits                      1=act Frequenz ok 
+    _RUNNING : BOOL ;	//0=Motor stopped                               1=motor running
+    _OVERLOAD : BOOL ;	//0=no overload                                 1=FU overload 
+    _FU_VOLTAGE_OK : BOOL ;	//0=FU Voltage ok                               1=FU voltage out of limits
+    _FU_MOMENT_OK : BOOL ;	//0=FU moment ok                                1=FU moment out of limits
+    _FU_THERMIC_OVERLOAD : BOOL ;	//0=FU thermic overload ok                      1=FU thermic overload  
+    _CONTROL_SYSTEM : BOOL ;	//0=Control System fault                        1=control System OK
+    _VLT_OK : BOOL ;	//0=VLT not ok (incl.power)                     1=VLT ok (incl.power)
+    _FREILAUF : BOOL ;	//0=Freilauf, FU hat abgeschaltet               1=kein Freilauf = ok
+    _FAULT : BOOL ;	//0=No Fault                                    1=Fault, Reset required
+    _RESERVE0_4 : BOOL ;	//not used
+    _RESERVE0_5 : BOOL ;	//not used
+    _RESERVE0_6 : BOOL ;	//not used
+    _WARNUNG : BOOL ;	//0=ok                                          1=warning FU
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//Hauptistwert / Prozessdaten PD2
+   ActualValue02 : INT ;	//Prozessdaten PD3
+   ActualValue03 : INT ;	//Prozessdaten PD4
+   ActualValue04 : INT ;	//Prozessdaten PD5
+   ActualValue05 : INT ;	//Prozessdaten PD6
+   STAT0 : BOOL ;	
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Steuerwort VLT 5000
+    _BETRIEBSART : BOOL ;	//0=normalbetrieb                    1=Jog (motor läuft mit Festdrehzahl)
+    _RAMPE1_2 : BOOL ;	//0=Rampe 1 aktiv                    0=Rampe 2 aktiv
+    _PROFIBUS : BOOL ;	//1=Daten über Profibus !!!          0=lokalbetrieb
+    _RELAIS1 : BOOL ;	//0=Relais1 nicht aktiv              1=Relais1 aktiv
+    _RELAIS4 : BOOL ;	//0=Relais4 nicht aktiv              1=Relais4 aktiv 
+    _PARAMETERSATZ1 : BOOL ;	//0-3 = Selection Parametersatz 1-4
+    _PARAMETERSATZ4 : BOOL ;	//0-3 = Selection Parametersatz 1-4
+    _NORMALLAUF : BOOL ;	//0=Normallauf                       1=Reversierung
+    _AUS1 : BOOL ;	//0-3 = Selection Parameter 215-218 fix set Value
+    _AUS2 : BOOL ;	//0-3 = Selection Parameter 215-218 fix set Value
+    _RAMPE : BOOL ;	//1=Rampe                            0=Bremsen
+    _NORMALBETRIEB : BOOL ;	//1=normalbetrieb                    0=Stopp mit Freilauf
+    _SCHNELLSTOPP : BOOL ;	//1=Rampe                            0=SchnellStopp mit Rampe
+    _SET1 : BOOL ;	//1=Rampe möglich (muss immer 1 sein!)
+    _START : BOOL ;	//1=Start                            0=normaler Rampenstopp
+    _RESET : BOOL ;	//1-Flanke =Reset nach Abschaltung   0=keine Funktion  
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//Hauptsollwert / Prozessdaten PD2
+   SetpointValue02 : INT ;	//Prozessdaten PD3
+   SetpointValue03 : INT ;	//Prozessdaten PD4
+   SetpointValue04 : INT ;	//Prozessdaten PD5
+   SetpointValue05 : INT ;	//Prozessdaten PD6
+   STAT34 : BOOL ;	
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMovidrive : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; //Laden FU Adresse
+      SLD   3; //Wandeln in Pointer Format
+      T     #tmpAddrIO; //Pointer Speichern
+
+      L     P##Input; //Adresse Laden von Zustandsworten
+      L     DW#16#FFFFFF; //Bereinigen von DW 
+      UD    ; //UND - Doppelwort
+      TAR2  ; //Transfert ADDR2 in AKKU1
+      +D    ; //Adition Doppelwort
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands Par.ParDanfoss
+//! Test commands for VLT FC100 !
+      UN    #Par.ParDanfoss; 
+      SPB   DAJ0; 
+//Load Status Word
+//      LAR1  #tmpAddrInputFU
+//      L     DIW [AR1,P#0.0]             //Status Word
+//      LAR1  P##DANFOSS_StateWord
+//      T     LW [AR1,P#0.0]              // DANFOSS_StateWord
+// prepare steuerword
+      L     W#16#43E; // Stop FC  //[2.0]
+      U     #InEnableFwd; //[2.0]
+      O     #InEnableRev; //[2.0]
+      SPBN  DAJ1; //[2.0]
+      L     W#16#847F; // Start FC revers  //[2.0]
+      U     #InEnableRev; //[2.0]
+      SPB   DAJ1; //[2.0]
+      L     W#16#47F; // Start FC   //[2.0]
+DAJ1: LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+//-----------------------------------------
+// Fault Reset ins Steuerwort
+
+// VLT5000 - Not tested                  //[2.0]                
+//      U     #Input.StateWord_1._OVERLOAD    // Fehler von FU
+//      O     #Input.StateWord_1._FU_THERMIC_OVERLOAD    // Fehler von FU
+
+// FC100 - Tested by UAN01         //[2.0]
+      U     #Input.StateWord_1._FAULT; // FC100    //[2.0]
+      U     #CmdFaultReset; 
+      SPBN  DAR1; 
+      L     W#16#48E; // Reset ins Steuerwort
+      LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+DAR1: NOP   0; 
+//- Feedback for motor
+// VLT5000 - Not tested      //[2.0]
+//      U     #Input.StateWord_1._RUNNING // VLT5000   //[2.0]
+//      UN    #Input.StateWord_1._OVERLOAD    // Fehler von FU    //[2.0]
+//      UN    #Input.StateWord_1._FU_THERMIC_OVERLOAD    // Fehler von FU  //[2.0]
+
+// FC100 - Tested by UAN01                  //[2.0]
+      U     #Input.StateWord_1._FREQUENZ_OK; // FC100   //[2.0]
+      U     #Input.StateWord_1._RUNNING; // FC100  //[2.0]
+      UN    #Input.StateWord_1._FAULT; // FC100  //[2.0]
+      U     #InEnableRev; //[2.0]
+      =     #OutRunningRev; //[2.0]
+
+// VLT5000 - Not tested                                //[2.0]
+//      U     #Input.StateWord_1._RUNNING // VLT5000    //[2.0]
+//      UN    #Input.StateWord_1._OVERLOAD    // Fehler von FU  //[2.0]
+//      UN    #Input.StateWord_1._FU_THERMIC_OVERLOAD    // Fehler von FU  //[2.0]
+
+// FC100 - Tested by UAN01                //[2.0]
+      U     #Input.StateWord_1._FREQUENZ_OK; // FC100   //[2.0]
+      U     #Input.StateWord_1._RUNNING; // FC100     //[2.0]
+      UN    #Input.StateWord_1._FAULT; // FC100     //[2.0]
+      U     #InEnableFwd; //[2.0]
+      =     #OutRunningFwd; //[2.0]
+
+// VLT5000 - Not tested                  //[2.0]                
+//      U     #Input.StateWord_1._OVERLOAD    // Fehler von FU   //[2.0]
+//      O     #Input.StateWord_1._FU_THERMIC_OVERLOAD    // Fehler von FU    //[2.0]
+
+// FC100 - Tested by UAN01         //[2.0]
+      U     #Input.StateWord_1._FAULT; // FC100    //[2.0]
+      =     #OutFault; //[2.0]
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     1.638400e+000; 
+      *R    ; 
+      RND   ; 
+      T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     1.638400e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =Read Inputs of Inverter
+
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#8.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#8.0]; 
+NETWORK
+TITLE =Write Outputs of Inverter
+
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#4.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#8.0]; 
+
+NETWORK
+TITLE =
+
+DAJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

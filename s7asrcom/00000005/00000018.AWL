@@ -1,0 +1,39 @@
+TYPE "GCS7_UDT_FunctionKey"
+
+
+  STRUCT 	
+   CmdProdCheck : BOOL ;	//ASW: Start after product check
+   CmdEmptying : BOOL ;	
+   CmdTolerate : BOOL ;	
+   CmdHornOff : BOOL ;	
+   Cmd04 : BOOL ;	
+   Cmd05 : BOOL ;	
+   Cmd06 : BOOL ;	
+   Cmd07 : BOOL ;	
+   CmdStart : BOOL ;	
+   CmdTransferOn : BOOL ;	
+   CmdFeedOn : BOOL ;	
+   CmdFree : BOOL ;	
+   CmdAutomatic : BOOL ;	
+   CmdStepOff : BOOL ;	
+   CmdNextStep : BOOL ;	
+   CmdAcceptSize : BOOL ;	
+   Cmd16 : BOOL ;	
+   CmdAbortBatch : BOOL ;	
+   CmdFaultReset : BOOL ;	
+   CmdHornOn : BOOL ;	
+   Cmd17 : BOOL ;	
+   Cmd18 : BOOL ;	
+   Cmd19 : BOOL ;	
+   CmdHLOverride : BOOL ;	//ASW: Activate function override HL
+   CmdImmediateStop : BOOL ;	
+   CmdTransferOff : BOOL ;	
+   CmdFeedOff : BOOL ;	
+   CmdHold : BOOL ;	
+   CmdHand : BOOL ;	
+   CmdStepOn : BOOL ;	
+   CmdReset : BOOL ;	
+   CmdSequenzStop : BOOL ;	
+  END_STRUCT ;	
+END_TYPE
+

@@ -1,0 +1,4338 @@
+FUNCTION "ASW_MAL1S033Ctrl" : VOID
+TITLE =MAL1S033 Section control: LINE 1 SEC 33 KILN 2
+//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        LINE 1 SEC 33 KILN 2
+//                 Section control
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//P01_FC833.1.0 K.Renz              CSB41                              16.Okt.2009
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//REFERENCES : GCSOSMAN
+//
+//--------------------------------------------------------------------------------
+//
+//
+//0000 to 0999: Main Functions
+//              0 =Main Function Cylic
+//              1 =Main Function Coldstart/Newstart
+//              2 =Main Function Warm Start
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR_INPUT
+  InCode : INT ;	
+END_VAR
+VAR_TEMP
+  tmpStartNext : BOOL ;	//Condition to Start next element
+  tmpFlagFault : BOOL ;	//Flag mechanical fault
+  tmpEnableFeed : BOOL ;	
+  tmpStartScale : BOOL ;	
+  tmpStartLiqScale : BOOL ;	//Enable to Start Lipquid Scale	
+  tmpSndBin : INT ;	
+  tmpRcvBin : INT ;	
+  tmpBool : BOOL ;	
+  tmpByte : BYTE ;	
+  tmpWord : WORD ;	
+  tmpDWord : DWORD ;	
+  tmpInt : INT ;	
+  tmpRET : INT ;	
+  tmpDInt : DINT ;	
+  tmpCyclusTime : DINT ;	
+  tmpWetSteep : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = 
+//=================================================
+//=================================================
+//S T A R T   M A I N   F U N C T I O N
+//=================================================
+//=================================================
+      L     #InCode; 
+      L     0; 
+      <>I   ; 
+      BEB   ; 
+
+NETWORK
+TITLE =Main0_Command: Commands user to section
+
+      NOP   0; 
+//-Tick 1 second---
+      U     "SYS_Tick1s"; 
+      =     "MAL1S033".ToSSW.InfPulseTimer; 
+//-Hardware stop---
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     "MAL1S033".PCRead.Status.StaHWStop; 
+      U     "MAL1S033".PCRead.Status.StaHWStop; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      S     "MAL1S033".ToSSW.Func.CmdImmediateStop; 
+//-Online---
+      U     "SYS_infLog1"; 
+      =     "MAL1S033".PCRead.Status.StaOnline; 
+NETWORK
+TITLE =ASW_UC: User commands to section
+
+      NOP   0; 
+//-Additional user commands---
+//-GP standard commands---
+      AUF   "MAL1S033"; 
+      L     L#0; // Enter the differenz of the target weight and prestop weight
+      T     "MAL1S033".VarTemp.InOutValue3; // Prestop weight
+      CALL "STD_LineSecStdSub" (
+           InCode                   := 2001);// Section function: Standard section commands
+
+//-Condition CmdSequenzStop---
+      U     "MAL1S033".ToSSW.Func.CmdSequenzStop; 
+//      S     "MAL1S033".ToSSW.Func.CmdSequenzStop
+      R     "MAL1S033".ToSSW.Func.CmdSequenzStop; 
+//-Extended section commands---
+//      AUF   "MAL1S033"
+//      CALL  "STD_LineSecStdSub"
+//       InCode:=2002                     // Section function: Extended section commands
+//-Status from pulse commands---
+      CLR   ; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse00OverrideLL; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse01; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse02; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse03; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse04; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse05; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse06; 
+      =     "MAL1S033".PCRead.ExtFuncOn.Pulse07; 
+//
+NETWORK
+TITLE =Main0_Dest: Destination
+//99 = Undefined Condition
+// 0 = Wait to Loading
+// 1 = Loading
+// 2 = Process Aktive
+// 3 = Unloading
+// 4 = Cleaning
+// 5 = Finish Unloading
+// 6 = Process End
+// 7 = Cooling Active
+// 8 = Wait to Unloading
+// 9 =
+//10 = Wait for Start Loading
+//11 = Start process is not possible! First loading round is not closed!
+//12 = Wait for Start Process
+//13 = Can not be unloaded! Same batch in previous section!
+//14 = Turning is not possible! Srew is not in position!
+//15 = Cleaning not finished!
+//16 = Process aktive and wait for water! Water not filled!
+//17 = Spraying is not possible! Wait for water!
+//18 = Cleaning is not possible! Wait for water!
+//19 = Automatic function obstructs by active ILO-Mode!
+//20 = Automatic startup is breacked! Wait for continue!
+//21 = Wait for release unloading!
+//22 = Brennerluft zu kalt!   // NEU
+      L     99; // Undefined condition
+
+      U     "MAL1S033".PCRead.Step.StPassive; 
+      UN    "MAL1S033".ToASW.InfDataReady; 
+      O     ; 
+      U     "MAL1S033".PCRead.Step.StIdling; 
+      UN    "MAL1S033".ToASW.InfDataReady; 
+      SPBN  M300; 
+      L     0; // Wait for loading
+      SPA   M030; 
+M300: NOP   0; 
+
+      U     "MAL1S033".PCRead.Step.StWait; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      SPBN  M310; 
+      L     10; // Wait for start loading
+      SPA   M030; 
+M310: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      UN    "MAL1S033".PCRead.Step.StWait; 
+      UN    "MAL1S033".PCRead.Fault.EsMech; 
+//    UN    "MAL1S006".PCRead.Status.StaAutostart
+      U     DB833.DBX  123.0; 
+      U     DB833.DBX  123.1; 
+      SPBN  M320; 
+      L     20; // Automatic startup is breacked! Wait for continue!
+      SPA   M030; 
+M320: NOP   0; 
+
+      U     "MAL1S033".PCWrite.ExtFuncOn.StartProcess; 
+      L     S5T#30S; 
+      SA    T     87; 
+      U     T     87; 
+
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.LoadFirstPartEnd; 
+// Prozess-Start erst moeglich wenn Darre 1 Schritt 3 beendet hat oder nicht aktiv ist!!
+      U(    ; 
+      U(    ; 
+      L     "MAL1S032Par".Par.ParIntMachine.ActualStep; 
+      L     4; 
+      >=I   ; 
+      )     ; 
+      ON    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+
+      SPBN  M311; 
+      L     11; // Start process is not possible! First loading round is not closed!
+      SPA   M030; 
+M311: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U(    ; 
+      O     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      U     "G292M".A_3211_MXZ41MA.A_3211_BZS43.StTrue; // sensor zero point
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; // Process active
+      SPBN  M312; 
+      L     12; // Wait for start process
+      SPA   M030; 
+M312: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  M301; 
+      L     1; // Loading
+      SPA   M030; 
+M301: NOP   0; 
+
+      U     "MAL1S033Par".Par.FlagProcess.TurningFloor; 
+      UN(   ; 
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS33.InpTrue; 
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS23.InpTrue; 
+      )     ; 
+      SPBN  M314; 
+      L     14; // Turning is not possible! Srew is not in position!
+      SPA   M030; 
+M314: NOP   0; 
+
+      U     "SYS_infLog0"; 
+      SPBN  M317; 
+      L     17; // Spraying is not possible! Wait for water!
+      SPA   M030; 
+M317: NOP   0; 
+
+      U     "G292M".Gr.InManual; // FLOOR DRIVES KILNINGBOX 2
+      UN    "G292M".Gr.VarFault; // FLOOR DRIVES KILNINGBOX 2
+      U     "G292M".A_3211_MXZ41MA.Ma.StStopped; // FLOOR DRIVES KILNINGBOX 2
+      U     "MAL1S033Par".Par.FlagFunction_1.TurningStart; 
+      U     "MAL1S033Par".Par.FlagProcess.TurningFloor; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      SPBN  M319; 
+      L     19; // Automatic function obstructs by active ILO-Mode!
+      SPA   M030; 
+M319: NOP   0; 
+
+      U     "MAL1S033".Gr.OutSelected[303]; //-->G303M Defroster Flaps Kilningbox
+      UN    "MAL1S033Par".Par.FlagProcess2.Schaltp_5; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPBN  M322; 
+      L     22; // Brennerluft zu kalt!
+      SPA   M030; 
+M322: NOP   0; 
+
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPBN  M302; 
+      L     2; // Process aktive
+      SPA   M030; 
+M302: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      UN    "MAL1S034".PCRead.State.StFeeding; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      SPBN  M321; 
+      L     21; // Wait for release unloading!
+      SPA   M030; 
+M321: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      SPBN  M303; 
+      L     3; // Unloading
+      SPA   M030; 
+M303: NOP   0; 
+
+      U     "SYS_infLog0"; 
+      SPBN  M315; 
+      L     15; // Cleaning not finished!
+      SPA   M030; 
+M315: NOP   0; 
+
+      U     "SYS_infLog0"; 
+      SPBN  M318; 
+      L     18; // Cleaning is not possible! Wait for water!
+      SPA   M030; 
+M318: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepCleaning; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      SPBN  M304; 
+      L     4; // Cleaning
+      SPA   M030; 
+M304: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepCleaning; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      SPBN  M305; 
+      L     5; // Finish unloading
+      SPA   M030; 
+M305: NOP   0; 
+
+      U     "SYS_infLog0"; 
+      SPBN  M306; 
+      L     6; // Process End
+      SPA   M030; 
+M306: NOP   0; 
+
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; // Process active
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // Cooling
+      SPBN  M307; 
+      L     7; // Cooling Active
+      SPA   M030; 
+M307: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      SPBN  M313; 
+      L     13; // Can not be unloaded! Same batch in previous section!
+      SPA   M030; 
+M313: NOP   0; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      UN    "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepCleaning; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      SPBN  M308; 
+      L     8; // Wait for Unloading
+      SPA   M030; 
+M308: NOP   0; 
+
+      U     "SYS_infLog0"; 
+      SPBN  M316; 
+      L     16; // Process aktive and wait for water! Water not filled!
+      SPA   M030; 
+M316: NOP   0; 
+
+M030: T     "MAL1S033Par".SectionStatus; 
+
+
+NETWORK
+TITLE =Main0_Next: Ready for next batch
+
+      ON    "MAL1S033".ToASW.InfDataReady; 
+      =     "MAL1S033".ToSSW.InfReadyForNewBatch; 
+NETWORK
+TITLE =Main0_Control: Control section
+
+      NOP   0; 
+//-Process commands from PCS---
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode O_Section
+           CODE                     := 7);
+//-Process commands from user---
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode Control
+           CODE                     := 0);
+//-Process section step---
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode Step_execute
+           CODE                     := 2);
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode Step_transition
+           CODE                     := 3);
+//-Process section state---
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode State
+           CODE                     := 4);
+
+NETWORK
+TITLE =Main0_Init: Init
+
+      UN    "MAL1S033".ToASW.Transition.ToWait; 
+      UN    "MAL1S033".ToASW.CmdNewBatch; 
+      SPB   in00; 
+//-User initialization---
+      AUF   "MAL1S033"; 
+// 
+//-Section function: Init ---
+      AUF   "MAL1S033"; 
+      CALL "STD_LineSecStdSub" (
+           InCode                   := 2003);// Section function: Init
+// 
+//-Group interface---
+// 
+//-Initialise bin objects---
+// 
+//-Emptying job---
+      U     "MAL1S033".JobAc.StaBatch.StaEmptyingBatch; 
+      S     "MAL1S033".PCRead.Status.StaLoaded; 
+// 
+//-Error Batch---
+// 
+in00: NOP   0; 
+
+NETWORK
+TITLE =ASW_VB: Various functions before bin control
+
+      NOP   0; 
+// 
+//-Update staSameSndRcv in sender binlist---
+NETWORK
+TITLE =Main0_GrEMM: Enable manual mode
+
+      UN    "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Status.StaHand; 
+      S     "GCS7_GrCtrlDB".InExternal[87]; // Pump P11 + P12
+
+      UN    "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".ToASW.Func.CmdAutomatic; 
+      R     "GCS7_GrCtrlDB".InExternal[87]; // Pump P11 + P12
+
+NETWORK
+TITLE =Main0_GrNRS: Not Relevant for started / Fault
+
+      NOP   0; 
+      SET   ; 
+      =     "MAL1S033".Gr.ParNotRelForStarted[1]; //-->G001G Power supply circuit +C11
+      =     "MAL1S033".Gr.ParNotRelForFault[1]; //-->G001G Power supply circuit +C11
+      =     "MAL1S033".Gr.ParNotRelForStarted[2]; //-->G002G Contactor panel power supply 1
+      =     "MAL1S033".Gr.ParNotRelForFault[2]; //-->G002G Contactor panel power supply 1
+      =     "MAL1S033".Gr.ParNotRelForStarted[3]; //-->G003G PLC monitoring
+      =     "MAL1S033".Gr.ParNotRelForFault[3]; //-->G003G PLC monitoring
+      =     "MAL1S033".Gr.ParNotRelForStarted[26]; // -->G026G Alarm horns
+      =     "MAL1S033".Gr.ParNotRelForFault[26]; // -->G026G Alarm horns
+      =     "MAL1S033".Gr.ParNotRelForStarted[295]; //-->G295M Temperature Mes.  Kilningbox 1
+      =     "MAL1S033".Gr.ParNotRelForFault[295]; //-->G295M Temperature Mes.  Kilningbox 1
+
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      =     "MAL1S033".Gr.ParNotRelForStarted[297]; //-->G297M FAN KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[297]; //-->G297M FAN KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[298]; //-->G298M FRESH AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[298]; //-->G298M FRESH AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[299]; //-->G299M RECYCLING AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[299]; //-->G299M RECYCLING AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[300]; //-->G300M EXHAUST AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[300]; //-->G300M EXHAUST AIR LOUVER KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[301]; //-->G301M LOUVER HEATING GLASS TUBE HEAT EXCHANGER
+      =     "MAL1S033".Gr.ParNotRelForFault[301]; //-->G301M LOUVER HEATING GLASS TUBE HEAT EXCHANGER 
+      =     "MAL1S033".Gr.ParNotRelForStarted[302]; //-->G302 MHEATING KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[302]; //-->G302M HEATING KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[303]; //-->G303M LOUVER AIR HEATER 1 FOR KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[303]; //-->G303M LOUVER AIR HEATER 1 FOR KILN 2
+      =     "MAL1S033".Gr.ParNotRelForStarted[304]; //-->G304M WITHERING AIR KILN 2
+      =     "MAL1S033".Gr.ParNotRelForFault[304]; //-->G304M WITHERING AIR KILN 2
+
+      NOP   0; 
+
+NETWORK
+TITLE =Main0_GrSelection: Group selection
+// List of the used objects in the section
+// ==========================
+// G022G       GENERAL ELEMENTS KILN 2
+// G261M       BELT CONVEYOR 7200 KILN
+// G262M       BELT CONVEYOR 7300 KILN
+// G263M       BELT CONVEYOR 7301 KILN
+// G264M       BELT CONVEYOR 7400 KILN
+// G291M       LIFTING DEVICE KILN 2
+// G292M       TRAVELLING DRIVE KILN 2
+// G293M       UNLOADING / LOADING SCREW KILN 2
+// G294M       DISCHARGE DOOR KILN 2
+// G295M       TEMPERATURE MES. KILN 2
+// G296M       AIR SHUT SLIDE KILN 2
+// G297M       FAN KILN 2
+// G298M       FRESH AIR LOUVER KILN 2
+// G299M       RECYCLING AIR FLAP KILN 2
+// G300M       EXHAUST AIR FLAP KILN 2
+// G301M       LOUVER HEATING GLASS TUBE HEAT EXCHANGER
+// G302M       HEATING KILN 2
+// G303M       LOUVER AIR HEATER KILN 2
+// G304M       WITHERING AIR KILN 2
+// G279M       HEATING KILN 1 + 2
+// G305M       CHAIN CONVEYOR 9002 KILN 2
+// G281M       ELEVATOR 9002 AFTER KILN
+// G282M       FLAP BOX 9008
+// G283M       CULM BATCH BIN 9005
+// 
+      NOP   0; 
+//-Condition for preselection---
+      U     "MAL1S033".ToASW.InfDataReady; 
+      SPB   GS01; 
+//-Deselect groups ---
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Deselect
+           Code                     := 3,
+           Sec                      := "MAL1S033".Gr);
+      SPA   GS02; 
+//-Select groups ---
+GS01: NOP   0; 
+//-Prepare for preselection ---
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init Preselection
+           Code                     := 1,
+           Sec                      := "MAL1S033".Gr);
+// 
+// 
+//-Preselect used groups --
+      SET   ; 
+      S     "MAL1S033".Gr.InPreselect[22]; //-->G022G GENERAL ELEMENTS KILN 2
+      S     "MAL1S033".Gr.InPreselect[295]; //-->G295M TEMPERATURE MES. KILN 2
+
+//--- Option
+      U     "MAL1S033".PCRead.Step.StActive; // Loading
+      O     "MAL1S033".PCRead.Step.StReady; // Process active
+      U(    ; 
+      L     "G269M".A_3191_BTE11.OutValuePc; // AIR TEMPERATURE OUTSIDE
+      L     1500; // 15.00°C
+      <=I   ; 
+      )     ; 
+      UN(   ; 
+      U     "MAL1S033Par".Par.FlagProcess2.Schaltp_15; 
+      U     "MAL1S033Par".Par.FlagProcess2.Schaltp_70; 
+      )     ; 
+      U     "SYS_infLog0"; // Keine Freigabe!!
+      S     "MAL1S033".Gr.InPreselect[302]; //-->G302M HEATING KILN 2
+      S     "MAL1S033".Gr.InPreselect[303]; //-->G303M LOUVER AIR HEATER 1 FOR KILN 2
+      S     "MAL1S033".Gr.InPreselect[301]; //-->G301M LOUVER HEATING GLASS TUBE HEAT EXCHANGER
+
+// Oeffnen und Schliessen der Defroster-Klappe
+      U     "G301M".USW8; // Defrosterklappe AUF
+      S     "MAL1S033".Gr.InPreselect[301]; //-->G301M LOUVER HEATING GLASS TUBE HEAT EXCHANGER
+
+//------------------------------Loading kilningbox-----------------------------------
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      S     "MAL1S033".Gr.InPreselect[291]; //-->G265M LIFTING DEVICE KILN 1
+
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishLoading; // start process kilning
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M TRAVELLING DRIVE KILN 2
+      S     "MAL1S033".Gr.InPreselect[293]; //-->G293M UNLOADING / LOADING SCREW KILN 2
+      S     "MAL1S033".Gr.InPreselect[294]; //-->G294M DISCHARGE DOOR KILN 2
+      S     "MAL1S033".Gr.InPreselect[296]; //-->G296M AIR SHUT SLIDE KILN 2
+      S     "MAL1S033".Gr.InPreselect[284]; //-->G284M BELT CONVEYOR 7100 KILN
+      S     "MAL1S033".Gr.InPreselect[261]; //-->G261M BELT CONVEYOR 7200 KILN
+      S     "MAL1S033".Gr.InPreselect[262]; //-->G262M BELT CONVEYOR 7300 KILN
+      S     "MAL1S033".Gr.InPreselect[263]; //-->G263M BELT CONVEYOR 7301 KILN
+      S     "MAL1S033".Gr.InPreselect[264]; //-->G264M BELT CONVEYOR 7400 KILN
+
+//----------------------------Loading kilningbox finish------------------------------
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U(    ; 
+      UN    "G291M".A_3211_MXZ21_31MA.Ma.OutAdjustedLeft; 
+      ON    "G291M".A_3211_MXZ21_31MA.Ma.OutAdjustedRight; 
+      )     ; 
+      S     "MAL1S033".Gr.InPreselect[291]; //-->G291M LIFTING DEVICE KILN 2
+//    
+      U(    ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.TurningFloor; 
+      U     "MAL1S033Par".Par.FlagFunction_1.TurningStart; 
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M TRAVELLING DRIVE KILN 2
+
+// Glaettungfahrt zur Parkposition bei Beladen Ende
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung; 
+      S     "MAL1S033".Gr.InPreselect[291]; //-->G291M LIFTING DEVICE KILN 2
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M TRAVELLING DRIVE KILN 2
+      S     "MAL1S033".Gr.InPreselect[293]; //-->G293M UNLOADING / LOADING SCREW KILN 2
+
+//-Cleaning conveyance after loading---
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagFunction_0.TimeCleanConvRun; 
+      S     "MAL1S033".Gr.InPreselect[284]; //-->G284M BELT CONVEYOR 7100 KILN
+      S     "MAL1S033".Gr.InPreselect[261]; //-->G261M BELT CONVEYOR 7200 KILN
+      S     "MAL1S033".Gr.InPreselect[262]; //-->G262M BELT CONVEYOR 7300 KILN
+      S     "MAL1S033".Gr.InPreselect[263]; //-->G263M BELT CONVEYOR 7301 KILN
+      S     "MAL1S033".Gr.InPreselect[264]; //-->G264M BELT CONVEYOR 7400 KILN
+
+
+//-------------------------------Process kilning-------------------------------------
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; // Process active
+      S     "MAL1S033".Gr.InPreselect[294]; //-->G294M DISCHARGE DOOR KILN 2
+      S     "MAL1S033".Gr.InPreselect[296]; //-->G296M AIR SHUT SLIDE KILN 2
+      S     "MAL1S033".Gr.InPreselect[297]; //-->G297M FAN KILN 2
+
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; // Process active
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "GCS7_GrCtrlDB".InStopped[297]; //-->G297M FAN KILN 2
+      S     "MAL1S033".Gr.InPreselect[299]; //-->G299M RECYCLING AIR LOUVER KILN 2
+      S     "MAL1S033".Gr.InPreselect[304]; //-->G304M WITHERING AIR KILN 2
+
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      S     "MAL1S033".Gr.InPreselect[302]; //-->G302M HEATING KILN 2
+      S     "MAL1S033".Gr.InPreselect[303]; //-->G303M LOUVER AIR HEATER 1 FOR KILN 2
+      S     "MAL1S033".Gr.InPreselect[279]; //-->G279M HEATING KILN 1 + 2
+
+//--------------------------Kuehlluft-Klappenregelung EIN----------------------------
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      U     "G298M".USW8; // Klappenregelung Ein
+      S     "MAL1S033".Gr.InPreselect[298]; //-->G298M FRESH AIR LOUVER KILN 2
+
+//-------------------------------Process Cooling--------------------------------------
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "GCS7_GrCtrlDB".InStopped[297]; //-->G297M FAN KILN 2
+      S     "MAL1S033".Gr.InPreselect[298]; //-->G298M FRESH AIR LOUVER KILN 2
+      S     "MAL1S033".Gr.InPreselect[303]; //-->G303M LOUVER AIR HEATER 1 FOR KILN 2
+
+//---------------------------Unloading kilning box------------------------------------
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "MAL1S034".PCRead.State.StFeeding; 
+      S     "MAL1S033".Gr.InPreselect[294]; //-->G294M DISCHARGE DOOR KILN 2
+//    
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "MAL1S034".PCRead.State.StFeeding; 
+      U     "G294M".Gr.OutEnablePrevGr; //-->G294M DISCHARGE DOOR KILN 2
+      S     "MAL1S033".Gr.InPreselect[291]; //-->G291M LIFTING DEVICE KILN 2
+//    
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+//      UN      "MAL1S033".PCRead.Status.StaTransferOffASW
+      U     "G293M".Gr.OutEnablePrevGr; //-->G293M DISCHARGE DOOR KILN 2
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S034".PCRead.State.StFeeding; 
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M UNLOADING / LOADING SCREW KILN 2
+//    
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "MAL1S034".PCRead.State.StFeeding; 
+      UN    "MAL1S033".PCRead.Status.StaTransferOffASW; 
+      U     "G294M".Gr.OutEnablePrevGr; //-->G294M DISCHARGE DOOR KILN 2
+      U     "G293M".Gr.OutEnablePrevGr; //-->G293M UNLOADING / LOADING SCREW KILN 2   
+      UN    "MAL1S033Par".Par.FlagFunction_0.ScrewAboveProductLayer; 
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M TRAVELLING DRIVE KILN 2
+// 
+// ------------------Parkposition anfahren nach dem Entladen-------------------
+//    UN      "MAL1S033Par".Par.FlagFunction_1.StepUnloading
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0; 
+      S     "MAL1S033".Gr.InPreselect[291]; //-->G291M LIFTING DEVICE KILN 2
+      S     "MAL1S033".Gr.InPreselect[292]; //-->G292M TRAVELLING DRIVE KILN 2
+
+
+//      S       "MAL1S033".Gr.InPreselect[300]    //-->G300M EXHAUST AIR LOUVER KILN 2
+
+//      S     "MAL1S033".Gr.InPreselect[305]    //-->G305M CHAIN CONVEYOR 9002 KILN 2//      S       "MAL1S033".Gr.InPreselect[281]    //-->G281M ELEVATOR 9002 AFTER KILN
+//      S       "MAL1S033".Gr.InPreselect[282]    //-->G282M FLAP BOX 9008
+//      S       "MAL1S033".Gr.InPreselect[283]    //-->G283M CULM BATCH BIN 9005
+//      L     1
+//      L       "MAL1S033Par".StepAct.StepNumber
+//      UW    
+//      ==I                               // step wetsteep
+//      =       "MAL1S033Par".Par.FlagGen.WetStep
+// 
+//-Set CmdNewJob ---
+      U     "MAL1S032".Gr.InPreselect[284]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[284]; 
+      S     "G284M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[261]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[261]; 
+      S     "G261M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[262]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[262]; 
+      S     "G262M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[263]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[263]; 
+      S     "G263M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[264]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[264]; 
+      S     "G264M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[291]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[291]; 
+      S     "G291M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[292]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[292]; 
+      S     "G292M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[293]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[293]; 
+      S     "G293M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[294]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[294]; 
+      S     "G294M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[295]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[295]; 
+      S     "G295M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[296]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[296]; 
+      S     "G296M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[297]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[297]; 
+      S     "G297M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[298]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[298]; 
+      S     "G298M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[299]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[299]; 
+      S     "G299M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[300]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[300]; 
+      S     "G300M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[301]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[301]; 
+      S     "G301M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[302]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[302]; 
+      S     "G302M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[303]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[303]; 
+      S     "G303M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[304]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[304]; 
+      S     "G304M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[279]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[279]; 
+      S     "G279M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[305]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[305]; 
+      S     "G305M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[281]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[281]; 
+      S     "G281M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[282]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[282]; 
+      S     "G282M".CmdNewJob; 
+      U     "MAL1S033".Gr.InPreselect[283]; 
+      UN    "GCS7_GrCtrlDB".OutOccupied[283]; 
+      S     "G283M".CmdNewJob; 
+// 
+// 
+//-Test preselected groups ---
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Select
+           Code                     := 2,
+           Sec                      := "MAL1S033".Gr);
+// 
+//-Way conflict if not available---
+      CLR   ; 
+      S     "MAL1S033".Gr.All.OutGrConflict; 
+// 
+//-Test occupied real and virtual groups--- 
+GS02: NOP   0; 
+      U     "MAL1S033".Gr.All.OutSelectionValid; 
+      UN    "MAL1S033".Gr.All.OutGrIsLocked; 
+      =     "MAL1S033".Gr.All.InOutASWSelectionOK; 
+// 
+// 
+//----- Send data to selected groups =====
+      UN    "MAL1S033".Gr.OutSelected[261]; //G261M
+      SPB   GS4; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G261M".Gr.InLine; 
+GS4:  UN    "MAL1S033".Gr.OutSelected[262]; //G262M
+      SPB   GS5; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G262M".Gr.InLine; 
+GS5:  UN    "MAL1S033".Gr.OutSelected[263]; //G263M
+      SPB   GS6; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G263M".Gr.InLine; 
+GS6:  UN    "MAL1S033".Gr.OutSelected[264]; //G264M
+      SPB   GS7; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G264M".Gr.InLine; 
+GS7:  UN    "MAL1S033".Gr.OutSelected[291]; //G291M
+      SPB   GS8; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G291M".Gr.InLine; 
+GS8:  UN    "MAL1S033".Gr.OutSelected[292]; //G292M
+      SPB   GS9; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G292M".Gr.InLine; 
+GS9:  UN    "MAL1S033".Gr.OutSelected[293]; //G293M
+      SPB   GS10; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G293M".Gr.InLine; 
+GS10: UN    "MAL1S033".Gr.OutSelected[294]; //G294M
+      SPB   GS11; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G294M".Gr.InLine; 
+GS11: UN    "MAL1S033".Gr.OutSelected[295]; //G295M
+      SPB   GS12; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G295M".Gr.InLine; 
+GS12: UN    "MAL1S033".Gr.OutSelected[296]; //G296M
+      SPB   GS13; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G296M".Gr.InLine; 
+GS13: UN    "MAL1S033".Gr.OutSelected[297]; //G297M
+      SPB   GS14; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G297M".Gr.InLine; 
+GS14: UN    "MAL1S033".Gr.OutSelected[298]; //G298M
+      SPB   GS15; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G298M".Gr.InLine; 
+GS15: UN    "MAL1S033".Gr.OutSelected[299]; //G299M
+      SPB   GS16; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G299M".Gr.InLine; 
+GS16: UN    "MAL1S033".Gr.OutSelected[300]; //G300M
+      SPB   GS17; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G300M".Gr.InLine; 
+GS17: UN    "MAL1S033".Gr.OutSelected[301]; //G301M
+      SPB   GS18; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G301M".Gr.InLine; 
+GS18: UN    "MAL1S033".Gr.OutSelected[302]; //G302M
+      SPB   GS19; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G302M".Gr.InLine; 
+GS19: UN    "MAL1S033".Gr.OutSelected[303]; //G303M
+      SPB   GS20; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G303M".Gr.InLine; 
+GS20: UN    "MAL1S033".Gr.OutSelected[304]; //G304M
+      SPB   GS21; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G304M".Gr.InLine; 
+GS21: UN    "MAL1S033".Gr.OutSelected[279]; //G279M
+      SPB   GS22; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G279M".Gr.InLine; 
+GS22: UN    "MAL1S033".Gr.OutSelected[305]; //G305M
+      SPB   GS23; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G305M".Gr.InLine; 
+GS23: UN    "MAL1S033".Gr.OutSelected[281]; //G281M
+      SPB   GS24; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G281M".Gr.InLine; 
+GS24: UN    "MAL1S033".Gr.OutSelected[282]; //G282M
+      SPB   GS25; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G282M".Gr.InLine; 
+GS25: UN    "MAL1S033".Gr.OutSelected[283]; //G283M
+      SPB   GS26; 
+      L     "MAL1".Para.ParLineNr; 
+      T     "G283M".Gr.InLine; 
+GS26: NOP   0; 
+NETWORK
+TITLE =Main0_GrCmd: CMD section to Groups
+
+      NOP   0; 
+//-Way Adjust Time---
+      O     "MAL1S033".Gr.All.CmdNewSelection; 
+      O     "MAL1S033".ToASW.CmdModify; 
+      S     "MAL1S033".ToSSW.CmdNewWay; 
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode Adjust Time
+           CODE                     := 13);
+//-Continue---
+      U     "MAL1S033".ToASW.Func.CmdStart; 
+      O     "MAL1S033".ToASW.Func.CmdNextStep; 
+      S     "MAL1S033".Gr.All.CmdContinue; 
+//-Fault reset---
+      U     "MAL1S033".ToASW.Func.CmdFaultReset; 
+      S     "MAL1S033".Gr.All.CmdFaultReset; 
+//-Manual mode---
+      U     "MAL1S033".ToASW.Func.CmdAutomatic; 
+      S     "MAL1S033".Gr.All.CmdManualOff; 
+      UN    "MAL1S033".PCRead.Status.StaHand; 
+      S     "MAL1S033".Gr.All.CmdManualOffRel; 
+//-Clear idling---
+      U     "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+      S     "MAL1S033".Gr.All.CmdClearIdling; 
+//-Start next---
+      UN    "MAL1S033".PCRead.Status.StaStep; 
+      O     "MAL1S033".ToASW.Func.CmdNextStep; 
+      U(    ; 
+      L     "MAL1S033".PCRead.OutWayAdjustTime; 
+      L     2; 
+      >I    ; 
+      O     "MAL1S033".ToASW.InfWayAdjustTimeEnd; 
+      )     ; 
+      UN    "MAL1S033".Gr.All.CmdNewSelection; 
+      UN    "MAL1S033".PCRead.Step.StWait; 
+      =     #tmpStartNext; //-->VarStartNext
+//-Start next feed---
+      U     "MAL1S033".Gr.Wgr.OutStartedRel; 
+      ON    "MAL1S033".ToASW.InfWayAdjustTimeEnd; 
+      UN    "MAL1S033".PCRead.Status.StaFeedOffASW; 
+      UN    "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+      U     "MAL1S033".Gr.Mgr.OutStartedRel; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      =     "MAL1S033".Gr.Feed.InEnable; 
+      =     #tmpEnableFeed; 
+      U     #tmpStartNext; 
+      U     "MAL1S033".Gr.Wgr.OutStartedRel; 
+      U     "MAL1S033".Gr.All.OutAutoStartOk; 
+      U     "MAL1S033".PCRead.Status.StaAutostartSec; 
+      =     "MAL1S033".Gr.Feed.CmdNext; 
+//-Start next machine group---
+      UN    "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+      =     "MAL1S033".Gr.Mgr.InEnable; 
+      U     #tmpStartNext; 
+      =     "MAL1S033".Gr.Mgr.CmdNext; 
+//-Start next way group---
+      UN    "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+      =     "MAL1S033".Gr.Wgr.InEnable; 
+      UN    "MAL1S033".PCRead.Status.StaStep; 
+      O     "MAL1S033".ToASW.Func.CmdNextStep; 
+      =     "MAL1S033".Gr.Wgr.CmdNext; 
+//-Start next general group---
+      UN    "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+      =     "MAL1S033".Gr.Ggr.InEnable; 
+      U     #tmpStartNext; 
+      =     "MAL1S033".Gr.Ggr.CmdNext; 
+//-Update command state---
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode UpdateCmdSt
+           Code                     := 4,
+           Sec                      := "MAL1S033".Gr);
+
+NETWORK
+TITLE =Main0_Status: Fault/Status
+
+      NOP   0; 
+//- Autostart Section---
+      UN    "MAL1S033".ToASW.Func.CmdStart; 
+      O     "MAL1S033".Gr.All.OutAutoStartOk; 
+      =     "MAL1S033".TimeoutAutostart.EN; 
+      CALL "GCS7_TON" (
+           IN                       := "MAL1S033".TimeoutAutostart.EN,
+           PT                       := 10,
+           Q                        := "MAL1S033".TimeoutAutostart.Q,
+           ET                       := "MAL1S033".TimeoutAutostart.ET);
+      U     "MAL1S033".TimeoutAutostart.Q; 
+      UN    "MAL1S033".Gr.All.OutAutoStartOk; 
+      R     "MAL1S033".PCRead.Status.StaAutostartSec; 
+      U     "MAL1S033".ToASW.Func.CmdStart; 
+      ON    "MAL1S033".ToASW.InfDataReady; 
+      S     "MAL1S033".PCRead.Status.StaAutostartSec; 
+//-Stopped---
+      UN    "MAL1S033".Gr.Mgr.InEnable; 
+      U     "MAL1S033".Gr.All.OutStoppedRel; 
+      O     "MAL1S033".Gr.All.OutStoppedAll; 
+      UN    "MAL1S033".PCRead.Status.StaStep; 
+      O     ; 
+      U     "MAL1S033".Gr.Mgr.OutStoppedRel; 
+      U     "MAL1S033".PCRead.Status.StaStep; 
+      =     "MAL1S033".ToSSW.InfStopped; 
+//-Started---
+      U     "MAL1S033".Gr.Mgr.OutStartedRel; 
+      =     "MAL1S033".ToSSW.InfStarted; 
+//-Feeding---
+      U     "MAL1S033".Gr.Feed.InEnable; //Section without Feed groups
+      ON    "MAL1S033".Gr.Feed.OutStoppedAll; 
+      U     "MAL1S033".Gr.Feed.OutStartedRel; 
+      =     "MAL1S033".ToSSW.InfFeeding; 
+//-Autostart---
+      U     "MAL1S033".Gr.All.OutAutostartOkAll; 
+      U     "MAL1S033".PCRead.Status.StaAutostartSec; 
+      =     "MAL1S033".PCRead.Status.StaAutostart; 
+//-DPFault---
+      U     "MAL1S033".Gr.All.OutDPFault; 
+      =     "MAL1S033".PCRead.Status.StaDPFault; 
+      S     "MAL1S033".ToSSW.Func.CmdFeedOff; 
+//-Startwarning---
+      U     "MAL1S033".Gr.All.OutStartwarning; 
+      =     "MAL1S033".PCRead.Status.StaStartwarning; 
+//-Way conflict---
+      U     "MAL1S033".Gr.All.OutGrConflict; 
+      =     "MAL1S033".PCRead.Fault.EsWayConflict; 
+//-Warning---
+      U     "MAL1S033".Gr.All.OutWarning; 
+      =     "MAL1S033".PCRead.Fault.EsWarning; 
+//-Fault---
+      U     "MAL1S033".Gr.All.OutFaultRel; 
+      FP    "MAL1S033".PCRead.Fault.EsMech; 
+      S     "MAL1S033".ToSSW.Func.CmdFeedOff; 
+//-Sender empty---
+      CLR   ; 
+      =     "MAL1S033".PCRead.Fault.EsEmpty; //-->Sec.EsEmpty
+//-Receiver full---
+      CLR   ; 
+      =     "MAL1S033".PCRead.Fault.EsFull; 
+
+NETWORK
+TITLE =Main0_StatusASW: Status from ASW
+
+      NOP   0; 
+//-Transfer off with automatic restart---
+      O     "MAL1S033".PCRead.Fault.EsFull; 
+      O     "MAL1S033".PCRead.Fault.EsEmpty; 
+      O     "MAL1S033".PCRead.Fault.EsMech; 
+      O     "MAL1S033".PCRead.Fault.EsWayConflict; 
+      O     "MAL1S033".Gr.All.OutDPFault; 
+      O     "MAL1S033".PCRead.Status.StaTransferOff; 
+      =     "MAL1S033".PCRead.Status.StaTransferOffASW; 
+//-Feed off with automatic restart---
+      U     "MAL1S033".PCRead.Status.StaTransferOffASW; 
+//      O     "MAL1S033".PCRead.Status.StaEndOfJob
+      O     "MAL1S033".PCRead.Status.StaFeedOff; 
+      =     "MAL1S033".PCRead.Status.StaFeedOffASW; 
+//-Immediate stop with automatic restart---
+      U     "MAL1S033".PCRead.Status.StaImmediateStop; 
+      =     "MAL1S033".PCRead.Status.StaImmediateStopASW; 
+//-Emptying time--- 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      O     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      UN    "MAL1S033".PCRead.Step.StPassive; 
+      UN    "MAL1S033".PCRead.Step.StIdling; 
+      =     "MAL1S033".ToSSW.InfReleaseEmptyingTime; 
+NETWORK
+TITLE =Main0_Transition: Condition for Transition
+//      NOP   0
+//      NOP   0
+////-Active---
+//      U     "MAL1S033".Gr.All.InOutASWSelectionOK
+//      U     "MAL1S033".PCRead.Step.StWait
+//      =     "MAL1S033".ToSSW.CmdGotoActive
+////-Ready---
+//      U     "MAL1S033".PCRead.Step.StActive
+//      UN    "MAL1S033".ToASW.InfSameBatchPrevSec
+//      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading
+//      =     "MAL1S033".ToSSW.CmdGotoReady
+////-Emptying---
+//      U     "MAL1S033".PCRead.Step.StReady
+//      UN    "MAL1S033".ToASW.InfSameBatchPrevSec
+//      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd
+//      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive
+//      =     "MAL1S033".ToSSW.CmdGotoEmptying
+////-Emptied---
+//      U     "MAL1S033".PCRead.Step.StEmptying
+//      UN    "MAL1S033".PCRead.Status.StaLoaded
+//      U     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning
+//      =     "MAL1S033".ToSSW.CmdGotoEmptied
+////-Result section---
+////-Idling---
+//      U     "MAL1S033".PCRead.Step.StEmptied
+//      =     "MAL1S033".ToSSW.CmdGotoIdling
+////-Passive---
+//      U     "MAL1S033".PCRead.Step.StIdling
+//      U     "MAL1S033".ToSSW.InfStopped
+//      =     "MAL1S033".ToSSW.CmdGotoPassive
+//
+      NOP   0; 
+//-Active---
+      U     "MAL1S033".Gr.All.InOutASWSelectionOK; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      O     ; 
+      U     "MAL1S033".Gr.All.InOutASWSelectionOK; 
+      UN    "MAL1S033".SecNom.Par1On.Cmd01; // With Loading
+      UN    "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      =     "MAL1S033".ToSSW.CmdGotoActive; 
+//-Ready---
+      U     "MAL1S033".PCRead.Step.StActive; 
+//      UN      "MAL1S033".ToASW.InfSameBatchPrevSec
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      =     "MAL1S033".ToSSW.CmdGotoReady; 
+      U     "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      =     "MAL1S033".SecAc.Sta1On.Inf09; // "SecDB".ToASW.CmdGotoReady
+//-Emptying---
+      U     "MAL1S033".PCRead.Step.StReady; 
+//      UN      "MAL1S033".ToASW.InfSameBatchPrevSec
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     "MAL1S033".ToSSW.CmdGotoEmptying; 
+      U     "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      U     "MAL1S033".PCRead.Step.StReady; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     "MAL1S033".SecAc.Sta1On.Inf10; // "SecDB".ToASW.CmdGotoEmptying
+//-Emptied---
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      UN    "MAL1S033".PCRead.Status.StaLoaded; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      =     "MAL1S033".ToSSW.CmdGotoEmptied; 
+//-Result section---
+//-Idling---
+      U     "MAL1S033".PCRead.Step.StEmptied; 
+      =     "MAL1S033".ToSSW.CmdGotoIdling; 
+//-Passive---
+      U     "MAL1S033".PCRead.Step.StIdling; 
+      U     "MAL1S033".ToSSW.InfStopped; 
+      =     "MAL1S033".ToSSW.CmdGotoPassive; 
+
+NETWORK
+TITLE =Main0_Move: Move to next section
+
+      NOP   0; 
+//-------------------------------------------
+//-General Condition for move
+//-------------------------------------------
+      U     "MAL1S033".ToSSW.CmdGotoEmptying; 
+      O     "MAL1S033".PCRead.Step.StEmptying; 
+      SPBN  Move; 
+//->Move batch to section MAL1S034
+      AUF   "MAL1S033"; 
+      CALL "GCS7_SecCtrlMain" (// Methode Move Data
+           CODE                     := 5);
+      UN    "MAL1S033".ToASW.CmdDataMoved; 
+      SPB   Move; 
+Move: NOP   0; 
+NETWORK
+TITLE =ASW_AH:Alarm horns
+
+      UN    "MAL1S033".ToASW.Func.CmdHornOn; 
+      SPB   AHJ1; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,//Set Alarm
+           ParObjectType            := 4000,
+           ParObjectNo              := 0,
+           ParHornCode              := 98);
+AHJ1: UN    "MAL1S033".ToASW.Func.CmdHornOff; 
+      SPB   AH00; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 2,//Reset Alarm
+           ParObjectType            := 4000,
+           ParObjectNo              := 0,
+           ParHornCode              := 10);
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 2,//Reset Alarm
+           ParObjectType            := 4000,
+           ParObjectNo              := 0,
+           ParHornCode              := 11);
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 2,//Reset Alarm
+           ParObjectType            := 4000,
+           ParObjectNo              := 0,
+           ParHornCode              := 12);
+AH00: NOP   0; 
+NETWORK
+TITLE =ASW_FT: Feeding Time
+
+      AUF   "MAL1S033"; 
+      CALL "STD_LineSecStdSub" (
+           InCode                   := 2004);// Section function: Feeding time
+
+NETWORK
+TITLE =ASW_OL: Override low level
+// 
+      AUF   "MAL1S033"; 
+// 
+      NOP   0; 
+NETWORK
+TITLE =ASW_VA: VA Various functions after section control
+//       AUF   "MAL1S033"
+//// Copy bin number to section DB
+//      L     "MAL1S033".JobAc.BatchSndBin
+//      L     "MAL1S033".MAL1S001SND33.Ingr[1].Bin
+//      T     "MAL1S033".JobAc.BatchSndBin
+//      <>I   
+//      S     "MAL1S033".ChangeBit.CBit1
+//// 
+//      L     "MAL1S033".JobAc.BatchRcvBin
+//      L     "MAL1S033".MAL1S001RCV34.Ingr[1].Bin
+//      T     "MAL1S033".JobAc.BatchRcvBin
+//      <>I   
+//      S     "MAL1S033".ChangeBit.CBit1
+//// 
+//      L     "MAL1S033".JobAc.BatchRcvBin
+//      L     "MAL1S033".MAl1S034RCV36.Ingr[1].Bin
+//      T     "MAL1S033".JobAc.BatchRcvBin
+//      <>I   
+//      S     "MAL1S033".ChangeBit.CBit1
+//// 
+//      L     "MAL1S033".JobAc.BatchSndBin
+//      L     "MAL1S033".MAl1S034SND35.Ingr[1].Bin
+//      T     "MAL1S033".JobAc.BatchSndBin
+//      <>I   
+//      S     "MAL1S033".ChangeBit.CBit1
+//// 
+//
+
+
+NETWORK
+TITLE =ASW_EJ End of job
+
+      NOP   0; 
+// 
+//-Fluidlift monitoring---
+NETWORK
+TITLE =ASW_VE: VE New value event
+// 
+//-Group interface---
+      U     "MAL1S033".ToASW.CmdModify; 
+      S     "G284M".CmdNewValue; 
+      S     "G261M".CmdNewValue; 
+      S     "G262M".CmdNewValue; 
+      S     "G263M".CmdNewValue; 
+      S     "G264M".CmdNewValue; 
+      S     "G291M".CmdNewValue; 
+      S     "G292M".CmdNewValue; 
+      S     "G293M".CmdNewValue; 
+      S     "G294M".CmdNewValue; 
+      S     "G295M".CmdNewValue; 
+      S     "G296M".CmdNewValue; 
+      S     "G297M".CmdNewValue; 
+      S     "G298M".CmdNewValue; 
+      S     "G299M".CmdNewValue; 
+      S     "G300M".CmdNewValue; 
+      S     "G301M".CmdNewValue; 
+      S     "G302M".CmdNewValue; 
+      S     "G303M".CmdNewValue; 
+      S     "G304M".CmdNewValue; 
+      S     "G279M".CmdNewValue; 
+      S     "G305M".CmdNewValue; 
+      S     "G281M".CmdNewValue; 
+      S     "G282M".CmdNewValue; 
+      S     "G283M".CmdNewValue; 
+
+
+NETWORK
+TITLE =ASW_NV: New value data
+
+
+
+NETWORK
+TITLE =ASW_WJ: Weight job
+// 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      O     "MAL1S033".PCRead.Step.StEmptying; 
+      O     "MAL1S033".PCRead.Step.StEmptied; 
+      SPBN  WJ08; 
+// 
+      L     "MAL1S033".JobNom.JobWeight; //Target/Actual registration if no scale
+      T     "MAL1S033".JobAc.JobWeight; 
+// 
+WJ08: NOP   0; 
+//-------------------------------------------- 
+//PW Prestop weight
+//-------------------------------------------- 
+      NOP   0; 
+NETWORK
+TITLE =ASW_SC: Section status text and colour
+// 
+      AUF   "MAL1S033"; 
+      CALL "STD_LineSecStdSub" (
+           InCode                   := 2055);// Section function: WinCoS.SectionInfoCode
+// 
+NETWORK
+TITLE =ASW_5010: Prepare Log-Data cyclic
+// Prepare Log-Data cyclic
+      U     "MAL1S033".ToASW.InfDataReady; // job in section
+      U     M      4.7; // scan 30sec
+      SPBN  N501; 
+      AUF   "MAL1S033"; 
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpRET,
+           BLK                      := "SSA_LOG_Value_Queue".Input);
+// header
+// 
+      L     B#16#1E; // type 30 = kilning
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     B#16#1; // format 1 = cyclic
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     "MAL1S033".JobNom.JobNr; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     "DB Prozesszeit".Sektion_33.Gesamtzeit_in_Minuten; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+// 
+// values doubleword
+//=================================
+      L     "G295M".A_3291_BTE07.OutValueUnits; // AIR TEMPERATURE ABOVE FLOOR
+      T     "SSA_LOG_Value_Queue".Input.Para_0015; 
+//=================================
+      L     "G295M".A_3291_BTE10.OutValueUnits; // AIR TEMPERATURE BEFORE BURNER 3
+      T     "SSA_LOG_Value_Queue".Input.Para_0017; 
+//=================================
+      L     "G295M".A_3291_BTE01.OutValueUnits; // AIR TEMPERATURE BELOW FLOOR
+      T     "SSA_LOG_Value_Queue".Input.Para_0019; 
+//=================================
+//P4 setpoint from SCAD
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; // setpoint from SCADA
+      T     "SSA_LOG_Value_Queue".Input.Para_0021; 
+//=================================
+      L     "G269M".A_3191_BTE11.OutValueUnits; // AIR TEMPERATURE AMBIENT AIR
+      T     "SSA_LOG_Value_Queue".Input.Para_0023; 
+//=================================
+      L     "G295M".A_3291_BTE05.OutValueUnits; // AIR TEMPERATURE DIFFUSOR FAN 1
+      T     "SSA_LOG_Value_Queue".Input.Para_0025; 
+//=================================
+      L     "G295M".A_3291_BTE08.OutValueUnits; // AIR TEMPERATURE AFTER BURNER 1
+      T     "SSA_LOG_Value_Queue".Input.Para_0027; 
+//=================================
+      L     "G269M".A_3191_BTE12.OutValueUnits; // AIR TEMPERATURE AFTER HEAT EXCHANGER FLAP
+      T     "SSA_LOG_Value_Queue".Input.Para_0029; 
+//=================================
+      L     0; // act value airpressure after heatexchanger
+      T     "SSA_LOG_Value_Queue".Input.Para_0031; 
+//=================================
+      L     0; // act value product temperature lowpoint
+      T     "SSA_LOG_Value_Queue".Input.Para_0033; 
+//=================================
+      L     0; // act value product temperature middlepoint
+      T     "SSA_LOG_Value_Queue".Input.Para_0035; 
+//=================================
+      L     0; // act value product temperature highpoint
+      T     "SSA_LOG_Value_Queue".Input.Para_0037; 
+//=================================
+      L     0; // act value steam flowrate
+      T     "SSA_LOG_Value_Queue".Input.Para_0039; 
+//=================================
+      L     "G299M".A_3235_MXZ11.OutPosition; // LOUVER RECYCLE AIR 1
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0041; 
+//=================================
+      L     "G299M".A_3236_MXZ11.OutPosition; // LOUVER RECYCLE AIR 2
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0043; 
+//=================================
+      L     "G298M".A_3250_MXZ11.OutPosition; // LOUVER FRESH AIR 1
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0045; 
+//=================================
+      L     0; // act value temperature steam inlet heatexchanger 2
+      T     "SSA_LOG_Value_Queue".Input.Para_0047; 
+//=================================
+      L     0; // act position valve1 steam inlet heatexchanger 1
+      T     "SSA_LOG_Value_Queue".Input.Para_0049; 
+//=================================
+      L     "G304M".A_3245_MXZ11.OutPosition; // LOUVER WITHERING AIR 1
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0051; 
+//=================================
+      L     0; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0053; 
+//=================================
+      L     0; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0055; 
+//=================================
+      L     0; // act value position exhaust air flap
+      T     "SSA_LOG_Value_Queue".Input.Para_0057; 
+//=================================
+      L     "G303M".A_3240_MXZ11.OutPosition; // LOUVER AIR 1 HEATER
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0059; 
+//=================================
+      L     "G303M".A_3241_MXZ11.OutPosition; // LOUVER AIR 2 HEATER
+      ITD   ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0061; 
+
+//=================================
+      L     0; // act value position exhaust air flap
+      T     "SSA_LOG_Value_Queue".Input.Para_0063; 
+//=================================
+      L     0; // act value position fresh air flap
+      T     "SSA_LOG_Value_Queue".Input.Para_0065; 
+//=================================
+      L     0; // act value speed fan 1
+      T     "SSA_LOG_Value_Queue".Input.Para_0067; 
+//=================================
+      L     0; // act value speed fan 2
+      T     "SSA_LOG_Value_Queue".Input.Para_0069; 
+//=================================
+      L     "G297M".A_3225_BTE05.OutValueUnits; // TEMPERATURE BEARING TEMPERATUR SENSOR
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0071; 
+//=================================
+      L     "G297M".A_3225_BTE06.OutValueUnits; // TEMPERATURE BEARING TEMPERATUR SENSOR
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0073; 
+//=================================
+      L     "G297M".A_3225_KCU04AI1.OutValueUnits; // VIBRATION MONITOR FAN 1 CHANNEL 1
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0075; 
+//=================================
+      L     "G297M".A_3225_KCU04AI2.OutValueUnits; // VIBRATION MONITOR FAN 1 CHANNEL 2
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0077; 
+//=================================
+      L     "G297M".A_3226_BTE05.OutValueUnits; // TEMPERATURE BEARING TEMPERATUR SENSOR
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0079; 
+//=================================
+      L     "G297M".A_3226_BTE06.OutValueUnits; // TEMPERATURE BEARING TEMPERATUR SENSOR
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0081; 
+//=================================
+      L     "G297M".A_3226_KCU04AI1.OutValueUnits; // VIBRATION MONITOR FAN 2 CHANNEL 1
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0083; 
+//=================================
+      L     "G297M".A_3226_KCU04AI2.OutValueUnits; // VIBRATION MONITOR FAN 2 CHANNEL 2
+      L     L#10; 
+      /D    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0085; 
+//=================================
+      L     0; // spare
+      T     "SSA_LOG_Value_Queue".Input.Para_0087; 
+// values integer
+//  
+      L     L#0; // spare
+      T     "SSA_LOG_Value_Queue".Input.Para_0089; 
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP90; 
+      L     0; 
+MP90: T     "SSA_LOG_Value_Queue".Input.Para_0090; 
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP91; 
+      L     0; 
+MP91: T     "SSA_LOG_Value_Queue".Input.Para_0091; 
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP92; 
+      L     0; 
+MP92: T     "SSA_LOG_Value_Queue".Input.Para_0092; // spare
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP93; 
+      L     0; 
+MP93: T     "SSA_LOG_Value_Queue".Input.Para_0093; // spare
+      U     "SYS_infLog0"; // cleaning on/off
+      L     1; 
+      SPB   MP94; 
+      L     0; 
+MP94: T     "SSA_LOG_Value_Queue".Input.Para_0094; // spare
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP95; 
+      L     0; 
+MP95: T     "SSA_LOG_Value_Queue".Input.Para_0095; // spare
+      U     "SYS_infLog0"; // spare
+      L     1; 
+      SPB   MP96; 
+      L     0; 
+MP96: T     "SSA_LOG_Value_Queue".Input.Para_0096; // spare
+      U     "MAL1S033Par".Par.FlagProcess.TurningFloor; // turning floor 0/1
+      L     1; 
+      SPB   MP97; 
+      L     0; 
+MP97: T     "SSA_LOG_Value_Queue".Input.Para_0097; //  turning floor 0/1
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // cooling down 0/1
+      L     1; 
+      SPB   MP98; 
+      L     0; 
+MP98: T     "SSA_LOG_Value_Queue".Input.Para_0098; // cooling down 0/1
+      NOP   0; 
+      NOP   0; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// put timestamp into message
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := "DB Prozesszeit".Arbeitsbereich.dt2,
+           RET_VAL                  := #tmpInt,
+           DSTBLK                   := "SSA_LOG_Value_Queue".Input.TimeStamp);
+// 
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+N501: NOP   0; 
+NETWORK
+TITLE =ASW_5030: Prepare Log-Data step values
+
+      NOP   0; 
+      NOP   0; 
+// 
+// load actual values into average input
+// 1. Value
+      L     "G295M".A_3291_BTE07.OutValuePc; // AIR TEMPERATURE ABOVE FLOOR
+      T     "MAL1S033StepValues".LogValues[1].Wert; 
+// 2. Value
+      L     "G295M".A_3291_BTE01.OutValuePc; // AIR TEMPERATURE BELOW FLOOR
+      T     "MAL1S033StepValues".LogValues[2].Wert; 
+// 3. Value
+      L     "G298M".A_3250_MXZ11.OutPosition; // ACT. FRESH AIR
+      T     "MAL1S033StepValues".LogValues[3].Wert; 
+// 4. Value
+      L     "G299M".A_3235_MXZ11.OutPosition; // ACT. RECYCLE AIR
+      T     "MAL1S033StepValues".LogValues[4].Wert; 
+// 5. Value
+      L     "G297M".A_3225_TSC01_AF.OutValuePc; // ACT. FREQUENCY FAN 1 FU 
+      T     "MAL1S033StepValues".LogValues[5].Wert; 
+// 6. Value
+      L     "G297M".A_3226_TSC01_AF.OutValuePc; // ACT. FREQUENCY FAN 2 FU 
+      T     "MAL1S033StepValues".LogValues[6].Wert; 
+// 7. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[7].Wert; 
+// 8. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[8].Wert; 
+// 9. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[9].Wert; 
+// 10. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[10].Wert; 
+// 11. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[11].Wert; 
+// 12. Value
+      L     0; 
+      T     "MAL1S033StepValues".LogValues[12].Wert; 
+      NOP   0; 
+// Entry Values
+      CALL "SSA_MH_Step_Values" , "MAL1S033StepValues" (
+           Class                    := B#16#1E,
+           InJobNo                  := "MAL1S033".JobNom.JobNr,
+           InSectionNumber          := "MAL1S033".Para.ParSecNr,
+           InTimeAct                := "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall,
+           InStepNr                 := "MAL1S033Par".StepAct.StepNumber,
+           InProcessMinutes         := "MAL1S033Par".Processtime.Min);
+
+NETWORK
+TITLE =ASW_5060: Prepare Log-Data events
+
+      NOP   0; 
+// load events into event input
+
+// 1. event Process active  
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     DB2063.DBX  142.1; 
+      L     1; 
+      T     DB2063.DBW  274; 
+// 2. event InfDataReady  
+      U     "MAL1S033".ToASW.InfDataReady; 
+      =     DB2063.DBX  142.2; 
+      L     2; 
+      T     DB2063.DBW  272; 
+// 3. event old/new step stopped/started
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     1; 
+      ==I   ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      O(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     "MAL1S033Par".Par.ProcessValue.StepNrActCopy; 
+      ==I   ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     1; 
+      >I    ; 
+      )     ; 
+      )     ; 
+      =     DB2063.DBX  142.3; 
+      L     3; 
+      T     DB2063.DBW  270; 
+// 11. event   
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      =     DB2063.DBX  143.3; 
+      L     1001; 
+      T     DB2063.DBW  254; 
+// 12. event Loading Round 1
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#0; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  143.4; 
+      L     1003; 
+      T     DB2063.DBW  252; 
+// 13. event Loading Round 2
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#1; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  143.5; 
+      L     1004; 
+      T     DB2063.DBW  250; 
+// 14. event Loading Round 3
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#2; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  143.6; 
+      L     1005; 
+      T     DB2063.DBW  248; 
+// 15. event Loading Round 4
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#3; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  143.7; 
+      L     1006; 
+      T     DB2063.DBW  246; 
+// 16. event Loading Round 5 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#4; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  144.0; 
+      L     1007; 
+      T     DB2063.DBW  244; 
+// 17. event Loading Round 6  
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#5; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  144.1; 
+      L     1008; 
+      T     DB2063.DBW  242; 
+// 18. event  Program withering/kilning    
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     DB2063.DBX  144.2; 
+      L     1043; 
+      T     DB2063.DBW  240; 
+// 19. event ILO-Mode    
+      U     "MAL1S033".SecAc.Sta1On.Inf08; // ILO-Mode Section
+      =     DB2063.DBX  144.3; 
+      L     1026; 
+      T     DB2063.DBW  238; 
+// 20. event Unloading 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      =     DB2063.DBX  144.4; 
+      L     1020; 
+      T     DB2063.DBW  236; 
+// 21. event Unloading Round 1  
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#0; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  144.5; 
+      L     1053; 
+      T     DB2063.DBW  234; 
+// 22. event Unloading Round 2  
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#1; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  144.6; 
+      L     1054; 
+      T     DB2063.DBW  232; 
+// 23. event Unloading Round 3  
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#2; 
+      ==D   ; 
+      )     ; 
+      =     DB2063.DBX  144.7; 
+      L     1055; 
+      T     DB2063.DBW  230; 
+// 24. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  145.0; 
+      L     114; 
+      T     DB2063.DBW  228; 
+// 25. event Cleaning finished    
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      =     DB2063.DBX  145.1; 
+      L     1032; 
+      T     DB2063.DBW  226; 
+// 26. event  Cooling active 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      =     DB2063.DBX  145.2; 
+      L     1037; 
+      T     DB2063.DBW  224; 
+// 27. event  Process end 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      =     DB2063.DBX  145.3; 
+      L     1038; 
+      T     DB2063.DBW  222; 
+// 28. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  145.4; 
+      L     118; 
+      T     DB2063.DBW  220; 
+// 29. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  145.5; 
+      L     119; 
+      T     DB2063.DBW  218; 
+// 30. event  steam regulator 1 on 
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  145.6; 
+      L     1067; 
+      T     DB2063.DBW  216; 
+// 31. event  steam regulator 2 on  
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  145.7; 
+      L     1068; 
+      T     DB2063.DBW  214; 
+// 32. event  steam regulator 3 on   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.0; 
+      L     1069; 
+      T     DB2063.DBW  212; 
+// 33. event  steam regulator 4 on    
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.1; 
+      L     1070; 
+      T     DB2063.DBW  210; 
+// 34. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.2; 
+      L     124; 
+      T     DB2063.DBW  208; 
+// 35. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.3; 
+      L     125; 
+      T     DB2063.DBW  206; 
+// 36. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.4; 
+      L     126; 
+      T     DB2063.DBW  204; 
+// 37. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.5; 
+      L     127; 
+      T     DB2063.DBW  202; 
+// 38. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.6; 
+      L     128; 
+      T     DB2063.DBW  200; 
+// 39. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  146.7; 
+      L     129; 
+      T     DB2063.DBW  198; 
+// 40. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.0; 
+      L     130; 
+      T     DB2063.DBW  196; 
+//
+// 41. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.1; 
+      L     131; 
+      T     DB2063.DBW  194; 
+// 42. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.2; 
+      L     132; 
+      T     DB2063.DBW  192; 
+// 43. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.3; 
+      L     133; 
+      T     DB2063.DBW  190; 
+// 44. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.4; 
+      L     134; 
+      T     DB2063.DBW  188; 
+// only for test
+// 47. event   
+      U     "SYS_infLog0"; 
+      =     DB2063.DBX  147.7; 
+      L     47; 
+      T     DB2063.DBW  182; 
+
+// copy data for event-logging
+      L     "DB Prozesszeit".Sektion_33.Gesamtzeit_in_Minuten; 
+      T     "MAL1S033Par".Processtime.Spare_93; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".ActTimeStepProcess.Spare_85; 
+
+// 
+      CALL "SSA_MH_EventsToPIC" , DB  2063 (
+           CallingSection           := 833,
+           ParameterDB_in           := 923,
+           MessageTyp               := 30,
+           ActTimeStepProcess       := "MAL1S033Par".ActTimeStepProcess,
+           Processtime              := "MAL1S033Par".Processtime);
+NETWORK
+TITLE =ASW_6000: Start process kilning
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U(    ; 
+      O     "MAL1S033".PCRead.Step.StActive; 
+      O     "MAL1S033".PCRead.Step.StReady; 
+      )     ; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      U     "MAL1S033".PCWrite.ExtFuncOn.StartProcess; // PIC command "start process kilning"
+// Prozess-Start erst moeglich wenn Darre 2 Schritt 3 beendet hat oder nicht aktiv ist!!
+      U(    ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     4; 
+      >=I   ; 
+      )     ; 
+      ON    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+
+      SPBN  e605; 
+      SET   ; 
+      S     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      S     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung; 
+e605: NOP   0; 
+// 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      U     "MAL1S033".PCRead.Step.StReady; 
+      R     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+// 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      FP    "MAL1S033Par".Par.FlagProcess.StartProzess_FP; 
+      =     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN; 
+
+// Planieren bis zur Parkposition (0°-Sensor)
+      U     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN; 
+      SPBN  TAL; 
+      SET   ; 
+      S     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterLoading; 
+TAL:  NOP   0; 
+
+//-Cleaning conveyance after loading---
+      U     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN; 
+      SPBN  CCAL; 
+      L     "MAL1S033Par".Par.ParIntProcess.TargetTimeCleaning; 
+      T     "MAL1S033Par".Par.ParIntProcess.ActualTimeCleaning; 
+CCAL: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntProcess.ActualTimeCleaning; 
+      L     0; 
+      >I    ; 
+      U(    ; // Nicht vor oder beim Beladen 
+      U     "MAL1S033".PCRead.Step.StReady; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      )     ; 
+      UN(   ; 
+      U     "MAL1S033".PCRead.Step.StReady; 
+      UN    "MAL1S033".SecNom.Par1On.Cmd01; // With Loading
+      UN    "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      )     ; 
+      =     "MAL1S033Par".Par.FlagFunction_0.TimeCleanConvRun; 
+
+
+      U     "GCS7_GrCtrlDB".InStarted[296]; //-->G270M AIR SHUT SLIDE KILN 2
+      U     "GCS7_GrCtrlDB".InStarted[284]; //-->G284M BELT CONVEYOR 7100 KILN
+      U     "GCS7_GrCtrlDB".InStarted[261]; //-->G261M BELT CONVEYOR 7200 KILN
+      U     "GCS7_GrCtrlDB".InStarted[262]; //-->G262M BELT CONVEYOR 7300 KILN
+      U     "GCS7_GrCtrlDB".InStarted[263]; //-->G263M BELT CONVEYOR 7301 KILN
+      U     "GCS7_GrCtrlDB".InStarted[264]; //-->G264M BELT CONVEYOR 7400 KILN
+      U     "MAL1S033Par".Par.FlagFunction_0.TimeCleanConvRun; 
+      U     "SYS_Scan0_Tick1min"; 
+      SPBN  tcc; 
+      L     "MAL1S033Par".Par.ParIntProcess.ActualTimeCleaning; 
+      L     -1; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.ActualTimeCleaning; 
+tcc:  NOP   0; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  tcc0; 
+      L     0; 
+      T     "MAL1S033Par".Par.ParIntProcess.ActualTimeCleaning; 
+tcc0: NOP   0; 
+
+NETWORK
+TITLE =ASW_6020: Copy recipe-data in Parameter DB
+// 
+// Clear content recipe in buffer
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpRET,
+           BLK                      := "MAL1S033Par".RecipeHeader);
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      SPBN  No10; 
+// Copy step loading,unloading,cleaning to parameterDB
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := "MAL1S033".SecNom.KILN2.RecipeHeader.Loading,
+           RET_VAL                  := "MAL1S033Par".Par.Error.Value,
+           DSTBLK                   := "MAL1S033Par".RecipeHeader.Loading);
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := "MAL1S033".SecNom.KILN2.RecipeHeader.Unloading,
+           RET_VAL                  := "MAL1S033Par".Par.Error.Value,
+           DSTBLK                   := "MAL1S033Par".RecipeHeader.Unloading);
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := "MAL1S033".SecNom.KILN2.RecipeHeader.Cleaning,
+           RET_VAL                  := "MAL1S033Par".Par.Error.Value,
+           DSTBLK                   := "MAL1S033Par".RecipeHeader.Cleaning);
+      SPA   E607; 
+No10: NOP   0; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  E607; 
+// Copy common parameter
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := "MAL1S033".SecNom.KILN2.RecipeHeader,
+           RET_VAL                  := "MAL1S033Par".Par.Error.Value,
+           DSTBLK                   := "MAL1S033Par".RecipeHeader);
+// 
+// Copy step parameter
+      U(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     1; 
+      <I    ; 
+      )     ; 
+      O(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     DB923.DBW 1500; 
+      >I    ; 
+      )     ; 
+      SPB   E607; // error wrong step number
+      CALL "SYS_Copy_Array_Element" (
+           Source                   := "MAL1S033".SecNom.KILN2.Step,
+           Destination              := "MAL1S033Par".StepAct,
+           Index                    := "MAL1S033Par".Par.ParIntMachine.ActualStep,
+           Fault                    := "MAL1S033Par".Par.Error.Bit);
+E607: NOP   0; 
+NETWORK
+TITLE =ASW_6010: Process Kilning Active
+//      U     "MAL1S033".ToASW.InfDataReady
+//      SPB   NoCl
+//// Clear process time in buffer
+//      L     0
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActHour
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMin
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall
+//      T     "MAL1S033Par".Processtime.Day
+//      T     "MAL1S033Par".Processtime.Hour
+//      T     "MAL1S033Par".Processtime.Min
+//      T     "MAL1S033Par".Processtime.ProcessTimeActive
+//      L     L#0                         // clear actual step time
+//      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//NoCl: NOP   0
+//// Clear process time in buffer end
+//      U     "MAL1S033Par".Par.FlagProcess.ProcessActive
+//      SPBN  E606
+////-Actual process time---
+//      U     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN
+//      SPBN  actk
+//      L     1                           // Start process first step
+//      T     "MAL1S033Par".Par.ParIntMachine.ActualStep
+//      T     "MAL1S033Par".Par.ProcessValue.StepNrActCopy
+//      SPA   neSk
+//actk: NOP   0
+//// Prozesszeit 
+//      L     "DB Prozesszeit".Sektion_33.Tage
+//      INC   1                           // malters do not accept day 0!!
+//      T     "MAL1S033Par".Processtime.Day
+//      L     "DB Prozesszeit".Sektion_33.Stunden
+//      T     "MAL1S033Par".Processtime.Hour    // Processtime in h
+//      L     "DB Prozesszeit".Sektion_33.Minuten
+//      T     "MAL1S033Par".Processtime.Min    // Processtime in min
+//      U     "DB Prozesszeit".Sektion_33.Prozess_aktiv    // active bit section 2
+//      L     1
+//      SPB   nTa
+//      L     0
+//nTa:  T     "MAL1S033Par".Processtime.ProcessTimeActive
+//// Test new step
+//      L     "MAL1S033Par".Par.ParIntMachine.ActualStep
+//      L     "MAL1S033Par".Par.ProcessValue.StepNrActCopy
+//      ==I   
+//      SPB   olSk
+//neSk: NOP   0
+//      L     "MAL1S033Par".Par.ParIntMachine.ActualStep
+//      T     "MAL1S033Par".Par.ProcessValue.StepNrActCopy
+//// 
+//      L     L#0                         // clear actual step time
+//      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//      L     0
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall    // 
+//Steptime in min overall
+//// 
+//      U(    
+//      L     "MAL1S033Par".Par.ParIntMachine.ActualStep
+//      L     DB923.DBW 1500
+//      >I    
+//      )     
+//      SPB   Pedk                        // last step is finished
+//      SET   
+//      S     "MAL1S033StepValues".StartStep    // start step for average 
+//calculating
+//      SPA   E606                        // to secure, that new step-data are 
+//copied
+//olSk: NOP   0
+//      L     "ASW_GraphicData".General.CycleTime[1].Actual
+//      T     #tmpCyclusTime
+//
+//      U     "G297M".A_3225_MXZ01MA.Ma.StStartedFwd    // min one fan must run
+//      O     "G297M".A_3226_MXZ01MA.Ma.StStartedFwd    // min one fan must run
+//      UN    "G295M".A_3291_BTE07.OutOverflow    //AIR TEMPERATURE ABOVE FLOOR
+//      UN    "G295M".A_3291_BTE07.OutFaultAI    //AIR TEMPERATURE ABOVE FLOOR
+//      UN    "G295M".A_3291_BTE01.OutOverflow    //AIR TEMPERATURE BELOW FLOOR
+//      UN    "G295M".A_3291_BTE01.OutFaultAI    //AIR TEMPERATURE BELOW FLOOR
+//      SPBN  NoTi                        // count steptime only when fan running 
+//and sensor alive
+//      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//      L     #tmpCyclusTime
+//      +D    
+//      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//NoTi: NOP   0
+//      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//      L     L#86400000                  // ms/d
+//      MOD   
+//      L     L#3600000                   // ms/h
+//      /D    
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActHour    // Steptime in h
+//
+//      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct
+//      L     L#3600000                   // ms/h
+//      MOD   
+//      L     L#60000                     // ms/min
+//      /D    
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMin    // Steptime in 
+//min
+//
+//      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct
+//      L     L#60000                     // ms/min
+//      /D    
+//      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall    // 
+//Steptime in min overall
+//
+      U     "MAL1S033".ToASW.InfDataReady; 
+      SPB   NoCl; 
+// Clear process time in buffer
+      L     0; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActHour; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMin; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; 
+      T     "MAL1S033Par".Processtime.Day; 
+      T     "MAL1S033Par".Processtime.Hour; 
+      T     "MAL1S033Par".Processtime.Min; 
+      T     "MAL1S033Par".Processtime.ProcessTimeActive; 
+      L     L#0; // clear actual step time
+      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct; // in ms
+NoCl: NOP   0; 
+// Clear process time in buffer end
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  E606; 
+//-Actual process time---
+      U     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN; 
+      SPBN  actk; 
+      L     1; // Start process first step
+      T     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".Par.ProcessValue.StepNrActCopy; 
+      SPA   neSk; 
+actk: NOP   0; 
+// Prozesszeit 
+      L     "MAL1ProcessTime".Sektion_33.Tage; 
+      INC   1; // malters do not accept day 0!!
+      T     "MAL1S033Par".Processtime.Day; 
+      L     "MAL1ProcessTime".Sektion_33.Stunden; 
+      T     "MAL1S033Par".Processtime.Hour; // Processtime in h
+      L     "MAL1ProcessTime".Sektion_33.Minuten; 
+      T     "MAL1S033Par".Processtime.Min; // Processtime in min
+      U     "MAL1ProcessTime".Sektion_33.Prozess_aktiv; // active bit section 24
+      L     1; 
+      SPB   nTa; 
+      L     0; 
+nTa:  T     "MAL1S033Par".Processtime.ProcessTimeActive; 
+// Test new step
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     "MAL1S033Par".Par.ProcessValue.StepNrActCopy; 
+      ==I   ; 
+      SPB   olSk; 
+neSk: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".Par.ProcessValue.StepNrActCopy; 
+// 
+      L     L#0; // clear actual step time
+      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct; // in ms
+      L     0; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+      SET   ; //JV161209 ===>
+      R     "MAL1S033Par".Par.FlagProcess.Inf04; // Zeitauswertung aktiv
+//JV161209 <===
+// 
+      U(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     "MAL1S033Par".RecipeHeader.NumberOfSteps; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".RecipeHeader.NumberOfSteps; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      SPB   Pedk; // last step is finished
+//      SET   ; 
+//      S     "MAL1S033StepValues".StartStep; // start step for average calculating
+      SPA   E606; // to secure, that new step-data are copied
+olSk: NOP   0; 
+//JV161209      L     "ASW_GraphicData".General.CycleTime[1].Actual
+//JV161209      T     #tmpCyclusTime
+
+      U     "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; // min one fan must run
+      O     "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; // min one fan must run
+      UN    "G295M".A_3291_BTE07.OutOverflow; //LUFTTEMPERATUR ÜBER DER HORDE
+      UN    "G295M".A_3291_BTE07.OutFaultAI; //LUFTTEMPERATUR ÜBER DER HORDE
+      UN    "G295M".A_3291_BTE01.OutOverflow; //LUFTTEMPERATUR UNTER DER HORDE
+      UN    "G295M".A_3291_BTE01.OutFaultAI; //LUFTTEMPERATUR UNTER DER HORDE
+      SPBN  NoTi; // count steptime only when fan running and sensor alive
+//JV161209      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//JV161209      L     #tmpCyclusTime
+//JV161209      +D    
+//JV161209      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct    // in ms
+//--Create actual Timeinterval for counting steptime new JV151209 ===>
+
+      CALL "SIEMENS_READ_CLK" (
+           RET_VAL                  := MW   200,
+           CDT                      := "MAL1S033Par".Par.ProcessValue.ActualTime);
+
+      U     "MAL1S033Par".Par.FlagProcess.Inf04; // Zeitauswertung aktiv
+      SPB   diff; 
+      CALL "SIEMENS_READ_CLK" (
+           RET_VAL                  := MW   200,
+           CDT                      := "MAL1S033Par".Par.ProcessValue.ActualTimePreviousScan);// Start-Zeit CPU-Clock aktuelle Auswertung
+      SET   ; 
+      S     "MAL1S033Par".Par.FlagProcess.Inf04; // Zeitauswertung aktiv
+
+diff: NOP   0; 
+
+      CALL "SB_DT_DT" (
+           DT1                      := "MAL1S033Par".Par.ProcessValue.ActualTime,// momentane Zeit CPU-Clock
+           DT2                      := "MAL1S033Par".Par.ProcessValue.ActualTimePreviousScan,// Start-Zeit CPU-Clock aktuelle Auswertung
+           RET_VAL                  := "MAL1S033Par".Par.ProcessValue.Afeesttijd);// Zeitdifferenz in ms
+
+
+      L     "MAL1S033Par".Par.ProcessValue.Afeesttijd; // Zeitdifferenz in ms
+      L     L#10000; // 10sec
+      >=D   ; 
+      R     "MAL1S033Par".Par.FlagProcess.Inf04; // Zeitauswertung aktiv
+      FP    "MAL1S033Par".Par.FlagProcess.Inf05; 
+      SPBN  NoST; 
+      L     "MAL1S033Par".Par.ProcessValue.Afeesttijd; // Zeitdifferenz in ms
+      SPM   Korr; //JV161209 Da hat wer an der Uhr gedreht.....
+      L     L#10150; // 10sec + 150ms  als Maximalüberwachung
+      >D    ; //JV161209 Da hat wer an der Uhr gedreht.....
+      SPBN  AlOK; 
+Korr: NOP   0; 
+      L     L#10000; // 10sec als Grundwert, wenn die Zeit verstellt wurde
+      T     "MAL1S033Par".Par.ProcessValue.Afeesttijd; // Zeitdifferenz in ms
+AlOK: NOP   0; 
+      L     "MAL1S033Par".Par.ProcessValue.Afeesttijd; // Zeitdifferenz in ms
+      L     "ASW_GraphicData".General.CycleTime[1].Actual; // aktuelle Zykluszeit als Korrektur
+      +D    ; 
+      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct; // in ms
+      +D    ; 
+      T     "MAL1S033Par".Par.ProcessValue.StepTimeAct; // in ms
+NoST: NOP   0; 
+//--Create actual Timeinterval for counting steptime new JV151209 <===
+
+      SPA   OKTi; //JV161209
+NoTi: NOP   0; 
+      SET   ; //JV161209 ===>
+      R     "MAL1S033Par".Par.FlagProcess.Inf04; // Zeitauswertung aktiv
+//JV161209 <=== 
+OKTi: NOP   0; //JV161209
+      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct; // in ms
+      L     L#86400000; // ms/d
+      MOD   ; 
+      L     L#3600000; // ms/h
+      /D    ; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActHour; // Steptime in h
+
+      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct; 
+      L     L#3600000; // ms/h
+      MOD   ; 
+      L     L#60000; // ms/min
+      /D    ; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMin; // Steptime in min
+
+      L     "MAL1S033Par".Par.ProcessValue.StepTimeAct; 
+      L     L#60000; // ms/min
+      /D    ; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+
+// 
+// Next Step
+// 
+//   Switch over to next step under conditions:
+//   or Maximal steptime
+//   or Minimal steptime
+//           and 
+//               or no setpoint delta temp
+//               or atual value delta temp is ge setpoint deltatemp
+//                   and sensor is ok
+//           and          
+// /              or no setpoint max temp above floor
+//              or atual value max temp above floor is ge setpoint max temp above floor
+//                  and sensor is ok
+// 1 Kriterium
+      U(    ; 
+      L     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+      L     "MAL1S033Par".RecipeHeader.Cleaning.SPARE_INT0002; // Target steptime actual step
+      >=I   ; 
+      )     ; 
+      O(    ; 
+// 2 Kriterium
+      O(    ; 
+      U(    ; 
+      L     "MAL1S033Par".StepAct.DeltaTempSwitchpointStep; 
+      L     0; 
+      >=D   ; 
+      )     ; 
+// condition, if analogue input is not damaaged   //
+      UN    "G295M".A_3291_BTE07.OutOverflow; //AIR TEMPERATURE ABOVE FLOOR
+      UN    "G295M".A_3291_BTE07.OutFaultAI; //AIR TEMPERATURE ABOVE FLOOR
+      UN    "G295M".A_3291_BTE01.OutOverflow; //AIR TEMPERATURE BELOW FLOOR
+      UN    "G295M".A_3291_BTE01.OutFaultAI; //AIR TEMPERATURE BELOW FLOOR
+      U(    ; 
+      L     "G295M".A_3291_BTE01.OutValueUnits; // act value temperature below floor
+      L     "G295M".A_3291_BTE07.OutValueUnits; // act value temperature above floor
+      -D    ; // delta temp actual
+      L     L#10; 
+      /D    ; 
+      L     "MAL1S033Par".StepAct.DeltaTempSwitchpointStep; 
+      <D    ; 
+      )     ; 
+      )     ; 
+// 3 Kriterium
+      O(    ; 
+      U(    ; 
+      L     "MAL1S033Par".StepAct.MaxTempAboveFloorStep; 
+      L     L#0; // 0,0°C is illegally switchpoint for max. temperature
+      >D    ; 
+      )     ; 
+// condition, if analogue input is not damaaged   // MW R2.1
+      UN    "G295M".A_3291_BTE01.OutOverflow; //AIR TEMPERATURE BELOW FLOOR
+      UN    "G295M".A_3291_BTE01.OutFaultAI; //AIR TEMPERATURE BELOW FLOOR
+      U(    ; 
+      L     "G295M".A_3291_BTE07.OutValueUnits; // act value temperature above floor
+      L     L#10; 
+      /D    ; 
+      L     "MAL1S033Par".StepAct.MaxTempAboveFloorStep; 
+      >=D   ; 
+      )     ; 
+      )     ; 
+// 4 Kriterium  
+// and min. time
+      U(    ; 
+      L     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+      L     "MAL1S033Par".RecipeHeader.Cleaning.SPARE_INT0001; // Target steptime actual step
+      >=I   ; 
+      )     ; 
+      )     ; 
+// and not cooling                                // UK 22.01.07
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+// 5 Kriterium
+      O(    ; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      U(    ; 
+      L     "G295M".A_3291_BTE07.OutValueUnits; // act value temperature above floor
+      L     L#10; 
+      /D    ; 
+      L     "MAL1S033Par".StepAct.TemperaturAboveFloor; 
+      <=D   ; 
+      )     ; 
+      O(    ; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     25; // max. 24 Schritte
+      >=I   ; 
+      )     ; 
+      )     ; 
+// and min. time
+      U(    ; 
+      L     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+      L     "MAL1S033Par".StepAct.StepTime_Min; // Target steptime actual step
+      >=I   ; 
+      )     ; 
+      SPBN  E606; 
+// send average step data to PIC
+      SET   ; 
+      S     "MAL1S033StepValues".SendData; // send average step data to PIC
+// Next step
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     "MAL1S033Par".RecipeHeader.NumberOfSteps; 
+      >I    ; 
+      SPB   Pedk; // Last step is finished
+// 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     1; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     0; 
+      T     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min Overall 
+      SPA   E606; 
+Pedk: NOP   0; // Process has finished
+      SET   ; 
+      R     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      S     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+// 
+      L     0; // clear step number
+      T     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".StepAct.StepNumber; 
+E606: NOP   0; 
+NETWORK
+TITLE =ASW_6080: Active step kilning
+// 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  E608; 
+// copy stepnr for visu
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".Par.ParIntProcess.ActualStep; 
+// basic speed  fans
+      L     "MAL1S033Par".StepAct.SpeedVentilatorBasic; 
+      T     "MAL1S033Par".Par.ParIntProcess.SpeedVentilatorBasic; 
+// basic position waste air flaps    
+      L     "MAL1S033Par".StepAct.PosExhaustAirFlapBasic; // setpoint from recipe
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.PosExhaustAirFlapBasic; 
+// basic position withering air channel flaps   
+      L     "MAL1S033Par".StepAct.PosWitheringAirFlapBasic; // setpoint from recipe
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.PosWitheringAirFlapBasic; 
+// basic position recycling air to ext. kiln flaps   
+      L     "MAL1S033Par".StepAct.PosRecycleAirFlapBasic; // setpoint from recipe
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.PosBypassExhaustAirFlap; 
+// basic position recycling air channel flaps   
+      L     "MAL1S033Par".StepAct.PosWitheringAirFlapBasic; // setpoint from recipe
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.PosBypassFreshAirFlap; 
+// basic position fresh air flaps   
+//      L       "MAL1S033Par".StepAct.PosFreshAirFlapBasic    // setpoint from recipe
+      L     0; // 0%
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPB   klk; 
+      L     100; // 100%
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPB   klk; 
+      SPA   Nklk; 
+klk:  L     10; // convert to 0.1%
+      *I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.PosFreshAirFlapBasic; 
+Nklk: NOP   0; 
+
+// Nachlauf der Brenner
+//    U     "GCS7_GrCtrlDB".OutEnable[276]    // G276M Heating Kilningbox
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      =     "MAL1S033Par".Par.FlagProcess.ProgrammSchwelkenDarren; 
+
+      U     "MAL1S033Par".Par.FlagProcess.ProgrammSchwelkenDarren; 
+      L     S5T#1M; 
+      SA    T     60; // Nachlauf Brenner
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProgrammSchwelkenDarren; 
+      U     T     60; // Nachlauf Brenner
+      =     "MAL1S033Par".Par.FlagProcess1.HilfsRegler_1_Down; 
+      =     "MAL1S033Par".Par.FlagProcess1.HilfsRegler_2_Down; 
+      =     "MAL1S033Par".Par.FlagProcess1.HilfsRegler_3_Down; 
+      =     "MAL1S033Par".Par.FlagProcess1.HilfsRegler_4_Down; 
+
+// Sollwert - Istwert vergleich der Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; // setpoint from SCADA
+      L     L#10; 
+      *D    ; 
+      T     "MAL1S033Par".Par.ProcessValue.TemperaturBelowFloor; 
+
+      U     "SYS_Scan0_Tick1min"; 
+      SPBN  NORM; 
+//- nur alle x Minuten korrigieren ---
+      L     "MAL1S033Par".Par.ProcessValue.CorrInterval; 
+      +     1; 
+      T     "MAL1S033Par".Par.ProcessValue.CorrInterval; 
+      L     2; // Korrekturintervall [min]
+      >=I   ; 
+      SPBN  NORM; 
+      L     0; 
+      T     "MAL1S033Par".Par.ProcessValue.CorrInterval; 
+
+      L     "MAL1S033Par".Par.ProcessValue.TemperaturBelowFloor; 
+      L     "G295M".A_3291_BTE01.OutValueUnits; // Real-Value Temperature below floor
+      -D    ; 
+      L     50; // Totband in [0.5°C]
+      <=D   ; 
+      SPB   uebe; // wenn größer keine Korrektur
+//- zur Sicherheit nicht mehr als 5.0°C zulassen ---
+      L     5.000000e+002; // max. Korrektur !
+      L     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+      <=R   ; 
+      SPB   uebe; 
+      L     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+      L     1.000000e+000; // Anpassung an Differenz zwischen den PT100
+      +R    ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+uebe: NOP   0; 
+
+      L     "MAL1S033Par".Par.ProcessValue.TemperaturBelowFloor; 
+      L     "G295M".A_3291_BTE01.OutValueUnits; // Real-Value Temperature below floor
+      -D    ; 
+      L     50; // Totband in [0.5°C]
+      >=D   ; 
+      SPB   unte; // wenn kleier keine Korrektur
+//- keine negative Korrektur (führt sonst zu Schwingung) ---
+      L     0.000000e+000; // keine negative Korrektur !
+      L     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+      >=R   ; 
+      SPB   unte; 
+      L     1.000000e+000; // Anpassung an Differenz zwischen den PT100
+      -R    ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+unte: NOP   0; 
+
+//- bei Schrittbegin noch keine Korrektur ---
+NORM: L     "MAL1S033Par".ActTimeStepProcess.SteptimeActMinOverall; // Steptime in min overall
+      L     8; // Korrekturverzögerung [min]
+      >I    ; 
+      SPB   SET; 
+      L     0.000000e+000; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+      L     10; // grossen Wert in Intervallzähler vorladen ...
+      T     "MAL1S033Par".Par.ProcessValue.CorrInterval; // ... damit nächster 1MinTick gleich wirksam wird
+
+SET:  NOP   0; 
+      L     "MAL1S033Par".Par.ProcessValue.TemperaturBelowFloor; 
+      DTR   ; 
+      L     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+      +R    ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.T_SOLL_NORM; 
+      SPA   M641; 
+      NOP   0; 
+//- Korrekturfaktor auf "0" setzen ---
+      L     0.000000e+000; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.SollwertTempKorr; 
+M641: NOP   0; 
+      SPA   GCPR; 
+
+// GCPRO  
+// setpoint temperature below floor
+      NOP   0; // setpoint fans automatic mode
+      L     L#0; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      SPB   aut1; 
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; // setpoint from SCADA
+aut1: NOP   0; 
+      DTR   ; 
+      L     1.000000e+001; 
+      /R    ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.T_SOLL_NORM; 
+// emergency kiln heating 
+// fan 1
+      U(    ; 
+      L     2#1; 
+      L     "MAL1S033Par".RecipeHeader.DeselectVentilator; // emergency regime without fan 1
+      ==I   ; 
+      )     ; 
+      L     "G295M".A_3291_BTE05.OutValuePc; //AIR TEMPERATURE DIFFUSOR FAN 1 :  temperature in diffusor fan 1
+      SPBN  c1R1; 
+      L     "G295M".A_3291_BTE01.OutValuePc; //AIR TEMPERATURE BELOW FLOOR
+      L     "G295M".A_3291_BTE05.OutValuePc; //AIR TEMPERATURE DIFFUSOR FAN 1 :  temperature in diffusor fan 2
+      <D    ; 
+      SPBN  c1R1; 
+      TAK   ; 
+c1R1: T     "MAL1S033Par".Par.ParIntProcess.ActValueTemperature_R1; 
+// fan 2
+      U(    ; 
+      L     2#10; 
+      L     "MAL1S033Par".RecipeHeader.DeselectVentilator; // emergency regime without fan 2
+      ==I   ; 
+      )     ; 
+      L     "G295M".A_3291_BTE05.OutValuePc; //AIR TEMPERATURE DIFFUSOR FAN 1 :  temperature in diffusor fan 2
+      SPBN  c1R2; 
+      L     "G295M".A_3291_BTE01.OutValuePc; //AIR TEMPERATURE BELOW FLOOR
+      L     "G295M".A_3291_BTE05.OutValuePc; //AIR TEMPERATURE DIFFUSOR FAN 1 :  temperature in diffusor fan 1
+      <D    ; 
+      SPBN  c1R2; 
+      TAK   ; 
+c1R2: T     "MAL1S033Par".Par.ParIntProcess.ActValueTemperature_R2; 
+
+GCPR: NOP   0; 
+
+// cooling down
+      L     "MAL1S033Par".StepAct.CoolingDown; 
+      L     1; 
+      ==I   ; 
+      S     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+E608: NOP   0; 
+
+// Abdarr-Betrieb aktiv
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      L     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      >I    ; 
+      =     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+
+NETWORK
+TITLE =ASW_6090: calculate heat quantity active kilning
+
+      L     L#0; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  n609; // no addition
+      SET   ; 
+      S     "MAL1S033Par".Par.FlagProcess.Inf21; // add heat quantity
+      U     "SYS_Scan0_Tick1s"; // scan 1sec
+      SPBN  E609; 
+      L     "MAL1S033Par".Par.ProcessValue_Real.Value05; // heat quantity in kW
+      +R    ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.Value05; 
+      SPA   E609; 
+n609: NOP   0; 
+      U     "MAL1S033Par".Par.FlagProcess.Inf21; // add heat quantity
+      SPBN  E609; 
+      R     "MAL1S033Par".Par.FlagProcess.Inf21; // add heat quantity
+      L     "MAL1S033Par".Par.ProcessValue_Real.Value05; 
+      L     3.600000e+003; 
+      /R    ; // from kWs to kWh
+      L     1.000000e+003; 
+      /R    ; // from kWh to MWh
+      RND   ; 
+      T     "MAL1S033Par".Par.ProcessValue_Real.Value06; // result to batch potokoll
+      L     0.000000e+000; // clear calculator
+      T     "MAL1S033Par".Par.ProcessValue_Real.Value05; 
+E609: NOP   0; 
+NETWORK
+TITLE =ASW_7000: Step loading kilning
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StWait; 
+      U     "MAL1S033".PCWrite.ExtFuncOn.StartLoading; // PIC command "start loading"
+      S     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      R     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterLoading; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterLoading; 
+// 
+      SET   ; 
+      R     "MAL1S033".PCWrite.ExtFuncOn.StartLoading; // PIC command "start loading"
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      SPB   e71; 
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      R     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+      R     "MAL1S033Par".Par.Switches1.StaOn05; // LiftingPositionRound_6
+e71:  NOP   0; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      UN    "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      UN    "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+      SPBN  E700; 
+      U(    ; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3460; // 346.0°
+      >=I   ; 
+      )     ; 
+      O     ; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#1; 
+      >=D   ; 
+      )     ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      =     "MAL1S033Par".Par.FlagFunction_0.ReducedSpeed; 
+// 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_3; 
+      L     20; // 20°
+      -I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_4; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingLevelRound_3; 
+      L     "MAL1S033Par".RecipeHeader.Loading.OffsetLevelNextRound; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_4; 
+// 
+      L     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_4; 
+      L     20; // 20°
+      -I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_5; 
+      L     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_4; 
+      L     "MAL1S033Par".RecipeHeader.Loading.OffsetLevelNextRound; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_5; 
+// 
+      L     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_5; 
+      L     20; // 20°
+      -I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_6; 
+      L     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_5; 
+      L     "MAL1S033Par".RecipeHeader.Loading.OffsetLevelNextRound; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_6; 
+// 
+      L     3600; 
+      L     "G292M".A_3211_MXZ41MA.Ma.Par.ParTolPosition; 
+      -I    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      <=I   ; 
+      SPB   E700; 
+// 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     0; 
+      <I    ; 
+//      <=I   
+      SPB   E700; 
+// 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     10; 
+      /I    ; 
+      T     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+// 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      FP    "MAL1S033Par".Par.Switches1.StaOn08; 
+      =     "MAL1S033Par".Par.Switches1.StaOn09; // scan start loading
+      U     "MAL1S033Par".Par.Switches1.StaOn09; // scan start loading
+      SPBN  e72; 
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      R     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+      R     "MAL1S033Par".Par.Switches1.StaOn05; // LiftingPositionRound_6
+// 
+e72:  NOP   0; 
+// 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#0; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_1; 
+      <I    ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+// 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#0; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_1; 
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     3550; // 355.0° --> Ruckeln am Nullpunkt abfangen
+      <=I   ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+// 
+      U     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+// 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#1; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_2; 
+      >=I   ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+// 
+      U     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+// 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#2; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_3; 
+      >=I   ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+// 
+      U     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      R     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#3; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_4; 
+      >=I   ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+// 
+      U     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+      R     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      R     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#4; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.ISTWERT_FAHRANTRIEB_POSI; 
+      L     "MAL1S033Par".Par.ParIntMachine.LiftingPositionRound_5; 
+      >=I   ; 
+      )     ; 
+      S     "MAL1S033Par".Par.Switches1.StaOn05; // LiftingPositionRound_6
+// 
+      U     "MAL1S033Par".Par.Switches1.StaOn05; // LiftingPositionRound_6
+      R     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+      R     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      R     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      R     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      R     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      U     "MAL1S033Par".Par.Switches1.StaOn00; // LiftingPositionRound_1
+      SPB   Rnd1; 
+      U     "MAL1S033Par".Par.Switches1.StaOn01; // LiftingPositionRound_2
+      SPB   Rnd2; 
+      U     "MAL1S033Par".Par.Switches1.StaOn02; // LiftingPositionRound_3
+      SPB   Rnd3; 
+      U     "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      SPB   Rnd4; 
+      U     "MAL1S033Par".Par.Switches1.StaOn04; // LiftingPositionRound_5
+      SPB   Rnd5; 
+      U     "MAL1S033Par".Par.Switches1.StaOn05; // LiftingPositionRound_6
+      SPB   Rnd6; 
+      SPA   E700; 
+Rnd1: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingLevelRound_1; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_1; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+Rnd2: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingLevelRound_2; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_2; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+Rnd3: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingLevelRound_3; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_3; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+Rnd4: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_4; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+//      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_3
+      L     87; // 87%
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+Rnd5: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_5; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+//      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_3
+      L     87; // 87%
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+Rnd6: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntMachine.LoadingLevelRound_6; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+//      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_3
+      L     87; // 87%
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   E700; 
+E700: NOP   0; 
+NETWORK
+TITLE =Sub 7010: Kilning  loading finished
+//      L     0; 
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I   ; 
+//      SPB   fin; 
+//      O(;
+//      U     "MAL1S017Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S017Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S017".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S017";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S018Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S018Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S018".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S018";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S019Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S019Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S019".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S019";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S020Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S020Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S020".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S020";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S021Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S021Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S021".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S021";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S022Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S022Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S022".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S022";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S023Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish l
+//oading"                    
+//      O       "MAL1S023Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S023".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S023";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(;
+//      U     "MAL1S024Par".Par.FlagFunction_1.FinishUnloading;
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"                    
+//      O       "MAL1S024Par".Par.FlagFunction_1.StepCleaning;
+//      U     "MAL1S024".PCRead.Step.StEmptied;
+//      U(    ; 
+//      AUF   "MAL1S024";
+//      L DBNO;
+//      L     "MAL1S033".ToSSW.InPrevSecDB; 
+//      ==I;
+//      )     ; 
+//      )     ; 
+//      O(    ; 
+//      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+//      UN    "MAL1S033".ToASW.InfSameJobPrevSec; 
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish l
+//oading"                    
+//      )     ; 
+//      U     "MAL1S033".ToASW.InfDataReady; 
+//      U     "MAL1S033".PCRead.Step.StActive; 
+//      S     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+//// 
+//      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish 
+//loading"     
+//      R     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish l
+//oading"
+//// 
+//      U     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+//      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+//      FP    "MAL1S033Par".Par.FlagFunction_0.ImpulsSollposition; 
+//      =     "MAL1S033Par".Par.FlagFunction_0.MerkerSollpositionFP; 
+//      U     "MAL1S033Par".Par.FlagFunction_0.MerkerSollpositionFP; 
+//      SPBN  fin; 
+//      L     WinCoS_BIW01_09PLC1BIW01_02.Ma.OutPositionAngle; 
+//      L     "MAL1S033Par".Par.ParIntProcess.LoadingOverlap; 
+//      +I    ; 
+//      T     WinCoS_BIW01_09PLC1BIW01_02.Ma.InPositionTarget; 
+////???      SET   
+////???      S     "PLC1BIW01_02".TurningTo_Parkposition    // 
+//WinCoS_BIW01_09PLC1BIW01_02..Ma.InAdjusting
+//// Beladehöhe speichern
+//      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+//      T     "MAL1S033Par".Par.ParIntMachine.LastLoadingLevel; // saved loading 
+//value
+//fin:  NOP   0; 
+//E701: NOP   0; 
+// Grundschicht vollständig bedeckt
+      U(    ; 
+// Die Position bei IBN ermitteln!
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3564; // 356.4°
+      >=I   ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U     "G292M".A_3211_MXZ41MA.Ma.InEnableFwd; 
+      S     "MAL1S033Par".Par.FlagFunction_1.LoadFirstPartEnd; 
+      S     "MAL1S033Par".Par.FlagProcess.Product_Inside; 
+
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      O     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S033".PCRead.Step.StIdling; // "SecDB".PCRead.Step.StIdling
+      R     "MAL1S033Par".Par.FlagFunction_1.LoadFirstPartEnd; 
+
+      L     0; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      SPB   fin; 
+      O(    ; 
+      U     "MAL1S017Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S017".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S017Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S017".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S017"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S018".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S018Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S018".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S018"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S019Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S019".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S019Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S019".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S019"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S020Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S020".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S020Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S020".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S020"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S021".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S021Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S021"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S022Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S022".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S022Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S022".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S022"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S023Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S023".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S033Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S033".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S023"; 
+      L     DBNO; 
+      L     "MAL1S023".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S024Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S024".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"   
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+      O     "MAL1S024Par".Par.FlagFunction_1.StepCleaning; 
+      U     "MAL1S024".PCRead.Step.StEmptied; 
+      U(    ; 
+      AUF   "MAL1S024"; 
+      L     DBNO; 
+      L     "MAL1S033".ToSSW.InPrevSecDB; 
+      ==I   ; 
+      )     ; 
+      )     ; 
+//      O(    
+//      U       "MAL1S033Par".Par.FlagFunction_1.StepLoading    // Step loading
+//      UN      "MAL1S033".ToASW.InfSameJobPrevSec
+//      U       "MAL1S033".PCWrite.ExtFuncOn.FinishLoading    // PIC command "finish loading"                    
+//      )     
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      U     "MAL1S033Par".Par.FlagFunction_1.LoadFirstPartEnd; 
+      S     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+      R     "MAL1S017".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S018".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S019".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S020".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S021".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S022".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S023".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+      R     "MAL1S024".PCWrite.ExtFuncOn.FinishCleanSurface; // PIC command "finish unloading"
+
+// 
+      U     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish loading"     
+      R     "MAL1S033".PCWrite.ExtFuncOn.FinishLoading; // PIC command "finish loading"
+// 
+      U     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; // Step loading
+      FP    "MAL1S033Par".Par.FlagFunction_0.ImpulsSollposition; 
+      =     "MAL1S033Par".Par.FlagFunction_0.MerkerSollpositionFP; 
+      U     "MAL1S033Par".Par.FlagFunction_0.MerkerSollpositionFP; 
+      SPBN  fin; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     "MAL1S033Par".Par.ParIntProcess.LoadingOverlap; 
+      +I    ; 
+      T     "G292M".A_3211_MXZ41MA.Ma.InPositionTarget; 
+      SET   ; 
+      S     "G292M".TurningTo_Parkposition; 
+
+// Extra Planierrunde wenn der Fahrantrieb ueber 346° beim Beladen Ende war 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3460; // 346,0 °
+      >I    ; 
+      S     "G292M".Turning_One_Round_More; 
+
+// Beladehöhe speichern
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.ParIntMachine.LastLoadingLevel; // saved loading value
+fin:  NOP   0; 
+
+// Hubzüge erst auf der Parkposition abheben
+      U     "G292M".TurningTo_Parkposition; 
+      FN    "G291M".USW8; 
+      =     "G291M".USW9; 
+
+      U     "G291M".USW9; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      U(    ; 
+      U     "G292M".A_3211_MXZ41MA.A_3211_BZS43.StCtoTrue; // sensor zero point
+      O     "G292M".A_3211_MXZ41MA.A_3211_BZS43.StTrue; // sensor zero point
+      )     ; 
+      SPBN  auf; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopLeftUnits; //LIFTING DRIVE
+      L     150; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopRightUnits; //LIFTING DRIVE
+      L     150; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+auf:  NOP   0; 
+
+      NOP   0; 
+NETWORK
+TITLE =ASW_6080: Processtime Kilning
+//      CALL  "SSA_MH_ProcessTime_Fct" , DB1017
+//       InfDataReady :="MAL1S017".ToASW.InfDataReady
+//       ProzessActive:="MAL1S017Par".Par.FlagProcess.ProcessActive
+//       InStartTime  :="MAL1S017Par".Prozesstime.Starttime
+//       OutStartTime :="MAL1S017Par".Prozesstime.Starttime
+//       ProcessTime  :="MAL1S017Par".Prozesstime
+//
+      CALL "SSA_MH_ProcessTime_Fct" , DB  1033 (
+           InfDataReady             := "MAL1S033".ToASW.InfDataReady,
+           ProzessActive            := "MAL1S033Par".Par.FlagProcess.ProcessActive,
+           InStartTime              := "MAL1S033Par".Processtime.StartTime,
+           OutStartTime             := "MAL1S033Par".Processtime.StartTime,
+           ProcessTime              := "MAL1S033Par".Processtime);
+
+NETWORK
+TITLE =Sub 7020: Step start process kilning
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+//      U       "MAL1S033".PCWrite.ExtFuncOn.StartProcess    // PIC command "start process kilning"
+      U     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+
+      U     "G292M".A_3211_MXZ41MA.A_3211_BZS43.StTrue; // sensor zero point
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS23.InpTrue; 
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS33.InpTrue; 
+
+      O(    ; 
+      UN    "MAL1S033".SecNom.Par1On.Cmd01; // With Loading
+      UN    "MAL1S033".ToASW.InfSameBatchPrevSec; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StActive; 
+      )     ; 
+
+      S     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; // start process kilning
+      R     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+// 
+      U     "MAL1S033".PCWrite.ExtFuncOn.StartProcess; // PIC command "start process kilning"
+      R     "MAL1S033".PCWrite.ExtFuncOn.StartProcess; // PIC command "start process kilning"
+// 
+      U     "G292M".A_3211_MXZ41MA.Ma.StAdjusted; 
+      O     "G292M".A_3211_MXZ41MA.Ma.OutAdjusted; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; // start process kilning
+      O     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  E702; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopLeftUnits; //LIFTING DRIVE 
+      L     50; //jk
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopRightUnits; //LIFTING DRIVE 
+      L     50; //jk
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+
+E702: NOP   0; 
+
+      U     "G292M".TurningTo_Parkposition; 
+      SPBN  E703; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3500; 
+      >=I   ; 
+      )     ; 
+      SPBN  E703; 
+      L     10; // 10% speed to parkposition
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+E703: NOP   0; 
+
+      U     "G292M".TurningTo_Parkposition; 
+      SPBN  E704; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3500; 
+      <I    ; 
+      )     ; 
+      SPBN  E704; 
+      L     87; // 87% speed to parkposition
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+E704: NOP   0; 
+
+NETWORK
+TITLE =ASW_8000:  Step unloading kilning
+
+      UN    "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      R     "MAL1S033Par".Par.FlagFunction_0.OverlapSaved; // Ueberlappung erfasst
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U(    ; 
+      L     "MAL1S033Par".RecipeHeader.Unloading.StartUnloadAuto; //StartUnloadAuto = 0
+      L     1; 
+      <>I   ; 
+      U     "MAL1S033".PCWrite.ExtFuncOn.StartUnLoading; // PIC command "start unloading"
+      O     ; 
+      U(    ; 
+      L     "MAL1S033Par".RecipeHeader.Unloading.StartUnloadAuto; //StartUnloadAuto = 10
+      L     1; 
+      ==I   ; 
+      )     ; 
+      UN    "G297M".A_3225_TSC01_AF.OutL; // 30% Ventilatordrehzahl
+      UN    "G297M".A_3226_TSC01_AF.OutL; // 30% Ventilatordrehzahl
+      )     ; 
+      S     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      R     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung; 
+      R     "MAL1S023Par".Par.FlagMachine.WEGMESSUNG_0; 
+      R     DB923.DBX  148.0; // FP
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterUnloading; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterUnloading; 
+// 
+      SET   ; 
+      R     "MAL1S033".PCWrite.ExtFuncOn.StartUnLoading; // PIC command "start unloading"
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      SPBN  e800; 
+      L     "MAL1S033Par".Par.ParIntMachine.LastLoadingLevel; // saved loading value
+      T     "MAL1S033Par".Par.ParIntMachine.FUELLHOEHE_PRODUKT; 
+// 
+      U(    ; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.OutPositionLeft; 
+      L     "MAL1S033Par".Par.ParIntMachine.FUELLHOEHE_PRODUKT; 
+      >I    ; 
+      )     ; 
+      O(    ; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.OutPositionRight; 
+      L     "MAL1S033Par".Par.ParIntMachine.FUELLHOEHE_PRODUKT; 
+      >I    ; 
+      )     ; 
+      UN(   ; 
+      U(    ; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.OutPositionLeft; 
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      <=I   ; 
+      )     ; 
+      U(    ; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.OutPositionRight; 
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      <=I   ; 
+      )     ; 
+      )     ; 
+      =     "MAL1S033Par".Par.FlagFunction_0.ScrewAboveProductLayer; // HubzuegeUeberProdukt
+// 
+//- Letzte Entladehoehe erreicht ---
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      L     0; 
+      <=I   ; 
+      )     ; 
+      U(    ; 
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.InPositionTarget; 
+      ==I   ; 
+      )     ; 
+      U     "G291M".A_3211_MXZ21_31MA.Ma.StAdjusted; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      FP    "MAL1S033Par".Par.FlagFunction_0.UnloadLevelReachedFP; // UnloadLevelReachedFP
+      =     "MAL1S033Par".Par.FlagFunction_0.ImpulsUnloadLevelReached; // ImpulsUnloadLevelReached
+      UN    "MAL1S033Par".Par.FlagFunction_0.ImpulsUnloadLevelReached; // ImpulsUnloadLevelReached
+      O     "MAL1S033Par".Par.FlagFunction_0.OverlapSaved; // Ueberlappung erfasst
+      SPB   over; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     1; 
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.UnloadungRounds; 
+// 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     3600; // 360,0°
+      >=I   ; 
+      SPBN  soz1; 
+      -I    ; 
+      SPA   soz2; 
+soz1: NOP   0; 
+      TAK   ; 
+soz2: NOP   0; 
+      L     100; // 10,0°
+      +I    ; 
+      T     "MAL1S033Par".Par.ParIntProcess.UnloadingOverlap; 
+      T     "G292M".A_3211_MXZ41MA.Ma.InPositionTarget; 
+      S     "MAL1S033Par".Par.FlagFunction_0.OverlapSaved; // Ueberlappung erfasst
+over: NOP   0; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#0; 
+      ==D   ; 
+      )     ; 
+      SPB   rnd1; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#1; 
+      ==D   ; 
+      SPB   rnd2; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#2; 
+      >=D   ; 
+      SPB   rnd3; 
+      SPA   e801; 
+rnd1: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_3; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      L     "MAL1S033Par".RecipeHeader.Unloading.UnLoadingSpeed_1; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   e801; 
+rnd2: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_4; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      L     "MAL1S033Par".RecipeHeader.Unloading.UnLoadingSpeed_2; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   e801; 
+rnd3: NOP   0; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LiftingPositionRound_5; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+      L     "MAL1S033Par".RecipeHeader.Unloading.UnLoadingSpeed_3; 
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      SPA   e801; 
+
+e801: NOP   0; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     "MAL1S033Par".Par.ParIntProcess.UnloadungRounds; 
+      >=I   ; 
+      )     ; 
+      U     "G291M".A_3211_MXZ21_31MA.Ma.StAdjusted; 
+      U     "G292M".A_3211_MXZ41MA.Ma.StAdjusted; 
+      S     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      SPBN  e800; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopLeftUnits; 
+      L     50; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      L     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParPositionTopRightUnits; 
+      L     50; 
+      +I    ; 
+      T     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG2_HOEHE; 
+      L     1; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParTolPosition; 
+
+      L     0; 
+      T     "MAL1S033Par".Par.ParIntMachine.LastLoadingLevel; // saved loading value
+      T     "MAL1S033Par".Par.ParIntMachine.FUELLHOEHE_PRODUKT; 
+e800: NOP   0; 
+// 
+// --> Wie bei der Bank Avangard
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      FP    DB923.DBX  148.0; 
+      =     DB923.DBX  148.1; 
+      SPBN  TAU1; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     1800; 
+      <I    ; 
+      S     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterUnloading; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutPositionAngle; 
+      L     1800; 
+      >=I   ; 
+      S     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterUnloading; 
+TAU1: NOP   0; 
+      U     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterUnloading; 
+      O     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterUnloading; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "G293M".A_3211_MXZ11.StStopped; 
+      U     "G291M".A_3211_MXZ21_31MA.Ma.OutHigherMinPos; 
+      U(    ; 
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS33.InpTrue; 
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_BZS23.InpTrue; 
+      O     "G291M".A_3211_MXZ21_31MA.Ma.StAdjusted; 
+      )     ; 
+      S     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0; 
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0; 
+      SPBN  TAU2; 
+//    L       "MAL1S033Par".RecipeHeader.Cleaning.CleaningSpeed_1
+      L     30; // 30%
+      T     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+TAU2: NOP   0; 
+      NOP   0; 
+NETWORK
+TITLE =ASW_9000: Step cleaning
+
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      U     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S033".PCWrite.ExtFuncOn.FinishCleaning; // PIC command "cleaning ready"
+      S     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      R     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      R     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+// 
+      U     "MAL1S033".PCWrite.ExtFuncOn.FinishCleaning; // PIC command "cleaning ready"
+      R     "MAL1S033".PCWrite.ExtFuncOn.FinishCleaning; // PIC command "cleaning ready"
+NETWORK
+TITLE =ASW_9080: Send section date to PIC after germination
+
+      AUF   "MAL1S033"; 
+      U     "MAL1S033".PCRead.Step.StEmptying; 
+      FP    "MAL1S033Par".Par.FlagProcess.FP_SendResultToPIC; 
+      SPBN  E908; 
+// 
+
+E908: NOP   0; 
+NETWORK
+TITLE =ASW_10000: ILO functions
+
+      U     "MAL1S033".SecAc.Sta1On.Inf08; 
+      =     "MAL1S033".Gr.All.Spare04; 
+
+//- Little help for PIC-People, Number 3
+      UN    "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      UN    "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      UN    "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      UN    "G294M".Gr.InManual; // DISCHARGE DOOR KILN 2
+      UN    "G297M".Gr.InManual; // FAN KILN 2
+      UN    "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      UN    "G299M".Gr.InManual; // RECYCLING AIR LOUVER KILN 2
+      UN    "G300M".Gr.InManual; // EXHAUST AIR LOUVER KILN 2
+      UN    "G302M".Gr.InManual; // HEATING KILN 2
+      UN    "G303M".Gr.InManual; // LOUVER AIR HEATER 1 FOR KILN 2
+      UN    "G304M".Gr.InManual; // WITHERING AIR KILN 2
+      UN    "G279M".Gr.InManual; // HEATING KILN 1 + 2
+      FP    DB923.DBX 2999.0; 
+      =     DB923.DBX 2999.1; 
+      U     DB923.DBX 2999.1; 
+      SPBN  RSM3; 
+      L     0; 
+      T     "MAL1S033Par".Ilo.Code_ILO_Funktion0; // FCM 32 LINE 1 SEC 32 KILN
+      T     "MAL1S033Par".Ilo.ILOMode; 
+RSM3: NOP   0; 
+
+//- Combination OLD and NEW ---
+      U     "MAL1S033".SecAc.Sta1On.Inf08; 
+      SPBN  IFM; 
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     100; 
+      *I    ; 
+      T     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+IFM:  NOP   0; 
+
+//  no ILO-mode >> cmd manual off to all used groups and reset all flags
+      U     "MAL1S033".SecAc.Sta1On.Inf08; 
+      FN    "MAL1S033Par".Ilo.Flag.EdgeILOModeOn; 
+      S     "MAL1S033Par".Ilo.GrCMDManOff[1]; // (ManOff)
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[2]; 
+//  Gr-cmd manual OFF
+      S     "G291M".Gr.CmdManualOff; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdManualOff; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.CmdManualOff; // UNLOADING / LOADING SCREW KILN 2
+      S     "G294M".Gr.CmdManualOff; // DISCHARGE DOOR KILN 2
+      S     "G297M".Gr.CmdManualOff; // FAN KILN 2
+      S     "G298M".Gr.CmdManualOff; // FRESH AIR LOUVER KILN 2
+      S     "G299M".Gr.CmdManualOff; // RECYCLING AIR FLAP KILN 2
+      S     "G302M".Gr.CmdManualOff; // HEATING KILN 2
+      S     "G303M".Gr.CmdManualOff; // LOUVER AIR HEATER KILN 2
+      S     "G304M".Gr.CmdManualOff; // WITHERING AIR KILN 2
+      S     "G305M".Gr.CmdManualOff; // CHAIN CONVEYOR 9002 KILN 2
+      S     "G279M".Gr.CmdManualOff; // HEATING KILN 1 + 2
+//  RESET ADDITIONAL CMD`S
+      R     "G291M".USW14; // ILO-cmd
+      R     "G291M".USW15; // ILO-cmd
+      R     "G292M".USW14; // ILO-cmd
+      R     "G292M".USW15; // ILO-cmd
+      R     "G293M".USW14; // ILO-cmd
+      R     "G293M".USW15; // ILO-cmd
+      R     "G294M".USW14; // ILO-cmd
+      R     "G294M".USW15; // ILO-cmd
+      R     "G297M".USW14; // ILO-cmd
+      R     "G297M".USW15; // ILO-cmd
+      R     "G298M".USW14; // ILO-cmd
+      R     "G298M".USW15; // ILO-cmd
+      R     "G299M".USW14; // ILO-cmd
+      R     "G299M".USW15; // ILO-cmd
+      R     "G302M".USW14; // ILO-cmd
+      R     "G302M".USW15; // ILO-cmd
+      R     "G303M".USW14; // ILO-cmd
+      R     "G303M".USW15; // ILO-cmd
+      R     "G304M".USW14; // ILO-cmd
+      R     "G304M".USW15; // ILO-cmd
+      R     "G305M".USW14; // ILO-cmd
+      R     "G305M".USW15; // ILO-cmd
+      R     "G279M".USW14; // ILO-cmd
+      R     "G279M".USW15; // ILO-cmd
+
+      NOP   0; 
+// --- FCM 01 - Lifting devices ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     1; 
+      <>I   ; 
+      SPB   IO1; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G291M".Gr.CmdManualOff; // LIFTING DEVICE KILN 2
+      R     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      R     "G291M".USW14; // ILO-cmd
+      R     "G291M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G291M".Gr.CmdOn; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G291M".Gr.CmdOff; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G291M".Gr.CmdFaultReset; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+      UN    "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     100; 
+      <>I   ; 
+      )     ; 
+      SPB   Stat; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      L     "MAL1S033Par".Par.MachineValue.SOLLWERT_HUBZUG1_HOEHE; 
+      SPB   Tpos; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; // ManUp
+      L     2000; // 1850mm + Offset = 2000mm
+      SPB   Tpos; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; // ManDown
+      L     0; // 0mm
+      SPB   Tpos; 
+      SPA   Stat; 
+// target position
+Tpos: NOP   0; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_LiftDev; 
+Stat: NOP   0; 
+IO1:  NOP   0; 
+      NOP   0; 
+// --- FCM 04 - Fans ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     4; 
+      <>I   ; 
+      SPB   IO4; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G297M".Gr.InManual; // FAN KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G297M".Gr.CmdManualOff; // FAN KILN 2
+      R     "G297M".Gr.InManual; // FAN KILN 2
+      R     "G297M".USW14; // ILO-cmd
+      R     "G297M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G297M".Gr.CmdOn; // FAN KILN 2
+      S     "G297M".Gr.CmdContinue; // FAN KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G297M".Gr.CmdOff; // FAN KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G297M".Gr.CmdFaultReset; // FAN KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// target position
+      UN    "G297M".Gr.InManual; // FAN KILN 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     400; 
+      <>I   ; 
+      )     ; 
+      SPB   F04a; 
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_Fan; 
+F04a: NOP   0; 
+
+IO4:  NOP   0; 
+      NOP   0; 
+// --- FCM 05 - Fans with target air temperature ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     5; 
+      <>I   ; 
+      SPB   IO5; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G297M".Gr.InManual; // FAN KILN 2
+      S     "G299M".Gr.InManual; // RECYCLING AIR FLAP KILN 2
+      S     "G299M".Gr.CmdOn; // No Button: RECYCLING AIR FLAP KILN 2
+      S     "G299M".Gr.CmdContinue; // No Button RECYCLING AIR FLAP KILN 2
+      S     "G302M".Gr.InManual; // HEATING KILN 2
+      S     "G302M".Gr.CmdOn; // No Button: HEATING KILN 2
+      S     "G302M".Gr.CmdContinue; // No Button HEATING KILN 2
+      S     "G303M".Gr.InManual; // LOUVER AIR HEATER KILN 2
+      S     "G303M".Gr.CmdOn; // No Button: LOUVER AIR HEATER KILN 2
+      S     "G303M".Gr.CmdContinue; // No Button LOUVER AIR HEATER KILN 2
+      S     "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      S     "G298M".Gr.CmdOn; // No Button: FRESH AIR LOUVER KILN 2
+      S     "G298M".Gr.CmdContinue; // No Button FRESH AIR LOUVER KILN 2
+      S     "G304M".Gr.InManual; // WITHERING AIR KILN 2
+      S     "G304M".Gr.CmdOn; // No Button: WITHERING AIR KILN 2
+      S     "G304M".Gr.CmdContinue; // No Button WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G297M".Gr.CmdManualOff; // FAN KILN 2
+      R     "G297M".Gr.InManual; // FAN KILN 2
+      R     "G297M".USW14; // ILO-cmd
+      R     "G297M".USW15; // ILO-cmd
+      S     "G299M".Gr.CmdManualOff; // RECYCLING AIR FLAP KILN 2
+      R     "G299M".Gr.InManual; // RECYCLING AIR FLAP KILN 2
+      R     "G299M".USW14; // ILO-cmd
+      R     "G299M".USW15; // ILO-cmd
+      S     "G302M".Gr.CmdManualOff; // HEATING KILN 2
+      R     "G302M".Gr.InManual; // HEATING KILN 2
+      R     "G302M".USW14; // ILO-cmd
+      R     "G302M".USW15; // ILO-cmd
+      S     "G303M".Gr.CmdManualOff; // LOUVER AIR HEATER KILN 2
+      R     "G303M".Gr.InManual; // LOUVER AIR HEATER KILN 2
+      R     "G303M".USW14; // ILO-cmd
+      R     "G303M".USW15; // ILO-cmd
+      S     "G298M".Gr.CmdManualOff; // FRESH AIR LOUVER KILN 2
+      R     "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      R     "G298M".USW14; // ILO-cmd
+      R     "G298M".USW15; // ILO-cmd
+      S     "G304M".Gr.CmdManualOff; // WITHERING AIR KILN 2
+      R     "G304M".Gr.InManual; // WITHERING AIR KILN 2
+      R     "G304M".USW14; // ILO-cmd
+      R     "G304M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G297M".Gr.CmdOn; // FAN KILN 2
+      S     "G297M".Gr.CmdContinue; // FAN KILN 2
+      S     "G299M".Gr.CmdOn; // RECYCLING AIR FLAP KILN 2
+      S     "G299M".Gr.CmdContinue; // RECYCLING AIR FLAP KILN 2
+      S     "G302M".Gr.CmdOn; // HEATING KILN 2
+      S     "G302M".Gr.CmdContinue; // HEATING KILN 2
+      S     "G303M".Gr.CmdOn; // LOUVER AIR HEATER KILN 2
+      S     "G303M".Gr.CmdContinue; // LOUVER AIR HEATER KILN 2
+      S     "G298M".Gr.CmdOn; // FRESH AIR LOUVER KILN 2
+      S     "G298M".Gr.CmdContinue; // FRESH AIR LOUVER KILN 2
+      S     "G304M".Gr.CmdOn; // WITHERING AIR KILN 2
+      S     "G304M".Gr.CmdContinue; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrSTMan[17]; 
+      S     "G297M".Gr.CmdOff; // FAN KILN 2
+      S     "G299M".Gr.CmdOff; // RECYCLING AIR FLAP KILN 2
+      S     "G302M".Gr.CmdOff; // HEATING KILN 2
+      S     "G303M".Gr.CmdOff; // LOUVER AIR HEATER KILN 2
+      S     "G298M".Gr.CmdOff; // FRESH AIR LOUVER KILN 2
+      S     "G304M".Gr.CmdOff; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrSTMan[17]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G297M".Gr.CmdFaultReset; // FAN KILN 2
+      S     "G299M".Gr.CmdFaultReset; // RECYCLING AIR FLAP KILN 2
+      S     "G302M".Gr.CmdFaultReset; // HEATING KILN 2
+      S     "G303M".Gr.CmdFaultReset; // LOUVER AIR HEATER KILN 2
+      S     "G298M".Gr.CmdFaultReset; // FRESH AIR LOUVER KILN 2
+      S     "G304M".Gr.CmdFaultReset; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// target position
+      UN    "G297M".Gr.InManual; // FAN KILN 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     500; 
+      <>I   ; 
+      )     ; 
+      SPB   F05b; 
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_Fan; 
+F05b: NOP   0; 
+      UN    "G299M".Gr.InManual; // Recycling Air Flap Kilningbox 1
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     500; 
+      <>I   ; 
+      )     ; 
+      SPB   F05c; 
+      L     "MAL1S033Par".Ilo.SetpointInt03[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_RecycAir; 
+F05c: NOP   0; 
+      UN    "G304M".Gr.InManual; // Withering Air Flap Kilningbox 1
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     500; 
+      <>I   ; 
+      )     ; 
+      SPB   F05d; 
+      L     "MAL1S033Par".Ilo.SetpointInt04[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_WitheringAir; 
+F05d: NOP   0; 
+      UN    "G302M".Gr.InManual; // Heating Kiln 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     500; 
+      <>I   ; 
+      )     ; 
+      SPB   F05e; 
+      L     "MAL1S033Par".Ilo.SetpointInt01[2]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TargetTemperature_ILO; 
+F05e: NOP   0; 
+
+IO5:  NOP   0; 
+      NOP   0; 
+// --- FCM 06 - Fresh air flap ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     6; 
+      <>I   ; 
+      SPB   IO6; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G298M".Gr.CmdManualOff; // FRESH AIR LOUVER KILN 2
+      R     "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      R     "G298M".USW14; // ILO-cmd
+      R     "G298M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G298M".Gr.CmdOn; // FRESH AIR LOUVER KILN 2
+      S     "G298M".Gr.CmdContinue; // FRESH AIR LOUVER KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G298M".Gr.CmdOff; // FRESH AIR LOUVER KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G298M".Gr.CmdFaultReset; // FRESH AIR LOUVER KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+
+// target position
+      UN    "G298M".Gr.InManual; // FRESH AIR LOUVER KILN 2
+      SPB   F06b; 
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_FreshAir; 
+F06b: NOP   0; 
+
+IO6:  NOP   0; 
+      NOP   0; 
+// --- FCM 07 - Recycling air flap ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     7; 
+      <>I   ; 
+      SPB   IO7; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G299M".Gr.InManual; // RECYCLING AIR FLAP KILN 2
+      S     "G304M".Gr.InManual; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G299M".Gr.CmdManualOff; // RECYCLING AIR FLAP KILN 2
+      R     "G299M".Gr.InManual; // RECYCLING AIR FLAP KILN 2
+      R     "G299M".USW14; // ILO-cmd
+      R     "G299M".USW15; // ILO-cmd
+      S     "G304M".Gr.CmdManualOff; // WITHERING AIR KILN 2
+      R     "G304M".Gr.InManual; // WITHERING AIR KILN 2
+      R     "G304M".USW14; // ILO-cmd
+      R     "G304M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G299M".Gr.CmdOn; // RECYCLING AIR FLAP KILN 2
+      S     "G299M".Gr.CmdContinue; // RECYCLING AIR FLAP KILN 2
+      S     "G304M".Gr.CmdOn; // WITHERING AIR KILN 2
+      S     "G304M".Gr.CmdContinue; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G299M".Gr.CmdOff; // RECYCLING AIR FLAP KILN 2
+      S     "G304M".Gr.CmdOff; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G299M".Gr.CmdFaultReset; // RECYCLING AIR FLAP KILN 2
+      S     "G304M".Gr.CmdFaultReset; // WITHERING AIR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+
+// target position
+      UN    "G299M".Gr.InManual; // RECYCLING AIR FLAP KILN 2
+      SPB   F07a; 
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_RecycAir; 
+F07a: NOP   0; 
+IO7:  NOP   0; 
+      NOP   0; 
+// --- FCM 09 - Floor drives ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     9; 
+      <>I   ; 
+      SPB   IO9; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G292M".Gr.CmdManualOff; // TRAVELLING DRIVE KILN 2
+      R     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "G292M".USW14; // ILO-cmd
+      R     "G292M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G292M".Gr.CmdOn; // TRAVELLING DRIVE KILN 2
+      S     "G292M".Gr.CmdContinue; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G292M".Gr.CmdOff; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManOn[17]; 
+      S     "G292M".Gr.CmdFaultReset; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[17]; 
+      NOP   0; 
+      UN    "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      SPB   f092; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      =     "G292M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      =     "G292M".USW15; // ILO-cmd run rev
+// target position
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_FloorRotating; 
+f092: NOP   0; 
+
+IO9:  NOP   0; 
+      NOP   0; 
+// --- FCM 10 - Floor drives and lifting devices ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     10; 
+      <>I   ; 
+      SPB   IO10; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdOn; // No Button: LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // No Button LIFTING DEVICE KILN 2
+      S     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G291M".Gr.CmdManualOff; // LIFTING DEVICE KILN 2
+      R     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      R     "G291M".USW14; // ILO-cmd
+      R     "G291M".USW15; // ILO-cmd
+      S     "G292M".Gr.CmdManualOff; // TRAVELLING DRIVE KILN 2
+      R     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "G292M".USW14; // ILO-cmd
+      R     "G292M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G292M".Gr.CmdOn; // TRAVELLING DRIVE KILN 2
+      S     "G292M".Gr.CmdContinue; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      S     "G291M".Gr.CmdOn; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+      R     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G291M".Gr.CmdOff; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdOff; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G291M".Gr.CmdFaultReset; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdFaultReset; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+      NOP   0; 
+      UN    "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      SPB   f102; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      =     "G292M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      =     "G292M".USW15; // ILO-cmd run rev
+// target speed floor drives
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_FloorRotating; 
+f102: NOP   0; 
+      UN    "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     1000; 
+      <>I   ; 
+      )     ; 
+      SPB   f103; 
+// target position lifting devices
+      L     "MAL1S033Par".Ilo.SetpointInt02[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_LiftDev; 
+f103: NOP   0; 
+
+IO10: NOP   0; 
+      NOP   0; 
+// --- FCM 11 - Floor drives and lifting devices and screw ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     11; 
+      <>I   ; 
+      SPB   IO11; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdOn; // No Button: LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // No Button LIFTING DEVICE KILN 2
+      S     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G291M".Gr.CmdManualOff; // LIFTING DEVICE KILN 2
+      R     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      R     "G291M".USW14; // ILO-cmd
+      R     "G291M".USW15; // ILO-cmd
+      S     "G292M".Gr.CmdManualOff; // TRAVELLING DRIVE KILN 2
+      R     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "G292M".USW14; // ILO-cmd
+      R     "G292M".USW15; // ILO-cmd
+      S     "G293M".Gr.CmdManualOff; // UNLOADING / LOADING SCREW KILN 2
+      R     "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      R     "G293M".USW14; // ILO-cmd
+      R     "G293M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G292M".Gr.CmdOn; // TRAVELLING DRIVE KILN 2
+      S     "G292M".Gr.CmdContinue; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      S     "G291M".Gr.CmdOn; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+      S     "G293M".Gr.CmdOn; // UNLOADING / LOADING SCREW KILN 2
+      S     "G293M".Gr.CmdContinue; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[4]; 
+      S     "G293M".Gr.CmdOn; // UNLOADING / LOADING SCREW KILN 2
+      S     "G293M".Gr.CmdContinue; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[4]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G291M".Gr.CmdOff; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdOff; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.CmdOff; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G291M".Gr.CmdFaultReset; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdFaultReset; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.CmdFaultReset; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+      UN    "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      SPB   f112; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      =     "G292M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      =     "G292M".USW15; // ILO-cmd run rev
+// target speed floor drives
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_FloorRotating; 
+f112: NOP   0; 
+      UN    "G291M".Gr.InManual; // Malting Plant OAO Belsolod Ivanonvo Weissrussland
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     1100; 
+      <>I   ; 
+      )     ; 
+      SPB   f113; 
+// target position lifting devices
+      L     "MAL1S033Par".Ilo.SetpointInt01[2]; 
+      L     "MAL1S033Par".Ilo.SetpointInt02[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_LiftDev; 
+f113: NOP   0; 
+      UN    "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[3]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[3]; 
+      SPB   f114; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[3]; 
+      =     "G293M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[3]; 
+      =     "G293M".USW15; // ILO-cmd run rev
+f114: NOP   0; 
+IO11: NOP   0; 
+      NOP   0; 
+// --- FCM 12 - Floor drives and lifting devices and screw and discharging flap ---
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     12; 
+      <>I   ; 
+      SPB   IO12; 
+// man on
+      U     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+      S     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdOn; // No Button: LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // No Button LIFTING DEVICE KILN 2
+      S     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      S     "G294M".Gr.InManual; // DISCHARGE DOOR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManOn[1]; 
+// man off
+      U     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      S     "G291M".Gr.CmdManualOff; // LIFTING DEVICE KILN 2
+      R     "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      R     "G291M".USW14; // ILO-cmd
+      R     "G291M".USW15; // ILO-cmd
+      S     "G292M".Gr.CmdManualOff; // TRAVELLING DRIVE KILN 2
+      R     "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      R     "G292M".USW14; // ILO-cmd
+      R     "G292M".USW15; // ILO-cmd
+      S     "G293M".Gr.CmdManualOff; // UNLOADING / LOADING SCREW KILN 2
+      R     "G293M".Gr.InManual; // UNLOADING / LOADING SCREW KILN 2
+      R     "G293M".USW14; // ILO-cmd
+      R     "G293M".USW15; // ILO-cmd
+      S     "G294M".Gr.CmdManualOff; // DISCHARGE DOOR KILN 2
+      R     "G294M".Gr.InManual; // DISCHARGE DOOR KILN 2
+      R     "G294M".USW14; // ILO-cmd
+      R     "G294M".USW15; // ILO-cmd
+      R     "MAL1S033Par".Ilo.GrCMDManOff[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      R     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+// man start
+      U     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      S     "G292M".Gr.CmdOn; // TRAVELLING DRIVE KILN 2
+      S     "G292M".Gr.CmdContinue; // TRAVELLING DRIVE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[1]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      S     "G291M".Gr.CmdOn; // LIFTING DEVICE KILN 2
+      S     "G291M".Gr.CmdContinue; // LIFTING DEVICE KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[2]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+      S     "G293M".Gr.CmdOn; // UNLOADING / LOADING SCREW KILN 2
+      S     "G293M".Gr.CmdContinue; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[3]; 
+      U     "MAL1S033Par".Ilo.GrCMDManStart[4]; 
+      S     "G293M".Gr.CmdOn; // UNLOADING / LOADING SCREW KILN 2
+      S     "G293M".Gr.CmdContinue; // UNLOADING / LOADING SCREW KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStart[4]; 
+// man stop
+      U     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+      S     "G291M".Gr.CmdOff; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdOff; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.CmdOff; // UNLOADING / LOADING SCREW KILN 2
+      S     "G294M".Gr.CmdOff; // DISCHARGE DOOR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManStop[1]; 
+// man fault reset
+      U     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+      S     "G291M".Gr.CmdFaultReset; // LIFTING DEVICE KILN 2
+      S     "G292M".Gr.CmdFaultReset; // TRAVELLING DRIVE KILN 2
+      S     "G293M".Gr.CmdFaultReset; // UNLOADING / LOADING SCREW KILN 2
+      S     "G294M".Gr.CmdFaultReset; // DISCHARGE DOOR KILN 2
+      R     "MAL1S033Par".Ilo.GrCMDManFaultReset[1]; 
+// moving direction
+      UN    "G292M".Gr.InManual; // TRAVELLING DRIVE KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      SPB   f122; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[1]; 
+      =     "G292M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[1]; 
+      =     "G292M".USW15; // ILO-cmd run rev
+// target speed floor drives
+      L     "MAL1S033Par".Ilo.SetpointInt01[1]; 
+      T     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_FloorRotating; 
+f122: NOP   0; 
+      UN    "G291M".Gr.InManual; // LIFTING DEVICE KILN 2
+      O(    ; 
+      L     "MAL1S033Par".Ilo.Code_ILO_Funktion0; 
+      L     1200; 
+      <>I   ; 
+      )     ; 
+      SPB   f123; 
+// target position lifting devices
+      L     "MAL1S033Par".Ilo.SetpointInt01[18]; 
+      T     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_LiftDev; 
+f123: NOP   0; 
+      UN    "G293M".Gr.InManual; // Malting Plant OAO Belsolod Ivanonvo Weissrussland
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[3]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[3]; 
+      SPB   f124; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[3]; 
+      =     "G293M".USW14; // ILO-cmd run fwd
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[3]; 
+      =     "G293M".USW15; // ILO-cmd run rev
+f124: NOP   0; 
+      UN    "G294M".Gr.InManual; // DISCHARGE DOOR KILN 2
+      O     ; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[4]; 
+      UN    "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[4]; 
+      SPB   f125; 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd1[4]; 
+      =     "G294M".USW14; // ILO-cmd OPEN 
+      U     "MAL1S033Par".Ilo.GrCMDManAdditional.Cmd2[4]; 
+      =     "G294M".USW15; // ILO-cmd CLOSE
+f125: NOP   0; 
+IO12: NOP   0; 
+// 
+// copy state
+      U     "G291M".Gr.InOutAutostartMan; // LIFTING DEVICE KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[1]; 
+      U     "G292M".Gr.InOutAutostartMan; // TRAVELLING DRIVE KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[2]; 
+      U     "G293M".Gr.InOutAutostartMan; // UNLOADING / LOADING SCREW KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[3]; 
+      U     "G294M".Gr.InOutAutostartMan; // DISCHARGE DOOR KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[4]; 
+      U     "G297M".Gr.InOutAutostartMan; // FAN KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[6]; 
+      U     "G302M".Gr.InOutAutostartMan; // HEATING KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[11]; 
+      U     "G303M".Gr.InOutAutostartMan; // LOUVER AIR HEATER KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[12]; 
+      U     "G298M".Gr.InOutAutostartMan; // FRESH AIR LOUVER KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[13]; 
+      U     "G304M".Gr.InOutAutostartMan; // WITHERING AIR KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[14]; 
+      U     "G299M".Gr.InOutAutostartMan; // RECYCLING AIR FLAP KILN 2
+      =     "MAL1S033Par".Ilo.GrSTMan[15]; 
+      U     "G279M".Gr.InOutAutostartMan; // HEATING KILN 1 + 2
+      =     "MAL1S033Par".Ilo.GrSTMan[16]; 
+NETWORK
+TITLE =ASW_9999: Init Flag
+// clear all flags explicde to find them back
+      U     "MAL1S033".PCRead.Step.StIdling; 
+      O     "MAL1S033".PCRead.Step.StPassive; 
+      R     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      R     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      R     "MAL1S033Par".Par.FlagFunction_1.StepCleaning; 
+      R     "MAL1S033Par".Par.FlagFunction_1.LoadingBreak; 
+      R     "MAL1S033Par".Par.FlagFunction_1.UnloadingBreak; 
+      R     "MAL1S033Par".Par.FlagFunction_1.CleaningBreak; 
+      R     "MAL1S033Par".Par.FlagFunction_1.FinishLoading; 
+      R     "MAL1S033Par".Par.FlagFunction_1.FinishUnloading; 
+      R     "MAL1S033Par".Par.FlagFunction_1.FinishCleaning; 
+      R     "MAL1S033Par".Par.FlagFunction_1.Entladerunden_erreicht; 
+      R     "MAL1S033Par".Par.FlagFunction_1.Reinigungsrunde_erreicht; 
+      R     "MAL1S033Par".Par.FlagFunction_1.UnloadEnd; 
+      R     "MAL1S033Par".Par.FlagFunction_1.LoadEnd; 
+      R     "MAL1S033Par".Par.FlagFunction_1.UnloadFirstPart; 
+      R     "MAL1S033Par".Par.FlagFunction_1.UnloadSecondPart; 
+      R     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     "MAL1S033Par".Par.FlagProcess.StartProzess_FP; 
+      R     "MAL1S033Par".Par.FlagProcess.StartProzess_SCAN; 
+      R     "MAL1S033Par".Par.FlagProcess.TurningFloor; 
+      R     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      R     "MAL1S033Par".Par.FlagProcess.FP_SendResultToPIC; 
+      R     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+
+// --> Wie bei Bank Avangard
+      U     "MAL1S033".PCRead.Step.StPassive; 
+      R     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0_FLAG; 
+      R     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterLoading; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterLoading; 
+      R     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellungFP; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterTurning; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterTurning; 
+      R     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnFwdAfterUnloading; 
+      R     "MAL1S033Par".Par.FlagMachine.CmdTurnRevAfterUnloading; 
+      R     "MAL1S033Par".Par.FlagMachine.NULL_INDEX_FP; 
+// 
+      U     "MAL1S033".PCRead.Step.StIdling; 
+      O     "MAL1S033".PCRead.Step.StPassive; 
+      SPBN  csn; 
+      L     0; // clear step number
+      T     "MAL1S033Par".Par.ParIntMachine.ActualStep; 
+      T     "MAL1S033Par".StepAct.StepNumber; 
+csn:  NOP   0; 
+
+NETWORK
+TITLE =Main0_End: Init flag
+
+      SET   ; 
+      R     "MAL1S033".Gr.All.CmdNewSelection; 
+      R     "MAL1S033".ToASW.CmdNewBatch; 
+      R     "MAL1S033".ToASW.CmdModify; 
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION
+

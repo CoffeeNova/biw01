@@ -1,0 +1,37 @@
+TYPE "GCS7_FB16_Communication"
+VERSION : 0.1
+
+
+  STRUCT 	
+   InMonMinP : BOOL ;	//Monitoring the minimum pressure
+   spare0201 : BOOL ;	
+   spare0202 : BOOL ;	
+   spare0203 : BOOL ;	
+   spare0204 : BOOL ;	
+   spare0205 : BOOL ;	
+   InpMin : BOOL ;	//Digital input: Value <= min
+   InpMax : BOOL ;	//Digital input: Value >= max
+   spare0300 : BOOL ;	
+   spare0301 : BOOL ;	
+   spare0302 : BOOL ;	
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by Over Pressure)
+   spare0305 : BOOL ;	
+   InReport : BOOL ;	//Report of all state transition
+   spare0307 : BOOL ;	
+   InHWStop : BOOL ;	//HW stop is detected, no fault
+   InDPFault : BOOL ;	//DP-Fault is detected, no fault
+   OutNoMinP : BOOL ;	//Warning no minimum pressure
+   spare0403 : BOOL ;	
+   spare0404 : BOOL ;	
+   spare0405 : BOOL ;	
+   spare0406 : BOOL ;	
+   spare0407 : BOOL ;	
+   StMinP : BOOL ;	//Value <= Minimum
+   StNormalP : BOOL ;	//Value in Range Minimum to Maximum
+   StOverP : BOOL ;	//Value >= Maximum (only in local mode)
+   StCtoOverP : BOOL ;	//Value >= Maximum, delay time is active
+   StFault : BOOL ;	//Element has a fault 
+  END_STRUCT ;	
+END_TYPE
+

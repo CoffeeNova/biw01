@@ -1,0 +1,184 @@
+FUNCTION "SYS_CallLineSection" : VOID
+TITLE =Call lines and sections 
+//COPYRIGHT:    (C) 2009 BUHLER AG, CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        Call lines and sections
+//              
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//P01_FC011.1.0 K.Renz              CSB41                              21.Okt.2009
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//REFERENCES: GCSOSMAN
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+//InCode:
+//------
+//InCode=0 =Main Function Cylic Function
+//InCode=1 =Main Function Coldstart/Newstart
+//InCode=2 =Main Function Warmstart
+AUTHOR : KR
+FAMILY : USW
+VERSION : 0.0
+
+
+VAR_INPUT
+  InCode : INT ;	// 0=Cyclic , 1=Cold/Newstart , 2=Warmstart
+END_VAR
+VAR_TEMP
+  tmpFill : WORD ;	
+  tmpRet : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Main0_Init:Init Group control
+
+      L     #InCode; 
+      L     0; 
+      <>I   ; 
+      SPB   inJ9; 
+      L     -1; 
+      T     "GCS7_GrCtrlDB".Section[1].DBNr; 
+//----MAL1S001 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S001".Gr);
+//----MAL1S005 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S005".Gr);
+//----MAL1S006 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S006".Gr);
+//----MAL1S007 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S007".Gr);
+//----MAL1S017 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S017".Gr);
+//----MAL1S018 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S018".Gr);
+//----MAL1S019 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S019".Gr);
+//----MAL1S020 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S020".Gr);
+//----MAL1S021 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S021".Gr);
+//----MAL1S022 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S022".Gr);
+//----MAL1S023 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S023".Gr);
+//----MAL1S024 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S024".Gr);
+//----MAL1S032 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S032".Gr);
+//----MAL1S033 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S033".Gr);
+//----MAL1S034 ------------------------
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init
+           Code                     := 0,
+           Sec                      := "MAL1S034".Gr);
+
+inJ9: NOP   0; 
+NETWORK
+TITLE =Main0_Gr: Call Central Bin List
+
+      CALL "PLC_BinList" , "PLC_BinListDB" ;
+
+NETWORK
+TITLE =MainX: Call MAL1
+
+      CALL "ASW_MAL1Ctrl" (//Call Line MAL1
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S001Ctrl" (//Call Section MAL1S001
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S005Ctrl" (//Call Section MAL1S005
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S006Ctrl" (//Call Section MAL1S006
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S007Ctrl" (//Call Section MAL1S007
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S017Ctrl" (//Call Section MAL1S017
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S018Ctrl" (//Call Section MAL1S018
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S019Ctrl" (//Call Section MAL1S019
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S020Ctrl" (//Call Section MAL1S020
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S021Ctrl" (//Call Section MAL1S021
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S022Ctrl" (//Call Section MAL1S022
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S023Ctrl" (//Call Section MAL1S023
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S024Ctrl" (//Call Section MAL1S024
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S032Ctrl" (//Call Section MAL1S032
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S033Ctrl" (//Call Section MAL1S033
+           InCode                   := #InCode);
+      CALL "ASW_MAL1S034Ctrl" (//Call Section MAL1S034
+           InCode                   := #InCode);
+NETWORK
+TITLE =Main0_Gr: Call Group control
+
+      L     #InCode; 
+      L     0; 
+      <>I   ; 
+      SPB   grJ8; 
+//--Update Enable------
+      U     "PLC_SystemDB".Startup.CmdRestartAuto; 
+      SPB   grJ9; 
+      CALL "GCS7_GrpCtrlMain" , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode UpdateEnable
+           Code                     := 5,
+           Sec                      := "MAL1S034".Gr);
+      SPA   grJ9; 
+//---PLC Restart------
+grJ8: L     0; 
+      T     #tmpFill; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpFill,
+           RET_VAL                  := #tmpRet,
+           BLK                      := "GCS7_GrCtrlDB".OutEnable);
+grJ9: NOP   0; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION
+

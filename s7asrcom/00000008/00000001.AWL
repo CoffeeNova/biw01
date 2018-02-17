@@ -1,0 +1,226 @@
+ORGANIZATION_BLOCK OB 122
+TITLE = "Module Access Error"
+//COPYRIGHT:    (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS90_DP    
+//
+//TITLE:        I/O Access Error Organization Block (OB122)
+//             
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                             DATE:
+//STD_OB122.1.0 A.Egli              CT3                               05-Nov-2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS:
+//
+//--------------------------------------------------------------------------------
+VERSION : 0.1
+
+
+VAR_TEMP
+  OB122_EV_CLASS : BYTE ;	//16#29, Event class 2, Entering event state, Internal fault event
+  OB122_SW_FLT : BYTE ;	//16#XX Software error code
+  OB122_PRIORITY : BYTE ;	//X = Priority of OB where fault occured (Priority of 1 is lowest)
+  OB122_OB_NUMBR : BYTE ;	//122 (Organization block 122, OB122)
+  OB122_BLK_TYPE : BYTE ;	//16#88/8A/8C/8E Type of block fault occured in
+  OB122_MEM_AREA : BYTE ;	//Memory area where access error occured
+  OB122_MEM_ADDR : WORD ;	//Memory address where access error occured
+  OB122_BLK_NUM : WORD ;	//Block number in which error occured
+  OB122_PRG_ADDR : WORD ;	//Program address where error occured
+  OB122_DATE_TIME : DATE_AND_TIME ;	//Date and time OB1 started
+  tmpAddr : DWORD ;	
+  tmpValue : DWORD ;	
+  tmpError : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =
+
+      T     #tmpValue; 
+      UN    M     11.1; 
+      SPB   DBIO; 
+NETWORK
+TITLE =
+
+      L     #OB122_MEM_AREA; 
+      L     2#111; 
+      UW    ; 
+      L     0; 
+      <>I   ; 
+      BEB   ; 
+      L     #OB122_MEM_ADDR; 
+      SLD   3; 
+      T     #tmpAddr; 
+      L     W#16#42; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   Inp; 
+      L     W#16#44; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   Inp; 
+      L     W#16#43; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   Out1; 
+      L     W#16#45; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   Out1; 
+      BEA   ; 
+Inp:  L     #OB122_MEM_AREA; 
+      SRW   4; 
+      L     1; 
+      <>I   ; 
+      SPB   Inp2; 
+      L     EB [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+Inp2: TAK   ; 
+      L     2; 
+      <>I   ; 
+      SPB   Inp3; 
+      L     EW [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+Inp3: TAK   ; 
+      L     3; 
+      <>I   ; 
+      BEB   ; 
+      L     ED [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+Out1: L     #OB122_MEM_AREA; 
+      SRW   4; 
+      L     1; 
+      <>I   ; 
+      SPB   Out2; 
+      L     #tmpValue; 
+      T     AB [#tmpAddr]; 
+      BEA   ; 
+Out2: TAK   ; 
+      L     2; 
+      <>I   ; 
+      SPB   Out3; 
+      L     #tmpValue; 
+      T     AW [#tmpAddr]; 
+      BEA   ; 
+Out3: TAK   ; 
+      L     3; 
+      <>I   ; 
+      BEB   ; 
+      L     #tmpValue; 
+      T     AD [#tmpAddr]; 
+      BEA   ; 
+
+NETWORK
+TITLE =
+
+DBIO: L     #OB122_MEM_AREA; 
+      L     2#111; 
+      UW    ; 
+      L     0; 
+      <>I   ; 
+      BEB   ; 
+      L     #OB122_MEM_ADDR; 
+      SLD   3; 
+      T     #tmpAddr; 
+      L     W#16#42; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   IDB; 
+      L     W#16#44; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   IDB; 
+      L     W#16#43; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   ODB1; 
+      L     W#16#45; 
+      L     #OB122_SW_FLT; 
+      ==I   ; 
+      SPB   ODB1; 
+      BEA   ; 
+IDB:  L     #OB122_MEM_AREA; 
+      SRW   4; 
+      L     1; 
+      <>I   ; 
+      SPB   IDB2; 
+      AUF   "IOManger.Input"; 
+      L     DBB [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+IDB2: TAK   ; 
+      L     2; 
+      <>I   ; 
+      SPB   IDB3; 
+      AUF   "IOManger.Input"; 
+      L     DBW [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+IDB3: TAK   ; 
+      L     3; 
+      <>I   ; 
+      BEB   ; 
+      AUF   "IOManger.Input"; 
+      L     DBD [#tmpAddr]; 
+      T     #tmpValue; 
+      CALL "REPL_VAL" (
+           VAL                      := #tmpValue,
+           RET_VAL                  := #tmpError);
+      BEA   ; 
+ODB1: L     #OB122_MEM_AREA; 
+      SRW   4; 
+      L     1; 
+      <>I   ; 
+      SPB   ODB2; 
+      L     #tmpValue; 
+      AUF   "IOManger.Output"; 
+      T     DBB [#tmpAddr]; 
+      BEA   ; 
+ODB2: TAK   ; 
+      L     2; 
+      <>I   ; 
+      SPB   ODB3; 
+      L     #tmpValue; 
+      AUF   "IOManger.Output"; 
+      T     DBW [#tmpAddr]; 
+      BEA   ; 
+ODB3: TAK   ; 
+      L     3; 
+      <>I   ; 
+      BEB   ; 
+      L     #tmpValue; 
+      AUF   "IOManger.Output"; 
+      T     DBD [#tmpAddr]; 
+      BEA   ; 
+END_ORGANIZATION_BLOCK
+

@@ -1,0 +1,304 @@
+	DATA_BLOCK DB 800
+	TITLE =LINE-DB : MALTING LINE
+	AUTHOR  : KR      
+	FAMILY  : GCSS7
+	VERSION : 0.0
+	//
+	//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Communication-DB / Line-DB : MALTING LINE
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB800.1.0 K.Renz              CSB41                       29.Okt.2009
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: CODE  FC56-FB62
+	//
+	//MANUAL : GCSOSMAN
+	//
+	//RESTRICTIONS:
+	//
+	//-------------------------------------------------------------------------
+	//
+	//
+	  STRUCT 	
+	   Para : STRUCT 	
+	    Spare    : INT  := 0;	//Reserved for InCode
+	    ParLineNr : INT  := 3;	
+	    ParFirstSecDB : INT  := 801;	
+	    ParAddrObjData : INT;	//1st Byte of ParObjData
+	    ParNoOfRecipePlace : INT :=0;	
+	    ParFirstRecipePlace : INT :=0 ;	
+	    Spare12: INT;	
+	    Spare14: INT;	
+	    Spare16: INT;	
+	    Spare18: INT;	
+	   END_STRUCT ;	
+	   VarTemp : STRUCT 	
+	    InOutValue1 : INT ;	
+	    InOutValue2 : INT ;	
+	    InOutValue3 : DINT ;	
+	    InOutValue4 : DINT ;	
+	    InOutValue5 : DINT ;	
+	    InOutValue6 : DINT ;	
+	   END_STRUCT ;	
+	   ChangeBit : STRUCT 	
+	    spare : BYTE ;	
+	    CBit1 : BOOL ;	
+	    CBit2 : BOOL ;	
+	    CBit3 : BOOL ;	
+	    CBit4 : BOOL ;	
+	   END_STRUCT ;	
+	   ToASW : STRUCT 	
+	    Spare0 : INT ;	
+	    Spare2 : INT ;	
+	    Spare4 : INT ;	
+	    Spare6 : INT ;	
+	    Spare8 : INT ;	
+	    Spare10 : INT ;	
+	    Spare12 : INT ;	
+	    Spare14 : INT ;	
+	    Spare16 : INT ;	
+	    Spare18 : INT ;	
+	   END_STRUCT ;	
+	   ToSSW : STRUCT 	//== ASW to SSW 
+	    Spare0 : DWORD ;	
+	    Func : UDT10601;	
+	    Spare8 : DWORD ;	
+	    Spare12 : DWORD ;	
+	    Spare16 : WORD ;	
+	    ASW_FlagStart      :BOOL;      //Free For ASW
+	    ASW_FlagFaultReset :BOOL;      //Free For ASW
+	    ASW_FlagAuto       :BOOL;      //Free For ASW
+	    ASW_Flag4 :BOOL;      //Free For ASW
+	    ASW_Flag5 :BOOL;      //Free For ASW
+	    ASW_Flag6 :BOOL;      //Free For ASW
+	    ASW_Flag7 :BOOL;      //Free For ASW
+	    ASW_Flag8 :BOOL;      //Free For ASW
+	   END_STRUCT ;	
+	   PCWrite : STRUCT 	//== PC: Read and Write
+	    Hsk : STRUCT 	
+	     Q_Status : BOOL ;	
+	     spare01 : BOOL ;	
+	     spare02 : BOOL ;	
+	     spare03 : BOOL ;	
+	     spare04 : BOOL ;	
+	     spare05 : BOOL ;	
+	     spare06 : BOOL ;	
+	     spare07 : BOOL ;	
+	     F_Define : BOOL ;	
+	    END_STRUCT ;	
+	    spare2 : WORD ;	
+	    Func : UDT10601;	
+	    ExtFuncOn  : UDT8000;	//Extended enable commands to line
+	    ExtFuncOff : UDT8000;	//Extended enable commands to line
+	    Value3 : WORD ;	
+	    Value4 : INT ;	
+	    Value5 : INT ;	
+	    Value6 : INT ;	
+	   END_STRUCT ;	
+	   PCRead : STRUCT 	//== PC: Read
+	    Hsk : STRUCT 	
+	     F_Status : BOOL ;	
+	    END_STRUCT ;	
+	    ErrElement : INT ;	
+	    ErrCode : INT ;	
+	    ErrObject : INT ;	//(*new*)
+	    Step : STRUCT 	
+	     spare0 : BYTE ;	
+	     StPassive : BOOL ;	
+	     spare1    : BOOL ;
+	     StActive  : BOOL ;	
+	     StReady   : BOOL ;	
+	     spare4    : BOOL ;
+	     spare5    : BOOL ;
+	     StIdling  : BOOL ;	
+	    END_STRUCT ;	
+	    State : WORD ;	
+	    Fault : UDT10602;	
+	    Status : UDT10603;	
+	   InfoCode : INT ;	//Line info code
+	   GenGrpColourCode : STRUCT 	//General group colour code
+	    NotUsed08 : BOOL ;	//Not used
+	    NotUsed09 : BOOL ;	//Not used
+	    NotUsed10 : BOOL ;	//Not used
+	    NotUsed11 : BOOL ;	//Not used
+	    NotUsed12 : BOOL ;	//Not used
+	    NotUsed13 : BOOL ;	//Not used
+	    NotUsed14 : BOOL ;	//Not used
+	    NotUsed15 : BOOL ;	//Not used
+	    LightGrey : BOOL ;	//Line passive
+	    White     : BOOL ;	//Line passive
+	    DarkGreen : BOOL ;	//Line active
+	    Magenta   : BOOL ;	//Warning
+	    Red       : BOOL ;	//Fault
+	    NotUsed05 : BOOL ;	//Not used
+	    NotUsed06 : BOOL ;	//Not used
+	    NotUsed07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	    ExtStatus : UDT8000;	
+	    ExtFuncOn : UDT8000;	//Is only for one scan on
+	    Value5 : INT ;	
+	    Value6 : INT ;	
+	   MainGrpColourCode : STRUCT 	//Maintenance group colour code
+	    NotUsed08 : BOOL ;	//Not used
+	    NotUsed09 : BOOL ;	//Not used
+	    NotUsed10 : BOOL ;	//Not used
+	    NotUsed11 : BOOL ;	//Not used
+	    NotUsed12 : BOOL ;	//Not used
+	    NotUsed13 : BOOL ;	//Not used
+	    NotUsed14 : BOOL ;	//Not used
+	    NotUsed15 : BOOL ;	//Not used
+	    LightGrey : BOOL ;	//Line passive
+	    NotUsed01 : BOOL ;	//Not used
+	    DarkGreen : BOOL ;	//Line active
+	    Magenta   : BOOL ;	//Warning
+	    Red       : BOOL ;	//Fault
+	    NotUsed05 : BOOL ;	//Not used
+	    NotUsed06 : BOOL ;	//Not used
+	    NotUsed07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   END_STRUCT ;	
+	   JobRead : STRUCT 	//Job Data: PC Read
+	    Hsk: WORD ;	
+	    ErrElement : INT ;	
+	    ErrCode : INT ;	
+	    ErrObject : INT ;	
+	   END_STRUCT ;	
+	   JobWrite : STRUCT 	
+	    Hsk : STRUCT 	//Job Data: PC Write
+	     spare : BYTE ;	
+	     F_Define : BOOL ;	
+	     F_Execute : BOOL ;	
+	     F_Modify : BOOL ;	
+	    END_STRUCT ;	
+	    ObjMask : ARRAY  [1 .. 64 ] OF BOOL ;	
+	    SectionDest : INT  := 1;	// 0=all section
+	    Func : UDT10601;	
+	   END_STRUCT ;	
+	   JobNom : STRUCT 	//Job Data: PC Write : Job Header
+	    JobNr : DINT ;	
+	    JobWeight : DINT ;	//Total Job weight
+	    BatchNo : INT  := 10;	//Number of batch requested form PC
+	    ScaleUsed : ARRAY  [1 .. 64 ] OF BOOL ;	
+	    RecipeNr : INT ;	
+	    BatchWeight : DINT ;	
+	    BatchMinPpm : INT ;	//Minimum batch size [0.1%]
+	    BatchMaxPpm : INT ;	//Maximum batch size [0.1%]
+	    BatchNoOffset : INT ;	//Batch number of first batch
+	    Value10 : INT ;	
+	    Value11 : INT ;	
+	    FeedingTime : INT ;	//Feeding Time
+	    Destination : INT ;	
+	    Value14 : INT ;	
+	   END_STRUCT ;	
+	   JobAc : STRUCT 	//Job Data: PC Write : (Place holder: Is used in section DB)
+	    spare0 : DWORD ;	
+	    spare1 : DWORD ;	
+	    spare2 : DWORD ;	
+	    spare3 : DWORD ;	
+	    spare4 : DWORD ;	
+	    spare5 : DWORD ;	
+	    spare6 : DWORD ;	
+	    spare7 : DWORD ;	
+	    spare8 : DWORD ;	
+	    spare9 : DWORD ;	
+	   END_STRUCT ;	
+	   
+	   SecAc  : UDT8002;	//PC Read: Job Data Actual  Values
+	   SecNom : UDT8001;	//PC Read: Job Data Nominal Values
+	   
+	
+	   Spare11290 : Array[11290..12899] of BYTE;
+	   MAL1S001SND33 : STRUCT 	//MAL1S001SND33  Dummy sender
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..16] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   MAL1S001RCV34 : STRUCT 	//MAL1S001RCV34  Dummy receiver
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..15] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	    Special : STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   MAl1S034RCV36 : STRUCT 	//MAl1S034RCV36  KILNED MALT BINS
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..15] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	    Special : STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   ParObjData : STRUCT 	 //Pointer to object data
+	    Obj33 : STRUCT 	//MAL1S001SND33
+	     ObjNr : INT  := 33;	
+	     ByteNr: INT  := 12900;	
+	    END_STRUCT ;	
+	    Obj34 : STRUCT 	//MAL1S001RCV34
+	     ObjNr : INT  := 34;	
+	     ByteNr: INT  := 13002;	
+	    END_STRUCT ;	
+	    Obj36 : STRUCT 	//MAl1S034RCV36
+	     ObjNr : INT  := 36;	
+	     ByteNr: INT  := 13104;	
+	    END_STRUCT ;	
+	    Obj64: STRUCT 	//Additional data section
+	     ObjNr : INT  := 64;	
+	     ByteNr : INT := 340;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	// End of pointer
+	  END_STRUCT ;	// End of DB
+	BEGIN
+	   Para.ParAddrObjData   := 13206;	//1st Byte of ParObjData
+	END_DATA_BLOCK

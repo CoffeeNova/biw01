@@ -1,0 +1,1054 @@
+FUNCTION_BLOCK "GCS7_LiftingDevice"
+TITLE =MACHINE: Lifting Device
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 85 MACHINE: Lifting Device (de:Hubzug)
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB85.2.2      M.Wedler            AEB31                       05-Jan-2007
+//              BankingLoadingScrew for kilning box, calibration,
+//              load counter value after failure, InEnableLowerMinPos
+//FB85.2.1      M.Wedler            AEB31                       12-Sep-2006
+//              Don't initialisation way counter by loading counter value
+//FB85.2.0      A.Egli              CT3                         22-Mar-2006
+//              ParPulseOnTime,ParPulseOffTime
+//FB85.1.0      A.Egli              CT3                         22-Mar-2006
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.xxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Lifting
+VERSION : 2.2
+
+
+VAR
+  Ma : "GCS7_FB85_Data";	
+  MotorLeft : "GCS7_E_Motor";	//Element Motor 
+  MotorRight : "GCS7_E_Motor";	//Element Motor 
+  LSTopLeft : "GCS7_E_DigInput";	//LS top left side
+  LSTopRight : "GCS7_E_DigInput";	//LS top right side
+  LSTopStopLeft : "GCS7_E_DigInput";	//Emergency stop stop left
+  LSTopStopRight : "GCS7_E_DigInput";	//Emergency stop stop right
+  SMLeft : "GCS7_E_DigInput";	//Speed monitoring left side
+  SMRight : "GCS7_E_DigInput";	//Speed monitoring right side
+  OffTrackMon : "GCS7_E_DigInput";	//Track monitoring
+  CounterLeft : "GCS7_FB85_Counter";	
+  CounterRight : "GCS7_FB85_Counter";	
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpOK : BOOL ;	
+  tmpDiff : INT ;	
+  tmpAddrIOLeft : DINT ;	
+  tmpAddrIORight : DINT ;	
+  tmpAddrCounterLeft : DINT ;	
+  tmpAddrCounterRight : DINT ;	
+  tmpAddrOffset : DINT ;	
+  tmpUnloadingActive : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     90; 
+      T     #tmpLenDyn; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2085; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdUp
+      S     #Ma.CmdUp; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[7]; //Cmd1[6]=CmdDown
+      S     #Ma.CmdDown; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+//-----------------------------------------------------------
+//Audit Log
+aExa: NOP   0; 
+//------------------------------------------
+      TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+NETWORK
+TITLE =Calculate Address for Counter
+
+      NOP   0; 
+//Calculate address for counter
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; 
+      L     P##CounterLeft; 
+      +D    ; 
+      T     #tmpAddrCounterLeft; 
+      L     #Ma.Par.ParIOByteNoCounterLeft; 
+      SLD   3; 
+      T     #tmpAddrIOLeft; 
+
+      L     #tmpAddrOffset; 
+      L     P##CounterRight; 
+      +D    ; 
+      T     #tmpAddrCounterRight; 
+      L     #Ma.Par.ParIOByteNoCounterRight; 
+      SLD   3; 
+      T     #tmpAddrIORight; 
+NETWORK
+TITLE =Commands for Counter
+
+      NOP   0; 
+//Clear command or counter
+      U     #Ma.InPowerOk; // [2.2]
+      U     #CounterLeft.OutpLOAD_VAL; // [2.2]
+      UN    #CounterLeft.InpSTS_LOAD; // [2.2]
+      SPB   CTJ9; // [2.2]
+      LAR1  #tmpAddrCounterLeft; 
+      L     0; 
+      T     DID [AR1,P#4.0]; 
+CTJ9: NOP   0; // [2.2]
+      U     #Ma.InPowerOk; // [2.2]
+      U     #CounterRight.OutpLOAD_VAL; // [2.2]
+      UN    #CounterRight.InpSTS_LOAD; // [2.2]
+      SPB   CTJ8; // [2.2]
+      LAR1  #tmpAddrCounterRight; 
+      L     0; 
+      T     DID [AR1,P#4.0]; 
+CTJ8: NOP   0; // [2.2]
+//---------------------------
+      SET   ; 
+      S     #CounterLeft.OutpSW_GATE; 
+      S     #CounterRight.OutpSW_GATE; 
+//---------------------------
+//Load counter value after failure      // [2.2]
+      U     #Ma.InPowerOk; 
+      UN    #Ma.InPowerOkDelayDone; 
+      O     ; // [2.2]
+      U     #CounterLeft.OutpLOAD_VAL; // [2.2]
+      UN    #CounterLeft.InpSTS_LOAD; // [2.2]
+      SPBN  CTJ2; // [2.2]
+      L     #CounterLeft.VarInpHold; 
+      T     #CounterLeft.OutpSetCount; 
+//    SET                               // [2.2]
+      L     #CounterLeft.VarInpHold; // [2.2]
+      L     #CounterLeft.InpActCount; // [2.2]
+      <>D   ; // [2.2]
+      S     #CounterLeft.OutpLOAD_VAL; 
+CTJ2: NOP   0; // [2.2]
+      U     #Ma.InPowerOk; 
+      UN    #Ma.InPowerOkDelayDone; 
+      O     ; // [2.2]
+      U     #CounterRight.OutpLOAD_VAL; // [2.2]
+      UN    #CounterRight.InpSTS_LOAD; // [2.2]
+      SPBN  CTJ1; 
+      L     #CounterRight.VarInpHold; 
+      T     #CounterRight.OutpSetCount; 
+//    SET                               // [2.2]
+      L     #CounterRight.VarInpHold; // [2.2]
+      L     #CounterRight.InpActCount; // [2.2]
+      <>D   ; // [2.2]
+      S     #CounterRight.OutpLOAD_VAL; 
+CTJ1: NOP   0; 
+      U     #Ma.InPowerOk; 
+      U     #Ma.InPowerOkDelayDone; 
+      UN    #CounterLeft.InpSTS_LOAD; // [2.2]
+      UN    #CounterRight.InpSTS_LOAD; // [2.2]
+      UN    #CounterLeft.OutpLOAD_VAL; // [2.2]
+      UN    #CounterRight.OutpLOAD_VAL; // [2.2]
+      SPBN  CTJ0; 
+      L     #CounterLeft.InpActCount; 
+      T     #CounterLeft.VarInpHold; 
+      L     #CounterRight.InpActCount; 
+      T     #CounterRight.VarInpHold; 
+CTJ0: NOP   0; 
+//Calibration Zero                      // [2.2]
+      U     #Ma.InCalibration; // [2.2]
+      U     #Ma.InCalibrationZero; // [2.2]
+      U     #Ma.InPowerOk; // [2.2]
+      U     #Ma.InPowerOkDelayDone; // [2.2]
+      SPBN  CTZ0; // [2.2]
+      L     L#0; // [2.2]
+      T     #CounterLeft.OutpSetCount; // [2.2]
+      T     #CounterRight.OutpSetCount; // [2.2]
+      T     #CounterLeft.VarInpHold; // [2.2]
+      T     #CounterRight.VarInpHold; // [2.2]
+      SET   ; // [2.2]
+      S     #CounterLeft.OutpLOAD_VAL; // [2.2]
+      S     #CounterRight.OutpLOAD_VAL; // [2.2]
+CTZ0: NOP   0; // [2.2]
+
+      U     #CounterLeft.InpSTS_LOAD; // [2.2]
+      R     #CounterLeft.OutpLOAD_VAL; // [2.2]
+      U     #CounterRight.InpSTS_LOAD; // [2.2]
+      R     #CounterRight.OutpLOAD_VAL; // [2.2]
+
+NETWORK
+TITLE =Initialisation way counter when in upper finally position 
+
+      NOP   0; 
+//-------------------------------------------------------
+      U     #CounterLeft.InpSTS_LOAD; // [2.1]
+      ON    #Ma.InPowerOkDelayDone; // [2.1]
+      O     #Ma.InCalibration; // [2.2]
+      SPB   M051; // [2.1]
+// Initialisation counter left when in end position top
+      O     #MotorLeft.StStartedFwd; 
+      O     #MotorLeft.StStopping; 
+      U     #LSTopLeft.StTrue; 
+      SPBN  M051; 
+      L     #Ma.Par.ParPositionTopLeftInc; 
+      ITD   ; 
+      T     #CounterLeft.OutpSetCount; 
+      T     #CounterLeft.VarInpHold; // [2.2]
+//Set Write command 
+      L     #Ma.Par.ParPositionTopLeftInc; 
+      L     #Ma.OutIncrementLeft; 
+      <>I   ; 
+      S     #CounterLeft.OutpLOAD_VAL; //--> Command to counter to set target value
+M051: NOP   0; 
+//-------------------------------------------------------
+      U     #CounterRight.InpSTS_LOAD; // [2.1]
+      ON    #Ma.InPowerOkDelayDone; // [2.1]
+      O     #Ma.InCalibration; // [2.2]
+      SPB   M052; // [2.1]
+// Initialisation counter rigth  when in end position top
+      U(    ; 
+      O     #MotorRight.StStartedFwd; 
+      O     #MotorRight.StStopping; 
+      )     ; 
+      U     #LSTopRight.StTrue; // Endschalter oben
+      SPBN  M052; 
+      L     #Ma.Par.ParPositionTopRightInc; 
+      ITD   ; 
+      T     #CounterRight.OutpSetCount; 
+      T     #CounterRight.VarInpHold; // [2.2]
+//Set Write command
+      L     #Ma.Par.ParPositionTopRightInc; 
+      L     #Ma.OutIncrementRight; 
+      <>I   ; 
+      S     #CounterRight.OutpLOAD_VAL; //--> Command to counter to set target value
+M052: NOP   0; 
+NETWORK
+TITLE =Read Global Command
+
+      U     "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      S     #Ma.CmdFaultReset; 
+NETWORK
+TITLE =Write Outputs of counter
+
+      L     0; 
+      L     #tmpAddrIOLeft; 
+      ==D   ; 
+      SPB   WCJ0; 
+//Write Outputs  Counter left
+      LAR1  #tmpAddrCounterLeft; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIOLeft; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounterLeft; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIOLeft; 
+      T     PAD [AR1,P#4.0]; 
+//Write Outputs Counter right
+      LAR1  #tmpAddrCounterRight; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIORight; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounterRight; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIORight; 
+      T     PAD [AR1,P#4.0]; 
+WCJ0: NOP   0; 
+NETWORK
+TITLE =Read Counter
+
+      L     0; 
+      L     #tmpAddrIOLeft; 
+      ==D   ; 
+      SPB   WRJ0; 
+//Read IO Counter left
+      LAR1  #tmpAddrIOLeft; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounterLeft; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIOLeft; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrCounterLeft; 
+      T     DID [AR1,P#12.0]; 
+//Read IO Counter right
+      LAR1  #tmpAddrIORight; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounterRight; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIORight; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrCounterRight; 
+      T     DID [AR1,P#12.0]; 
+WRJ0: NOP   0; 
+NETWORK
+TITLE =Calculate: mm per incement 
+
+      L     #Ma.Par.ParPositionTopLeftUnits; 
+      DTR   ; 
+      L     #Ma.Par.ParPositionTopLeftInc; //Hoehe Endschalter 
+      DTR   ; 
+      /R    ; 
+      T     #Ma.Par.OutUnitsPerIncLeft; 
+
+      L     #Ma.Par.ParPositionTopRightUnits; 
+      DTR   ; 
+      L     #Ma.Par.ParPositionTopRightInc; //Hoehe Endschalter 
+      DTR   ; 
+      /R    ; 
+      T     #Ma.Par.OutUnitsPerIncRight; 
+NETWORK
+TITLE =Speed Monitoring Lifting 
+
+      NOP   0; 
+//==========================================================
+//Speed Monitoring Left
+//==========================================================
+//- Check if increment is changing
+      U(    ; 
+      L     #CounterLeft.InpActCount; 
+      L     #Ma.OutIncrementLeft; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      O     #MotorLeft.OutpRunFwd; 
+      O     #MotorLeft.OutpRunRev; 
+      )     ; 
+      UN    #Ma.CmdFaultReset; 
+      SPB   M1J1; 
+      L     #Ma.Par.ParMonTime; //5s
+      T     #Ma.Par.OutMonTimeLeft; 
+      S     #SMLeft.InpTrue; 
+//---Run monitoring time
+M1J1: UN    "GCS7_Gr_OutTick200ms"; 
+      SPB   M1J2; 
+      L     #Ma.Par.OutMonTimeLeft; 
+      +     -2; 
+      T     #Ma.Par.OutMonTimeLeft; 
+      L     0; 
+      >=I   ; 
+      SPB   M1J2; 
+      T     #Ma.Par.OutMonTimeLeft; 
+      R     #SMLeft.InpTrue; 
+//---Store old counter value
+M1J2: L     #CounterLeft.InpActCount; 
+      T     #Ma.OutIncrementLeft; 
+//==========================================================
+//Speed Monitoring Right
+//==========================================================
+//- Check if increment is changing
+      U(    ; 
+      L     #CounterRight.InpActCount; 
+      L     #Ma.OutIncrementRight; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      O     #MotorRight.OutpRunFwd; 
+      O     #MotorRight.OutpRunRev; 
+      )     ; 
+      UN    #Ma.CmdFaultReset; 
+      SPB   M2J1; 
+      L     #Ma.Par.ParMonTime; //5s
+      T     #Ma.Par.OutMonTimeRight; 
+      S     #SMRight.InpTrue; 
+//---Run monitoring time
+M2J1: UN    "GCS7_Gr_OutTick200ms"; 
+      SPB   M2J2; 
+      L     #Ma.Par.OutMonTimeRight; 
+      +     -2; 
+      T     #Ma.Par.OutMonTimeRight; 
+      L     0; 
+      >=I   ; 
+      SPB   M2J2; 
+      T     #Ma.Par.OutMonTimeRight; 
+      R     #SMRight.InpTrue; 
+//---Store old counter value
+M2J2: L     #CounterRight.InpActCount; 
+      T     #Ma.OutIncrementRight; 
+
+NETWORK
+TITLE =Calculation position in mm
+
+// Zaehlwert Hubzug 1 in mm umrechnen
+      L     #Ma.OutIncrementLeft; 
+      DTR   ; 
+      L     #Ma.Par.OutUnitsPerIncLeft; 
+      *R    ; 
+      RND   ; 
+      T     #Ma.OutPositionLeft; 
+// Zaehlwert Hubzug 2 in mm umrechnen
+      L     #Ma.OutIncrementRight; 
+      DTR   ; 
+      L     #Ma.Par.OutUnitsPerIncRight; 
+      *R    ; 
+      RND   ; 
+      T     #Ma.OutPositionRight; 
+NETWORK
+TITLE =Check maximum difference position to stop 1 motor 
+
+      NOP   0; 
+//---Check Position left to high
+      L     #Ma.OutPositionLeft; 
+      L     #Ma.BankingLoadingScrew; // [2.2]
+      +I    ; // [2.2]
+      L     #Ma.OutPositionRight; 
+      -I    ; 
+      T     #Ma.OutPositionDifference; 
+      L     #Ma.Par.ParMaxOffTrackPause; 
+      >=I   ; 
+      S     #Ma.OutPositionLeftToHigh; 
+      L     #Ma.OutPositionRight; 
+      L     #Ma.BankingLoadingScrew; // [2.2]
+      -I    ; // [2.2]
+      L     #Ma.OutPositionLeft; 
+      >=I   ; 
+      R     #Ma.OutPositionLeftToHigh; 
+//---Check position right to high
+      L     #Ma.OutPositionRight; 
+      L     #Ma.BankingLoadingScrew; // [2.2]
+      -I    ; // [2.2]
+      L     #Ma.OutPositionLeft; 
+      -I    ; 
+      L     #Ma.Par.ParMaxOffTrackPause; 
+      >=I   ; 
+      S     #Ma.OutPositionRightToHigh; 
+      L     #Ma.OutPositionRight; 
+      L     #Ma.BankingLoadingScrew; // [2.2]
+      -I    ; // [2.2]
+      L     #Ma.OutPositionLeft; 
+      <=I   ; 
+      R     #Ma.OutPositionRightToHigh; 
+NETWORK
+TITLE =Check maximum difference position to generate fault
+
+      L     #Ma.OutPositionLeft; 
+      L     #Ma.OutPositionRight; 
+      -I    ; 
+      SPP   DIJ1; 
+      NEGI  ; 
+DIJ1: L     #Ma.Par.ParMaxOffTrackFault; 
+      >=I   ; 
+      =     #Ma.OutDifferenceFault; 
+
+NETWORK
+TITLE =Check Minimum position
+
+      U(    ; 
+      L     #Ma.OutPositionLeft; 
+      L     #Ma.Par.ParPositionMin; 
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      L     #Ma.OutPositionRight; 
+      L     #Ma.Par.ParPositionMin; 
+      >=I   ; 
+      )     ; 
+      =     #Ma.OutHigherMinPos; 
+NETWORK
+TITLE =Check Adjusted
+
+      NOP   0; 
+//------------------
+      L     #Ma.OutPositionLeft; 
+      L     #Ma.InPositionTarget; 
+      -I    ; 
+      SPP   A1J1; 
+      NEGI  ; 
+A1J1: L     #Ma.Par.ParTolPosition; 
+      <=I   ; 
+      =     #Ma.OutAdjustedLeft; 
+//------------------
+      L     #Ma.OutPositionRight; 
+      L     #Ma.BankingLoadingScrew; // [2.2]
+      -I    ; // [2.2]
+      L     #Ma.InPositionTarget; 
+      -I    ; 
+      SPP   A2J1; 
+      INVI  ; 
+A2J1: L     #Ma.Par.ParTolPosition; 
+      <=I   ; 
+      =     #Ma.OutAdjustedRight; 
+//------------------
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//--------------
+      U     #Ma.CmdUp; 
+      S     #Ma.OutManStartReqUp; 
+      R     #Ma.OutManStartReqDown; 
+      U     #Ma.CmdDown; 
+      R     #Ma.OutManStartReqUp; 
+      S     #Ma.OutManStartReqDown; 
+      U     #Ma.CmdOff; 
+      ON    #Ma.InManual; 
+      R     #Ma.OutManStartReqUp; 
+      R     #Ma.OutManStartReqDown; 
+//--- Fault----
+      U     #MotorLeft.StFault; 
+      O     #MotorRight.StFault; 
+      O     #LSTopLeft.StFault; 
+      O     #LSTopRight.StFault; 
+      O     #LSTopStopLeft.StFault; 
+      O     #LSTopStopRight.StFault; 
+      O     #SMLeft.StFault; 
+      O     #SMRight.StFault; 
+      O     #OffTrackMon.StFault; 
+      =     #tmpFaultSum; 
+//--- InLocal----
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+      =     #MotorLeft.InLocal; 
+      =     #MotorRight.InLocal; 
+      =     #LSTopLeft.InLocal; 
+      =     #LSTopRight.InLocal; 
+      =     #LSTopStopLeft.InLocal; 
+      =     #LSTopStopRight.InLocal; 
+      =     #SMLeft.InLocal; 
+      =     #SMRight.InLocal; 
+      =     #OffTrackMon.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #MotorLeft.CmdFaultReset; 
+      S     #MotorRight.CmdFaultReset; 
+      S     #LSTopLeft.CmdFaultReset; 
+      S     #LSTopRight.CmdFaultReset; 
+      S     #LSTopStopLeft.CmdFaultReset; 
+      S     #LSTopStopRight.CmdFaultReset; 
+      S     #SMLeft.CmdFaultReset; 
+      S     #SMRight.CmdFaultReset; 
+      S     #OffTrackMon.CmdFaultReset; 
+NETWORK
+TITLE =Start as Pulse during unloading [2.0]
+
+      U     #Ma.InEnableUp; //[2.0]
+      O     #Ma.InEnableDown; //[2.0]
+      UN    #tmpLocal; //[2.0]
+      UN    #Ma.InManual; //[2.0]
+      UN    #Ma.CmdOff; //[2.0]
+      UN    #Ma.StAdjusted; //[2.0]
+      UN    #tmpFaultSum; //[2.0]
+      U     #Ma.InUnloading; //[2.0]
+      =     #tmpUnloadingActive; //[2.0]
+      UN    #tmpUnloadingActive; //[2.0]
+      R     #Ma.OutPulseOn; //[2.0]
+      L     0; //[2.0]
+      SPB   PuJ3; //[2.0]
+//--Decrement pulse time --
+      UN    "GCS7_Gr_OutTick200ms"; //[2.0]
+      L     #Ma.OutPulseTime; //[2.0]
+      SPB   PuJ4; //[2.0]
+      +     -2; //[2.0]
+      T     #Ma.OutPulseTime; //[2.0]
+PuJ4: L     0; //[2.0]
+      >I    ; //[2.0]
+      SPB   PuJ1; //[2.0]
+      UN    #Ma.OutPulseOn; //[2.0]
+      S     #Ma.OutPulseOn; //[2.0]
+      L     #Ma.Par.ParPulseOffTime; //[2.0]
+      SPB   PuJ3; //[2.0]
+      R     #Ma.OutPulseOn; //[2.0]
+      L     #Ma.Par.ParPulseOnTime; //[2.0]
+PuJ3: T     #Ma.OutPulseTime; //[2.0]
+PuJ1: NOP   0; //[2.0]
+NETWORK
+TITLE =Interlocking Motor Left
+
+      L     #Ma.OutIncrementLeft; 
+      L     0; 
+      >I    ; 
+      UN    #tmpFaultSum; 
+      ON    #Ma.InInterlocked; 
+      U     #Ma.InEnableDown; 
+      U(    ; 
+      L     #Ma.InPositionTarget; 
+      L     #Ma.OutPositionLeft; 
+      <I    ; 
+      UN    #Ma.OutAdjustedLeft; 
+      UN    #Ma.InManual; 
+      U(    ; 
+      ON    #Ma.InUnloading; //[2.0]
+      ON    #Ma.OutPulseOn; //[2.0]
+      )     ; 
+      O     #Ma.OutManStartReqDown; 
+      )     ; 
+      UN    #Ma.OutPositionRightToHigh; 
+      UN    #Ma.OutDifferenceFault; 
+      U     #Ma.InEnableDown; 
+      U     #Ma.InEnableLowerMinPos; //[2.2]
+      U     #Ma.InPowerOkDelayDone; 
+      =     #MotorLeft.InEnableRev; 
+
+      UN    #tmpFaultSum; 
+      U     #LSTopLeft.StFalse; 
+      U     #LSTopStopLeft.StFalse; 
+      ON    #Ma.InInterlocked; 
+      U     #Ma.InEnableDown; 
+      U(    ; 
+      L     #Ma.InPositionTarget; 
+      L     #Ma.OutPositionLeft; 
+      >I    ; 
+      UN    #Ma.OutAdjustedLeft; 
+      UN    #Ma.InManual; 
+      U(    ; 
+      ON    #Ma.InUnloading; //[2.0]
+      ON    #Ma.OutPulseOn; //[2.0]
+      )     ; 
+      O     #Ma.OutManStartReqUp; 
+      )     ; 
+      UN    #Ma.OutPositionLeftToHigh; 
+      U     #Ma.InEnableUp; 
+      UN    #Ma.OutDifferenceFault; 
+      U     #Ma.InPowerOkDelayDone; 
+      =     #MotorLeft.InEnableFwd; 
+
+      U     #Ma.CmdNext; 
+      O     #Ma.InManual; 
+      S     #MotorLeft.CmdNext; 
+NETWORK
+TITLE =Interlocking Motor Right
+
+      L     #Ma.OutIncrementRight; 
+      L     0; 
+      >I    ; 
+      UN    #tmpFaultSum; 
+      ON    #Ma.InInterlocked; 
+      U     #Ma.InEnableDown; 
+      U(    ; 
+      L     #Ma.InPositionTarget; 
+      L     #Ma.BankingLoadingScrew; //[2.2]
+      +I    ; //[2.2]
+      L     #Ma.OutPositionRight; 
+      <I    ; 
+      UN    #Ma.OutAdjustedRight; 
+      UN    #Ma.InManual; 
+      U(    ; 
+      ON    #Ma.InUnloading; //[2.0]
+      ON    #Ma.OutPulseOn; //[2.0]
+      )     ; 
+      O     #Ma.OutManStartReqDown; 
+      )     ; 
+      UN    #Ma.OutPositionLeftToHigh; 
+      UN    #Ma.OutDifferenceFault; 
+      U     #Ma.InEnableDown; 
+      U     #Ma.InEnableLowerMinPos; //[2.2]
+      U     #Ma.InPowerOkDelayDone; 
+      =     #MotorRight.InEnableRev; 
+
+      UN    #tmpFaultSum; 
+      U     #LSTopRight.StFalse; 
+      U     #LSTopStopRight.StFalse; 
+      ON    #Ma.InInterlocked; 
+      U     #Ma.InEnableDown; 
+      U(    ; 
+      L     #Ma.InPositionTarget; 
+      L     #Ma.BankingLoadingScrew; //[2.2]
+      +I    ; //[2.2]
+      L     #Ma.OutPositionRight; 
+      >I    ; 
+      UN    #Ma.OutAdjustedRight; 
+      UN    #Ma.InManual; 
+      U(    ; 
+      ON    #Ma.InUnloading; //[2.0]
+      ON    #Ma.OutPulseOn; //[2.0]
+      )     ; 
+      O     #Ma.OutManStartReqUp; 
+      )     ; 
+      UN    #Ma.OutPositionRightToHigh; 
+      UN    #Ma.OutDifferenceFault; 
+      U     #Ma.InEnableUp; 
+      U     #Ma.InPowerOkDelayDone; 
+      =     #MotorRight.InEnableFwd; 
+
+      U     #Ma.CmdNext; 
+      O     #Ma.InManual; 
+      S     #MotorRight.CmdNext; 
+NETWORK
+TITLE =Interlocking LSTopStopLeft, LSTopStopRight,LSTopLeft,LSTopRigh
+//Mointoring false
+//When started downwards, the the LS must be uncovered after 30 mm
+//
+//
+      CLR   ; 
+      =     #LSTopStopLeft.InMonTrue; 
+      =     #LSTopStopRight.InMonTrue; 
+      CLR   ; 
+      =     #LSTopLeft.InMonTrue; 
+      =     #LSTopRight.InMonTrue; 
+//Monitoring false
+      L     #Ma.Par.ParPositionTopLeftUnits; 
+      L     #Ma.OutPositionLeft; 
+      -I    ; 
+      L     30; //30mms
+      >=I   ; 
+      U     #MotorLeft.StStartedRev; 
+      U     #Ma.InInterlocked; 
+      =     #LSTopLeft.InMonFalse; 
+      SET   ; 
+      =     #LSTopStopLeft.InMonFalse; 
+
+      L     #Ma.Par.ParPositionTopRightUnits; 
+      L     #Ma.OutPositionRight; 
+      -I    ; 
+      L     30; //30mms
+      >=I   ; 
+      U     #MotorRight.StStartedRev; 
+      U     #Ma.InInterlocked; 
+      =     #LSTopRight.InMonFalse; 
+      SET   ; 
+      =     #LSTopStopRight.InMonFalse; 
+NETWORK
+TITLE =Control Element SMLeft, SMRight
+
+      U     #MotorLeft.StStartedRev; 
+      O     #MotorLeft.StStartedFwd; 
+      =     #SMLeft.InMonTrue; 
+      U     #MotorRight.StStartedRev; 
+      O     #MotorRight.StStartedFwd; 
+      =     #SMRight.InMonTrue; 
+NETWORK
+TITLE =Control Element OffTrackMon
+
+      UN    #Ma.OutDifferenceFault; 
+      =     #OffTrackMon.InpTrue; 
+      SET   ; 
+      =     #OffTrackMon.InMonTrue; 
+NETWORK
+TITLE =Call Motor Left
+
+      CALL #MotorLeft ;
+
+NETWORK
+TITLE =Call Motor Right
+
+      CALL #MotorRight ;
+
+NETWORK
+TITLE =Call Digital Input: LSTopLeft
+
+      CALL #LSTopLeft ;
+
+NETWORK
+TITLE =Call Digital Input: LSTopRight
+
+      CALL #LSTopRight ;
+
+NETWORK
+TITLE =Call Digital Input: LSStopLeft
+
+      CALL #LSTopStopLeft ;
+
+NETWORK
+TITLE =Call Digital Input: LSStopRight
+
+      CALL #LSTopStopRight ;
+
+NETWORK
+TITLE =Call Digital Input: SMLeft
+
+      CALL #SMLeft ;
+
+NETWORK
+TITLE =Call Digital Input: SMRight
+
+      CALL #SMRight ;
+
+NETWORK
+TITLE =Call Digital Input: OffTrackMon
+
+      CALL #OffTrackMon ;
+
+NETWORK
+TITLE =States
+
+      U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StAdjusted; 
+      SPB   S6; 
+      U     #Ma.StStartedUP; 
+      SPB   S2; 
+      U     #Ma.StStartedDown; 
+      SPB   S5; 
+      U     #Ma.StStopping; 
+      SPB   S3; 
+      U     #Ma.StStarting; 
+      SPB   S1; 
+      U     #Ma.StFault; 
+      SPB   S4; 
+      SPA   xxS0; //Initialise: goto StStopped
+
+NETWORK
+TITLE =StStopped
+
+xxS0: S     #Ma.StStopped; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; 
+//---Transition -> StStarting
+      U     #Ma.OutManStartReqDown; 
+      O     #Ma.OutManStartReqUp; 
+      U     #Ma.InManual; 
+      ON    #MotorLeft.StStopped; 
+      ON    #MotorRight.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; 
+//---Transition for StAdjusted
+      U     #Ma.OutAdjustedLeft; 
+      U     #Ma.OutAdjustedRight; 
+      UN    #tmpLocal; 
+      R     #Ma.StStopped; 
+      SPB   xxS6; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStarting
+//== Any transition to StStarting
+xxS1: SET   ; 
+      S     #Ma.StStarting; 
+      SPA   SAVE; 
+//== Logic ====
+//---Transition -> StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; 
+//---Transition -> StStartedUn
+      U     #MotorLeft.StStartedFwd; 
+      O     #MotorRight.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; 
+//---Transition -> StStartingDown
+      U     #MotorLeft.StStartedRev; 
+      O     #MotorRight.StStartedRev; 
+      R     #Ma.StStarting; 
+      SPB   xxS5; 
+//---Transition for StStopping
+      U     #MotorLeft.StStopped; 
+      U     #MotorRight.StStopped; 
+      UN    #Ma.OutManStartReqDown; 
+      UN    #Ma.OutManStartReqUp; 
+      O     #tmpLocal; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; 
+//---Transition for StAdjusted
+      U     #Ma.OutAdjustedLeft; 
+      U     #Ma.OutAdjustedRight; 
+      UN    #tmpLocal; 
+      R     #Ma.StStarting; 
+      SPB   xxS6; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStartedUp
+
+xxS2: SET   ; 
+      S     #Ma.StStartedUP; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S2:   U     #tmpFaultSum; //---Condition for StFault
+      R     #Ma.StStartedUP; 
+      SPB   xxS4; 
+//---Transition for StAdjusted
+      U     #Ma.OutAdjustedLeft; 
+      U     #Ma.OutAdjustedRight; 
+      R     #Ma.StStartedUP; 
+      SPB   xxS3; 
+//---Transition -> StStoppting
+      UN    #MotorLeft.StStartedFwd; 
+      UN    #MotorRight.StStartedFwd; 
+      UN    #tmpUnloadingActive; //[2.0]
+      O     #MotorLeft.StStartedRev; //[2.0]
+      O     #MotorRight.StStartedRev; //[2.0]
+      R     #Ma.StStartedUP; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStartedDown
+
+xxS5: SET   ; 
+      S     #Ma.StStartedDown; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S5:   U     #tmpFaultSum; //---Condition for StFault
+      R     #Ma.StStartedDown; 
+      SPB   xxS4; 
+//---Transition for StAdjusted
+      U     #Ma.OutAdjustedLeft; 
+      U     #Ma.OutAdjustedRight; 
+      R     #Ma.StStartedDown; 
+      SPB   xxS3; 
+//---Transition -> StStoppting
+      UN    #MotorLeft.StStartedRev; 
+      UN    #MotorRight.StStartedRev; 
+      UN    #tmpUnloadingActive; //[2.0]
+      O     #MotorLeft.StStartedFwd; //[2.0]
+      O     #MotorRight.StStartedFwd; //[2.0]
+      R     #Ma.StStartedDown; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StAdjusted
+
+xxS6: SET   ; 
+      S     #Ma.StAdjusted; 
+//---Transition -> StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS4; 
+//---Transition for StStarting
+      UN    #MotorLeft.StStopped; 
+      ON    #MotorRight.StStopped; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS1; 
+//---Transition -> StStopping
+      UN    #Ma.OutAdjustedLeft; 
+      ON    #Ma.OutAdjustedRight; 
+      O     #tmpLocal; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStopping
+//===Any transition to StStopping
+xxS3: SET   ; 
+      S     #Ma.StStopping; 
+      SPA   SAVE; 
+//===Logic =======================
+//---Transtition -> StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; 
+//---Transition -> StAdjusted
+      U     #Ma.OutAdjustedLeft; 
+      U     #Ma.OutAdjustedRight; 
+      U     #MotorLeft.StStopped; 
+      U     #MotorRight.StStopped; 
+      UN    #tmpLocal; 
+      R     #Ma.StStopping; 
+      SPB   xxS6; 
+//---Transition -> StStopped
+      U     #MotorLeft.StStopped; 
+      U     #MotorRight.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; 
+//---Transition -> StStarting
+      UN    #MotorLeft.StStopping; 
+      UN    #MotorRight.StStopping; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; 
+      SPA   SAVE; 
+NETWORK
+TITLE = StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #Ma.StFault; 
+//===logic
+//---Transition -> StStopping
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =Global End
+
+SAVE: SET   ; //---Clear all commands
+      R     #Ma.CmdUp; 
+      R     #Ma.CmdDown; 
+      R     #Ma.CmdOff; 
+      R     #Ma.CmdNext; 
+      R     #Ma.CmdFaultReset; 
+//---------------------------------
+      UN    #MotorLeft.StStarting; 
+      UN    #MotorLeft.StStartedFwd; 
+      UN    #MotorLeft.StStartedRev; 
+      UN    #MotorRight.StStarting; 
+      UN    #MotorRight.StStartedFwd; 
+      UN    #MotorRight.StStartedRev; 
+      ON    #Ma.InManual; 
+      R     #Ma.OutManStartReqDown; 
+      R     #Ma.OutManStartReqUp; 
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      U     #Ma.StStopped; 
+      L     1; 
+      SPB   STC9; 
+      U     #Ma.StStarting; 
+      L     2; 
+      SPB   STC9; 
+      U     #Ma.StStartedUP; 
+      L     3; 
+      SPB   STC9; 
+      U     #Ma.StStartedDown; 
+      L     5; 
+      SPB   STC9; 
+      U     #Ma.StAdjusted; 
+      L     6; 
+      SPB   STC9; 
+      U     #Ma.StStopping; 
+      L     7; 
+      SPB   STC9; 
+      L     32; // Code: fault
+STC9: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+END_FUNCTION_BLOCK
+

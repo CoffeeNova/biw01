@@ -1,0 +1,45 @@
+	FUNCTION_BLOCK FB 1039
+	TITLE =A_2315_MXZ11MA HORIZONTAL SCREW
+	//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:       WinCoS_BIW01_09
+	//
+	//TITLE:         HORIZONTAL SCREW
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:         AUTHOR:             DEPT:                             DATE:
+	// 
+	//P01_FB1039.1.0 K.Renz              CSB41                             13.Jan.2010
+	//               1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 0.0
+	
+	
+	VAR
+	         Ma :  UDT 20500  ;  // Machine
+	         A_2315_BTT11 : FB14;  // Mon1: DigInpCont
+	         A_2315_BSA12 : FB14;  // Mon2: DigInpCont
+	         Mon3  : FB14  ;  // spare
+	         Mon4  : FB14 ;  // spare
+	         Mon5  : FB14 ;   // spare
+	         Mon6  : FB14 ;   // spare
+	         A_2315_MXZ11 : FB12; // Motor: Motor
+	END_VAR
+	
+	BEGIN
+	NETWORK
+	TITLE =Call SSW
+	   UC  FB50
+	END_FUNCTION_BLOCK

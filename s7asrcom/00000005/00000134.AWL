@@ -1,0 +1,1235 @@
+FUNCTION_BLOCK "GCS7_E_ValveControl4Pos"
+TITLE =VLS4
+//  
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        ELEMENT Valve control with 3 or 4 position
+//              (GCPROVB Revision 12)
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB20.6.2      A. Egli             CT3                         14-Mai-2007
+//              ParTimeControl: Do not Set CmdLNMan if CmdHN=1 
+//FB20.6.1      A. Egli             CT3                         08-Jun-2006
+//              ParTimeControl: PCD
+//FB20.6.0      A. Egli             CT3                         15-May-2006
+//              ParTimeControl: Measuring middle position be time
+//FB20.5.3      A. Egli             CT3                         12-Dec-2005
+//              Reset OutWarning also with GCS7_Gr_OutFaultReset 
+//FB20.5.2      A. Egli             CT3                         09-Mar-2005
+//              Transition StCToLN ot StNoPosition when OutpLN=0
+//FB20.5.1      A. Egli             CT3                         13-Oct-2004
+//              Transition StNoPosition to StCToLN when InLN=1
+//FB20.5.0      A. Egli             CT3                         05-Aug-2004
+//              - ParAngle:
+//                 1=Positioning from both side 
+//                 0=Positioning always from lower number 
+//FB20.4.2      A. Egli             CT3                         18-Nov-2003
+//              - Alarm-Number for LOG :1,2,3 changed 
+//FB20.4.1      A. Egli             CT3                         22-Sep-2003
+//              - Check if only one LS pressed 
+//FB20.4.0      A. Egli             CT3                         17-Jun-2002
+//              - New Release with one block 
+//              - StWarning
+//FB20.3.0      A. Egli             CT3                         13-Mar-2002
+//              ParDFZK : Flap box DFZK-2
+//FB20.2.1      A. Egli             CT3                         22-Aug-2000
+//              Gr.OutFaultReset
+//FB20.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB20.1A       A.Egli              AEE61                       17-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [VLS4xMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//O   set position LN
+//2   set position HN
+//3   set position Middle 1
+//4   set position Middle 2
+//5   set no position
+//9   fault cancelled
+//11  fault LN
+//12  fault Middle 1 
+//13  fault Middle 2
+//14  fault HN
+//15  fault AI
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32   StFault                
+// 1   StLN                   
+// 2   StCtoHN                
+// 3   StHN                    
+// 4   StCtoLN                
+// 5   StNoPosition                   no position
+// 6   StMiddle1              
+// 7   StMiddle2              
+//11   StLN.StWarning                   
+//12   StCtoHN.StWarning                
+//13   StHN.StWarning                    
+//14   StCtoLN.StWarning                
+//15   StNoPosition.StWarning         no position
+//16   StMiddle1.StWarning              
+//17   StMiddle2.StWarning              
+//45   StNoPosition.HWStop            StNoPosition + InHWStop
+//55   StNoPosition.DPFault           StNoPosition + InDPFault
+//
+//
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : VLS4
+VERSION : 6.2
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InLN : BOOL ;	//Position LN is requested (1=Set position LN/0=Change to higher position allowed
+  CmdMiddle1 : BOOL ;	//Pulse to set position Middle 1 (automatic)
+  CmdMiddle2 : BOOL ;	//Pulse to set position Middle 2 (automatic)
+  CmdHN : BOOL ;	//Pulse to set position HN       (automatic)
+  InpLN : BOOL ;	//Digital input position LN 
+  InpMiddle1 : BOOL ;	//Digital input position Middle1 
+  InpMiddle2 : BOOL ;	//Digital input position Middle2   
+  InpHN : BOOL ;	//Digital input position HN  
+  CmdLNMan : BOOL ;	//Pulse to move to posotion LN in manual mode
+  CmdPrevPos : BOOL ;	//Pulse move to next lower  position in manual mode  
+  CmdNextPos : BOOL ;	//Pulse move to next higher position in manual mode  
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  InpFaultAI : BOOL ;	//*AI: Fault Analog Value (Siemens Internal Used)
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutWarning : BOOL ;	//More than 4 re-adjust loop during warning time
+  OutpLN2 : BOOL ;	//Digital output (only used for DFZK2)
+  OutpHN2 : BOOL ;	//Digital output (only used for DFZK2)
+  OutpHold : BOOL ;	//Digital output HOLD, Is TRUE during change to HN or in position Middle1,Middle2
+  OutpLN : BOOL ;	//Digital output Valve LN
+  OutpHN : BOOL ;	//Digital output Valve HN
+  StLN : BOOL ;	//Element is in position LN
+  StCtoHN : BOOL ;	//Element is moving to higher position
+  StHN : BOOL ;	//Element is in position HN  
+  StCtoLN : BOOL ;	//Element is moving to lower position
+  StFault : BOOL ;	//Element has a fault
+  StNoPosition : BOOL ;	//Element is not in a final position
+  StMiddle1 : BOOL ;	//Element is in position Middle1
+  StMiddle2 : BOOL ;	//Element is in position Middle2
+  InpPosition : INT ;	//*AI/*TC: Analog Input Position [digit] of [0.1s]
+  InPositionMiddle : INT ;	//*AI/*TC: Target Position Middle [0.1%]
+  OutPosition : INT ;	//*AI/*TC: Actual Position [0.1%]
+  spare10 : INT ;	
+  spare12 : INT ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParNoLSLN : BOOL ;	//No limit switch LN
+   ParNoLSMiddle2 : BOOL ;	//No position Middle2
+   ParContinuousHN : BOOL ;	//Continuous signal for output OutpHN in position HN
+   ParNoReAdjust : BOOL ;	//Change to StFault by losing final position
+   ParDFZK : BOOL ;	//Flap box DFZK
+   ParAnalog : BOOL ;	//*AI: 1=Analog ; 0=Digital
+   ParWago : BOOL ;	//*AI: 1=Wago   ; 0=Siemens
+   ParAngle : BOOL ;	//1=Positioning from both side 
+   ParTimeControl : BOOL ;	//*TC: 1=Position calcualted by time
+   ParTransTime : INT ;	//Maximum time to move to final position [0.1 s]
+   ParWarningTime : INT ;	//In this time are 4 re-adjust loops allowed [0.1 s]   
+   ParPulseLN : INT ;	//Switch off delay time if arrive pos LN [0.1 s]
+   ParPulseMiddle : INT ;	//Switch off delay time if arrive pos middle1 or middle2 [0.1 s]  
+   ParPulseHN : INT ;	//Switch off delay time if arrive pos HN   [0.1 s] 
+   ParUnitsByMaxDigit : INT  := 1000;	//*AI: Max set point of AD-Converter in units  [0.1%]
+   ParUnitsByZeroDigit : INT ;	//*AI: Zero set point of AD-Converter in units  [0.1%]
+   ParPositionTolerance : INT  := 10;	//*AI/*TC: Tolerace actual position [0.1%]
+   ParPositionOpen : INT  := 1000;	//*AI/*TC: Position Open [0.1%] / [0.1s]
+   ParPositionClosed : INT  := 5;	//*AI: Position Cosed [0.1%]
+   spare28 : INT ;	
+   OutDelayTime : INT ;	//Actual time CtoHN, CtoLN, pulse  [0.1 s]
+   OutPosTarget : INT ;	//Target position:0=LN;1=Middle1;2=Middle2;3=HN    
+   OutCntReAdjust : INT ;	//Number og re-adjust loops
+   OutWarningTime : INT ;	//Actual warning time  [0.1 s]
+   tmpInPosition : INT ;	//Internal used Copy of InPositionMiddle
+   tmpOutpLN : BOOL ;	//Internal used
+   tmpOutpHN : BOOL ;	//Internal used
+   OutReAdjust : BOOL ;	//Re-adjust loop is active
+   OutPulseIsOn : BOOL ;	//Delay time is running, slide in position
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpLenDyn : DINT ;	
+  tmpLN : BOOL ;	//Condition for LN
+  tmpNext : BOOL ;	
+  tmpTimeEnd : BOOL ;	
+  tmpPosValid : BOOL ;	
+  tmpPosActual : INT ;	//Actual position  
+  tmpLocal : BOOL ;	
+  tmpNotInLN : BOOL ;	
+  tmpCntReAdjustUp : BOOL ;	
+  tmpMid : BOOL ;	
+  tmpStateNr : INT ;	//StateNr of actual state 
+  tmpTargetPosition : INT ;	//Temporare
+  tmpLocalFault : BOOL ;	
+  tmpInpValue : REAL ;	
+  tmpNoLSMiddle2 : BOOL ;	
+  tmpInpLN : BOOL ;	
+  tmpAnalog : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     60; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1020; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; //PCControl.Value[1]
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParTransTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParWarningTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParPulseLN; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParPulseMiddle; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.ParPulseHN; 
+// Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]   =CmdLNMan
+      S     #CmdLNMan; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[1]   =CmdPrevPos
+      S     #CmdPrevPos; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[2]   =CmdNextPos
+      S     #CmdNextPos; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[12]; //Cmd1[2]   =CmdHN
+      S     #CmdHN; 
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]   =CmdCalibrate //[6.0]
+      ON    #InManual; //[6.0]
+      ON    #InpHN; //[6.0]
+      O     "GCS7_Gr_OutManualOff"; //Global.OutManualOff    //[6.0]
+      SPB   pCal; //[6.0]
+      L     #InpPosition; //[6.0]
+      T     #Par.ParPositionOpen; //[6.0]
+pCal: U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14]=CmdReportOff
+      R     #InReport; 
+      UN    #Par.ParAnalog; //[6.0]
+      UN    #Par.ParTimeControl; //[6.0]
+      SPB   pIni; //[6.0]
+      U     #CmdNextPos; //[6.0]
+      U     #StMiddle1; //[6.0]
+      R     #CmdNextPos; //[6.0]
+      U     #CmdNextPos; //[6.0]
+      U     #StHN; //[6.0]
+      R     #CmdNextPos; //[6.0]
+      S     #CmdPrevPos; //[6.0]
+      U     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      SPB   pIni; 
+      L     0; 
+      L     DB3.DBW   56; // "SYS_PCControl".PC.Cmd3
+      ==I   ; 
+      UN    #Par.ParTimeControl; //[6.1]
+      SPB   pIni; 
+      T     #InPositionMiddle; 
+      UN    #Par.ParTimeControl; //[6.1]
+      SPB   pIni; //[6.1]
+      L     1000; //[6.1]
+      L     #InPositionMiddle; //[6.1]
+      <=I   ; //[6.1]
+      S     #CmdHN; //[6.1]
+      L     0; //[6.1]
+      L     #InPositionMiddle; //[6.1]
+      >=I   ; //[6.1]
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[12]; //Cmd1[2]   =CmdHN     //[6.2]
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]   =CmdCalibrate //[6.2]
+      S     #CmdLNMan; //[6.1]
+      UN    #CmdHN; //[6.1]
+      UN    #CmdLNMan; //[6.1]
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]   =CmdCalibrate //[6.2]
+      S     #CmdMiddle1; //[6.1]
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     12; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =Convert Position Analog
+
+      UN    #Par.ParAnalog; 
+      SPB   aiNO; 
+
+      L     #InpPosition; 
+      L     -32767; 
+      <=I   ; 
+      UN    #Par.ParWago; 
+      O     ; 
+      U     #Par.ParWago; 
+      U     #InpFaultAI; 
+      =     #InpFaultAI; //--> Wireing broken of underflow analog input
+      L     0.000000e+000; 
+      SPB   aiNO; // aip0
+      L     #InpPosition; 
+      ITD   ; 
+      DTR   ; 
+      U     #Par.ParWago; 
+      SPB   aiJw; 
+      L     2.764800e+004; // Max number of digits SIEMENS          
+      SPA   aiJc; 
+aiJw: L     3.276700e+004; // Max number of digits WAGO             
+aiJc: /R    ; 
+      T     #tmpInpValue; 
+      L     #Par.ParUnitsByMaxDigit; 
+      L     #Par.ParUnitsByZeroDigit; 
+      -D    ; 
+      DTR   ; 
+      L     #tmpInpValue; 
+      *R    ; 
+      L     #Par.ParUnitsByZeroDigit; 
+      DTR   ; 
+      +R    ; 
+      T     #tmpInpValue; 
+      RND   ; // Real to Integer
+      T     #OutPosition; 
+      L     #OutPosition; 
+      L     #Par.ParPositionTolerance; 
+      <I    ; 
+      =     #InpLN; 
+      L     #OutPosition; 
+      L     #Par.ParPositionOpen; 
+      >=I   ; 
+      =     #InpHN; 
+      L     #Par.ParPositionTolerance; 
+      L     #InPositionMiddle; 
+      +I    ; 
+      L     #OutPosition; 
+      >=I   ; 
+      U(    ; 
+      L     #InPositionMiddle; 
+      >=I   ; 
+      )     ; 
+      UN    #InpLN; 
+      UN    #InpHN; 
+      =     #InpMiddle1; 
+//----------------
+      U     #CmdMiddle2; 
+      R     #CmdMiddle2; 
+      S     #CmdMiddle1; 
+aiNO: NOP   0; 
+NETWORK
+TITLE =Convert Position Time Control [6.0]
+
+      UN    #Par.ParTimeControl; 
+      SPB   tcNO; 
+      UN    #InpHN; //[6.1]
+      O     #InManual; //[6.1]
+      SPB   tcMX; //[6.1]
+      L     #Par.ParPositionOpen; //[6.1]
+      T     #InpPosition; //[6.1]
+      SPA   tcHN; //[6.1]
+tcMX: UN    #OutpHN; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      O     #InpHN; 
+      SPB   tcHN; 
+      L     #InpPosition; 
+      +     2; 
+      T     #InpPosition; 
+//--------------
+tcHN: UN    #OutpLN; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      SPB   tcLN; 
+      L     #InpPosition; 
+      +     -2; 
+      T     #InpPosition; 
+      NOP   0; 
+//--------------
+tcLN: L     #InpPosition; 
+      L     0; 
+      >=I   ; 
+      UN    #InpLN; 
+      SPB   tcIn; 
+      T     #InpPosition; 
+//--------------
+tcIn: L     #InpPosition; 
+      ITD   ; 
+      DTR   ; 
+      L     #Par.ParPositionOpen; 
+      DTR   ; 
+      /R    ; 
+      L     1.000000e+003; 
+      *R    ; 
+      T     #tmpInpValue; 
+      RND   ; // Real to Integer
+      T     #OutPosition; 
+      L     #Par.ParPositionTolerance; 
+      L     #InPositionMiddle; 
+      +I    ; 
+      L     #OutPosition; 
+      >=I   ; 
+      U(    ; 
+      L     #InPositionMiddle; 
+      >=I   ; 
+      )     ; 
+      UN    #InpLN; 
+      UN    #InpHN; 
+      =     #InpMiddle1; 
+//----------------
+      U     #CmdMiddle2; 
+      R     #CmdMiddle2; 
+      S     #CmdMiddle1; 
+tcNO: NOP   0; 
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+      U     #Par.ParAnalog; //[6.0]
+      O     #Par.ParTimeControl; //[6.0]
+      =     #tmpAnalog; //[6.0]
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManualMode
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//No LS Middle2
+      U     #Par.ParNoLSMiddle2; 
+      O     #tmpAnalog; //[6.0]
+      =     #tmpNoLSMiddle2; 
+//---InpLN---
+      U     #InpLN; 
+      UN    #InpMiddle1; //[4.1]
+      UN    #InpMiddle2; //[4.1]
+      UN    #InpHN; //[4.1]
+      =     #tmpInpLN; //[4.1]
+//---Report is on---
+      U     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+
+//---Enable---
+      U     #InLN; 
+      O     #InLocal; 
+      UN    #InManual; 
+      O(    ; 
+      U     #InLN; 
+      UN    #Par.ParManual; 
+      U     #InManual; 
+      )     ; 
+      O     #CmdLNMan; 
+      =     #tmpLN; 
+//---Next---
+//---automatic StCtoHN
+      U     #CmdMiddle1; 
+      O     #CmdMiddle2; 
+      O     #CmdHN; 
+      UN    #tmpLocal; //[5.0]
+      =     #tmpNext; 
+
+      U     #tmpCntReAdjustUp; 
+      R     #tmpCntReAdjustUp; 
+//--- Calculate OutPosTarget 
+//  --Target position manual  
+      UN    #InManual; 
+      SPB   AUTO; 
+      U     #StMiddle1; 
+      U     #CmdPrevPos; 
+      O     #StNoPosition; 
+      O     #tmpLN; 
+      L     0; // Target Position = LN
+      SPB   Ipos; 
+      U     #StMiddle2; 
+      U     #CmdPrevPos; 
+      O     ; 
+      U     #StHN; 
+      U     #tmpNoLSMiddle2; 
+      U     #CmdPrevPos; 
+      O     ; 
+      U     #CmdNextPos; 
+      U     #StLN; 
+      O     ; 
+      U     #Par.ParTimeControl; //[6.1]
+      U     #CmdMiddle1; //[6.1]
+      UN    #CmdHN; //[6.1]
+      L     1; // Target Position = Middle1
+      SPB   Ipos; 
+      U     #StHN; 
+      UN    #tmpNoLSMiddle2; 
+      U     #CmdPrevPos; 
+      O     ; 
+      U     #StMiddle1; 
+      UN    #tmpNoLSMiddle2; 
+      U     #CmdNextPos; 
+      L     2; // Target Position = Middle2
+      SPB   Ipos; 
+      U     #StMiddle1; 
+      O     #StMiddle2; 
+      U     #CmdNextPos; 
+      O     #CmdHN; //[6.0]
+      L     3; // Target Position = HN
+      SPB   Ipos; 
+      SPA   I3; 
+//  --Target position automatic  
+AUTO: U     #tmpLN; 
+      L     0; // Target Position = LN
+      SPB   Ipos; 
+      U     #CmdMiddle1; 
+      L     1; // Target Position = Middle1
+      SPB   Ipos; 
+      U     #CmdMiddle2; 
+      L     2; // Target Position = Middle2
+      SPB   Ipos; 
+      U     #CmdHN; 
+      L     3; // Target Position = HN
+      SPB   Ipos; 
+      SPA   I3; 
+Ipos: T     #Par.OutPosTarget; 
+//--- Test actual position 
+I3:   UN    #tmpPosValid; 
+      S     #tmpPosValid; 
+      U     #InpLN; 
+      UN    #InpMiddle1; 
+      UN    #InpMiddle2; 
+      UN    #InpHN; 
+      L     0; // Actual position = LN
+      SPB   I4; 
+      UN    #InpLN; 
+      U     #InpMiddle1; 
+      UN    #InpMiddle2; 
+      UN    #InpHN; 
+      L     1; // Actual position = Middle1
+      SPB   I4; 
+      UN    #InpLN; 
+      UN    #InpMiddle1; 
+      U     #InpMiddle2; 
+      UN    #InpHN; 
+      L     2; // Actual position = Middle2
+      SPB   I4; 
+      UN    #InpLN; 
+      UN    #InpMiddle1; 
+      UN    #InpMiddle2; 
+      U     #InpHN; 
+      L     3; // Actual position = HN
+      SPB   I4; 
+      R     #tmpPosValid; 
+      L     0; // Actual position = LN
+I4:   T     #tmpPosActual; 
+
+//--- Traget Position local mode  
+      UN    #tmpLocal; 
+      SPB   INJ1; 
+      L     #tmpPosActual; 
+      T     #Par.OutPosTarget; 
+INJ1: NOP   0; 
+
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StLN; 
+      SPB   S0; 
+      U     #StCtoHN; 
+      SPB   S1; 
+      U     #StHN; 
+      SPB   S2; 
+      U     #StCtoLN; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      U     #StNoPosition; 
+      SPB   S5; 
+      U     #StMiddle1; 
+      SPB   S6; 
+      U     #StMiddle2; 
+      SPB   S7; 
+      S     #StLN; // Init
+      SPA   S0; 
+
+NETWORK
+TITLE =StLN
+// Any transition to StLN
+xxS0: S     #StLN; 
+      S     #Par.OutPulseIsOn; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 0); //MessageClass Info "SET_Closed"
+      SPA   LOG; 
+//=== Logic ====
+S0:   R     #Par.OutReAdjust; 
+      UN    #Par.OutPulseIsOn; 
+      SPB   SOJ1; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S0T1; 
+      +     2; 
+      T     #Par.OutDelayTime; 
+S0T1: L     #Par.ParPulseLN; 
+      >=I   ; 
+      =     #tmpTimeEnd; 
+      R     #Par.OutPulseIsOn; 
+      R     #Par.tmpOutpLN; 
+// Transition to StCtoHN
+SOJ1: U     #tmpNext; 
+      UN    #InManual; 
+      UN    #InLocal; 
+      O     ; 
+      U     #InManual; 
+      U     #CmdLNMan; 
+      O     ; 
+      U     #InManual; 
+      U     #CmdNextPos; 
+      O     ; 
+      U     #InManual; //[6.0]
+      U     #CmdHN; //[6.0]
+      O     ; //[6.1]
+      U     #InManual; //[6.1]
+      U     #CmdMiddle1; //[6.1]
+      U     #Par.ParTimeControl; //[6.1]
+      L     #Par.OutPosTarget; 
+      SPB   S0J2; 
+      L     0; 
+S0J2: T     #tmpTargetPosition; 
+      L     0; //Position LN
+      <>I   ; 
+      R     #StLN; 
+      SPB   xxS1; //--> StCtoHN
+      <>I   ; 
+      U     #tmpPosValid; 
+      O     ; 
+      UN    #Par.ParNoLSLN; 
+      UN    #tmpInpLN; //[4.1]
+      =     #tmpNotInLN; 
+// Transition to StCtoLN
+      U     #tmpNotInLN; 
+      UN    #Par.ParNoReAdjust; 
+      UN    #tmpLocal; 
+      S     #Par.OutReAdjust; 
+      S     #tmpCntReAdjustUp; 
+      R     #StLN; 
+      SPB   xxS3; //--> StCtoLN
+// Transition to StFault
+      U     #tmpNotInLN; 
+      UN    #tmpLocal; 
+      R     #StLN; 
+      SPB   xxS4; //--> StFault
+// Transition to StNoPos
+      U     #tmpNotInLN; 
+      R     #StLN; 
+      SPB   xxS5; //--> StNoPosition
+      SPA   OUT; 
+NETWORK
+TITLE =StCtoHN
+// Any transition to StCtoHN
+xxS1: S     #StCtoHN; 
+      R     #Par.tmpOutpLN; 
+      S     #OutpHold; 
+      S     #Par.tmpOutpHN; 
+      UN    #Par.OutPulseIsOn; 
+      SPB   OUT; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      SPA   OUT; 
+//=== Logic ====
+S1:   UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S11T; 
+      +     2; 
+      T     #Par.OutDelayTime; 
+S11T: L     #Par.ParTransTime; 
+      >=I   ; 
+      =     #tmpTimeEnd; 
+      L     #Par.OutPosTarget; 
+      L     #tmpPosActual; 
+      ==I   ; 
+      U     #tmpPosValid; 
+      SPB   S1J1; 
+// Transition to StCtoLN;
+      L     #Par.OutPosTarget; 
+      L     #tmpPosActual; 
+      <I    ; 
+      U     #tmpPosValid; 
+      O     ; 
+      U     #tmpTimeEnd; 
+      UN    #Par.OutReAdjust; 
+      O(    ; 
+      L     #Par.OutPosTarget; 
+      L     0; //= StLN
+      ==I   ; 
+      )     ; 
+      O(    ; //[4.0]
+      L     #OutPosition; //[4.0]
+      L     #Par.ParPositionTolerance; //[4.0]
+      -I    ; //[4.0]
+      L     #InPositionMiddle; //[4.0]
+      >I    ; //[4.0]
+      U(    ; 
+      L     1; // Target position =StMiddle1
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      )     ; 
+      U     #tmpAnalog; //[6.0]//[4.0]
+      )     ; //[4.0]
+      S     #Par.OutReAdjust; 
+      R     #StCtoHN; 
+      SPB   xxS3; //--> StCtoLN
+// Transition to Fault
+      U     #tmpTimeEnd; 
+      R     #StCtoHN; 
+      SPB   xxS4; //--> StFault
+      SPA   OUT; 
+//==Do any Transition   
+// Transition to StMiddle1
+S1J1: L     1; // Position StMiddle1
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      R     #StCtoHN; 
+      SPB   xxS6; //--> StMiddle1
+
+// Transition to StMiddle2
+      L     2; // Position StMiddle2
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      R     #StCtoHN; 
+      SPB   xxS7; //--> StMiddle2
+
+// Transition to StHN
+      L     3; // Position StHN
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      R     #StCtoHN; 
+      SPB   xxS2; //--> StHN
+// Transition to StLN
+      R     #StCtoHN; 
+      SPA   xxS0; //--> StLN
+
+NETWORK
+TITLE =StHN
+// Any transition to StHN
+xxS2: S     #StHN; 
+      S     #Par.OutPulseIsOn; 
+      R     #Par.OutReAdjust; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 2); //   MessageClass Info "Set HN"
+      SPA   LOG; 
+
+//=== Logic ====
+S2:   UN    #Par.OutPulseIsOn; 
+      SPB   S2J1; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S2T2; 
+      +     2; 
+      T     #Par.OutDelayTime; 
+S2T2: L     #Par.ParPulseHN; 
+      >=I   ; 
+      =     #tmpTimeEnd; 
+      R     #Par.OutPulseIsOn; 
+      R     #Par.tmpOutpLN; 
+      S     #OutpHold; 
+      U     #tmpTimeEnd; 
+      UN    #Par.ParContinuousHN; 
+      R     #Par.tmpOutpHN; 
+// Transition to StCtoLN
+S2J1: L     #Par.OutPosTarget; 
+      L     3; //Position HN; 
+      <I    ; 
+      R     #StHN; 
+      SPB   xxS3; //--> StCtoLN
+// Transition to StFault
+      L     #tmpPosActual; 
+      ==I   ; 
+      U     #tmpPosValid; 
+      SPB   OUT; 
+      U     #Par.ParNoReAdjust; 
+      UN    #tmpLocal; 
+      R     #StHN; 
+      SPB   xxS4; //-->StFault
+// Transition to StCtoHN
+      S     #tmpCntReAdjustUp; 
+      S     #Par.OutReAdjust; 
+      R     #StHN; 
+      SPA   xxS1; //-->StCtoHN
+
+NETWORK
+TITLE =StCtoLN
+// Any transition to StCtoLN
+xxS3: S     #StCtoLN; 
+      S     #Par.tmpOutpLN; 
+      R     #OutpHold; 
+      R     #Par.tmpOutpHN; 
+      UN    #Par.OutPulseIsOn; 
+      SPB   OUT; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      SPA   OUT; 
+
+//=== Logic ====
+S3:   UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S3T2; 
+      +     2; 
+      T     #Par.OutDelayTime; 
+S3T2: L     #Par.ParTransTime; 
+      >=I   ; 
+      O     ; 
+      U     #tmpLocal; //[5.0]
+      U     #tmpAnalog; //[6.0]//[5.0]
+      =     #tmpTimeEnd; 
+// Transition to StNoPos
+//      U     #tmpTimeEnd  //[5.2]
+      UN    #tmpInpLN; //[4.1]
+      UN    #Par.ParNoLSLN; 
+      UN    #tmpPosValid; //[5.0]
+      U     #tmpLocal; 
+      R     #StCtoLN; 
+      SPB   xxS5; //--> StNoPosition
+//Transition A to StLN    
+      L     #Par.OutPosTarget; //                
+      L     0; //Target=StLN
+      ==I   ; 
+      U     #tmpTimeEnd; 
+      U(    ; 
+      U     #tmpInpLN; //[4.1]
+      O     #Par.ParNoLSLN; 
+      )     ; 
+S3S0: R     #StCtoLN; 
+      SPB   xxS0; //-->StLN
+//[4.0 -->
+      L     1; // Target position =StMiddle1
+      L     #Par.OutPosTarget; 
+      <>I   ; 
+      U(    ; 
+      L     2; // Target position =StMiddle2
+      L     #Par.OutPosTarget; 
+      <>I   ; 
+      )     ; 
+      ON    #tmpAnalog; //[6.0]
+      O     #tmpLocal; //[5.0]
+      O     #Par.ParAngle; //[5.0]
+//<--4.0]
+      U(    ; 
+      L     #Par.OutPosTarget; 
+      L     #tmpPosActual; 
+      ==I   ; 
+      )     ; 
+      U     #tmpPosValid; 
+      SPB   S3xx; 
+//Transition to StCtoHN   
+      >I    ; 
+      U     #tmpPosValid; 
+      O     ; 
+      U     #tmpTimeEnd; 
+      UN    #Par.OutReAdjust; 
+      O(    ; //[4.0]
+      L     #OutPosition; //[4.0]
+      L     #Par.ParPositionTolerance; //[4.0]
+      +I    ; //[4.0]
+      L     #InPositionMiddle; //[4.0]
+      <I    ; //[4.0]
+      U(    ; 
+      L     1; // Target position =StMiddle1
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      )     ; 
+      U     #tmpAnalog; //[6.0]//[4.0]
+      )     ; //[4.0]
+      SPB   S3S1; //-->StCtoHN
+//Transition to StFault   
+      U     #tmpTimeEnd; 
+      R     #StCtoLN; 
+      SPB   xxS4; //-->StFault
+      SPA   OUT; 
+// Transition to StMiddle1
+S3xx: L     1; // Target position =StMiddle1
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      R     #StCtoLN; 
+      SPB   xxS6; //-->StMiddle1
+// Transition to StMiddle2
+      L     2; // Target position =StMiddle2
+      ==I   ; 
+      R     #StCtoLN; 
+      SPB   xxS7; //-->StMiddle2
+// Transition to StHN
+      L     3; // Target position =StHN
+      L     #Par.OutPosTarget; 
+      ==I   ; 
+      R     #StCtoLN; 
+      SPB   xxS2; //-->StHN
+// Transition B to StLN
+      SPA   S3S0; //-->StLN
+// Transition B to StCtoHN
+S3S1: U     #Par.OutReAdjust; 
+      SPB   S3x1; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+S3x1: S     #Par.OutReAdjust; 
+      R     #StCtoLN; 
+      SPA   xxS1; //-->StCtoHN
+
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      S     #StFault; 
+      R     #Par.tmpOutpLN; 
+      R     #OutpHold; 
+      R     #Par.tmpOutpHN; 
+      U     #Par.ParNoLSLN; 
+      R     #Par.OutReAdjust; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1020,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     #Par.OutPosTarget; 
+      L     B#(1, 11); //   MessageClass "Fault xxx" (Code=B#(1,11),B#(1,12),B#(1,13),B#(1,14)
+      +I    ; 
+      UN    #InpFaultAI; 
+      SPB   LOG; 
+      L     B#(1, 15); //   MessageClass "Fault Analog Input"
+      SPA   LOG; 
+//=== Logic ====
+S4:   UN    #tmpLocalFault; 
+      UN    #CmdFaultReset; 
+      UN    "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      SPB   OUT; 
+      R     #StFault; //        
+      S     #StNoPosition; //--> StNoPosition
+      L     B#(3, 9); // MessageClass Oper "Fault cancelled" 
+      SPA   LOG; 
+
+NETWORK
+TITLE =StNoPosition
+// Any transition to StNoPosition
+xxS5: S     #StNoPosition; 
+      R     #Par.tmpOutpLN; 
+      R     #Par.tmpOutpHN; 
+      U     #Par.ParNoLSLN; 
+      R     #Par.OutReAdjust; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 5); //   MessageClass Info "Set no position"
+      SPA   LOG; 
+//==Logic==== 
+//--Transiton to StCtoLN 
+S5:   L     0; 
+      T     #Par.OutDelayTime; 
+      U     #tmpNext; 
+      O     #InLN; //[5.1]
+      UN    #InManual; 
+      UN    #InLocal; 
+      O     ; 
+      U     #InManual; 
+      U     #CmdLNMan; 
+      O     #tmpPosValid; 
+      R     #StNoPosition; 
+      SPB   xxS3; //-->StCtoLN
+//--Transiton to StCtoHN 
+      U     #InManual; 
+      U     #CmdNextPos; 
+      R     #StNoPosition; 
+      SPB   xxS1; //-->StCtoHN
+      SPA   OUT; 
+
+NETWORK
+TITLE =StMiddle1 / StMiddle 2
+// Any transition to StMiddle1
+xxS6: S     #StMiddle1; 
+      S     #Par.OutPulseIsOn; 
+      R     #Par.OutReAdjust; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 3); //   MessageClass Info "SET_Middle1"
+      SPA   LOG; 
+
+// Any transition to StMiddle2
+xxS7: S     #StMiddle2; 
+      S     #Par.OutPulseIsOn; 
+      R     #Par.OutReAdjust; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 4); //   MessageClass Info "SET Middle 2"
+      SPA   LOG; 
+
+//==Logic==== 
+S7:   L     2; //Actual state is StMiddle2
+      SPA   S6S7; 
+S6:   L     1; //Actual state is StMiddle1
+S6S7: T     #tmpStateNr; 
+// This part is used for StMiddle1 and StMiddle2
+      UN    #Par.OutPulseIsOn; 
+      SPB   S6J1; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S6T1; 
+      +     2; 
+      T     #Par.OutDelayTime; 
+S6T1: L     #Par.ParPulseMiddle; 
+      >=I   ; 
+      =     #tmpTimeEnd; 
+      R     #Par.OutPulseIsOn; 
+      R     #Par.tmpOutpLN; 
+      S     #OutpHold; 
+      R     #Par.tmpOutpHN; 
+// Transition to StCtoLN
+S6J1: L     #Par.OutPosTarget; 
+      L     #tmpStateNr; 
+      <I    ; 
+S6S3: R     #StMiddle1; 
+      R     #StMiddle2; 
+      SPB   xxS3; //--> StCtoLN
+// Transition A to StCtoHN
+      >I    ; 
+S6S1: R     #StMiddle1; 
+      R     #StMiddle2; 
+      SPB   xxS1; //--> StCtoHN
+// Transition to StFault
+      L     #tmpPosActual; 
+      ==I   ; 
+      U     #tmpPosValid; 
+      SPB   OUT; 
+      U     #Par.ParNoReAdjust; 
+      UN    #tmpLocal; 
+      R     #StMiddle1; 
+      R     #StMiddle2; 
+      SPB   xxS4; //-->StFault
+// Transition B to StCtoLN
+      S     #tmpCntReAdjustUp; 
+      L     #InPositionMiddle; //[5.0]
+      L     #Par.tmpInPosition; //[5.0]
+      >I    ; //[5.0]
+      U     #tmpAnalog; //[6.0]
+      SPB   S6S1; //--> StCtoHN [5.0]
+      SPA   S6S3; //--> StCtoLN
+
+NETWORK
+TITLE =Log
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1020);
+
+NETWORK
+TITLE =Global End
+// ==Init Outputs
+OUT:  U     #tmpLocal; 
+      R     #OutpHold; 
+      R     #Par.tmpOutpLN; 
+      R     #Par.tmpOutpHN; 
+//=== Output =============
+      L     1; //[3.0]
+      L     #Par.OutPosTarget; //[3.0]
+      ==I   ; //[3.0]
+      O(    ; //[3.0]
+      L     2; //[3.0]
+      ==I   ; //[3.0]
+      )     ; //[3.0]
+      =     #tmpMid; //[3.0]
+
+      UN    #tmpMid; //[3.0]
+      ON    #Par.ParDFZK; //[3.0]
+      U     #Par.tmpOutpLN; //[3.0]
+      =     #OutpLN; //[3.0]
+
+      U     #tmpMid; //[3.0]
+      U     #Par.tmpOutpHN; //[3.0]
+      O     #Par.tmpOutpLN; //[3.0]
+      U     #Par.ParDFZK; //[3.0]
+      =     #OutpLN2; //[3.0]
+
+      U     #tmpMid; //[3.0]
+      U     #Par.tmpOutpLN; //[3.0]
+      O     #Par.tmpOutpHN; //[3.0]
+      U     #Par.ParDFZK; //[3.0]
+      =     #OutpHN2; //[3.0]
+
+      UN    #tmpMid; //[3.0]
+      ON    #Par.ParDFZK; //[3.0]
+      U     #Par.tmpOutpHN; //[3.0]
+      =     #OutpHN; //[3.0]
+
+//=== Warning =====               
+      L     #Par.tmpInPosition; 
+      L     #InPositionMiddle; 
+      ==I   ; 
+      SPB   o3; 
+      T     #Par.tmpInPosition; 
+      R     #OutWarning; 
+      L     0; 
+      T     #Par.OutCntReAdjust; 
+o3:   UN    #tmpCntReAdjustUp; 
+      SPB   o4; 
+      L     #Par.OutCntReAdjust; 
+      +     1; 
+      T     #Par.OutCntReAdjust; 
+o4:   L     #Par.OutWarningTime; 
+      L     #Par.ParWarningTime; 
+      <I    ; 
+      SPB   o5; 
+      L     0; 
+      T     #Par.OutCntReAdjust; 
+      T     #Par.OutWarningTime; 
+o5:   L     #Par.OutCntReAdjust; 
+      L     0; 
+      ==I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   o6; 
+      L     #Par.OutWarningTime; 
+      +     2; 
+      T     #Par.OutWarningTime; 
+o6:   L     #Par.OutCntReAdjust; 
+      L     5; 
+      >=I   ; 
+      S     #OutWarning; 
+      U     #tmpLocal; 
+      O     #CmdFaultReset; 
+      O     "GCS7_Gr_OutFaultReset"; // OutFaultReset [5.3]
+      R     #OutWarning; 
+//=====Clear all commands
+      SET   ; 
+      R     #CmdLNMan; 
+      R     #CmdPrevPos; 
+      R     #CmdNextPos; 
+      R     #CmdMiddle2; 
+      R     #CmdMiddle1; 
+      R     #CmdHN; 
+      R     #CmdFaultReset; 
+
+//--Output for group 
+      U     #InDPFault; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+// 
+      L     1; 
+      U     #StLN; 
+      SPB   STC1; 
+      L     2; 
+      U     #StCtoHN; 
+      SPB   STC1; 
+      L     3; 
+      U     #StHN; 
+      SPB   STC1; 
+      L     4; 
+      U     #StCtoLN; 
+      SPB   STC1; 
+      UN    #StNoPosition; 
+      SPB   STCM; 
+      L     45; //Code: StNoPosition.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     55; //Code: StNoPosition.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     5; 
+      SPA   STC1; 
+STCM: L     6; 
+      U     #StMiddle1; 
+      SPB   STC1; 
+      L     7; 
+      U     #StMiddle2; 
+      SPB   STC1; 
+      L     32; // Code: fault
+      SPA   STC; 
+STC1: UN    #OutWarning; 
+      SPB   STC; 
+      +     20; 
+STC:  L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

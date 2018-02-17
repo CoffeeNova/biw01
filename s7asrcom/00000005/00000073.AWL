@@ -1,0 +1,168 @@
+FUNCTION_BLOCK "GCS7_Bin"
+TITLE =Bin
+//
+//COPYRIGHT:    (C) 2003  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Bin Function
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB78.1.0      A. Egli             CT3                         20-Jan-2003
+//               1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [BINxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : BIN
+VERSION : 1.0
+
+
+VAR
+  BinNr : INT ;	
+  InLowLevel : BOOL ;	//LL is uncovered
+  InFeedOffLL : BOOL ;	//HWStop or DPFault of the connected level probe (*new*)
+  InHighLevel : BOOL ;	//HL is covered
+  InFeedOffHL : BOOL ;	//HWStop or DPFault of the connected level probe (*new*)
+  InOutEmpty : BOOL ;	//Restdischarging bin is done
+  CmdOverrideLL : BOOL ;	//Activate override function for high level
+  CmdOverrideHL : BOOL ;	//Activate override function for low level
+  CmdDischarging : BOOL ;	//Any line is discharging out of this bin
+  CmdFilling : BOOL ;	//Any line is filling this bin
+  CmdLastReceiverActive : BOOL ;	//Any line has last active receiver set
+  spare32 : BOOL ;	
+  spare33 : BOOL ;	
+  spare34 : BOOL ;	
+  spare35 : BOOL ;	
+  spare36 : BOOL ;	
+  spare37 : BOOL ;	
+  OutLowLevel : BOOL ;	//If OutOverrideLL THEN OutEmpty ELSE InLowLevel
+  OutHighLevel : BOOL ;	//If OutOverrdieHL THEN OutFull  ELSE InHighLevel
+  OutDischarging : BOOL ;	//Any line is discharging out of this bin
+  OutFilling : BOOL ;	//Any line is filling this bin
+  OutFull : BOOL ;	//Overfill time done
+  OutOverrideLL : BOOL ;	//Activate override function for high level
+  OutOverrideHL : BOOL ;	//Activate override function for low level
+  OutDryFillingDone : BOOL ;	//Level > dry filling level
+  OutLastReceiverActive : BOOL ;	//Can be used for pre-alarm
+  spare51 : BOOL ;	
+  spare52 : BOOL ;	
+  spare53 : BOOL ;	
+  spare54 : BOOL ;	
+  spare55 : BOOL ;	
+  spare56 : BOOL ;	
+  spare57 : BOOL ;	
+  InReceiverCounter : BYTE ;	//Temporare counter of actual active receiver
+  OutReceiverCounter : BYTE ;	//Counter of actual active receiver
+  InOutOverfillWeight : REAL ;	//Overfilling weight, when high level is covered
+  InOutFillingWeight : REAL ;	//Filling weight, is used for dry filling
+  spare16 : INT ;	
+  spare18 : INT ;	
+  Par : STRUCT 	
+   ParLL_isBelowBin : BOOL ;	//For dry filing the low level must be overfilled
+   ParOverfillingWeight : INT ;	//Maximum weight to overfill HL
+   ParDryFillingWeight : INT ;	//Minimum weight for dry filling
+   spare1 : INT ;	
+   spare2 : INT ;	
+  END_STRUCT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Copy temporare data from to output data
+
+      L     #InReceiverCounter; 
+      T     #OutReceiverCounter; 
+      L     0; 
+      T     #InReceiverCounter; 
+
+      U     #CmdOverrideLL; 
+      =     #OutOverrideLL; 
+      R     #CmdOverrideLL; 
+
+      U     #CmdOverrideHL; 
+      =     #OutOverrideHL; 
+      R     #CmdOverrideHL; 
+
+      U     #CmdDischarging; 
+      =     #OutDischarging; 
+      R     #CmdDischarging; 
+
+      U     #CmdFilling; 
+      =     #OutFilling; 
+      R     #CmdFilling; 
+
+      U     #CmdLastReceiverActive; 
+      =     #OutLastReceiverActive; 
+      R     #CmdLastReceiverActive; 
+NETWORK
+TITLE =Over fill weight
+
+      U     #InHighLevel; 
+      SPB   FGJ1; 
+      L     0.000000e+000; 
+      T     #InOutOverfillWeight; 
+FGJ1: NOP   0; 
+NETWORK
+TITLE =OutFull
+
+      L     #InOutOverfillWeight; 
+      L     #Par.ParOverfillingWeight; 
+      ITD   ; 
+      DTR   ; 
+      >R    ; 
+      U     #InHighLevel; 
+      =     #OutFull; 
+NETWORK
+TITLE =OutHighLevel
+
+      U     #InHighLevel; 
+      UN    #OutOverrideHL; 
+      O     #OutFull; 
+      =     #OutHighLevel; 
+NETWORK
+TITLE =OutEmpty
+
+      UN    #InLowLevel; 
+      O     #OutFilling; 
+      R     #InOutEmpty; 
+NETWORK
+TITLE =OutLowLevel
+
+      U     #InLowLevel; 
+      UN    #OutOverrideLL; 
+      O     #InOutEmpty; 
+      =     #OutLowLevel; 
+NETWORK
+TITLE =OutDryFillingDone
+
+      NOP   0; 
+//-----------------------------
+//Reset Dry filling weight if filling starts
+      U     #InLowLevel; 
+      U     #Par.ParLL_isBelowBin; 
+      O     #InOutEmpty; 
+      SPBN  DFJ1; 
+      L     0.000000e+000; 
+      T     #InOutFillingWeight; 
+DFJ1: NOP   0; 
+//=================================
+      L     #InOutFillingWeight; 
+      L     #Par.ParDryFillingWeight; 
+      ITD   ; 
+      DTR   ; 
+      >R    ; 
+      UN    #InLowLevel; 
+      O     ; 
+      UN    #Par.ParLL_isBelowBin; 
+      UN    #InLowLevel; 
+      =     #OutDryFillingDone; 
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,1966 @@
+FUNCTION_BLOCK "GCS7_E_DFCO"
+TITLE =DFCO
+//  
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control DFCO
+//              (GCPROVB Revision 11)  
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB26.2.3      A. Egli             BASE                        20-Okt-2008
+//              For timeout starting check ParDFCO_Only
+//FB26.2.2      A.Egli              CT3                         26-Sep-2007
+//              Do not set "GCS7_Gr_InHeavyStartup" if ParDFCO_Only=1         
+//FB26.2.1      A.Egli              CT3                         11-Sep-2007
+//              Send Log Message if Alarmnumber changes from 0->X          
+//FB26.2.0      A.Egli              CT3                         14-Feb-2007
+//              New Tag names           
+//FB26.1.4      B.Thoma             FU591                       02-Dez-2006
+//              Delete all actual values as long Profibus fault           
+//FB26.1.3      B.Thoma             FU91                        28-Nov-2006
+//              Invert HL DFAV ; StCode Fan           
+//FB26.1.2      B.Thoma             FU92                        18-Apr-2006
+//              Flapbox changed 
+//              FeedRoll State changed            
+//FB26.1.1      A.Egli              CT3                         01-Dec-2005
+//              Parameter Upload Change DBD86-->DBD88
+//FB26.1.0      A.Egli              CT3                         06-Oct-2005
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DFCOxxMAN]
+//
+//RESTRICTIONS: S7
+//             
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//0     = Fault Cancelled
+//1..89 = AlarmLC : Alarmnumber see manual of MEAF
+//90    = Fault Remote Control
+//91    = StStopped
+//92    = StStarted
+//95    = WrongValue
+//96    = Communication fault
+//97    = 
+//98    = 
+//99    = Collected alarm
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+// StFault                 32
+// StStopped                1
+// StStarting               2
+// StStarted.Wait           3
+// StStarted.Feeding        4
+// StStopping               7
+// StWarning                8
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DFCO
+VERSION : 2.3
+
+
+VAR
+  StCode : INT ;	// State as code 32=StFault 1=StStopped 2=StStarting 3=StStartedWait 4=StStartedF
+  spare20 : BOOL ;	
+  spare21 : BOOL ;	
+  spare22 : BOOL ;	
+  InReqStartRev : BOOL ;	//Mill must start reverse
+  InReqStartFwd : BOOL ;	//Mill must start forward
+  spare25 : BOOL ;	//1=Activate automatic control mode (CTRL.MODE)
+  InHeavyFractionOpen : BOOL ;	
+  spare27 : BOOL ;	
+  spare30 : BOOL ;	
+  spare31 : BOOL ;	//  
+  CmdNext : BOOL ;	// Pulse to start the next motor in automatic mode
+  CmdFaultReset : BOOL ;	// Command to reset fault
+  InLocal : BOOL ;	// Local mode, accept all faults
+  InManual : BOOL ;	// 
+  InReport : BOOL ;	// 
+  spare37 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InSimulation : BOOL ;	//Simulation with DPSim
+  OutComFault : BOOL ;	//Communication fault
+  OutStartwarning : BOOL ;	//Not used
+  spare45 : BOOL ;	
+  spare46 : BOOL ;	
+  spare47 : BOOL ;	
+  StStopped : BOOL ;	//All motors are stopped 
+  StStarting : BOOL ;	//Not all relevant motors are started 
+  StStarted : BOOL ;	//All used motors are started 
+  StStopping : BOOL ;	//Any motor is stopping 
+  StFault : BOOL ;	//Any relevant element has a fault
+  spare0505 : BOOL ;	//  
+  spare0506 : BOOL ;	//  
+  spare0507 : BOOL ;	//  
+  Mill1 : STRUCT 	
+   InEnable : BOOL ;	//Automatic Mode
+   InUsed : BOOL ;	//Automatic Mode
+   InEnableFeed : BOOL ;	//Automatic Mode
+   InBrake : BOOL ;	//Automatic Mode: Stop with break
+   InFast : BOOL ;	//Run motor with fast speed
+   spare05 : BOOL ;	
+   spare06 : BOOL ;	
+   spare07 : BOOL ;	
+   CmdOff : BOOL ;	//Manual Mode
+   CmdOn : BOOL ;	//Manual Mode
+   CmdFeedOff : BOOL ;	//Manual Mode 
+   CmdFeedOn : BOOL ;	//Manual Mode
+   CmdBrake : BOOL ;	//Manual Mode
+   spare15 : BOOL ;	
+   spare16 : BOOL ;	
+   InpFanStart : BOOL ;	//Fan is started
+   OutpMotorFwd : BOOL ;	//Output run motor forward
+   OutpMotorFast : BOOL ;	//Output run motor fast
+   OutpMotorRev : BOOL ;	//Output run motor reverse
+   OutpBrake : BOOL ;	//Output brake
+   OutpFanStart : BOOL ;	//Output run fan
+   OutLoaded : BOOL ;	//Read from DFCO
+   OutWrongValue : BOOL ;	
+   OutScreenChangeReq : BOOL ;	//Srceen change is requested
+   VarEdgeStarted : BOOL ;	
+   VarEdgeFault : BOOL ;	
+   Tar : STRUCT 	//Telegram Dataset 128
+    InSetPoint : INT ;	//[%] Load control
+    InScreen : INT ;	//[0.1mm] Sreen size
+    spare1 : INT ;	
+    spare2 : INT ;	
+    spare3 : INT ;	
+    spare4 : INT ;	
+    EmptyTime : INT ;	//[0.1s]
+    spare5 : INT ;	
+   END_STRUCT ;	
+   Act : STRUCT 	//Telegram Dataset 1
+    OutLoadAct : INT ;	//[%]
+    OutCurrentLoad : INT ;	//[0.1A]
+    OutActPosSlide : INT ;	//[%]
+    OutActTemperature : INT ;	//[0.1°C]
+    OutStatusFlapBox : INT ;	
+    OutStatusMillMotor : INT ;	
+    spare1 : INT ;	
+    OutEmptyTime : INT ;	//[0.1s]
+    spare2 : INT ;	
+    OutAlarmNo : INT ;	
+   END_STRUCT ;	
+   Motor : STRUCT 	
+    StStopped : BOOL ;	
+    StStarting : BOOL ;	
+    StStartedFwd : BOOL ;	
+    StStopping : BOOL ;	
+    StFault : BOOL ;	
+    StStartedRev : BOOL ;	
+    StBrake : BOOL ;	
+   END_STRUCT ;	
+   OutScreenAct : INT ;	//[0.1mm] Actual screen
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   spare4 : INT ;	
+   spare5 : INT ;	
+   spare6 : INT ;	
+   Motor_StCode : INT ;	//StCode same as EL_Motor
+   Vibration_StCode : INT ;	//StCode same as EL_DIC
+   Automatic_StCode : INT ;	//StCode same as EL_DIC
+   StandStill_StCode : INT ;	//StCode same as EL_DIC
+   SwitchPanel_StCode : INT ;	//StCode same as EL_DIC
+   EmergencyStop_StCode : INT ;	//StCode same as EL_DIC
+   HLCone_StCode : INT ;	//StCode same as EL_DIC
+   OutTimeStartedFwd : DINT ;	//[s] Not errasable time "Started"
+   OutTimeStartedRev : DINT ;	//[s] Not errasable time "Started"
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntStartup : DINT ;	//Not errasable counter of startup
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  Mill2 : STRUCT 	
+   InEnable : BOOL ;	//Automatic Mode
+   InUsed : BOOL ;	//Automatic Mode
+   InEnableFeed : BOOL ;	//Automatic Mode
+   InBrake : BOOL ;	//Automatic Mode: Stop with break
+   InFast : BOOL ;	//Run motor with fast speed
+   spare05 : BOOL ;	
+   spare06 : BOOL ;	
+   spare07 : BOOL ;	
+   CmdOff : BOOL ;	//Manual Mode
+   CmdOn : BOOL ;	//Manual Mode
+   CmdFeedOff : BOOL ;	//Manual Mode 
+   CmdFeedOn : BOOL ;	//Manual Mode
+   CmdBrake : BOOL ;	//Manual Mode
+   spare15 : BOOL ;	
+   spare16 : BOOL ;	
+   InpFanStart : BOOL ;	//Fan is started
+   OutpMotorFwd : BOOL ;	//Output run motor forward
+   OutpMotorFast : BOOL ;	//Output run motor fast
+   OutpMotorRev : BOOL ;	//Output run motor reverse
+   OutpBrake : BOOL ;	//Output brake
+   OutpFanStart : BOOL ;	//Output run fan
+   OutLoaded : BOOL ;	//Read from DFCO
+   OutWrongValue : BOOL ;	
+   OutScreenChangeReq : BOOL ;	//Srceen change is requested
+   VarEdgeStarted : BOOL ;	
+   VarEdgeFault : BOOL ;	
+   Tar : STRUCT 	//Telegram Dataset 128
+    InSetPoint : INT ;	//[%] Load control
+    InScreen : INT ;	//[0.1mm] Sreen size
+    spare1 : INT ;	
+    spare2 : INT ;	
+    spare3 : INT ;	
+    spare4 : INT ;	
+    EmptyTime : INT ;	//[0.1s]
+    spare5 : INT ;	
+   END_STRUCT ;	
+   Act : STRUCT 	//Telegram Dataset 1
+    OutLoadAct : INT ;	//[%]
+    OutCurrentLoad : INT ;	//[0.1A]
+    OutActPosSlide : INT ;	//[%]
+    OutActTemperature : INT ;	//[0.1°C]
+    OutStatusFlapBox : INT ;	
+    OutStatusMillMotor : INT ;	
+    spare1 : INT ;	
+    OutEmptyTime : INT ;	//[0.1s]
+    spare2 : INT ;	
+    OutAlarmNo : INT ;	
+   END_STRUCT ;	
+   Motor : STRUCT 	
+    StStopped : BOOL ;	
+    StStarting : BOOL ;	
+    StStartedFwd : BOOL ;	
+    StStopping : BOOL ;	
+    StFault : BOOL ;	
+    StStartedRev : BOOL ;	
+    StBrake : BOOL ;	
+   END_STRUCT ;	
+   OutScreenAct : INT ;	//[0.1mm] Actual screen
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   spare4 : INT ;	
+   spare5 : INT ;	
+   spare6 : INT ;	
+   Motor_StCode : INT ;	//StCode same as EL_Motor
+   Vibration_StCode : INT ;	//StCode same as EL_DIC
+   Automatic_StCode : INT ;	//StCode same as EL_DIC
+   StandStill_StCode : INT ;	//StCode same as EL_DIC
+   SwitchPanel_StCode : INT ;	//StCode same as EL_DIC
+   EmergencyStop_StCode : INT ;	//StCode same as EL_DIC
+   HLCone_StCode : INT ;	//StCode same as EL_DIC
+   OutTimeStartedFwd : DINT ;	//[s] Not errasable time "Started"
+   OutTimeStartedRev : DINT ;	//[s] Not errasable time "Started"
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntStartup : DINT ;	//Not errasable counter of startup
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  OutActFeedRoll : INT ;	//[Hz] Actual frequence feed roll 
+  spare208 : DINT ;	//StCode same as EL_DIC
+  spare212 : DINT ;	
+  spare216 : DINT ;	
+  FlapBox : STRUCT 	
+   StMill1 : BOOL ;	
+   StMiddle : BOOL ;	
+   StMill2 : BOOL ;	
+   StNoPosition : BOOL ;	
+  END_STRUCT ;	
+  FlapBox_StCode : INT ;	//StCode same as EL_VLS4
+  FeedRoll_StCode : INT ;	//StCode same as EL_Motor
+  Fan_StCode : INT ;	//StCode same as EL_Motor
+  LL_FeedHopper_StCode : INT ;	//StCode same as EL_DIC
+  HL_DFAV_StCode : INT ;	//StCode same as EL_DIC
+  MagnetDoor_StCode : INT ;	//StCode same as EL_DIC
+  HeavyParticalFlap_StCode : INT ;	//StCode same as EL_DIC
+  spare118 : INT ;	
+  spare220 : DINT ;	
+  spare224 : DINT ;	
+  spare228 : DINT ;	
+  OutAlarmNoLog : INT ;	//Last textnumber send to log
+  InpDFCO : STRUCT 	//WAGO/MEAF Inputs of DFCO
+   I00_LL_FeedHopper : BOOL ;	//DFAV: Inlet level DFAV (1=covered)
+   I01_HL_DFAV : BOOL ;	//DFAV: High level DFAV (1=Covered)
+   I02_HeavyParticleFlap : BOOL ;	//DFAV: Heavy particle flap closed (1=end position)
+   I03_MagnetDoorClosed : BOOL ;	//DFAV: Door interlocking heavy particle flap (1=closed)
+   I04_LSFlapBox : BOOL ;	//DFAV: LS of middle position (1=dedected)
+   I05 : BOOL ;	
+   I06 : BOOL ;	
+   I07_24VOk : BOOL ;	//DFAV: Fuse control of DFCO (1=ok)
+   spare9 : BYTE ;	
+   I20_ButtonCone1 : BOOL ;	//DFZK Mill 1: Button open/close cone 
+   I21_ButtonHeavyFlap1 : BOOL ;	//DFZK Mill 1: Button open heavy particle flap
+   I22_KeySwitchAuto1 : BOOL ;	//DFZK Mill 1: Key switch Automatic/Hand (1=Hand) 
+   I23_SwitchPanel1 : BOOL ;	//DFZK Mill 1: Connection box (1= inactive)  
+   I24_StandStill1 : BOOL ;	//DFZK Mill 1: Standstill (1=Standstill)  
+   I25_EmergencyStop1 : BOOL ;	//DFZK Mill 1: Cone interlocking (1=not interlocked)
+   I26_EmergencySwitch1 : BOOL ;	//DFZK Mill 1: Emergency switch(1=ok)
+   I27_HL_Cone1 : BOOL ;	//DFZK Mill 1: HL outlet cone (1=uncovered)
+   spare11 : BYTE ;	
+   I40_ButtonCone2 : BOOL ;	//DFZK Mill 2: Button open/close cone 
+   I41_ButtonHeavyFlap2 : BOOL ;	//DFZK Mill 2: Button open heavy particle flap
+   I42_KeySwitchAuto2 : BOOL ;	//DFZK Mill 2: Key switch Automatic/Hand (1=Hand) 
+   I43_SwitchPanel2 : BOOL ;	//DFZK Mill 2: Connection box (1= inactive)  
+   I44_StandStill2 : BOOL ;	//DFZK Mill 2: Standstill (1=Standstill)  
+   I45_EmergencyStop2 : BOOL ;	//DFZK Mill 2: Cone interlocking (1=not interlocked)
+   I46_EmergencySwitch2 : BOOL ;	//DFZK Mill 2: Emergency switch(1=ok)
+   I47_HL_Cone2 : BOOL ;	//DFZK Mill 2: HL outlet cone (1=uncovered)
+   spare13 : BYTE ;	
+   I60_VibrationDetector1 : BOOL ;	//DFZK Mill 1: Vibration detector (1=OK)
+   I61_VibrationDetector2 : BOOL ;	//DFZK Mill 2: Vibration detector (1=OK)
+   spare15 : BYTE ;	
+   I80_Release1 : BOOL ;	//DFZK Mill 1: Release feeding (1=released)
+   I81_Start1 : BOOL ;	//DFZK Mill 1: Release motor (1=released)
+   I82_RotarySpeed1 : BOOL ;	//DFZK Mill 1: Fast/Slow speed of motor (2=fast)
+   I83_AckFan : BOOL ;	//DFZK Mill 1: Fan is running
+   I84 : BOOL ;	
+   I85 : BOOL ;	
+   I86 : BOOL ;	
+   I87 : BOOL ;	
+   I90_Release2 : BOOL ;	//DFZK Mill 2: Release feeding (1=released)
+   I91_Start2 : BOOL ;	//DFZK Mill 2: Release motor (1=released)
+   I92_Speed2 : BOOL ;	//DFZK Mill 2: Fast/Slow speed of motor (1=fast)
+   I93_Break : BOOL ;	//DFZK Mill 1/2: Stop with break (1=with break)
+   spare18 : BYTE ;	
+   spare19 : BYTE ;	
+   spare20 : BYTE ;	
+   DI1_spare : BOOL ;	
+   DI2_spare : BOOL ;	
+   DI3_spare : BOOL ;	
+   DI4_spare : BOOL ;	
+   DI5_SlideEndPos1 : BOOL ;	//DFZK Mill 1: Slide end position
+   DI6_SlidePulse1 : BOOL ;	//DFZK Mill 1: Slide pulse signal
+   DI7_SlideEndPos2 : BOOL ;	//DFZK Mill 2: Slide end position
+   DI8_SlidePulse2 : BOOL ;	//DFZK Mill 2: Slide pulse signal
+  END_STRUCT ;	
+  OutpDFCO : STRUCT 	//WAGO/MEAF Outpus of DFCO
+   O00_HeavyParticleClose : BOOL ;	//DFAV: Heavy particle flap close
+   O01_HeavyParticleOpen : BOOL ;	//DFAV: Heavy particle flap open
+   O02_FlapCylinderExtend : BOOL ;	//DFAV: Flap box cylinder extend
+   O03_FlapCylinderRetract : BOOL ;	//DFAV: Flap box cylinder retract
+   spare9 : BYTE ;	
+   O20_LampAlarm1 : BOOL ;	//DFZK Mill 1: Lamp alarm (1=Alarm)
+   O21_LampRelaseCone1 : BOOL ;	//DFZK Mill 1: Lamp cone adjustment
+   O22_LampHeavyParticle : BOOL ;	//DFZK Mill 1: Lamp heavy particle flap
+   spare11 : BYTE ;	
+   O40_LampAlarm2 : BOOL ;	//DFZK Mill 2: Lamp alarm (1=Alarm)
+   O41_LampReleaseCone2 : BOOL ;	//DFZK Mill 2: Lamp cone adjustment
+   O42_LampHeavyParticle : BOOL ;	//DFZK Mill 2: Lamp heavy particle flap
+   O43 : BOOL ;	
+   O44 : BOOL ;	
+   O45 : BOOL ;	
+   O46 : BOOL ;	
+   O47 : BOOL ;	
+   O50_ConeOpen1 : BOOL ;	//DFZK Mill 1: Cone open
+   O51_ConeClose1 : BOOL ;	//DFZK Mill 1: Cone close
+   O52 : BOOL ;	// 
+   O53 : BOOL ;	// 
+   O54 : BOOL ;	
+   O55 : BOOL ;	
+   O56 : BOOL ;	
+   O57 : BOOL ;	
+   O60_ConeOpen2 : BOOL ;	//DFZK Mill 2: Cone open
+   O61_ConeClose2 : BOOL ;	//DFZK Mill 2: Cone close
+   spare15 : BYTE ;	
+   O80_Alarm1 : BOOL ;	//DFZK Mill 1: Alarm (1=no alarm)
+   O81_StartMotor1 : BOOL ;	//DFZK Mill 1: Start motor forward
+   O82_MotorFast1 : BOOL ;	//DFZK Mill 1: Start motor fast
+   O83_MotorRev1 : BOOL ;	//DFZK Mill 1: Start motor reverse
+   O84_Break1 : BOOL ;	//DFZK Mill 1: Brake motor
+   O85_StartFan : BOOL ;	//DFZK Mill 1/2: Start fan
+   O86 : BOOL ;	
+   O87 : BOOL ;	
+   O90_Alarm2 : BOOL ;	//DFZK Mill 2: Alarm (1=no alarm)
+   O91_StartMotor2 : BOOL ;	//DFZK Mill 2: Start motor forward
+   O92_MotorFast2 : BOOL ;	//DFZK Mill 2: Start motor fast
+   O93_MotorRev2 : BOOL ;	//DFZK Mill 2: Start motor reverse
+   O94_Break2 : BOOL ;	//DFZK Mill 2: Brake motor
+   spare18 : BYTE ;	
+   spare19 : BYTE ;	
+   spare20 : BYTE ;	
+   DO1_SummaryAlarm : BOOL ;	//Summary alarm
+   DO2 : BOOL ;	
+   DO3 : BOOL ;	
+   DO4_Slide1Open : BOOL ;	//Slide 1 open
+   DO5_Slide1Close : BOOL ;	//Slide 1 close
+   DO6_Slide2Open : BOOL ;	//Slide 2 open
+   DO7_Slide2Close : BOOL ;	//Slide 2 close
+   DO8 : BOOL ;	
+  END_STRUCT ;	
+  Command : STRUCT 	//Command for DFCO
+   spare0 : BOOL ;	//1=Automatic/ 0=Manual
+   AckStartRequest : BOOL ;	//Acknowledge Start Request
+   ReqStartRev : BOOL ;	//Mill must start reverse
+   ReqStartFwd : BOOL ;	//Mill must start forward
+   HeavyFractionOpen : BOOL ;	//Heavy fraction flap is open
+   ReqScreenChange1 : BOOL ;	
+   ReqScreenChange2 : BOOL ;	
+   AcceptNewDataReady : BOOL ;	//de: Quittierung neue Werte Bereit
+   EnableMill1 : BOOL ;	//Enable to start mill 1
+   MotorMill1Fast : BOOL ;	
+   UsedMill1 : BOOL ;	
+   BrakeMill1 : BOOL ;	//Stop mill 1
+   EnableFeedMill1 : BOOL ;	//Enable Feed of mill 1
+   AckFanStart : BOOL ;	//Fan is running
+   spare16 : BOOL ;	
+   spare17 : BOOL ;	
+   EnableMill2 : BOOL ;	//Enable to start mill 1
+   MotorMill2Fast : BOOL ;	
+   UsedMil12 : BOOL ;	
+   BrakeMill2 : BOOL ;	//Stop mill 1
+   EnableFeedMill2 : BOOL ;	//Enable Feed of mill 1
+   spare25 : BOOL ;	
+   spare26 : BOOL ;	
+   spare27 : BOOL ;	
+   CommandReady : BOOL ;	//de: Steuersignale gültig
+   spare41 : BOOL ;	
+   spare42 : BOOL ;	
+   spare43 : BOOL ;	
+   spare44 : BOOL ;	
+   ResetAlarm : BOOL ;	//de: Alarm löschen
+   NewSendData : BOOL ;	//de: Aenderung Sendedaten
+   AcceptNewRcvData : BOOL ;	//de: Quittierung Aenderung Empfangsdatensatz
+  END_STRUCT ;	
+  Status : STRUCT 	//Status from DFCO
+   spare00 : BOOL ;	
+   ReqStartRequest : BOOL ;	//Start Request : DFCO like to start a motor
+   Loaded1 : BOOL ;	//Mill 1 loaded with product
+   Loaded2 : BOOL ;	//Mill 2 loaded with product
+   spare04 : BOOL ;	
+   AckScreenChange1 : BOOL ;	
+   AckScreenChange2 : BOOL ;	
+   NewDataReady : BOOL ;	//de: Neue Werte Bereit
+   O80Alarm1 : BOOL ;	//False=Alarm
+   O81MotorFwd1 : BOOL ;	//Output run motor forward
+   O82MotorFast1 : BOOL ;	//Output run motor fast
+   O83MotorRev1 : BOOL ;	//Output run motor reverse
+   O84Brake1 : BOOL ;	//Output brake
+   O85FanStart : BOOL ;	//Output run fan
+   spare16 : BOOL ;	
+   spare17 : BOOL ;	
+   O90Alarm2 : BOOL ;	//False=Alarm
+   O91MotorFwd2 : BOOL ;	//Output run motor forward
+   O92MotorFast2 : BOOL ;	//Output run motor fast
+   O93MotorRev2 : BOOL ;	//Output run motor reverse
+   O94Brake2 : BOOL ;	//Output brake
+   spare25 : BOOL ;	//Output run fan
+   spare26 : BOOL ;	
+   spare27 : BOOL ;	
+   spare30 : BOOL ;	
+   spare31 : BOOL ;	
+   spare32 : BOOL ;	//de: Stuerung Remote
+   RemoteControlDP : BOOL ;	//de: Sollwertvorgabe Remote
+   WrongValue : BOOL ;	//de: Falscher Sollwert
+   SumFault : BOOL ;	//de: Sammelalarm
+   AcceptNewSendData : BOOL ;	//de: Quittierung Aenderung Sendedaten
+   NewRcvData : BOOL ;	//de: Aenderung Empfangsdaten
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParDFCO_Only : BOOL ;	//Only throughput regulation, no motors
+   ParStartwarning : BOOL ;	//not used
+   ParIOByteNo : INT ;	//PROFIBUS: Address of first input and output byte Profibus DP
+   ParTimeOutStart : INT  := 50;	//[0.1s] After this time the motor must start
+   OutTimeOutStart1 : INT ;	//[0.1s] Actual timeout time mill 1
+   OutTimeOutStart2 : INT ;	//[0.1s] Actual timeout time mill 2
+   Spare94 : DINT ;	
+   spare98 : DINT ;	
+   Spare94_1 : DINT ;	
+   HelpFlags : STRUCT 	//Aux. signal to retry fault message
+    OutFaultResetDone : BOOL ;	
+    OutTestNewAlarm : BOOL ;	
+    OutFlagFaultResetDone : BOOL ;	
+    OutComFaultRead : BOOL ;	
+    OutComFaultSend : BOOL ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpFault : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpStopped : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpReturn : INT ;	
+  DPData : STRUCT 	
+   StatusCommand : DWORD ;	
+   NrSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   IdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   NrRcvDataSet : BYTE ;	//de: Nummer Empfangsdatensatz
+   IdxRcvDataSet : BYTE ;	//de: Index Empfangsdatensatz
+   Data : ARRAY  [1 .. 4 ] OF DINT ;	
+  END_STRUCT ;	
+  Set1 : STRUCT 	
+   OutLoadAct : INT ;	//[%]
+   OutCurrentLoad : INT ;	//[0.1A]
+   OutActPosSlide : INT ;	//[%]
+   OutActTemperature : INT ;	//[0.1°C]
+   OutStatusFlapBox : BYTE ;	
+   OutStatusMillMotor : BYTE ;	
+   OutActFeedFoll : BYTE ;	//[Hz] Actual frequence feed roll 
+   spare1 : BYTE ;	
+   OutEmptyTime : INT ;	//[0.1s]
+   spare2 : BYTE ;	
+   OutAlarmNo : BYTE ;	
+  END_STRUCT ;	
+  tmpAddr : WORD ;	
+  tmpCnt : INT ;	
+  tmpRetVal : INT ;	
+  tmpBool : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     298; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType  ========================
+      L     1026; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+// Write new commands from PC to Interface of group 
+// Mill 1
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //CmdBrakeMill1On
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill1.CmdBrake; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //CmdReqSlow
+      R     #Command.MotorMill1Fast; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //CmdReqFast
+      S     #Command.MotorMill1Fast; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; //CmdReqRev
+      S     #Command.ReqStartRev; 
+      R     #Command.ReqStartFwd; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //CmdReqFwd
+      R     #Command.ReqStartRev; 
+      S     #Command.ReqStartFwd; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdOff
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill1.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdOn
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill1.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; // CmdFeedOff
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill1.CmdFeedOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[7]; // CmdFeedOn
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill1.CmdFeedOn; 
+// Mill 2
+      U     "SYS_DirectCtrlDB".PC.Cmd2[0]; //Cmd1[0]=CmdBrakeMill1On
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill2.CmdBrake; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //CmdReqSlow
+      R     #Command.MotorMill2Fast; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[2]; //CmdReqFast
+      S     #Command.MotorMill2Fast; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[8]; // CmdOff
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill2.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[9]; // CmdOn
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill2.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[6]; // CmdFeedOff
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill2.CmdFeedOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[7]; // CmdFeedOn
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #Mill2.CmdFeedOn; 
+// Mill 1+2
+//-> [1.3] Tho: tlw. geändert; Reihenfolge korrig.
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; // CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+//<- [1.3]
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     11; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =(Profibus) Read data
+
+      L     #Par.ParIOByteNo; 
+      T     #tmpAddr; 
+      U     #InSimulation; 
+      SPB   rSim; 
+      CALL "SIEMENS_DPRD_DAT" (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #tmpReturn,
+           RECORD                   := #DPData);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultRead; 
+      SPB   rcv0; 
+      SPA   rDP; 
+//read from Simulation
+rSim: R     #Par.HelpFlags.OutComFaultRead; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   "TEST_IOSimuliInput"; 
+      L     P#DBX 0.0; 
+rDB1: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     D [AR1,P#0.0]; 
+      T     #DPData.StatusCommand; 
+      L     B [AR1,P#4.0]; 
+      T     #DPData.NrSndDataSet; 
+      L     B [AR1,P#5.0]; 
+      T     #DPData.IdxSndDataSet; 
+      L     B [AR1,P#6.0]; 
+      T     #DPData.NrRcvDataSet; 
+      L     B [AR1,P#7.0]; 
+      T     #DPData.IdxRcvDataSet; 
+      L     D [AR1,P#8.0]; 
+      T     #DPData.Data[1]; 
+      L     D [AR1,P#12.0]; 
+      T     #DPData.Data[2]; 
+      L     D [AR1,P#16.0]; 
+      T     #DPData.Data[3]; 
+      L     D [AR1,P#20.0]; 
+      T     #DPData.Data[4]; 
+//==Copy Status===============
+rDP:  L     #DPData.NrRcvDataSet; 
+      L     0; 
+      ==I   ; 
+      SPB   R101; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.StatusCommand,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Status);
+      UN    #Status.NewRcvData; 
+      U     #InSimulation; 
+      SPB   rcv0; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Set1);
+//===============================
+//Answer Dataset 001 Index 1
+      L     #DPData.NrRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      O     ; 
+      O(    ; 
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      )     ; 
+      SPB   r201; 
+      L     #Set1.OutLoadAct; 
+      T     #Mill1.Act.OutLoadAct; 
+      L     #Set1.OutActFeedFoll; 
+      T     #OutActFeedRoll; 
+      L     #Set1.OutCurrentLoad; 
+      T     #Mill1.Act.OutCurrentLoad; 
+      L     #Set1.OutActPosSlide; 
+      T     #Mill1.Act.OutActPosSlide; 
+      L     #Set1.OutActTemperature; 
+      T     #Mill1.Act.OutActTemperature; 
+      L     #Set1.OutStatusFlapBox; 
+      T     #Mill1.Act.OutStatusFlapBox; 
+      L     #Set1.OutStatusMillMotor; 
+      T     #Mill1.Act.OutStatusMillMotor; 
+      L     #Set1.spare1; 
+      T     #Mill1.Act.spare1; 
+      L     #Set1.OutEmptyTime; 
+      T     #Mill1.Act.OutEmptyTime; 
+      L     #Set1.spare2; 
+      T     #Mill1.Act.spare2; 
+      L     #Set1.OutAlarmNo; 
+      T     #Mill1.Act.OutAlarmNo; 
+      SPA   R201; //[7.0]   
+//===============================
+//Answer Dataset 1 Index 2
+r201: L     #DPData.NrRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      O     ; 
+      O(    ; 
+      L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      )     ; 
+      SPB   r002; 
+      L     #Set1.OutLoadAct; 
+      T     #Mill2.Act.OutLoadAct; 
+      L     #Set1.OutActFeedFoll; 
+      T     #OutActFeedRoll; 
+      L     #Set1.OutCurrentLoad; 
+      T     #Mill2.Act.OutCurrentLoad; 
+      L     #Set1.OutActPosSlide; 
+      T     #Mill2.Act.OutActPosSlide; 
+      L     #Set1.OutActTemperature; 
+      T     #Mill2.Act.OutActTemperature; 
+      L     #Set1.OutStatusFlapBox; 
+      T     #Mill2.Act.OutStatusFlapBox; 
+      L     #Set1.OutStatusMillMotor; 
+      T     #Mill2.Act.OutStatusMillMotor; 
+      L     #Set1.spare1; 
+      T     #Mill2.Act.spare1; 
+      L     #Set1.OutEmptyTime; 
+      T     #Mill2.Act.OutEmptyTime; 
+      L     #Set1.spare2; 
+      T     #Mill2.Act.spare2; 
+      L     #Set1.OutAlarmNo; 
+      T     #Mill2.Act.OutAlarmNo; 
+      SPA   R002; 
+//Answer  dataset 2  : Wago/MEAF Inputs
+r002: L     #DPData.NrRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r003; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #InpDFCO);
+      SPA   R003; 
+//Answer  dataset 3  : Wago/MEAF Outputs
+r003: L     #DPData.NrRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      SPB   r011; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #OutpDFCO);
+      SPA   R011; 
+//---Answer  dataset 11 ---
+//---Answer  dataset 12 ---
+r011: L     #DPData.NrRcvDataSet; 
+      L     11; 
+      <>I   ; 
+      SPB   rLCB; 
+// Answer Dataset 11
+      L     '  '; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[1]; 
+      L     #DPData.Data[1]; 
+      T     DB10.DBD   60; 
+      L     #DPData.Data[2]; 
+      T     DB10.DBD   64; 
+      L     #DPData.Data[3]; 
+      T     DB10.DBD   68; 
+      L     #DPData.Data[4]; 
+      T     DB10.DBD   72; 
+      L     #DPData.IdxRcvDataSet; 
+      L     255; 
+      ==I   ; 
+      SPB   rLCE; 
+      S     "SYS_DirectCtrlLCDB".GC.Set11Done; 
+      L     12; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; //--> Read dataset 12
+// Answer Dataset 12
+rLCB: L     #DPData.NrRcvDataSet; 
+      L     12; 
+      <>I   ; 
+      SPB   R101; 
+      L     #DPData.Data[1]; 
+      T     DB10.DBD   76; 
+      L     #DPData.Data[2]; 
+      T     DB10.DBD   80; 
+      L     #DPData.Data[3]; 
+      T     DB10.DBD   84; 
+      L     #DPData.Data[4]; 
+      T     DB10.DBD   88; 
+      UN    "SYS_DirectCtrlLCDB".GC.Set11Done; 
+      SPB   R101; 
+rLCE: L     12; 
+      CALL "SYS_DirectCtrl" ;
+      SPA   R101; 
+//===============================
+//[7.0]--> LC Parameter 
+//Reading dataset 11
+R011: L     "SYS_DirectCtrlLCDB".PC.ObjectNo; 
+      L     #Par.ParObjectNo; 
+      <>I   ; 
+      SPB   R101; 
+      UN    "SYS_DirectCtrlLCDB".PC.Hsk.FExamineFirst; 
+      UN    "SYS_DirectCtrlLCDB".PC.Hsk.FExamineNext; 
+      SPB   R101; 
+// -- Start Reading with Dataset 11
+      L     11; 
+      T     #DPData.NrRcvDataSet; 
+      L     253; //First
+      U     "SYS_DirectCtrlLCDB".PC.Hsk.FExamineFirst; 
+      SPB   rLC9; 
+      L     254; //Next
+rLC9: T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//<--[7.0]
+//===============================
+//Read Dataset 001 Index 1
+R101: L     1; 
+      T     #DPData.NrRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      U     #Par.HelpFlags.OutFaultResetDone; 
+      S     #Par.HelpFlags.OutFlagFaultResetDone; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 001 Index2
+R201: L     1; 
+      T     #DPData.NrRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 2
+R002: L     2; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      U     #Par.HelpFlags.OutFlagFaultResetDone; 
+      R     #Par.HelpFlags.OutFaultResetDone; 
+      R     #Par.HelpFlags.OutFlagFaultResetDone; 
+      S     #Par.HelpFlags.OutTestNewAlarm; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 3
+R003: L     3; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+rcv0: NOP   0; 
+      U     #Par.HelpFlags.OutComFaultRead; 
+      O     #Par.HelpFlags.OutComFaultSend; 
+      =     #OutComFault; 
+//-> IBS 2.12.06/Tho: [1.4] 
+//   Delete actual values as long Profibus Fault
+      SPBN  res0; 
+      L     0; //Lade NULL
+      T     #tmpCnt; // in ein temp. DW
+      CALL "SIEMENS_FILL" (//Act.Mill1 auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #Mill1.Act);
+      CALL "SIEMENS_FILL" (//Act. Mill2 auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #Mill2.Act);
+      CALL "SIEMENS_FILL" (//Status auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #Status);
+      CALL "SIEMENS_FILL" (//Command auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #Command);
+      CALL "SIEMENS_FILL" (//OutpDFCO auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutpDFCO);
+      CALL "SIEMENS_FILL" (//InpDFCO auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #InpDFCO);
+res0: NOP   0; 
+//<-
+
+NETWORK
+TITLE =State Motor Mil1 1
+
+      SET   ; 
+      R     #Mill1.Motor.StStopping; 
+      R     #Mill1.Motor.StStarting; 
+      R     #Mill1.Motor.StStopped; 
+      R     #Mill1.Motor.StBrake; 
+      R     #Mill1.Motor.StStopped; 
+      R     #Mill1.Motor.StStartedFwd; 
+      R     #Mill1.Motor.StStartedRev; 
+      R     #Mill1.Motor.StFault; 
+      L     #Mill1.Act.OutStatusMillMotor; 
+      SPL   M1XX; //Else
+      SPA   M1V0; 
+      SPA   M1V1; 
+      SPA   M1V2; 
+      SPA   M1V3; 
+      SPA   M1V4; 
+      SPA   M1V5; 
+      SPA   M1V6; 
+      SPA   M1V7; 
+M1XX: SPA   M1V6; 
+M1V0: L     0; 
+      SPA   M1J9; 
+M1V1: S     #Mill1.Motor.StStopping; 
+      L     7; // StCode.Stopping
+      SPA   M1J9; 
+M1V2: S     #Mill1.Motor.StBrake; 
+      L     7; // StCode.Stopping
+      SPA   M1J9; 
+M1V3: S     #Mill1.Motor.StStopped; 
+      L     1; // StCode.StStopped
+      SPA   M1J9; 
+M1V4: S     #Mill1.Motor.StStartedFwd; 
+      U     #Status.O82MotorFast1; 
+      L     4; // StCode.StStartedFwdFast
+      SPB   M1J9; 
+      L     3; // StCode.StStartedFwdSlow
+      SPA   M1J9; 
+M1V5: S     #Mill1.Motor.StStartedRev; 
+      U     #Status.O82MotorFast1; 
+      L     6; // StCode.StStartedRevFast
+      SPB   M1J9; 
+      L     5; // StCode.StStartedRevSlow
+      SPA   M1J9; 
+M1V6: S     #Mill1.Motor.StStarting; 
+      L     2; // StCode.Starting
+      SPA   M1J9; 
+M1V7: S     #Mill1.Motor.StFault; 
+      L     32; // StCode.Fault
+M1J9: T     #Mill1.Motor_StCode; 
+NETWORK
+TITLE =State Motor Mil1 2
+
+      SET   ; 
+      R     #Mill2.Motor.StStopping; 
+      R     #Mill2.Motor.StStarting; 
+      R     #Mill2.Motor.StStopped; 
+      R     #Mill2.Motor.StBrake; 
+      R     #Mill2.Motor.StStopped; 
+      R     #Mill2.Motor.StStartedFwd; 
+      R     #Mill2.Motor.StStartedRev; 
+      R     #Mill2.Motor.StFault; 
+      L     #Mill2.Act.OutStatusMillMotor; 
+      SPL   M2XX; //Else
+      SPA   M2V0; 
+      SPA   M2V1; 
+      SPA   M2V2; 
+      SPA   M2V3; 
+      SPA   M2V4; 
+      SPA   M2V5; 
+      SPA   M2V6; 
+      SPA   M2V7; 
+M2XX: SPA   M2V7; //Else
+M2V0: L     0; 
+      SPA   M2J9; 
+M2V1: S     #Mill2.Motor.StStopping; 
+      L     7; // StCode.Stopping
+      SPA   M2J9; 
+M2V2: S     #Mill2.Motor.StBrake; 
+      L     7; // StCode.Stopping
+      SPA   M2J9; 
+M2V3: S     #Mill2.Motor.StStopped; 
+      L     1; //  StCode.StStopped
+      SPA   M2J9; 
+M2V4: S     #Mill2.Motor.StStartedFwd; 
+      U     #Status.O92MotorFast2; 
+      L     4; // StCode.StStartedFwdFast
+      SPB   M2J9; 
+      L     3; // StCode.StStartedFwdSlow
+      SPA   M2J9; 
+M2V5: S     #Mill2.Motor.StStartedRev; 
+      U     #Status.O92MotorFast2; 
+      L     6; //  StCode.StStartedRevFast
+      SPB   M2J9; 
+      L     5; //  StCode.StStartedRevFast
+      SPA   M2J9; 
+M2V6: S     #Mill2.Motor.StStarting; 
+      L     2; // StCode.Starting
+      SPA   M2J9; 
+M2V7: S     #Mill2.Motor.StFault; 
+      L     32; //  StCode.Fault
+M2J9: T     #Mill2.Motor_StCode; 
+NETWORK
+TITLE =State Flap Box
+//[1.2] Tho: div. Korrekturen Sprungziele
+//von LC: 
+//1=Klappe nicht definiert
+//2=Klappe Position Mühle 1
+//3=Klappe in Mittelposition
+//4=Klappe Position Mühle 2
+      SET   ; 
+      R     #FlapBox.StMill1; 
+      R     #FlapBox.StMiddle; 
+      R     #FlapBox.StMill2; 
+      R     #FlapBox.StNoPosition; 
+      L     #Mill1.Act.OutStatusFlapBox; 
+      SPL   FBXX; //Else
+      SPA   FBV0; 
+      SPA   FBV1; 
+      SPA   FBV2; 
+      SPA   FBV3; 
+      SPA   FBV4; 
+FBXX: NOP   0; 
+FBV0: L     0; 
+      SPA   FBJ9; 
+FBV1: SET   ; 
+      S     #FlapBox.StNoPosition; 
+      L     5; // StCode.StNoPosition
+      SPA   FBJ9; 
+FBV2: SET   ; 
+      S     #FlapBox.StMill1; 
+      L     1; // StCode.StMill1
+      SPA   FBJ9; 
+FBV3: SET   ; 
+      S     #FlapBox.StMiddle; 
+      L     6; // StCode.StMiddle
+      SPA   FBJ9; 
+FBV4: S     #FlapBox.StMill2; 
+      L     3; // StCode.StMill2
+      SPA   FBJ9; 
+FBJ9: T     #FlapBox_StCode; 
+
+NETWORK
+TITLE =Status Addition Elements Mill 1
+
+      NOP   0; 
+//===================================
+//Vibration 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I60_VibrationDetector1; 
+      SPB   SE1A; 
+      L     1; //StCode=StFalse
+SE1A: T     #Mill1.Vibration_StCode; 
+//===================================
+//Automatic (1=Hand)
+//===================================
+      L     3; //StCode=StTrue
+      UN    #InpDFCO.I22_KeySwitchAuto1; //[1.3]
+      SPB   SE1B; 
+      L     1; //StCode=StFalse
+SE1B: T     #Mill1.Automatic_StCode; 
+//===================================
+//StandStill 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I24_StandStill1; 
+      SPB   SE1C; 
+      L     1; //StCode=StFalse
+SE1C: T     #Mill1.StandStill_StCode; 
+//===================================
+//ConnectingBlock 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I23_SwitchPanel1; 
+      SPB   SE1D; 
+      L     1; //StCode=StFalse
+SE1D: T     #Mill1.SwitchPanel_StCode; 
+//===================================
+//EmergencyStop 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I26_EmergencySwitch1; 
+      SPB   SE1E; 
+      L     1; //StCode=StFalse
+SE1E: T     #Mill1.EmergencyStop_StCode; 
+//===================================
+//HLCone 
+//===================================
+      L     3; //StCode=StTrue
+      UN    #InpDFCO.I27_HL_Cone1; 
+      SPB   SE1F; 
+      L     1; //StCode=StFalse
+SE1F: T     #Mill1.HLCone_StCode; 
+NETWORK
+TITLE =Status Addition Elements Mill 2
+
+      NOP   0; 
+//===================================
+//Vibration 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I61_VibrationDetector2; 
+      SPB   SE2A; 
+      L     1; //StCode=StFalse
+SE2A: T     #Mill2.Vibration_StCode; 
+//===================================
+//Automatic (1=Hand)
+//===================================
+      L     3; //StCode=StTrue
+      UN    #InpDFCO.I42_KeySwitchAuto2; //[1.3]
+      SPB   SE2B; 
+      L     1; //StCode=StFalse
+SE2B: T     #Mill2.Automatic_StCode; 
+//===================================
+//StandStill 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I44_StandStill2; 
+      SPB   SE2C; 
+      L     1; //StCode=StFalse
+SE2C: T     #Mill2.StandStill_StCode; 
+//===================================
+//ConnectingBlock 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I43_SwitchPanel2; 
+      SPB   SE2D; 
+      L     1; //StCode=StFalse
+SE2D: T     #Mill2.SwitchPanel_StCode; 
+//===================================
+//EmergencyStop 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I46_EmergencySwitch2; 
+      SPB   SE2E; 
+      L     1; //StCode=StFalse
+SE2E: T     #Mill2.EmergencyStop_StCode; 
+//===================================
+//HLCone 
+//===================================
+      L     3; //StCode=StTrue
+      UN    #InpDFCO.I47_HL_Cone2; 
+      SPB   SE2F; 
+      L     1; //StCode=StFalse
+SE2F: T     #Mill2.HLCone_StCode; 
+NETWORK
+TITLE =Status Addition Elements Mill 1 + 2
+
+      NOP   0; 
+//===================================
+//FeedRoll 
+//===================================
+      L     #OutActFeedRoll; //[1.2]
+      L     0; //[1.2]
+      >I    ; //[1.2]
+      L     3; //StCode=StStartedFwd
+      SPB   SE3A; 
+      L     1; //StCode=StFalse
+SE3A: T     #FeedRoll_StCode; 
+//===================================
+//LL_FeedHopper 
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I00_LL_FeedHopper; 
+      SPB   SE3B; 
+      L     1; //StCode=StFalse
+SE3B: T     #LL_FeedHopper_StCode; 
+//===================================
+//HL_DFAV
+//===================================
+      L     3; //StCode=StTrue
+      UN    #InpDFCO.I01_HL_DFAV; //[V1.2a] Tho: invertiert
+      SPB   SE3C; 
+      L     1; //StCode=StFalse
+SE3C: T     #HL_DFAV_StCode; 
+//===================================
+//MagnetDoor
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I03_MagnetDoorClosed; 
+      SPB   SE3D; 
+      L     1; //StCode=StFalse
+SE3D: T     #MagnetDoor_StCode; 
+//===================================
+//Fan
+//===================================
+      L     3; //StCode=StStartedFwd
+//[V1.2a] I83 meldet nicht, aber AckFanStart 
+//      U     #InpDFCO.I83_AckFan
+      U     #Command.AckFanStart; 
+      SPB   SE3E; 
+      L     1; //StCode=StFalse
+SE3E: T     #Fan_StCode; 
+//===================================
+//HeavyParticleFlap
+//===================================
+      L     3; //StCode=StTrue
+      U     #InpDFCO.I02_HeavyParticleFlap; 
+      SPB   SE3F; 
+      L     1; //StCode=StFalse
+SE3F: T     #HeavyParticalFlap_StCode; 
+
+NETWORK
+TITLE = All State Init
+
+      NOP   0; 
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManualMode
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutOutFaultReset
+      S     #CmdFaultReset; 
+//---Report is on---
+      U     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---Local---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocal; 
+//--- fault
+      U(    ; 
+      L     #Mill1.Act.OutAlarmNo; //[2.1]
+      L     0; //[2.1]
+      >I    ; //[2.1]
+      O(    ; //[2.1]
+      L     #Mill2.Act.OutAlarmNo; //[2.1]
+      L     0; //[2.1]
+      >I    ; //[2.1]
+      )     ; //[2.1]
+      )     ; //[2.1]
+      U     #Status.SumFault; 
+      O     #OutComFault; 
+      O     #Mill1.OutWrongValue; 
+      O     #Mill2.OutWrongValue; 
+      ON    #Status.RemoteControlDP; //[6.2]
+      UN    #tmpLocal; 
+      UN    #InHWStop; 
+      UN    #InDPFault; 
+      =     #tmpFault; 
+//---tmpStarted
+      U     #Mill1.Motor.StStartedFwd; 
+      O     #Mill1.Motor.StStartedRev; 
+      ON    #Command.UsedMill1; 
+      U(    ; 
+      U     #Mill2.Motor.StStartedFwd; 
+      O     #Mill2.Motor.StStartedRev; 
+      ON    #Command.UsedMil12; 
+      )     ; 
+      U(    ; 
+      O     #Command.UsedMill1; 
+      O     #Command.UsedMil12; 
+      )     ; 
+      UN    #Par.ParDFCO_Only; 
+      O(    ; 
+      L     #OutActFeedRoll; 
+      L     0; 
+      >I    ; 
+      U     #Par.ParDFCO_Only; 
+      )     ; 
+      =     #tmpStarted; 
+//--- tmpStopped
+      U     #Mill1.Motor.StStopped; 
+      U     #Mill2.Motor.StStopped; 
+      UN    #Par.ParDFCO_Only; 
+      O(    ; 
+      L     #OutActFeedRoll; 
+      L     0; 
+      <=I   ; 
+      U     #Par.ParDFCO_Only; 
+      )     ; 
+      =     #tmpStopped; 
+//----Loaded ------
+      U     #Status.Loaded1; 
+      =     #Mill1.OutLoaded; 
+      U     #Status.Loaded2; 
+      =     #Mill2.OutLoaded; 
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StStarting; 
+      SPB   S1; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StStopping; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; //Init
+NETWORK
+TITLE =StStopped
+//Transition to StStopped
+//Transition
+xxS0: S     #StStopped; 
+      SPA   LOGX; 
+//----------------------------------------------
+//Logic
+//Condition for StFault
+S0:   U     #tmpFault; 
+      R     #StStopped; 
+      SPB   xxS4; 
+//Condition for StStarting
+      UN    #tmpStopped; 
+      R     #StStopped; 
+      SPB   xxS1; 
+      SPA   OUT; 
+NETWORK
+TITLE = STARTING
+// Any Transition
+//Transition
+xxS1: S     #StStarting; 
+      SPA   OUT; 
+//----------------------------------------------
+//Logic
+//Condition for StFault
+S1:   U     #tmpFault; 
+      R     #StStarting; 
+      SPB   xxS4; 
+//Condition for StStopping
+      UN    #Mill1.InEnable; 
+      ON    #Mill1.InUsed; 
+      U(    ; 
+      UN    #Mill2.InEnable; 
+      ON    #Mill2.InUsed; 
+      )     ; 
+      UN    #Par.ParDFCO_Only; 
+      O     #tmpStopped; 
+      R     #StStarting; 
+      SPB   xxS3; 
+//-- Transition to Started --         
+      U     #tmpStarted; 
+      R     #StStarting; 
+      SPB   xxS2; 
+      SPA   OUT; 
+NETWORK
+TITLE =Started
+//Transition
+//----------------------------------------------
+xxS2: SET   ; 
+      S     #StStarted; 
+      SPA   LOGX; 
+//----------------------------------------------
+//Condition for StFault
+S2:   U     #tmpFault; 
+      R     #StStarted; 
+      SPB   xxS4; 
+//Condition for StStarted
+      U     #tmpStarted; 
+      SPB   OUT; 
+//Condition for StStopping
+      R     #StStarted; 
+      SPB   xxS3; 
+      SPA   OUT; 
+NETWORK
+TITLE = FAULT
+//Condition for StStopped 
+S4:   U     #Par.HelpFlags.OutTestNewAlarm; 
+      UN    #tmpFault; 
+      O     ; 
+      U     #InLocal; 
+      UN    #InManual; 
+      SPB   S4S0; 
+      U     #Par.HelpFlags.OutTestNewAlarm; //[2.3] Relog fault
+      U     #tmpFault; //[2.3]
+      SPB   xxS4; //[2.3]
+      SPA   OUT; 
+//Transition to StStopped 
+S4S0: S     #StStopped; 
+      R     #StFault; 
+      SPA   LOG2; //-->//Message ('fault cancelled')
+NETWORK
+TITLE = StStopping
+//Transition
+//----------------------------------------------
+xxS3: S     #StStopping; 
+      SPA   OUT; 
+//----------------------------------------------
+// Condition for fault
+S3:   U     #tmpFault; 
+      R     #StStopping; 
+      SPB   xxS4; 
+// Condition for Started
+      U     #tmpStarted; 
+      R     #StStopping; 
+      SPB   xxS2; 
+// Condition for stopped
+      U     #tmpStopped; 
+      R     #StStopping; 
+      SPB   xxS0; 
+      SPA   OUT; 
+NETWORK
+TITLE =LOG
+////[5.0] Alarmnummer
+xxS4: S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #StFault; 
+//Horn On
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1040,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+//Alarm Communication
+      L     B#(1, 96); 
+      U     #OutComFault; 
+      SPB   LOG; 
+//Alarm-Nr 1..80
+      L     0; 
+      L     #Mill1.Act.OutAlarmNo; 
+      ==I   ; 
+      SPB   LGM2; 
+      L     B#(1, 0); 
+      OW    ; 
+      SPA   LOG; //Alarms 1..80
+//Alarm-Nr 1..80
+LGM2: L     0; 
+      L     #Mill2.Act.OutAlarmNo; 
+      ==I   ; 
+      SPB   LGM3; 
+      L     B#(1, 0); 
+      OW    ; 
+      SPA   LOG; //Alarms 1..80
+//Fault Remote Control
+LGM3: L     B#(1, 90); // Message ('fault DP Mode')   //[6.2]
+      UN    #Status.RemoteControlDP; //[6.2]
+      SPB   LOG; //[6.2]
+//Wrong Value
+      U     #Mill1.OutWrongValue; 
+      O     #Mill1.OutWrongValue; 
+      L     B#(1, 95); // Message ('fault wrong value')
+      SPB   LOG; 
+//Collected Alarm
+      L     B#(1, 99); // Message ('fault collected alarm')
+      SPA   LOG; 
+//Fault Canceled
+LOG2: L     B#(4, 0); // Message ('fault Fault Canceled')
+      SPA   LOG; 
+//===============================================
+//State Transition
+LOGX: UN    #tmpReport; 
+      SPB   OUT; 
+      U     #StStopped; 
+      L     B#(4, 91); //Message ('Stopped')
+      SPB   LOG; 
+      U     #StStarted; 
+      L     B#(4, 92); //Message ('Started')
+      SPB   LOG; 
+      SPB   OUT; 
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1040);
+OUT:  NOP   0; 
+NETWORK
+TITLE =Prepare Command ScreenChange
+
+      L     #Mill1.Tar.InScreen; 
+      L     #Mill1.OutScreenAct; 
+      <>I   ; 
+      =     #Mill1.OutScreenChangeReq; 
+      U     #Mill1.OutScreenChangeReq; 
+      =     #Command.ReqScreenChange1; 
+//------------------------------------
+      L     #Mill2.Tar.InScreen; 
+      L     #Mill2.OutScreenAct; 
+      <>I   ; 
+      =     #Mill2.OutScreenChangeReq; 
+      U     #Mill2.OutScreenChangeReq; 
+      =     #Command.ReqScreenChange2; 
+//------------------------------------
+//Screen change done Mill 1
+      U     #Command.ReqScreenChange1; 
+      U     #Status.AckScreenChange1; 
+      SPBN  SCS2; 
+      L     #Mill1.Tar.InScreen; 
+      T     #Mill1.OutScreenAct; 
+SCS2: NOP   0; 
+//------------------------------------
+//Screen change done Mill 2 
+      U     #Command.ReqScreenChange2; 
+      U     #Status.AckScreenChange2; 
+      SPBN  SCS3; 
+      L     #Mill2.Tar.InScreen; 
+      T     #Mill2.OutScreenAct; 
+SCS3: NOP   0; 
+NETWORK
+TITLE =Timeout time Mill 1
+
+      U     #Mill1.Motor.StStopped; 
+      O     #Mill1.Motor.StFault; 
+      U     #Command.EnableMill1; 
+      UN    #Par.ParDFCO_Only; // [2.3]
+      SPB   T1J1; 
+      L     #Par.ParTimeOutStart; 
+      T     #Par.OutTimeOutStart1; 
+      SPA   T1J2; 
+T1J1: L     0; 
+      L     #Par.OutTimeOutStart1; 
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      SPB   T1J3; 
+      +     -2; 
+      T     #Par.OutTimeOutStart1; 
+T1J3: L     0; 
+      <=I   ; 
+      R     #Command.EnableMill1; 
+T1J2: NOP   0; 
+NETWORK
+TITLE =Timeout time Mill 2
+
+      U     #Mill2.Motor.StStopped; //[1.2]
+      O     #Mill2.Motor.StFault; 
+      U     #Command.EnableMill2; 
+      UN    #Par.ParDFCO_Only; // [2.3]
+      SPB   T2J1; 
+      L     #Par.ParTimeOutStart; 
+      T     #Par.OutTimeOutStart2; 
+      SPA   T2J2; 
+T2J1: L     0; 
+      L     #Par.OutTimeOutStart2; 
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      SPB   T2J3; 
+      +     -2; 
+      T     #Par.OutTimeOutStart2; 
+T2J3: L     0; 
+      <=I   ; 
+      R     #Command.EnableMill2; 
+T2J2: NOP   0; 
+NETWORK
+TITLE =Prepare Command for MEAF
+
+      NOP   0; 
+//==============================
+      U     #Status.AcceptNewSendData; 
+      U     #Command.ResetAlarm; 
+      R     #Command.ResetAlarm; 
+      S     #Par.HelpFlags.OutFaultResetDone; 
+      UN    #Status.AcceptNewSendData; 
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+      S     #Command.ResetAlarm; 
+//==============================
+//Mill 1+2
+//==============================
+      U     #InHeavyFractionOpen; 
+      =     #Command.HeavyFractionOpen; 
+      U     #InManual; 
+      SPB   CDJ1; 
+      U     #InReqStartRev; 
+      =     #Command.ReqStartRev; 
+      U     #InReqStartFwd; 
+      =     #Command.ReqStartFwd; 
+      U     #Mill1.InFast; 
+      =     #Command.MotorMill1Fast; 
+      U     #Mill2.InFast; 
+      =     #Command.MotorMill2Fast; 
+//==============================
+//Mill 1
+//==============================
+CDJ1: U     #CmdNext; 
+      U     #Mill1.InEnable; 
+      UN    #InManual; 
+      O     #Mill1.CmdOn; 
+      S     #Command.EnableMill1; 
+      UN    #Mill1.InEnable; 
+      O     #Command.BrakeMill1; 
+      ON    #Mill1.InUsed; 
+      O     #tmpLocal; 
+      UN    #InManual; 
+      O     #Mill1.CmdOff; 
+      O     #Mill1.CmdBrake; 
+      R     #Command.EnableMill1; 
+//------------------------------
+      U     #Mill1.InUsed; 
+      UN    #InManual; 
+      O     ; 
+      U     #InManual; 
+      U     #Command.EnableMill1; 
+      =     #Command.UsedMill1; 
+//------------------------------
+      U     #Mill1.InEnableFeed; 
+      UN    #InManual; 
+      O     #Mill1.CmdFeedOn; 
+      S     #Command.EnableFeedMill1; 
+      UN    #Mill1.InEnableFeed; 
+      UN    #InManual; 
+      O     #Mill1.CmdFeedOff; 
+      ON    #Command.EnableMill1; 
+      R     #Command.EnableFeedMill1; 
+//------------------------------
+      U     #Mill1.InBrake; 
+      O     #Mill1.OutScreenChangeReq; 
+      UN    #InManual; 
+      O     #Mill1.CmdBrake; 
+      S     #Command.BrakeMill1; 
+      UN    #Mill1.InBrake; 
+      UN    #Mill1.OutScreenChangeReq; 
+      UN    #InManual; 
+      O     #Mill1.Motor.StStopped; 
+      R     #Command.BrakeMill1; 
+//==============================
+//Mill 2
+//==============================
+      U     #CmdNext; 
+      U     #Mill2.InEnable; 
+      UN    #InManual; 
+      O     #Mill2.CmdOn; 
+      S     #Command.EnableMill2; 
+      UN    #Mill2.InEnable; 
+      ON    #Mill2.InUsed; 
+      O     #tmpLocal; 
+      O     #Command.BrakeMill2; 
+      UN    #InManual; 
+      O     #Mill2.CmdOff; 
+      O     #Mill2.CmdBrake; 
+      R     #Command.EnableMill2; 
+//------------------------------
+      U     #Mill2.InUsed; 
+      UN    #InManual; 
+      O     ; 
+      U     #InManual; 
+      U     #Command.EnableMill2; 
+      =     #Command.UsedMil12; 
+//------------------------------
+      U     #Mill2.InEnableFeed; 
+      UN    #InManual; 
+      O     #Mill2.CmdFeedOn; 
+      S     #Command.EnableFeedMill2; 
+      UN    #Mill2.InEnableFeed; 
+      UN    #InManual; 
+      O     #Mill2.CmdFeedOff; 
+      ON    #Command.EnableMill2; 
+      R     #Command.EnableFeedMill2; 
+//------------------------------
+      U     #Mill2.InBrake; 
+      O     #Mill2.OutScreenChangeReq; 
+      UN    #InManual; 
+      O     #Mill2.CmdBrake; 
+      S     #Command.BrakeMill2; 
+      UN    #Mill2.InBrake; 
+      UN    #Mill2.OutScreenChangeReq; 
+      UN    #InManual; 
+      O     #Mill2.Motor.StStopped; 
+      R     #Command.BrakeMill2; 
+//===============================
+//AckStartRequest
+//===============================
+      U     #Status.ReqStartRequest; 
+      UN    "GCS7_Gr_InHeavyStartup"; 
+      S     #Command.AckStartRequest; 
+      =     #tmpBool; //[2.2]
+      U     #tmpBool; //[2.2]
+      UN    #Par.ParDFCO_Only; //[2.2]
+      S     "GCS7_Gr_InHeavyStartup"; 
+      UN    #Status.ReqStartRequest; 
+      O     #OutComFault; 
+      U     #Command.AckStartRequest; 
+      R     #Command.AckStartRequest; 
+      =     #tmpBool; //[2.2]
+      U     #tmpBool; //[2.2]
+      UN    #Par.ParDFCO_Only; //[2.2]
+      R     "GCS7_Gr_InHeavyStartup"; 
+//==============================
+      U     #Status.NewDataReady; 
+      =     #Command.AcceptNewDataReady; 
+//==============================
+      SET   ; 
+      =     #Command.CommandReady; 
+//==============================
+      U     #Status.NewRcvData; 
+      =     #Command.AcceptNewRcvData; 
+//==============================
+      UN    #Status.AcceptNewSendData; 
+      =     #Command.NewSendData; 
+NETWORK
+TITLE =Write Digital Outputs/ Read Digital Inputs
+
+      U     #Mill1.InpFanStart; 
+      =     #Command.AckFanStart; 
+      U     #Status.O81MotorFwd1; 
+      UN    #OutComFault; 
+      =     #Mill1.OutpMotorFwd; 
+      U     #Status.O82MotorFast1; 
+      UN    #OutComFault; 
+      =     #Mill1.OutpMotorFast; 
+      U     #Status.O83MotorRev1; 
+      UN    #OutComFault; 
+      =     #Mill1.OutpMotorRev; 
+      U     #Status.O84Brake1; 
+      UN    #OutComFault; 
+      =     #Mill1.OutpBrake; 
+      U     #Status.O85FanStart; 
+      UN    #OutComFault; 
+      =     #Mill1.OutpFanStart; 
+      U     #Status.O91MotorFwd2; 
+      UN    #OutComFault; 
+      =     #Mill2.OutpMotorFwd; 
+      U     #Status.O92MotorFast2; 
+      UN    #OutComFault; 
+      =     #Mill2.OutpMotorFast; 
+      U     #Status.O93MotorRev2; 
+      UN    #OutComFault; 
+      =     #Mill2.OutpMotorRev; 
+      U     #Status.O94Brake2; 
+      UN    #OutComFault; 
+      =     #Mill2.OutpBrake; 
+NETWORK
+TITLE =(Profibus) Send Data
+//------------------------------------------------
+//Test Send Dataset 128 Index 1 done
+      L     #DPData.NrSndDataSet; 
+      L     128; 
+      <>I   ; 
+      O(    ; 
+      L     #DPData.IdxSndDataSet; 
+      L     1; 
+      <>I   ; 
+      )     ; 
+      SPB   s228; 
+      U     #Status.WrongValue; 
+      =     #Mill1.OutWrongValue; 
+      SPA   S228; //-->Send 128 Index 2
+//------------------------------------------------
+//Test Send Dataset 128 Index 2 done
+s228: L     #DPData.NrSndDataSet; 
+      L     128; 
+      <>I   ; 
+      O(    ; 
+      L     #DPData.IdxSndDataSet; 
+      L     2; 
+      <>I   ; 
+      )     ; 
+      SPB   S128; 
+      U     #Status.WrongValue; 
+      =     #Mill2.OutWrongValue; 
+      SPA   S128; //-->Send 128 Index 1
+//==================================================
+//Send Dataset 128 Index 1
+S128: L     128; 
+      T     #DPData.NrSndDataSet; 
+      L     1; 
+      T     #DPData.IdxSndDataSet; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Mill1.Tar,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.Data);
+      SPA   Snd; 
+//======================================================
+//Send Dataset 128 Index 2
+S228: L     128; 
+      T     #DPData.NrSndDataSet; 
+      L     2; 
+      T     #DPData.IdxSndDataSet; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Mill2.Tar,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.Data);
+      SPA   Snd; 
+//======================================================
+//Senden DP
+Snd:  CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Command,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.StatusCommand);
+      U     #InSimulation; 
+      SPB   sSim; 
+      CALL "SIEMENS_DPWR_DAT" (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #DPData,
+           RET_VAL                  := #tmpReturn);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultSend; 
+      SPA   sEnd; 
+//write to Simulation
+sSim: R     #Par.HelpFlags.OutComFaultSend; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   "TEST_IOSimuliOutput"; 
+      L     P#DBX 0.0; 
+rDB2: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     #DPData.StatusCommand; 
+      T     D [AR1,P#0.0]; 
+      L     #DPData.NrSndDataSet; 
+      T     B [AR1,P#4.0]; 
+      L     #DPData.IdxSndDataSet; 
+      T     B [AR1,P#5.0]; 
+      L     #DPData.NrRcvDataSet; 
+      T     B [AR1,P#6.0]; 
+      L     #DPData.IdxRcvDataSet; 
+      T     B [AR1,P#7.0]; 
+      L     #DPData.Data[1]; 
+      T     D [AR1,P#8.0]; 
+      L     #DPData.Data[2]; 
+      T     D [AR1,P#12.0]; 
+      L     #DPData.Data[3]; 
+      T     D [AR1,P#16.0]; 
+      L     #DPData.Data[4]; 
+      T     D [AR1,P#20.0]; 
+sEnd: NOP   0; 
+      NOP   0; 
+NETWORK
+TITLE =Global End
+
+      SET   ; //---Clear commands
+      R     #CmdNext; 
+      R     #Par.HelpFlags.OutTestNewAlarm; 
+      R     #Mill1.CmdOff; 
+      R     #Mill1.CmdOn; 
+      R     #Mill1.CmdFeedOff; 
+      R     #Mill1.CmdFeedOn; 
+      R     #Mill1.CmdBrake; 
+      R     #Mill2.CmdOff; 
+      R     #Mill2.CmdOn; 
+      R     #Mill2.CmdFeedOff; 
+      R     #Mill2.CmdFeedOn; 
+      R     #Mill2.CmdBrake; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #tmpLocal; 
+      S     "GCS7_Gr_InDPFault"; 
+      U     #InHWStop; 
+      UN    #tmpLocal; 
+      S     "GCS7_Gr_InHWStop"; 
+      U     #StFault; 
+      S     "GCS7_Gr_InFault"; // Gr.InFault
+NETWORK
+TITLE =State Code
+// State                 StCode
+// -----------------------------
+// StFault                 32
+// StStopped                1
+// StStarting               2
+// StStarted.Wait           3
+// StStarted.Feeding        4
+// StStopping               7
+// StWarning                8
+      U     #StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      L     #OutActFeedRoll; 
+      L     0; 
+      >I    ; 
+      U     #StStarted; 
+      L     4; //Code= StStarted.Feeding
+      SPB   Code; 
+      U     #StStarted; 
+      L     3; //Code=StStarted.Wait
+      SPB   Code; 
+      U     #StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: T     #StCode; // Save state code
+NETWORK
+TITLE =Timer/Counter Mill 1
+//
+//
+      NOP   0; 
+//-----------------------------------
+      UN    #Mill1.Motor.StStartedFwd; 
+      ON    "GCS7_Gr_OutTick1s"; 
+      SPB   T1RV; 
+      L     #Mill1.OutTimeStartedFwd; 
+      +     L#1; 
+      T     #Mill1.OutTimeStartedFwd; 
+//-----------------------------------
+T1RV: UN    #Mill1.Motor.StStartedRev; 
+      ON    "GCS7_Gr_OutTick1s"; 
+      SPB   T1CS; 
+      L     #Mill1.OutTimeStartedRev; 
+      +     L#1; 
+      T     #Mill1.OutTimeStartedRev; 
+//-----------------------------------
+T1CS: U     #Mill1.Motor.StStartedFwd; 
+      O     #Mill1.Motor.StStartedRev; 
+      FP    #Mill1.VarEdgeStarted; 
+      SPBN  T1CF; 
+      L     #Mill1.OutCntStartup; 
+      +     L#1; 
+      T     #Mill1.OutCntStartup; 
+//-----------------------------------
+T1CF: L     #Mill1.Act.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #StFault; 
+      FP    #Mill1.VarEdgeFault; 
+      SPBN  T1J9; 
+      L     #Mill1.OutCntFault; 
+      +     L#1; 
+      T     #Mill1.OutCntFault; 
+T1J9: NOP   0; 
+NETWORK
+TITLE =Timer/Counter Mill 2
+
+      NOP   0; 
+//-----------------------------------
+      UN    #Mill2.Motor.StStartedFwd; 
+      ON    "GCS7_Gr_OutTick1s"; 
+      SPB   T2RV; 
+      L     #Mill2.OutTimeStartedFwd; 
+      +     L#1; 
+      T     #Mill2.OutTimeStartedFwd; 
+//-----------------------------------
+T2RV: UN    #Mill2.Motor.StStartedRev; 
+      ON    "GCS7_Gr_OutTick1s"; 
+      SPB   T2CS; 
+      L     #Mill2.OutTimeStartedRev; 
+      +     L#1; 
+      T     #Mill2.OutTimeStartedRev; 
+//-----------------------------------
+T2CS: U     #Mill2.Motor.StStartedFwd; 
+      O     #Mill2.Motor.StStartedRev; 
+      FP    #Mill2.VarEdgeStarted; 
+      SPBN  T2CF; 
+      L     #Mill2.OutCntStartup; 
+      +     L#1; 
+      T     #Mill2.OutCntStartup; 
+//-----------------------------------
+T2CF: L     #Mill2.Act.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #StFault; 
+      FP    #Mill2.VarEdgeFault; 
+      SPBN  T2J9; 
+      L     #Mill2.OutCntFault; 
+      +     L#1; 
+      T     #Mill2.OutCntFault; 
+T2J9: NOP   0; 
+END_FUNCTION_BLOCK
+

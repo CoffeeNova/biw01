@@ -1,0 +1,794 @@
+FUNCTION_BLOCK FB 57
+TITLE =MTRI
+//  
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control MTRI
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB57.1.0      A.Egli              CT3                         22-Apr-2003
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MTRIxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//0   closed
+//1   fine dosing
+//2   full open
+//3   coarse dosing
+//9   fault cancelled
+//10  fault not closed
+//11  fault not open
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault               
+// 1  StClosed              
+//41  StClosed.HWStop               StClosed + InHWStop
+//51  StClosed.DPFault              StClosed + InDPFault
+// 2  StOpening             
+// 3  StCoarse              
+// 4  StClosing             
+//10  StFine                
+//11  StOpen                
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MTRI
+VERSION : 1.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Interlocking: 1=Enable to open /0=Intermediate closing   
+  CmdRestdischarge : BOOL ;	//Command to restdischarge 
+  CmdCalibration : BOOL ;	//Calibration 0 point
+  InpMinus : BOOL ;	//Input button "Minus"
+  InpPlus : BOOL ;	//Input button "Plus"
+  CmdNewJob : BOOL ;	//Command new job
+  InModeRemote : BOOL ;	//1=Target position from PC, 0=Target position with +/-
+  spare27 : BOOL ;	
+  CmdOff : BOOL ;	//Pulse to stop  (manual mode)
+  CmdOn : BOOL ;	//Pulse to start  (manual mode)
+  CmdNext : BOOL ;	//Pulse to start element in automatic mode 
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0207 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutAutomatic : BOOL ;	//1=Automatic adjusting, 0=Position was change with +/-button
+  OutRestdischargeDone : BOOL ;	//Restdischarge done 
+  OutpLampMinus : BOOL ;	//Lamp Minus
+  OutpLampPlus : BOOL ;	//Lamp Plus
+  OutpRunMinus : BOOL ;	//Motor in direction minus
+  OutpRunPlus : BOOL ;	//Motor in direction plus
+  StStopped : BOOL ;	//Element is stopped
+  StAdjusting : BOOL ;	//Element is adjusting
+  StAdjusted : BOOL ;	//Element is adjusted, motor is stopped
+  StEmptying : BOOL ;	//Element is rotating 180° for restdischarge
+  StFault : BOOL ;	//Element has a fault
+  spare55 : BOOL ;	
+  spare56 : BOOL ;	
+  spare57 : BOOL ;	
+  OutRestdischargePosition : BOOL ;	//Resdischarge position was reached
+  InpPosition : INT ;	//Input of sensor [Cray Code 10 Bit ]
+  InPositionTarget : INT ;	//In:    Target position [0.0 to +360.0]
+  OutPositionTarget : INT ;	//Out: Target position [0.0 to +360.0]
+  OutPositionActual : INT ;	//Actual  position [0.0 to +360.0]
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParTolerance : INT  := 5;	//Tolerance position [0.1 Grad]
+   ParMonTime : INT  := 20;	//Monitoring time until element change to StFault, if positon not changes 
+   ParAdjustingTime : INT  := 300;	//Monitoring time until element change to StFault , if not adjusted
+   OutMonTime : INT ;	//Actual monitoring time
+   OutAdjstingTime : INT ;	//Actual monitoring time
+   CopyPositionTarget : INT ;	//Internal used
+   CopyPositionActual : INT ;	//Internal used
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpOpen : BOOL ;	
+  tmpOff : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpMonFault : BOOL ;	
+  tmpAdjustingFault : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  tmpFault : BOOL ;	
+  tmpAdjusted : BOOL ;	
+  tmpLampMode1 : BOOL ;	
+  tmpLimitLow : INT ;	
+  tmpLimitHigh : INT ;	
+  tmpOutValue : INT ;	
+  tmpBitValue : INT ;	
+  tmpTarget : INT ;	
+  tmpValue : DINT ;	
+  tmpDelta : INT ;	
+  tmpForward : BOOL ;	
+  tmpAdjustedRecipe : BOOL ;	//Actual position is in tolerance of recipe position
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     40; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1057; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   pExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; //PCControl.Value[1]
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParTolerance; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParMonTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParAdjustingTime; 
+// Write new commands from PC to Interface of group 
+pCmd: U     DB3.DBX   52.1; //Cmd1[1]   =CmdRestdischarge
+      S     #CmdRestdischarge; 
+      S     #CmdOn; 
+      U     DB3.DBX   52.2; //Cmd1[2]   =CmdCalibration
+      S     #CmdCalibration; 
+      U     DB3.DBX   52.5; //Cmd1[5]   =CmdNewJob
+      S     #CmdNewJob; 
+      U     DB3.DBX   52.6; //Cmd1[6]   =CmdModeRemote
+      S     #InModeRemote; 
+      U     DB3.DBX   54.6; //Cmd2[6]   =CmdModeLocal
+      R     #InModeRemote; 
+      U     DB3.DBX   53.0; //Cmd1[8]   =CmdOff
+      S     #CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]   =CmdOn
+      S     #CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10]   =CmdNext
+      S     #CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     DB3.DBX   55.5; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     DB3.DBX   53.6; //Cmd1[14]=CmdReportOn
+      S     #InReport; 
+      U     DB3.DBX   55.6; //Cmd2[14]=CmdReportOff
+      R     #InReport; 
+      UN    DB3.DBX   53.1; // CmdOn
+      O     M     12.4; //Global.OutManualOff
+      SPB   pIni; 
+      L     0; 
+      L     DB3.DBW   56; // "SYS_PCControl".PC.Cmd3
+      ==I   ; 
+      SPB   pIni; 
+      T     #InPositionTarget; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+Ctrl: U     M     12.5; //Gr.OutManualOn
+      S     #InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     M     13.5; //Gr.InManualMode
+//---Report is on---
+      U     M     12.6; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Enable---
+      UN    #InEnable; 
+      UN    #InManual; 
+      O     ; 
+      UN    #InEnable; 
+      UN    #Par.ParManual; 
+      U     #InManual; 
+      O     #CmdOff; 
+      O     #tmpLocal; 
+      O     #StFault; 
+      =     #tmpOff; 
+//---Restdischarge---
+      U     #CmdNewJob; 
+      O     #CmdOn; 
+      O     #CmdOff; 
+      O     #tmpLocalFault; 
+      R     #OutRestdischargeDone; 
+//---CmdCalibration---
+      U     #CmdNewJob; 
+      O     #tmpLocalFault; 
+      O     #CmdOff; 
+      R     #CmdCalibration; 
+NETWORK
+TITLE =Convert Actual position
+
+      L     0; 
+      T     #tmpOutValue; 
+      L     1; 
+      T     #tmpBitValue; 
+      L     #InpPosition; //GrayCode
+      L     2#1111111111; 
+      UW    ; 
+      T     #tmpValue; 
+cLP1: L     0; 
+      L     #tmpValue; 
+      ==D   ; 
+      SPB   cOUT; 
+      SRD   1; 
+      T     #tmpValue; 
+      SPP   cIs1; //Jump when Bit is 1
+      SPA   cNXT; 
+//Calculate, if bit is 1
+cIs1: L     #tmpBitValue; 
+      SLD   1; 
+      L     #tmpOutValue; 
+      -D    ; 
+      L     1; 
+      -D    ; 
+      T     #tmpOutValue; 
+//======================
+cNXT: L     #tmpBitValue; 
+      SLD   1; 
+      T     #tmpBitValue; 
+      SPA   cLP1; 
+//Convert 0 to 1024 to 0 to +360.0
+cOUT: L     #tmpOutValue; 
+      DTR   ; 
+      L     1.024000e+003; 
+      /R    ; 
+      L     3.600000e+003; 
+      *R    ; 
+      RND   ; 
+      T     #tmpOutValue; 
+      L     3600; 
+      L     #tmpOutValue; 
+      >=I   ; 
+      SPB   cJ3; 
+      +     -3600; 
+cJ3:  T     #OutPositionActual; 
+NETWORK
+TITLE =Target position
+
+      NOP   0; 
+//---OutRemote---
+      L     #Par.CopyPositionTarget; 
+      L     #InPositionTarget; 
+      T     #Par.CopyPositionTarget; 
+      T     #tmpTarget; 
+      <>I   ; 
+      O     #CmdNewJob; 
+      O     #CmdOn; 
+      S     #OutAutomatic; 
+//---Change to local Operation 
+      U     #InpPlus; 
+      O     #InpMinus; 
+      ON    #InModeRemote; 
+      R     #OutAutomatic; 
+//---Target position
+      L     #InPositionTarget; 
+      U     #OutAutomatic; 
+      SPB   TPJ1; 
+      U     #StEmptying; 
+      SPB   TPEn; 
+      L     #OutPositionActual; 
+TPJ1: T     #OutPositionTarget; 
+TPEn: NOP   0; 
+NETWORK
+TITLE =Check adjusted
+
+      NOP   0; 
+//------------------------------
+//Test adjusted
+      L     #OutPositionActual; 
+      L     #OutPositionTarget; 
+      -I    ; 
+      SPP   CAJ1; 
+      INVI  ; 
+CAJ1: T     #tmpValue; 
+      L     1800; 
+      <I    ; 
+      SPB   CAJ2; 
+      L     3600; 
+      L     #tmpValue; 
+      -I    ; 
+      T     #tmpValue; 
+CAJ2: L     #tmpValue; 
+      L     #Par.ParTolerance; 
+      <=I   ; 
+      =     #tmpAdjusted; 
+//------------------------------
+//Test adjusted in recipe position 
+      L     #OutPositionTarget; 
+      L     #InPositionTarget; 
+      -I    ; 
+      SPP   CBJ1; 
+      INVI  ; 
+CBJ1: T     #tmpValue; 
+      L     1800; 
+      <I    ; 
+      SPB   CBJ2; 
+      L     3600; 
+      L     #tmpValue; 
+      -I    ; 
+      T     #tmpValue; 
+CBJ2: L     #tmpValue; 
+      L     #Par.ParTolerance; 
+      <=I   ; 
+      =     #tmpAdjustedRecipe; 
+NETWORK
+TITLE =Monitoring time
+
+      U     #OutpRunMinus; 
+      O     #OutpRunPlus; 
+      U(    ; 
+      L     #Par.CopyPositionActual; 
+      L     #OutPositionActual; 
+      ==I   ; 
+      T     #Par.CopyPositionActual; 
+      )     ; 
+      SPB   MTJ1; 
+      L     0; 
+      T     #Par.OutMonTime; 
+//---Count timer 
+MTJ1: UN    #OutpRunMinus; 
+      UN    #OutpRunPlus; 
+      ON    M     10.3; //Gr.OutTick200ms
+      SPB   MTJ2; 
+      L     #Par.OutMonTime; 
+      +     2; 
+      T     #Par.OutMonTime; 
+      L     #Par.OutAdjstingTime; 
+      +     2; 
+      T     #Par.OutAdjstingTime; 
+//---Monitoring Alarm 
+MTJ2: L     #Par.ParMonTime; 
+      L     #Par.OutMonTime; 
+      <=I   ; 
+      UN    #CmdCalibration; 
+      UN    #tmpLocal; 
+      =     #tmpMonFault; //Condition for fault
+
+      L     #Par.ParAdjustingTime; 
+      L     #Par.OutAdjstingTime; 
+      <=I   ; 
+      U     #StAdjusting; 
+      UN    #tmpLocal; 
+      UN    #CmdCalibration; 
+      =     #tmpAdjustingFault; 
+
+      U     #tmpAdjustingFault; 
+      O     #tmpMonFault; //Condition for fault
+      =     #tmpFault; 
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StAdjusting; 
+      SPB   S1; 
+      U     #StAdjusted; 
+      SPB   S2; 
+      U     #StEmptying; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; // Init
+      L     0; 
+      T     #Par.OutMonTime; 
+      SPA   S0; 
+NETWORK
+TITLE =StStopped
+// Any transition to StClosed
+xxS0: S     #StStopped; 
+      SPA   LOG1; 
+//=== Logic ====
+// Transition to StAdjusting
+S0:   U     #CmdNext; 
+      UN    #InManual; 
+      O     #CmdOn; 
+      UN    #tmpOff; 
+      O     #CmdCalibration; 
+      O(    ; 
+      U     #InpMinus; 
+      O     #InpPlus; 
+      U     #tmpLocal; 
+      )     ; 
+      R     #StStopped; 
+      SPB   xxS1; 
+// Transition to fault
+      U     #tmpFault; 
+      R     #StStopped; 
+      SPB   xxS4; 
+      SPA   OUT; 
+NETWORK
+TITLE =StAdjusting
+// Any transition to StOpening
+xxS1: S     #StAdjusting; 
+      L     0; 
+      T     #Par.OutAdjstingTime; 
+      SPA   OUT; 
+//=== Logic ====
+// Transition for Stopped
+S1:   U     #tmpOff; 
+      UN    #CmdCalibration; 
+      UN    #InpMinus; 
+      UN    #InpPlus; 
+      R     #StAdjusting; 
+      SPB   xxS0; //--> StStopped
+// Transition for Emptying
+      U     #CmdRestdischarge; 
+      UN    #CmdCalibration; 
+      R     #StAdjusting; 
+      SPB   xxS3; //--> StEmptying
+// Transition for StAdjusted
+      U     #tmpAdjusted; 
+      UN    #CmdCalibration; 
+      UN    #tmpLocal; 
+      UN    #InpPlus; 
+      UN    #InpMinus; 
+      R     #StAdjusting; 
+      SPB   xxS2; //--> StAdjusted
+// Transition for StFault
+      U     #tmpFault; 
+      R     #StAdjusting; 
+      L     B#(1, 11); // Message ('Fault not open' )
+      SPB   xxS4; 
+      SPA   OUT; 
+NETWORK
+TITLE =StAdjusted
+// Any transition to StCoarse
+xxS2: S     #StAdjusted; 
+      SPA   LOG1; 
+//=== Logic ====
+// Transition to StAdjusting
+S2:   UN    #tmpAdjusted; 
+      O     #InpPlus; 
+      O     #InpMinus; 
+      O     #CmdCalibration; 
+      R     #StAdjusted; 
+      SPB   xxS1; //--> StAdjusting
+// Transition to StEmptying
+      U     #CmdRestdischarge; 
+      UN    #tmpLocal; 
+      R     #StAdjusted; 
+      SPB   xxS3; //--> StEmptying
+// Transition to StStopped
+      U     #tmpOff; 
+      R     #StAdjusted; 
+      SPB   xxS0; //--> StStopped
+// Transition for fault
+      U     #tmpFault; 
+      R     #StAdjusted; 
+      SPB   xxS4; 
+      SPA   OUT; 
+NETWORK
+TITLE =StEmptying
+// Any Transition to StClosing
+xxS3: S     #StEmptying; 
+      R     #OutRestdischargePosition; 
+      L     0; 
+      T     #Par.OutAdjstingTime; 
+      SPA   OUT; 
+//=== Logic ====
+S3:   L     #OutPositionTarget; 
+      L     1820; 
+      -I    ; 
+      SPP   S3J1; 
+      L     3600; 
+      +I    ; 
+S3J1: T     #tmpTarget; 
+
+//------------------------------
+//Test adjusted
+//------------------------------
+      L     #OutPositionActual; 
+      L     #tmpTarget; 
+      -I    ; 
+      SPP   S3J2; 
+      INVI  ; 
+S3J2: T     #tmpDelta; 
+      L     1800; 
+      <I    ; 
+      SPB   S3J3; 
+      L     3600; 
+      L     #tmpDelta; 
+      -I    ; 
+      T     #tmpDelta; 
+S3J3: L     #tmpDelta; 
+      L     10; //1.0 grad
+      <=I   ; 
+      S     #OutRestdischargePosition; 
+
+      L     #tmpTarget; 
+      UN    #OutRestdischargePosition; 
+      SPB   S3J4; 
+      L     #OutPositionTarget; 
+S3J4: T     #tmpTarget; 
+// Transition for StAdjusted
+      U     #OutRestdischargePosition; 
+      U     #tmpAdjusted; 
+      S     #OutRestdischargeDone; 
+      R     #CmdRestdischarge; 
+      R     #StEmptying; 
+      S     #StAdjusted; 
+      SPB   LOG1; 
+// Transition for StStopped         
+      U     #tmpOff; 
+      R     #StEmptying; 
+      SPB   xxS0; 
+// Transition for StFault
+      U     #tmpFault; 
+      R     #StEmptying; 
+      SPB   xxS4; 
+      SPA   OUT; 
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     M     13.7; // Gr.InFaultFlag
+      S     #StFault; 
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 1057,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      SPA   LOGE; 
+//=== Logic ====
+S4:   UN    #CmdFaultReset; 
+      UN    M     12.3; // OutFaultReset
+      UN    #tmpLocalFault; 
+      SPB   OUT; 
+//Transition to StClosed
+      R     #StFault; 
+      S     #StStopped; 
+      L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG0; 
+NETWORK
+TITLE =Log
+
+LOG0: L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG; 
+LOG1: UN    #tmpReport; 
+      SPB   OUT; 
+      U     #StAdjusted; 
+      U     #OutRestdischargeDone; 
+      L     B#(1, 3); // Message ('Emptied' )
+      SPB   LOG; 
+      U     #StAdjusted; 
+      L     B#(1, 2); // Message ('Adjsuted' )
+      SPB   LOG; 
+      U     #StStopped; 
+      L     B#(1, 1); // Message ('Stopped' )
+      SPB   LOG; 
+      SPA   OUT; 
+//Transition to Fault
+LOGE: U     #tmpMonFault; 
+      L     B#(1, 11); // Message ('Timeout Pulse' )
+      SPB   LOG; 
+      L     B#(1, 12); // Message ('Timeout Adjusting Time' )
+      SPA   LOG; 
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL FC    45 (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1057);
+
+NETWORK
+TITLE =Global End
+
+OUT:  SET   ; //---Clear all commands
+      R     #CmdNewJob; 
+      R     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+      R     #CmdFaultReset; 
+//--Output for group 
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     M     15.1; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     M     15.0; 
+NETWORK
+TITLE =Output
+
+      NOP   0; 
+      SET   ; 
+      S     #tmpForward; 
+//--Difference angle ----- 
+      L     #tmpTarget; 
+      L     #OutPositionActual; 
+      -I    ; 
+      SPP   opJ1; //--> Negativ
+      NEGI  ; 
+      R     #tmpForward; 
+opJ1: T     #tmpValue; 
+      L     1800; 
+      <=D   ; 
+      SPB   opJ2; 
+//IF angle is > 180 THEN Other way is shorter
+      UN    #tmpForward; 
+      =     #tmpForward; 
+//-- OutRunPlus
+opJ2: U     #tmpForward; 
+      UN    #tmpOff; 
+      U(    ; 
+      U     #StAdjusting; 
+      U     #OutAutomatic; 
+      O     #StEmptying; 
+      )     ; 
+      O     #InpPlus; 
+      UN    #InpMinus; 
+      =     #OutpRunPlus; 
+//-- OutRunMinus
+      UN    #tmpForward; 
+      UN    #tmpOff; 
+      U(    ; 
+      U     #StAdjusting; 
+      U     #OutAutomatic; 
+      O     #StEmptying; 
+      )     ; 
+      O     #InpMinus; 
+      UN    #InpPlus; 
+      =     #OutpRunMinus; 
+NETWORK
+TITLE =Lamps
+
+      UN    #tmpAdjustedRecipe; 
+      ON    #InModeRemote; 
+      UN    #StStopped; 
+      UN    #tmpLocal; 
+      UN    #CmdCalibration; 
+      =     #tmpLampMode1; //Lamps Flashing
+
+      L     0; 
+      L     #OutPositionActual; 
+      ==I   ; 
+      O(    ; 
+      L     1800; 
+      <I    ; 
+      U     M      9.4; 
+      )     ; 
+      U     #CmdCalibration; //0-Position Calibration ==> Lamp On
+      O     ; 
+      U     #tmpLampMode1; 
+      U(    ; 
+      UN    #tmpAdjustedRecipe; 
+      U     #tmpForward; 
+      O     M      9.4; 
+      )     ; 
+      =     #OutpLampMinus; 
+
+      L     0; 
+      L     #OutPositionActual; 
+      ==I   ; 
+      O(    ; 
+      L     1800; 
+      >=I   ; 
+      U     M      9.4; 
+      )     ; 
+      U     #CmdCalibration; //0-Position Calibration ==> Lamp On
+      O     ; 
+      U     #tmpLampMode1; 
+      U(    ; 
+      UN    #tmpForward; 
+      UN    #tmpAdjustedRecipe; 
+      ON    M      9.4; 
+      )     ; 
+      =     #OutpLampPlus; 
+NETWORK
+TITLE =State Code
+// 
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StClosed.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StClosed.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; // Code: closed
+      SPA   STC; 
+STC2: L     2; // Code: StAdjusting
+      U     #StAdjusting; 
+      UN    #CmdCalibration; 
+      SPB   STC; 
+      L     12; // Code: StAdjusting.Calibration
+      U     #StAdjusting; 
+      U     #CmdCalibration; 
+      SPB   STC; 
+      L     3; // Code: StAdjusted.Remote
+      U     #OutAutomatic; 
+      O     #tmpAdjustedRecipe; 
+      U     #StAdjusted; 
+      SPB   STC; 
+      L     13; // Code: StAdjusted.Local
+      U     #StAdjusted; 
+      SPB   STC; 
+      L     4; // Code: StEmptying
+      U     #StEmptying; 
+      SPB   STC; 
+      L     32; // Code: fault
+STC:  L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    FC     2; 
+
+END_FUNCTION_BLOCK
+

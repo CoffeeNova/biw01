@@ -1,0 +1,349 @@
+FUNCTION FC 78 : VOID
+TITLE =BinMain
+//COPYRIGHT:    (C) 1994 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        BIN CONTROL: Update Bin Level
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//FC78.1.3       A.Egli              CT3                           26-Mar-2004
+//               When StaSameSndRcv: Do not add Overfillweight
+//FC78.1.2       A.Egli              CT3                           03-Nov-2003
+//               "BinDB".PCRead.Status.StaSameSndRcv
+//FC78.1.1       K.Tischer           CT3                           27-Oct-2003
+//               set CmdLastReceiverActive only for activ bin
+//FC78.1.0       A.Egli              CT3                           07-Oct-2002
+//               New release 
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : BINMAN
+//              Communication between Bin list and Centtal Bin List 
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//ACTUAL DB BY CALL: DB Bin control
+//
+//-------------------------------------------
+//Input Parameter:
+//----------------
+//MODE
+//   0 : With overfilling
+//       Sender list    : Bin(x).InfLevelFault :=OutLowLevel
+//       Reveiver list  : Bin(x).InfLevelFault :=OutHighLevel
+//   1 : No overfilling (used for mixing line)
+//       Sender list    : Bin(x).InfLevelFault :=InLowLevel
+//       Reveiver list  : Bin(x).InfLevelFault :=InHighLevel
+//
+//Flowrate: 
+//    Actual flowrate kg/h
+//    With this flowrate the weight "InOutFillingWeight" and 
+//    "InOutOverFillingWeight" are counting.
+//
+//-------------------------------------------
+//Output Parameter:
+//----------------
+//
+//-------------------------------------------
+//Global Output Data:
+//------------------
+//// "BinDB".Bin(x).InfLowLevel
+//// "BinDB".Bin(x).InfHighLevel
+//// "BinDB".Bin(x).InfLevelFault
+//// "BinDB".Bin(x).InfFeedOff
+//// "PLC_BinListDB".Bin(x).CmdFilling
+//// "PLC_BinListDB".Bin(x).CmdDischarging
+//// "PLC_BinListDB".Bin(x).CmdOverrideHL
+//// "PLC_BinListDB".Bin(x).CmdOverrideLL
+//// "PLC_BinListDB".Bin(x).InReceiverCounter
+//
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : BIN_MAN2
+VERSION : 1.3
+
+
+VAR_INPUT
+  MODE : INT ;	//CODE
+  Flowrate : DINT ;	//kg/h
+END_VAR
+VAR_TEMP
+  varBinDB : INT ;	
+  VarAddrBin : DWORD ;	
+  VarAddrBinIdx : DWORD ;	
+  VarAddrIdx : DWORD ;	
+  VarCnt : INT ;	
+  VarLenBinBit : DINT ;	
+  VarIngrIdx : INT ;	
+  VarCntBin : INT ;	
+  VarBinNr : INT ;	
+  VarCentBinIdx : INT ;	
+  VarAddrCentBin : DWORD ;	
+  VarCentLenBinBit : DINT ;	
+  tmpFlowrateKgS : REAL ;	//[kg/s]
+  tmpMode_1_No : BOOL ;	//No overfilling
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     DBNO; 
+      T     #varBinDB; 
+      AUF   DI [#varBinDB]; 
+      L     DBW   10; // "BinDB".Para.ParNoOfBytePerBin
+      SLD   3; 
+      T     #VarLenBinBit; 
+//Mode: No overfilling
+      L     #MODE; 
+      L     1; 
+      ==I   ; 
+      =     #tmpMode_1_No; 
+NETWORK
+TITLE =Calulate Florate per second
+
+      L     0.000000e+000; 
+      UN    M      9.5; 
+      SPB   C1; 
+      L     #Flowrate; // [kg/h]
+      DTR   ; 
+      L     3.600000e+003; 
+      /R    ; 
+C1:   T     #tmpFlowrateKgS; //[kg/s]
+NETWORK
+TITLE = Length Test
+
+      L     DBW   10; // "BinDB".Para.ParNoOfBytePerBin
+      L     DBW   12; // "BinDB".Para.ParNoOfBin
+      *I    ; 
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      +I    ; 
+      L     DBLG; //  Actual DB Lenght
+      >I    ; 
+      SPBN  aEnd; 
+      BEA   ; 
+aEnd: NOP   0; 
+NETWORK
+TITLE =Update Bin
+
+//Start Adress Loop
+      L     DIW    8; //"BinDB".Para.ParByteFirstBin
+      SLD   3; 
+      T     #VarAddrBin; //--> Pointer to Bin
+//--loop bin -------------------------------------------
+      L     0; 
+      L     DIW   12; //  "BinDB".Para.ParNoOfBin
+      ==I   ; 
+      BEB   ; 
+uLop: T     #VarCntBin; // var_loop_bin_counter
+      L     #VarAddrBin; 
+      L     #VarLenBinBit; 
+      +D    ; 
+      +     L#-16; 
+      T     #VarAddrBinIdx; //   
+      LAR1  #VarAddrBin; 
+      L     DIW [AR1,P#0.0]; 
+      T     #VarBinNr; 
+      L     DIW [AR1,P#2.0]; // binlist[n].Bin status word
+      T     DIW   24; // ->var_bin_status
+      L     DIW [#VarAddrBinIdx]; // binlist[n].Bin status word
+      T     #VarCentBinIdx; //Index of bin in Central Bin List
+//Search bin in Central Bin List
+      L     DB79.DBW   10; 
+      SLD   3; 
+      T     #VarCentLenBinBit; 
+//Calculate old address in central bin lsit
+      L     #VarCentBinIdx; //Index of bin in Central Bin List
+      +     -1; 
+      L     DB79.DBW   10; 
+      *I    ; 
+      L     DB79.DBW    8; 
+      +I    ; 
+      SLD   3; 
+      T     #VarAddrCentBin; 
+//Check Index
+      L     1; 
+      L     #VarCentBinIdx; //Index of bin in Central Bin List
+      >I    ; 
+      SPB   USEA; 
+      L     DB79.DBW   12; 
+      >I    ; 
+      SPB   USEA; 
+//Check old bin number
+      LAR2  #VarAddrCentBin; 
+      L     DBW [AR2,P#0.0]; //PLC_BinListDB".BinXxx.ParBinNr
+      L     #VarBinNr; 
+      ==I   ; 
+      SPB   UOK; 
+//================================================
+//Search position because Bin has moved
+USEA: L     DB79.DBW    8; 
+      SLD   3; 
+      T     #VarAddrCentBin; 
+      L     1; 
+UZLo: T     #VarCentBinIdx; 
+      L     DB79.DBW   12; 
+      >I    ; 
+      SPB   UErr; 
+      L     DBW [#VarAddrCentBin]; //PLC_BinListDB".BinXxx.ParBinNr
+      L     #VarBinNr; 
+      ==I   ; 
+      SPB   UFND; //--> Found
+      L     #VarAddrCentBin; 
+      L     #VarCentLenBinBit; 
+      +D    ; 
+      T     #VarAddrCentBin; //   
+      L     #VarCentBinIdx; 
+      +     1; 
+      SPA   UZLo; //End of Loop Cental Bin List
+//================================================
+//Error Bin not found
+UErr: L     0; //Index of bin in Central Bin List
+      T     #VarAddrBinIdx; 
+      S     DIX   24.2; //"BinDB".VarTemp.Bin.InFeedOff
+      SPA   uSAV; 
+//Store Index if bin found
+UFND: LAR1  #VarAddrBinIdx; 
+      L     #VarCentBinIdx; //Index of bin in Central Bin List
+      T     DIW [AR1,P#0.0]; // binlist[n].Bin status word
+//================================================
+//Update
+UOK:  LAR2  #VarAddrCentBin; 
+// --------------------------------------------------
+// Copy data of actual Bin to "PLC_BinListDB".tmpBin
+      L     DBD [AR2,P#2.0]; 
+      T     DB79.DBD   22; 
+      L     DBD [AR2,P#6.0]; 
+      T     DB79.DBD   26; 
+      L     DBD [AR2,P#10.0]; 
+      T     DB79.DBD   30; 
+      L     DBD [AR2,P#14.0]; 
+      T     DB79.DBD   34; 
+//----------------------------------------
+//Receiver List
+//----------------------------------------
+      U     DIX    7.2; //"BinDB".Para.ParTypeDef.ParSenderList
+      SPB   USD; 
+// Check List used
+      U     DIX  105.5; //"BinDB".PCRead.Status.StaListNotUsed
+      SPB   URC3; 
+// Send Command CmdLastReceiverActive                                            [1.1]
+      U     DIX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin       [1.1]
+      UN    DIX   25.2; //"BinDB".VarTemp.Bin.InfDeselect        [1.1]
+      U     DIX  104.0; //"BinDB".PCRead.Status.StaLastBinActive [1.1]
+      S     DB79.DBX   23.1; //                   [1.1]
+// Send Command CmdFilling
+      U     DIX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      U     DIX  104.1; //"BinDB".PCRead.Status.StaFeeding
+      S     DB79.DBX   23.0; 
+      SPBN  URC2; 
+// Counter active receiver
+      L     DB79.DBB   26; 
+      +     1; 
+      T     DB79.DBB   26; 
+// Add FillingWeight
+      L     DB79.DBD   32; 
+      L     #tmpFlowrateKgS; 
+      +R    ; 
+      SPO   URC1; 
+      T     DB79.DBD   32; 
+// Add OverfillWeight
+URC1: UN    DB79.DBX   22.2; 
+      O     DIX  105.4; // "BinDB".PCRead.Status.StaSameSndRcv [1.4] 
+      SPB   URC2; 
+      L     DB79.DBD   28; 
+      L     #tmpFlowrateKgS; 
+      +R    ; 
+      SPO   URC2; 
+      T     DB79.DBD   28; 
+// Send Command StaOverrideLevel
+URC2: U     DIX  104.2; //"BinDB".PCRead.Status.StaOverrideLevel
+      S     DB79.DBX   22.6; 
+// Read InfLevelFault
+URC3: U     DB79.DBX   22.2; 
+      U     #tmpMode_1_No; 
+      O     DB79.DBX   24.1; 
+      UN    DIX  105.4; // "BinDB".PCRead.Status.StaSameSndRcv [1.2]
+      =     DIX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault
+// Read InFeedOff
+      U     DB79.DBX   24.4; 
+      U     DIX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      O     DB79.DBX   22.3; 
+      UN    DIX  105.4; // "BinDB".PCRead.Status.StaSameSndRcv [1.2]
+      =     DIX   24.2; //"BinDB".VarTemp.Bin.InFeedOff
+// Read DryFillingDoone
+      U     DB79.DBX   24.7; 
+      =     DIX   24.3; //"BinDB".VarTemp.Bin.OutDryFillingDone
+      SPA   UNXT; 
+//----------------------------------------
+//Sender List
+//----------------------------------------
+// Send Command Discharging
+USD:  U     DIX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      U     DIX  104.1; //"BinDB".PCRead.Status.StaFeeding
+      S     DB79.DBX   22.7; 
+      SPBN  USD3; 
+// Add FillingWeight
+      L     DB79.DBD   32; 
+      L     #tmpFlowrateKgS; 
+      -R    ; 
+      SPP   USD2; 
+      L     0.000000e+000; 
+USD2: T     DB79.DBD   32; 
+// Send Command StaOverrideLevel
+USD3: UN    DIX  105.5; //"BinDB".PCRead.Status.StaListNotUsed
+      U     DIX  104.2; //"BinDB".PCRead.Status.StaOverrideLevel
+      S     DB79.DBX   22.5; 
+// Read InfLevelFault
+      U     DB79.DBX   22.0; 
+      U     #tmpMode_1_No; 
+      O     DB79.DBX   24.0; 
+      UN    DIX  105.4; // "BinDB".PCRead.Status.StaSameSndRcv [1.2]
+      =     DIX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault
+// Read InFeedOff
+      U     DB79.DBX   22.1; 
+      UN    DIX  105.4; // "BinDB".PCRead.Status.StaSameSndRcv [1.2]
+      =     DIX   24.2; //"BinDB".VarTemp.Bin.InFeedOff
+//Read HL und LL
+UNXT: NOP   0; 
+      U     DB79.DBX   22.0; 
+      =     DIX   24.5; // bin[n]."BinDB".VarTemp.Bin.InfLowLevel
+      U     DB79.DBX   22.2; 
+      =     DIX   24.7; // bin[n]."BinDB".VarTemp.Bin.InfHighLevel
+// --------------------------------------------------
+// Store Data 
+// --------------------------------------------------
+// Copy data of "PLC_BinListDB".tmpBin back to list
+      LAR2  #VarAddrCentBin; 
+      L     DB79.DBD   22; 
+      T     DBD [AR2,P#2.0]; 
+      L     DB79.DBD   26; 
+      T     DBD [AR2,P#6.0]; 
+      L     DB79.DBD   30; 
+      T     DBD [AR2,P#10.0]; 
+      L     DB79.DBD   34; 
+      T     DBD [AR2,P#14.0]; 
+//---------------------------------------------
+//Store Bin
+uSAV: LAR1  #VarAddrBin; 
+      L     DIW   24; // ->var_bin_status
+      T     DIW [AR1,P#2.0]; // binlist[n].Bin status word
+      L     #VarCentBinIdx; //Index of bin in Central Bin List
+      T     DIW [#VarAddrBinIdx]; // binlist[n].Bin status word
+//---------------------------------------------
+//Next Bin of actual list
+      L     #VarAddrBin; 
+      L     #VarLenBinBit; 
+      +D    ; 
+      T     #VarAddrBin; 
+      L     #VarCntBin; 
+      LOOP  uLop; 
+      BEA   ; 
+      NOP   0; 
+END_FUNCTION
+

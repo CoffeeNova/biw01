@@ -1,0 +1,786 @@
+FUNCTION "GCS7_BinCtrlSub" : VOID
+TITLE =
+//COPYRIGHT:    (C) 1994 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        BIN CONTROL: SOUBROUTINS
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//FC67.2.4      A.Egli              CT3                           04-Sep-2003
+//              - check wit target value
+//FC67.2.3      K.Tischer           CT3                           04-Jul-2003
+//              - init DBW36 for decode
+//FC67.2.2      A.Egli              CT3                           23-Jun-2003
+//              - Set "BinDB".ToASW.BinActual also for Blend
+//FC67.2.1      A.Egli              CT3                           05-Jun-2003
+//              - Delete WeightTarget not before bin is deselected
+//FC67.2.0      A.Egli              CT3                           07-Oct-2002
+//              - New release 
+//              - LastIngredient Active
+//FC67.1.3      A.Egli              CT3                           06-Nov-01
+//              subroutine 14: Init TestRefill
+//FC67.1.2      A.Egli              AEE61                         14-Jan-98
+//              Convert S5 to S7 (Version 1C)
+//FC67.1.1      A.Egli              AEE61                         24-Jun-96
+//              Convert S5 to S7 (Version 1C)
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : BINMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//
+//PARAMETER:
+//------------
+//  CODE: CODE OF CALLED FUNCTION
+//        1  : Subroutine Test  Recipe
+//        2  : Subroutine Read  Bin
+//        3  : Subroutine Store Bin
+//        4  : Subroutine Deselect All
+//        5  : Subroutine Bin_Modify
+//        6  : Subroutine Claer Value
+//        7  : Subroutine Maske Active Bin
+//        10 : Subroutine Read Ingredient
+//        11 : Subroutine Read First Ingredient
+//        12 : Subroutine Read Next Ingredient
+//        13 : Subroutine Read_Blend_recipe
+//
+//ACTUAL DB BY CALL: DB Bin control
+//AUFGESCHALGENER  : DB Siloverwaltung
+//
+AUTHOR : EA
+FAMILY : GCS90UL
+NAME : BIN_SUBR
+VERSION : 2.4
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+END_VAR
+VAR_TEMP
+  BinNr : INT ;	
+  BinStatus : STRUCT 	
+   InfLevelWarning : BOOL ;	
+   InfLevelFault1 : BOOL ;	
+   B10 : BOOL ;	
+   B11 : BOOL ;	
+   VarFlagOverwrite : BOOL ;	
+   InfLowLevel : BOOL ;	
+   InfLevelMiddle : BOOL ;	
+   InfHighLevel : BOOL ;	
+   InfActive : BOOL ;	
+   InfPreselect : BOOL ;	
+   InfDeselect : BOOL ;	
+   B3 : BOOL ;	
+   B4 : BOOL ;	
+   VarFlageLevelWarning : BOOL ;	
+   VarFlagLevelFault : BOOL ;	
+  END_STRUCT ;	
+  VarCntBin : INT ;	
+  VarAddrBin : DWORD ;	
+  VarCntIngr : INT ;	
+  VarAddrIngr : DINT ;	
+  VarBinNr : INT ;	
+  VarLenBinBit : INT ;	//Length of Bin data in bits
+  VarLenIngrBit : INT ;	//Lenght per Ingr. in bits
+  VarOkIngrCnt : INT ;	//Number of available ingredient (Transport)
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+      L     DBW   10; // "BinDB".Para.ParNoOfBytePerBin
+      SLD   3; 
+      T     #VarLenBinBit; 
+      L     DBW   16; // "BinDB".Para.ParNoOfBytePerIngr
+      SLD   3; 
+      T     #VarLenIngrBit; 
+NETWORK
+TITLE = Subroutine Test Bin Status (Code=0)
+//======================================
+//
+//Subroutine test bin Status: Code= 0
+//-------------------------------------
+//Input:
+//Output:
+//  DBX   43.0            // "BinDB".ToASW.InfActive
+//  DBX   43.1            // "BinDB".ToASW.InfPreselect
+//  DBX   43.2            // "BinDB".ToASW.InfDeselect 
+//  DBX  103.0            // "BinDB".PCRead.Fault.EsLocked
+//  DBX  103.1            // "BinDB".PCRead.Fault.EsLevelFault
+//  DBX  105.7            // "BinDB".PCRead.Status.StaFeedOff
+//  DBX   42.2            // "BinDB".ToASW.InfAllLocked
+//  DBX   42.3            // "BinDB".ToASW.InfAllLevelFault
+//
+      L     #CODE; 
+      L     0; 
+      <>I   ; 
+      SPB   aEnd; 
+      R     DBX   43.0; // "BinDB".ToASW.InfActive
+      R     DBX   43.1; // "BinDB".ToASW.InfPreselect
+      R     DBX   43.2; // "BinDB".ToASW.InfDeselect 
+      R     DBX  103.0; // "BinDB".PCRead.Fault.EsLocked
+      R     DBX  103.1; // "BinDB".PCRead.Fault.EsLevelFault
+      R     DBX  105.7; // "BinDB".PCRead.Status.StaFeedOff
+      S     DBX   42.2; // "BinDB".ToASW.InfAllLocked
+      S     DBX   42.3; // "BinDB".ToASW.InfAllLevelFault
+      R     DBX   39.7; // "BinDB".VarTemp.Value10.Flag7
+      S     DBX   43.4; // "BinDB".ToASW.OutDryFillingDone
+      L     0; 
+      T     DBW   56; //"BinDB1".ToASW.OutActiveBinsCnt
+      UN    DBX    7.0; // ParObjectType=Blend
+      SPB   aAc1; 
+      T     DBW   48; // "BinDB".ToASW.BinActual //[2.2]
+//Start Adress Loop
+aAc1: L     DBW    8; //"BinDB".Para.ParByteFirstBin
+      +     2; 
+      SLD   3; 
+      T     #VarAddrBin; //--> Pointer to statusword of the bin
+// (--loop bin: test  ----------)
+      L     0; 
+      L     DBW   12; //  "BinDB".Para.ParNoOfBin
+      ==I   ; 
+      SPB   aFER; 
+aLop: T     #VarCntBin; // var_loop_bin_counter
+      L     DBW [#VarAddrBin]; // binlist[n].Bin status word
+      T     DBW   24; //  )->var_bin_status
+      UN    DBX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      SPB   aEPY; 
+//Counter Active bins
+      L     DBW   56; //"BinDB1".ToASW.OutActiveBinsCnt
+      +     1; 
+      T     DBW   56; //"BinDB1".ToASW.OutActiveBinsCnt
+      UN    DBX    7.0; //[2.2 -->] ParObjectType=Blend
+      SPB   aAc2; 
+      L     #VarAddrBin; 
+      +     L#-16; 
+      LAR1  ; 
+      L     DBW [AR1,P#0.0]; // binlist[n].ParBinNr
+      T     DBW   48; // "BinDB".ToASW.BinActual     [<--2.2]
+//Emptying Time
+aAc2: LAR1  #VarAddrBin; 
+      L     DBW [AR1,P#2.0]; // binlist[n].ParEmptyingTime
+      T     DBW   52; // "BinDB".ToASW.OutEmptyingTimeBin
+aEPY: U     DBX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      S     DBX   43.0; // "BinDB".ToASW.InfActive
+      U     DBX   25.1; //"BinDB".VarTemp.Bin.InfPreselect
+      S     DBX   43.1; // "BinDB".ToASW.InfPreselect
+      U     DBX   25.2; // "BinDB".VarTemp.Bin.InfDeselect
+      S     DBX   43.2; //"BinDB".ToASW.InfDeselect
+// --- DryFilling done ----------------
+      U     DBX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      UN    DBX   24.3; //"BinDB".VarTemp.Bin.OutDryFillingDone
+      R     DBX   43.4; // "BinDB".ToASW.OutDryFillingDone
+// --- Feed Off ----------------
+      U     DBX   25.0; //"BinDB".VarTemp.Bin.InfActiveBin
+      U     DBX   24.2; //"BinDB".VarTemp.Bin.InFeedOff
+      S     DBX  105.7; // "BinDB".PCRead.Status.StaFeedOff
+// --- Locked ----------------
+      UN    DBX   24.0; // bin[n]."BinDB".VarTemp.Bin.InfLocked
+      SPB   aR_W; 
+      U     DBX   25.0; // "BinDB".VarTemp.Bin.InfActiveBin
+      S     DBX  103.0; // "BinDB".PCRead.Fault.EsLocked
+      UN    DBX   25.6; // "BinDB".VarTemp.Bin.VarFlagLocked
+      S     DBX   25.6; // "BinDB".VarTemp.Bin.VarFlagLocked
+      S     DBX   41.0; // "BinDB".ChangeBit.CBit1
+      S     DBX   39.7; // "BinDB".VarTemp.Value10.Flag7
+      SPA   aL_F; // -- no warning --------------
+aR_W: U     DBX   25.0; // "BinDB".VarTemp.Bin.InfActiveBin
+      R     DBX   42.2; // "BinDB".ToASW.InfAllLocked
+      U     DBX   25.6; // "BinDB".VarTemp.Bin.VarFlagLocked
+      R     DBX   25.6; // "BinDB".VarTemp.Bin.VarFlagLocked 
+      S     DBX   41.0; // "BinDB".ChangeBit.CBit1
+      S     DBX   39.7; // "BinDB".VarTemp.Value10.Flag7
+//---Faulted ----------------
+aL_F: UN    DBX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault
+      SPB   aR_F; 
+//    --- fault ------------------
+      U     DBX   25.0; // "BinDB".VarTemp.Bin.InfActiveBin 
+      S     DBX  103.1; // "BinDB".PCRead.Fault.EsLevelFault
+      UN    DBX   25.7; // "BinDB".VarTemp.Bin.VarFlagLevelFault
+      S     DBX   25.7; // "BinDB".VarTemp.Bin.VarFlagLevelFault
+      S     DBX   41.0; // "BinDB".ChangeBit.CBit1 
+      S     DBX   39.7; // "BinDB".VarTemp.Value10.Flag7
+      SPA   aSAV; 
+//    -- no fault   --------------
+aR_F: U     DBX   25.0; //  "BinDB".VarTemp.Bin.InfActiveBin
+      R     DBX   42.3; //  "BinDB".ToASW.InfAllLevelFault 
+      U     DBX   25.7; //  "BinDB".VarTemp.Bin.VarFlagLevelFault
+      R     DBX   25.7; //  "BinDB".VarTemp.Bin.VarFlagLevelFault 
+      S     DBX   41.0; //  "BinDB".ChangeBit.CBit1 
+      S     DBX   39.7; // "BinDB".VarTemp.Value10.Flag7
+//Store Bin
+aSAV: L     DBW   24; //   var_bin_status
+      T     DBW [#VarAddrBin]; //   -> binlist[n].bin_status
+      L     #VarAddrBin; 
+      L     #VarLenBinBit; 
+      +D    ; 
+      T     #VarAddrBin; //   
+      L     #VarCntBin; //   
+      LOOP  aLop; 
+//  (--END LOOP TEST -----------)
+aFER: UN    DBX   43.0; // "BinDB".ToASW.InfActive
+      R     DBX   42.2; // "BinDB".ToASW.InfAllLocked 
+      R     DBX   42.3; // "BinDB".ToASW.InfAllLevelFault 
+      BEA   ; 
+aEnd: NOP   0; 
+NETWORK
+TITLE =subroutine:Test recipe (Code 1)
+//Input: DBW20="BinDB".VarTemp.InValue     = Source Recipe DBNr
+//Input: DBW22="BinDB".VarTemp.BinNrByteNr = Source Recipe First Byte
+//
+//
+      L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   bEnd; 
+      S     DBX   39.6; //"BinDB".VarTemp.Value10.tmpLocked
+      S     DBX   39.1; //"BinDB".VarTemp.Value10.tmpLevelFault
+      S     DBX   39.4; //"BinDB".VarTemp.Value10.tmpFull
+      R     DBX   39.2; //"BinDB".VarTemp.Value10.tmpBinNotFound2
+      S     DBX   39.3; //"BinDB".VarTemp.Value10.tmpEmptyRecipe
+      L     0; // [2.0]
+      T     #VarOkIngrCnt; // [2.0]
+      T     DBW   36; // [2.3]
+// Init
+      AUF   DI [DBW 20]; // Call Source DB: DBW20=inp.DB-Nr_source_recipe
+      L     DBW   22; // inp.ByteNrSourceRecipe
+      +     6; // Offset first ingredient
+      SLD   3; //   
+      T     #VarAddrIngr; //--> Address first ingredient
+// ====START LOOP INGREDIENT =====
+      L     0; 
+      L     DBW   18; //  "BinDB".Para.ParNoOfIngr
+      ==I   ; 
+      BEB   ; 
+bLoI: T     #VarCntIngr; 
+      L     DIW [#VarAddrIngr]; // load Ingredient bin number
+      T     #VarBinNr; // 
+      L     0; // 
+      ==I   ; // empty ingredient
+      SPB   bNXT; // 
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      SLD   3; // 
+      T     #VarAddrBin; //--> Address of first bin
+// ====START LOOP BIN ============
+      L     1; 
+bLoB: T     #VarCntBin; //   
+      L     DBW   12; // "BinDB".Para.ParNoOfBin 
+      >I    ; 
+      SPB   bErr; 
+      L     DBW [#VarAddrBin]; // load bin-number from bin list
+      L     #VarBinNr; // 
+      ==I   ; //  
+      SPB   bLEV; //  
+      L     #VarAddrBin; //  
+      L     #VarLenBinBit; //  
+      +D    ; //  
+      T     #VarAddrBin; //  --> Address of bin
+      L     #VarCntBin; //  
+      +     1; 
+      SPA   bLoB; 
+// ====END LOOP BIN ==============
+bLEV: L     DBD [#VarAddrBin]; // load bin[n].BinNr / BinStatus
+      T     DBW   24; // 
+      L     1; 
+      L     #VarCntIngr; //  
+      ==I   ; // --> (last loop ==special bin)
+      UN    DBX    7.0; // ParObjectType=Blend
+      SPB   bNXT; // 
+      UN    DBX   24.0; // "BinDB".VarTemp.Bin.InfLocked 
+      R     DBX   39.6; // "BinDB".VarTemp.Value10.tmpLocked
+      UN    DBX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault
+      R     DBX   39.1; // "BinDB".VarTemp.Value10.tmpLevelFault  
+      U     DBX   39.3; // "BinDB".VarTemp.Value10.tmpEmptyRecipe
+      R     DBX   39.3; // "BinDB".VarTemp.Value10.tmpEmptyRecipe
+      UN    DBX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault  
+      UN    DBX   24.6; // "BinDB".VarTemp.Bin.InfLevelMiddle 
+      UN    DBX   24.7; // "BinDB".VarTemp.Bin.InfHighLevel  
+      R     DBX   39.4; // "BinDB".VarTemp.Value10.tmpFull  
+
+      U     DBX   24.0; // "BinDB".VarTemp.Bin.InfLocked     [2.0]
+      O     DBX   24.1; // "BinDB".VarTemp.Bin.InfLevelFault [2.0]
+      SPB   bNXT; //                                   [2.0]
+      L     #VarOkIngrCnt; //                                   [2.0]
+      +     1; //                                   [2.0]
+      T     #VarOkIngrCnt; //                                   [2.0]
+bNXT: L     #VarAddrIngr; // 
+      L     #VarLenIngrBit; //   
+      +D    ; // 
+      T     #VarAddrIngr; // --> address next ingredient
+      L     #VarCntIngr; //   
+      LOOP  bLoI; 
+      L     0; 
+      T     DBW   24; //-> out.err_bin
+      L     #VarOkIngrCnt; //                                   [2.0]
+      T     DBW   26; //-->Number availabel ingredient     [2.0]
+// ====END LOOP INGREDIENT =======
+      BEA   ; 
+bErr: L     #VarBinNr; //  var_bin-number ingredient
+      T     DBW   36; //  ->VarTemp.Value9
+      S     DBX   39.2; //  "BinDB".VarTemp.Value10.tmpBinNotFound2
+      BEA   ; 
+bEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Read bin (Code=2)
+
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      SPB   cEnd; 
+      R     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      SLD   3; 
+      T     #VarAddrBin; 
+// ====START LOOP BIN ============
+      L     1; 
+cLoB: T     #VarCntBin; //   
+      L     DBW   12; // "BinDB".Para.ParNoOfBin
+      >I    ; // 
+      SPB   cErr; // --> err: bin_not_found
+      L     DBW [#VarAddrBin]; // load bin-number from bin list
+      L     DBW   20; // "BinDB".VarTemp.InValue= var_bin-number
+      ==I   ; 
+      SPB   cREA; 
+      L     #VarAddrBin; 
+      L     #VarLenBinBit; 
+      +D    ; 
+      T     #VarAddrBin; // --> Address next bin
+      L     #VarCntBin; 
+      +     1; 
+      SPA   cLoB; 
+// ====END LOOP BIN ==============
+cREA: L     #VarAddrBin; 
+      LAR1  ; 
+      SRD   3; 
+      T     DBW   22; // Byte Nr of actual Bin
+      L     DBD [AR1,P#2.0]; 
+      T     DBD   24; // -->"BinDB".VarTemp.StatusWord /"BinDB".VarTemp.ParEmpytingTime
+      L     DBD [AR1,P#6.0]; 
+      T     DBD   28; // -->"BinDB".VarTemp.Bin.WeightActual
+      L     DBW   10; // "BinDB".Para.ParNoOfBytePerBin
+      L     14; 
+      <I    ; 
+      BEB   ; // If with target value
+      L     DBD [AR1,P#10.0]; 
+      T     DBD   32; // -->"BinDB".VarTemp.Bin.WeightTarget
+      BEA   ; 
+// ==== bin ot found ==============
+cErr: S     DBX   39.0; //  "BinDB".VarTemp.Value10.tmpBinNotFound1 
+//      L     DBW   20                    // "BinDB".VarTemp.InValue
+//      T     DBW   96                    // )-->"BinDB".PCRead.ErrElement
+//      L     30                          //  )  error:bin_not_found
+//      T     DBW   98                    //  )-> "BinDB".PCRead.ErrCode
+      BEA   ; 
+cEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Store bin
+
+      L     #CODE; // )
+      L     3; // )  CODE= KF+3
+      <>I   ; // )
+      SPB   dEnd; // )
+      U     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      BEB   ; //  )
+      L     DBW   22; //  ) Byte Number actual bin
+      SLD   3; //--> VarAddrBin
+      LAR1  ; 
+      L     DBW [AR1,P#0.0]; // Actual bin
+      L     DBW   20; // var_bin-number
+      <>I   ; // 
+      BEB   ; // 
+      L     DBW   24; // var_bin_status
+      T     DBW [AR1,P#2.0]; // -> bin[n].bin_status
+      L     DBD   28; //  "BinDB".VarTemp.Bin.WeightActual 
+      T     DBD [AR1,P#6.0]; // -> bin[n].WeightActual
+      L     DBW   10; // "BinDB".Para.ParNoOfBytePerBin
+      L     14; 
+      <I    ; 
+      BEB   ; 
+      L     DBD   32; // "BinDB".VarTemp.Bin.WeightTarget
+      T     DBD [AR1,P#10.0]; //  -> bin[n].WeightTarget
+      BEA   ; 
+dEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Deselect all (Code=4)
+
+      L     #CODE; 
+      L     4; 
+      <>I   ; 
+      SPB   eEnd; 
+// === Deselect bin ==============
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      SLD   3; 
+      LAR1  ; //-->  Address bin
+//  (--loop bin deselect --------)
+      L     0; 
+      L     DBW   12; // "BinDB".Para.ParNoOfBin  
+      ==I   ; 
+      BEB   ; 
+eLOP: T     #VarCntBin; 
+      U     DBX [AR1,P#3.0]; // Bin[x].InfActiveBin
+      S     DBX [AR1,P#3.2]; // Bin[x].InfDeselect
+      SET   ; // 
+      R     DBX [AR1,P#3.1]; // Bin[x].InfPreselect
+
+      TAR1  ; // Address read
+      L     #VarLenBinBit; // 
+      +D    ; // 
+      LAR1  ; // --> Address next bin
+      L     #VarCntBin; 
+      LOOP  eLOP; 
+// ====END LOOP DESELECT BIN =====
+      BEA   ; 
+eEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Bin Modify (Code=5)
+
+      L     #CODE; 
+      L     5; 
+      <>I   ; 
+      SPB   fEnd; 
+// === Deselect bin ==============
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin 
+      SLD   3; 
+      LAR1  ; //-->  Address bin
+      UN    DBX   63.1; // "BinDB".ToSSW.CmdReadyForSelect
+      U     DBX   43.1; //  "BinDB".ToASW.InfPreselect
+      U     DBX   63.2; // "BinDB".ToSSW.CmdReadyForDeselect
+      R     DBX   63.2; // "BinDB".ToSSW.CmdReadyForDeselect  
+      UN    DBX   63.1; // "BinDB".ToSSW.CmdReadyForSelect
+      U     DBX   43.1; // "BinDB".ToASW.InfPreselect
+      SPB   fX2; // 
+      L     DBW   50; // "BinDB".ToASW.BinPreselected
+      T     DBW   48; // "BinDB".ToASW.BinActual 
+//(--loop bin deselect --------)
+fX2:  L     0; //  
+      L     DBW   12; //  "BinDB".Para.ParNoOfBin
+      ==I   ; 
+      SPB   fIni; 
+fLop: T     #VarCntBin; 
+      U     DBX   63.2; //"BinDB".ToSSW.CmdReadyForDeselect
+      U     DBX [AR1,P#3.2]; // binlist[x].InfDeselect
+      R     DBX [AR1,P#3.0]; // binlist[x].InfActiveBin
+      R     DBX [AR1,P#3.2]; // binlist[x].InfDeselect
+      S     DBX   41.0; // "BinDB".ChangeBit.CBit1
+      S     DBX   43.3; // "BinDB".ToASW.CmdNewWay
+      U     DBX   63.1; // "BinDB".ToSSW.CmdReadyForSelect 
+      U     DBX [AR1,P#3.1]; // binlist[x].InfPreselect
+      S     DBX [AR1,P#3.0]; // binlist[x].InfActiveBin
+      R     DBX [AR1,P#3.1]; // binlist[x].InfPreselect
+      S     DBX   41.0; // "BinDB".ChangeBit.CBit1  
+      S     DBX   43.3; // "BinDB".ToASW.CmdNewWay
+      TAR1  ; // Address read
+      L     #VarLenBinBit; // 
+      +D    ; // 
+      LAR1  ; // --> Address next bin
+      L     #VarCntBin; 
+      LOOP  fLop; 
+// ====END LOOP DESELECT BIN =====
+fIni: SET   ; 
+      R     DBX   63.1; // "BinDB".ToSSW.CmdReadyForSelect
+      R     DBX   63.2; // "BinDB".ToSSW.CmdReadyForDeselect
+      BEA   ; 
+fEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Clear Value (Code=6)
+
+      L     #CODE; 
+      L     6; 
+      <>I   ; 
+      SPB   gEnd; 
+// === Deselect bin ==============
+      L     #VarLenBinBit; // 
+      L     80; // [2.4]
+      <I    ; 
+      BEB   ; //    == no actual value
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      SLD   3; // 
+      LAR1  ; //-->  Address bin
+//  (--loop bin bin -------------)
+      L     0; 
+      L     DBW   12; //  "BinDB".Para.ParNoOfBin
+      ==I   ; 
+      SPB   gIni; 
+gLop: T     #VarCntBin; 
+      L     0; // (Clear Value)
+      T     DBD [AR1,P#6.0]; //  binlist[n].WeightActual
+
+      TAR1  ; // 
+      L     #VarLenBinBit; // 
+      +D    ; // 
+      LAR1  ; //--> Address next bin
+      L     #VarCntBin; 
+      LOOP  gLop; 
+// ====END LOOP BIN =====
+gIni: BEA   ; 
+gEnd: NOP   0; 
+NETWORK
+TITLE = subroutine: Read Ingredient (Code 10)
+//DBW20: : BinNr Ingredient
+      L     #CODE; 
+      L     10; 
+      <>I   ; 
+      SPB   C11; 
+      R     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1 
+      L     DBW   14; // "BinDB".Para.ParByteRecipeMemory  
+      +     6; // Offset fisrt ingredient in recipe
+      SLD   3; // 
+      T     #VarAddrIngr; // ->Address recipe
+      AUF   DI [DBW 4]; // DB[Bin.ParSecDB ]
+// ====START LOOP INGREDIENT =====
+      L     0; 
+iLop: T     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      L     DBW   18; // "BinDB".Para.ParNoOfIngr
+      >=I   ; // 
+      SPB   iErr; // 
+      +     -1; // 
+      >=I   ; // 
+      UN    DBX  105.2; // "BinDB".PCRead.Status.StaSpecialBin
+      SPB   iErr; // 
+      L     DIW [#VarAddrIngr]; // load ingredient
+      L     DBW   20; // "BinDB".VarTemp.InValue = InBinNr
+      ==I   ; // 
+      BEB   ; // 
+      L     #VarAddrIngr; // Address recipe
+      L     #VarLenIngrBit; // par_nr_of_byte_per_ingredient
+      +D    ; // 
+      T     #VarAddrIngr; // ->Address recipe
+      L     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      +     1; // 
+      SPA   iLop; 
+// ====END LOOP INGREDIENT =======
+iErr: S     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      L     0; // 
+      T     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      BEA   ; 
+
+NETWORK
+TITLE = subroutine: Read First/Next Ingr (Code 11, 12)
+//DBW20: "BinDB".VarTemp.InValue = OutBinNr
+C11:  L     #CODE; 
+      L     11; // CODE= 11 (fisrt ingredient)
+      <>I   ; 
+      SPB   C12; 
+      L     0; 
+      T     DBW   54; // "BinDB".ToASW.VarIngrCnt 
+      SPA   jN_I; 
+C12:  L     #CODE; 
+      L     12; // CODE= 12 (Next ingredient)
+      <>I   ; 
+      SPB   C13; 
+      L     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      +     1; //  
+      T     DBW   54; // "BinDB".ToASW.VarIngrCnt
+//Find
+jN_I: R     DBX   39.0; //  "BinDB".VarTemp.Value10.tmpBinNotFound1
+      L     DBW   14; //  "BinDB".Para.ParByteRecipeMemory
+      +     6; // Offset first ingedient in recipe
+      SLD   3; // 
+      T     #VarAddrIngr; // ->Address recipe
+      AUF   DI [DBW 4]; // DB[Bin.Para.ParSecDB ]
+      UN    DBX  105.2; // "BinDB".PCRead.Status.StaSpecialBin
+      SPB   jOk; // 
+      L     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      L     DBW   18; // "BinDB".Para.ParNoOfIngr 
+      +     -1; // 
+      >=I   ; // 
+      SPB   jOk; // 
+      T     DBW   54; // -->"BinDB".ToASW.VarIngrCnt 
+jOk:  L     DBW   54; // "BinDB".ToASW.VarIngrCnt 
+      L     #VarLenIngrBit; 
+      *I    ; 
+      L     #VarAddrIngr; 
+      +D    ; 
+      T     #VarAddrIngr; 
+// ====START LOOP INGREDIENT =====
+      L     DBW   54; 
+jLop: T     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      L     DBW   18; // "BinDB".Para.ParNoOfIngr 
+      >=I   ; 
+      SPB   jErr; 
+      +     -1; 
+      >=I   ; 
+      UN    DBX  105.2; // "BinDB".PCRead.Status.StaSpecialBin 
+      SPB   jErr; 
+      L     DIW [#VarAddrIngr]; // load ingredient
+      T     DBW   20; // -> "BinDB".VarTemp.InValue = OutBinNr
+      L     0; //  no ingredient
+      <>I   ; //  
+      BEB   ; // -->found
+//Next ingr
+      L     #VarAddrIngr; // 
+      L     #VarLenIngrBit; // ParNrOfBytePerIngredient
+      +D    ; // 
+      T     #VarAddrIngr; //  
+      L     DBW   54; // "BinDB".ToASW.VarIngrCnt
+      +     1; // 
+      SPA   jLop; 
+// ====END LOOP INGREDIENT =======
+jErr: S     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      L     0; // 
+      T     DBW   54; // "BinDB".ToASW.VarIngrCnt 
+      BEA   ; 
+C13:  NOP   0; 
+NETWORK
+TITLE = subroutine: Read Blend Recipe (Code 13)
+
+      L     #CODE; 
+      L     13; 
+      <>I   ; 
+      SPB   C14; 
+      L     #VarLenBinBit; 
+      L     112; //[2.4]
+      <I    ; 
+      BEB   ; // --> no target value
+      R     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      S     DBX   39.3; // "BinDB".VarTemp.Value10.tmpEmptyRecipe
+      L     0; //  
+      L     DBW   12; //"BinDB".Para.ParNoOfBin
+      ==I   ; 
+      BEB   ; // 
+      AUF   DI [DBW 4]; // DB[Bin.Para.ParSecDB ]
+      L     DBW    8; //  "BinDB".Para.ParByteFirstBin 
+      SLD   3; 
+      T     #VarAddrBin; 
+      LAR1  ; 
+      UN    DBX   21.1; // VarTemp.InValue1= Code=read target Value
+      SPB   kSta; // 
+// -- Loop Clear ---
+      L     DBW   12; // par_nr_of_bin
+kLoC: T     #VarCntBin; // var_loop_bin_counter
+      U     DBX [AR1,P#3.0]; // bin[n].InfActiveBin     [2.1]
+      O     DBX [AR1,P#3.2]; // bin[n].InfDeselect      [2.1]
+      SPB   kJ1; 
+      L     0; 
+      T     DBD [AR1,P#10.0]; // Bin[x].WeightTarget
+kJ1:  L     #VarLenBinBit; 
+      +AR1  ; // var_addr_bin
+      L     #VarCntBin; // var_loop_bin_counter
+      LOOP  kLoC; 
+// -- End loop claer ---
+kSta: L     DBW   14; //  "BinDB".Para.ParByteRecipeMemory
+      +     6; // Offset First ingredient
+      SLD   3; 
+      LAR2  ; //->Address recipe ingredient
+//  (--START LOOP INGREDIENT ----)
+      L     1; 
+kLoI: T     #VarCntIngr; 
+      L     DBW   18; // "BinDB".Para.ParNoOfIngr
+      >I    ; 
+      BEB   ; 
+      L     DIW [AR2,P#0.0]; // load ingredient
+      T     #VarBinNr; // ->bin-number ingredient
+      L     0; // 
+      ==I   ; // empty ingredient
+      SPB   kNxI; // 
+      R     DBX   39.3; //  "BinDB".VarTemp.Value10.tmpEmptyRecipe
+// --START LOOP SEARCH BIN -----
+      LAR1  #VarAddrBin; //  
+      L     DBW   12; // par_nr_of_bin
+kLoB: T     #VarCntBin; // 
+      L     DBW [AR1,P#0.0]; // load bin-number from bin list
+      L     #VarBinNr; // bin number ingredient
+      ==I   ; 
+      SPB   kON; 
+
+      TAR1  ; // 
+      L     #VarLenBinBit; // nr_of_DW_per_bin
+      +D    ; 
+      LAR1  ; // address next bin in bin list
+      L     #VarCntBin; 
+      LOOP  kLoB; 
+      SPA   kErr; // --> err: bin_not_found
+// -- End loop search bin ----
+kON:  UN    DBX   21.0; // VatTemp.InValue=1: code=preselect
+      SPB   kF2; 
+      UN    DBX [AR1,P#3.0]; // bin[n].InfActiveBin
+      S     DBX [AR1,P#3.1]; // bin[n].InfPreselect
+      U     DBX [AR1,P#3.2]; // bin[n].InfDeselect
+      R     DBX [AR1,P#3.2]; // bin[n].InfDeselect
+kF2:  UN    DBX [AR1,P#3.0]; // bin[n].InfActiveBin
+      UN    DBX    7.3; // "BinDB".Para.ParTypeDef.ParWithTargetValue
+      ON    DBX   21.1; // code=target_value
+      SPB   kNxI; 
+      L     DID [AR2,P#2.0]; // load_target value
+      T     DBD [AR1,P#10.0]; //-> bin.target_value
+kNxI: TAR2  ; 
+      L     #VarLenIngrBit; // par_nr_of_DW_per_ingredient
+      +D    ; 
+      LAR2  ; //->Address next ingredient
+      L     #VarCntIngr; 
+      +     1; 
+      SPA   kLoI; 
+//===END LOOP INGREDIENT ======)
+kErr: NOP   0; 
+//      L     #VarBinNr
+//      T     DBW   96                    //-->"BinDB".PCRead.ErrElement
+//      L     30                          // error:bin_not_found
+//      T     DBW   98                    // ->"BinDB".PCRead.ErrCode
+      S     DBX   39.0; // "BinDB".VarTemp.Value10.tmpBinNotFound1
+      BEA   ; 
+
+NETWORK
+TITLE = subroutine: Init TestRefill
+//This routine is used by Scale Contro: Test Refill Level
+C14:  L     #CODE; 
+      L     14; 
+      <>I   ; 
+      SPB   rEnd; 
+      L     DBW    8; // "BinDB".Para.ParByteFirstBin
+      SLD   3; 
+      LAR1  ; //-->  Address bin
+//  (--loop bin deselect --------)
+      L     0; 
+      L     DBW   12; //  )  par_nr_of_bin
+      ==I   ; 
+      BEB   ; 
+rLOP: T     #VarCntBin; 
+      SET   ; 
+      R     DBX [AR1,P#3.1]; // bin[n].InfPreselect
+      R     DBX [AR1,P#2.6]; // bin[n].InfLevelMiddle
+      TAR1  ; 
+      L     #VarLenBinBit; // 
+      +D    ; // 
+      LAR1  ; // --> Address next bin
+      L     #VarCntBin; // var_loop_bin_counter
+      LOOP  rLOP; 
+// ====END LOOP DESELECT BIN =====
+      BEA   ; 
+rEnd: NOP   0; 
+NETWORK
+TITLE =
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+END_FUNCTION
+

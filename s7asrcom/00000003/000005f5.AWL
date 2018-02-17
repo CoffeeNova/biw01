@@ -1,0 +1,388 @@
+	FUNCTION_BLOCK FB 395
+	TITLE =G295M TEMPERATURE MES. KILN 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        TEMPERATURE MES. KILN 2
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB395.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_3291_BTE01 : FB19;   // AnaInp 
+	     #A_3291_BTE05 : FB19;   // AnaInp 
+	     #A_3291_BTE07 : FB19;   // AnaInp 
+	     #A_3291_BTE08 : FB19;   // AnaInp 
+	     #A_3291_BTE10 : FB19;   // AnaInp 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[295];
+	      R   GCS7_GrCtrlDB.ParWGR[295];
+	      R   GCS7_GrCtrlDB.ParGGR[295];
+	      R   GCS7_GrCtrlDB.ParFeed[295];
+	      R   GCS7_GrCtrlDB.ParShare[295];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[295];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[295];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[295];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[295];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[295];
+	      R   #GCS7_GrCtrlDB.CmdNext[295];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[295];
+	      O   #GCS7_GrCtrlDB.OutOccupied[295];
+	      R   GCS7_GrCtrlDB.CmdManualOff[295];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[295];
+	      R   GCS7_GrCtrlDB.CmdContinue[295];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[295];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX32.4;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE ==A-3291-BTE01 : AIR TEMPERATURE BELOW FLOOR
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3291_BTE01.InLocal; 
+	//
+	//-Monitoring--- 
+	      SET;
+	      =     #A_3291_BTE01.InMonLL;
+	      CLR;
+	      =     #A_3291_BTE01.InMonL;
+	      CLR;
+	      =     #A_3291_BTE01.InMonMid;
+	      CLR;
+	      =     #A_3291_BTE01.InMonH;
+	      SET;
+	      =     #A_3291_BTE01.InMonHH;
+	// 
+	//-Read inputs---
+	      L     PEW1036; 
+	      T     #A_3291_BTE01.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3291_BTE01.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3291_BTE01.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3291_BTE01;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3291-BTE05 : AIR TEMPERATURE DIFFUSOR FAN 1
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3291_BTE05.InLocal; 
+	//
+	//-Monitoring--- 
+	      CLR;
+	      =     #A_3291_BTE05.InMonLL;
+	      CLR;
+	      =     #A_3291_BTE05.InMonL;
+	      CLR;
+	      =     #A_3291_BTE05.InMonMid;
+	      CLR;
+	      =     #A_3291_BTE05.InMonH;
+	      SET;
+	      =     #A_3291_BTE05.InMonHH;
+	// 
+	//-Read inputs---
+	      L     PEW1038; 
+	      T     #A_3291_BTE05.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3291_BTE05.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3291_BTE05.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3291_BTE05;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3291-BTE07 : AIR TEMPERATURE ABOVE FLOOR
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3291_BTE07.InLocal; 
+	//
+	//-Monitoring--- 
+	      CLR;
+	      =     #A_3291_BTE07.InMonLL;
+	      CLR;
+	      =     #A_3291_BTE07.InMonL;
+	      CLR;
+	      =     #A_3291_BTE07.InMonMid;
+	      CLR;
+	      =     #A_3291_BTE07.InMonH;
+	      SET;
+	      =     #A_3291_BTE07.InMonHH;
+	// 
+	//-Read inputs---
+	      L     PEW1040; 
+	      T     #A_3291_BTE07.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3291_BTE07.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3291_BTE07.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3291_BTE07;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3291-BTE08 : AIR TEMPERATURE AFTER BURNER 1
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3291_BTE08.InLocal; 
+	//
+	//-Monitoring--- 
+	      CLR;
+	      =     #A_3291_BTE08.InMonLL;
+	      CLR;
+	      =     #A_3291_BTE08.InMonL;
+	      CLR;
+	      =     #A_3291_BTE08.InMonMid;
+	      CLR;
+	      =     #A_3291_BTE08.InMonH;
+	      SET;
+	      =     #A_3291_BTE08.InMonHH;
+	// 
+	//-Read inputs---
+	      L     PEW1042; 
+	      T     #A_3291_BTE08.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3291_BTE08.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3291_BTE08.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3291_BTE08;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3291-BTE10 : AIR TEMPERATURE BEFORE BURNER 3
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3291_BTE10.InLocal; 
+	//
+	//-Monitoring--- 
+	      CLR;
+	      =     #A_3291_BTE10.InMonLL;
+	      CLR;
+	      =     #A_3291_BTE10.InMonL;
+	      CLR;
+	      =     #A_3291_BTE10.InMonMid;
+	      CLR;
+	      =     #A_3291_BTE10.InMonH;
+	      SET;
+	      =     #A_3291_BTE10.InMonHH;
+	// 
+	//-Read inputs---
+	      L     PEW1044; 
+	      T     #A_3291_BTE10.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3291_BTE10.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3291_BTE10.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3291_BTE10;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_3291_BTE01.OutFaulted;
+	      O     #A_3291_BTE05.OutFaulted;
+	      O     #A_3291_BTE07.OutFaulted;
+	      O     #A_3291_BTE08.OutFaulted;
+	      O     #A_3291_BTE10.OutFaulted;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      U     #A_3291_BTE01.OutWarning;
+	      O     #A_3291_BTE05.OutWarning;
+	      O     #A_3291_BTE07.OutWarning;
+	      O     #A_3291_BTE08.OutWarning;
+	      O     #A_3291_BTE10.OutWarning;
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[295];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[295];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[295];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[295];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[295];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[295];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[295];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[295];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[295];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[295];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

@@ -1,0 +1,123 @@
+	  TYPE UDT8002	
+	  TITLE =UDTMAL1SecAc  MALTING LINE
+	  STRUCT 	  //UDTMAL1SecAc
+	   Sta1On : STRUCT 	//Status
+	    Inf08 : BOOL ;	//Not used
+	    Inf09 : BOOL ;	//Not used
+	    Inf10 : BOOL ;	//Not used
+	    Inf11 : BOOL ;	//Not used
+	    Inf12 : BOOL ;	//Not used
+	    Inf13 : BOOL ;	//Not used
+	    Inf14 : BOOL ;	//Not used
+	    Inf15 : BOOL ;	//Not used
+	    Inf00 : BOOL ;	//Not used
+	    Inf01 : BOOL ;	//Not used
+	    Inf02 : BOOL ;	//Not used
+	    Inf03 : BOOL ;	//Not used
+	    Inf04 : BOOL ;	//Not used
+	    Inf05 : BOOL ;	//Not used
+	    Inf06 : BOOL ;	//Not used
+	    Inf07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Sta2On : STRUCT 	//Status
+	    Inf08 : BOOL ;	//Not used
+	    Inf09 : BOOL ;	//Not used
+	    Inf10 : BOOL ;	//Not used
+	    Inf11 : BOOL ;	//Not used
+	    Inf12 : BOOL ;	//Not used
+	    Inf13 : BOOL ;	//Not used
+	    Inf14 : BOOL ;	//Not used
+	    Inf15 : BOOL ;	//Not used
+	    Inf00 : BOOL ;	//Not used
+	    Inf01 : BOOL ;	//Not used
+	    Inf02 : BOOL ;	//Not used
+	    Inf03 : BOOL ;	//Not used
+	    Inf04 : BOOL ;	//Not used
+	    Inf05 : BOOL ;	//Not used
+	    Inf06 : BOOL ;	//Not used
+	    Inf07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Sta3On : STRUCT 	//Status
+	    Inf08 : BOOL ;	//Not used
+	    Inf09 : BOOL ;	//Not used
+	    Inf10 : BOOL ;	//Not used
+	    Inf11 : BOOL ;	//Not used
+	    Inf12 : BOOL ;	//Not used
+	    Inf13 : BOOL ;	//Not used
+	    Inf14 : BOOL ;	//Not used
+	    Inf15 : BOOL ;	//Not used
+	    Inf00 : BOOL ;	//Not used
+	    Inf01 : BOOL ;	//Not used
+	    Inf02 : BOOL ;	//Not used
+	    Inf03 : BOOL ;	//Not used
+	    Inf04 : BOOL ;	//Not used
+	    Inf05 : BOOL ;	//Not used
+	    Inf06 : BOOL ;	//Not used
+	    Inf07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Sta4On : STRUCT 	//Status
+	    Inf08 : BOOL ;	//Not used
+	    Inf09 : BOOL ;	//Not used
+	    Inf10 : BOOL ;	//Not used
+	    Inf11 : BOOL ;	//Not used
+	    Inf12 : BOOL ;	//Not used
+	    Inf13 : BOOL ;	//Not used
+	    Inf14 : BOOL ;	//Not used
+	    Inf15 : BOOL ;	//Not used
+	    Inf00 : BOOL ;	//Not used
+	    Inf01 : BOOL ;	//Not used
+	    Inf02 : BOOL ;	//Not used
+	    Inf03 : BOOL ;	//Not used
+	    Inf04 : BOOL ;	//Not used
+	    Inf05 : BOOL ;	//Not used
+	    Inf06 : BOOL ;	//Not used
+	    Inf07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   NotUsed1 : INT ;	//Not used
+	   NotUsed2 : INT ;	//Not used
+	   NotUsed3 : INT ;	//Not used
+	   NotUsed4 : INT ;	//Not used
+	   NotUsed5 : INT ;	//Not used
+	   NotUsed6 : INT ;	//Not used
+	   NotUsed7 : INT ;	//Not used
+	   NotUsed8 : INT ;	//Not used
+	   NotUsed9 : INT ;	//Not used
+	   ActualWaterVolumeSteep : INT ;	//
+	   RemainingDrainTime : INT ;	//
+	   ActualDelaySpraying : INT ;	//
+	   ActAeriationPause : INT ;	//
+	   ActRounds : INT ;	// 
+	   NotUsed15: INT ;	//Not used
+	   NotUsed16: INT ;	//Not used
+	   NotUsed17: INT ;	//Not used
+	   NotUsed18: INT ;	//Not used
+	   NotUsed19: INT ;	//Not used
+	   NotUsed20: INT ;	//Not used
+	   NotUsed21: INT ;	//Not used
+	   NotUsed22: INT ;	//Not used
+	   NotUsed23: INT ;	//Not used
+	   NotUsed24: INT ;	//Not used
+	   NotUsed25: INT ;	//Not used
+	   NotUsed26: INT ;	//Not used
+	   NotUsed27: INT ;	//Not used
+	   NotUsed28: INT ;	//Not used
+	   NotUsed29: INT ;	//Not used
+	   NotUsed30: INT ;	//Not used
+	   NotUsed31: INT ;	//Not used
+	   NotUsed32: INT ;	//Not used
+	   NotUsed33: INT ;	//Not used
+	   NotUsed34: INT ;	//Not used
+	   NotUsed35: INT ;	//Not used
+	   NotUsed36: INT ;	//Not used
+	   NotUsed37: INT ;	//Not used
+	   NotUsed38: INT ;	//Not used
+	   NotUsed39: INT ;	//Not used
+	   NotUsed40: INT ;	//Not used
+	   NotUsed41: INT ;	//Not used
+	   NotUsed42: INT ;	//Not used
+	   NotUsed43: INT ;	//Not used
+	   NotUsed44: INT ;	//Not used
+	   NotUsed45: INT ;	//Not used
+	   NotUsed46: INT ;	//Not used
+	   END_STRUCT ;	
+	  END_TYPE

@@ -1,0 +1,152 @@
+ TYPE UDT 10020
+	  STRUCT 	
+//TITLE =Declaration ChangeBit
+	   Spare0 : WORD ;	
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   ParNextDB : INT :=0 ;	//Next Change-Bit DB
+	   Spare8 : WORD ;	
+	   ParDWCopyBits : INT  := 512;	//Byte address of Copy[1]
+	   ParBlockLen   : INT  := 220;	//Byte per CBit
+	   Spare14 : WORD ;	
+	   Spare16 : WORD ;	
+	   Spare18 : WORD ;	
+	   VarTemp : ARRAY  [1 .. 10 ] OF //Working memory
+	   WORD ;	
+	   RBit : ARRAY  [1 .. 1280 ] OF //-- PC Write ---------
+	   BOOL ;	
+	   CBIT : ARRAY  [1 .. 1280 ] OF //-- PC Read  ------------
+	   BOOL ;	
+	   PLCLifeValue : INT :=0 ; 	//PCC read that value to detect, if the PLC is alive or not
+	   Value : ARRAY  [1 .. 75 ] OF //Fast value for PC
+	   INT ;	
+	   Copy : ARRAY  [1 .. 1280 ] OF //Internal used
+	   BOOL ;	
+	   ParPointer : STRUCT 	//-- Configuaration source address --
+	    B0001 : STRUCT 	// Log                Interface[001]
+	     DBNr   : INT := 5;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0005 : STRUCT 	// PC Direct Control  Interface[002]
+	     DBNr   : INT := 0;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0009 : STRUCT 	// VDU Message        Interface[003]
+	     DBNr   : INT := 0;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0013 : STRUCT 	// Not used        Interface[004]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0017 : STRUCT 	// Not used        Interface[005]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0021 : STRUCT 	// Not used        Interface[006]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0025 : STRUCT 	// Not used        Interface[007]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0029 : STRUCT 	// Not used        Interface[008]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0033 : STRUCT 	// Not used        Interface[009]
+	     DBNr : INT := 0;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	    B0037 : STRUCT 	// MAL1            Interface[010]
+	     DBNr : INT := 800;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0041 : STRUCT 	// MAL1S001        Interface[011]
+	     DBNr : INT := 801;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0045 : STRUCT 	// MAL1S005        Interface[012]
+	     DBNr : INT := 805;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0049 : STRUCT 	// MAL1S006        Interface[013]
+	     DBNr : INT := 806;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0053 : STRUCT 	// MAL1S007        Interface[014]
+	     DBNr : INT := 807;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0057 : STRUCT 	// MAL1S017        Interface[015]
+	     DBNr : INT := 817;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0061 : STRUCT 	// MAL1S018        Interface[016]
+	     DBNr : INT := 818;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0065 : STRUCT 	// MAL1S019        Interface[017]
+	     DBNr : INT := 819;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0069 : STRUCT 	// MAL1S020        Interface[018]
+	     DBNr : INT := 820;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0073 : STRUCT 	// MAL1S021        Interface[019]
+	     DBNr : INT := 821;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0077 : STRUCT 	// MAL1S022        Interface[020]
+	     DBNr : INT := 822;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0081 : STRUCT 	// MAL1S023        Interface[021]
+	     DBNr : INT := 823;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0085 : STRUCT 	// MAL1S024        Interface[022]
+	     DBNr : INT := 824;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0089 : STRUCT 	// MAL1S032        Interface[023]
+	     DBNr : INT := 832;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0093 : STRUCT 	// MAL1S033        Interface[024]
+	     DBNr : INT := 833;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0097 : STRUCT 	// MAL1S034        Interface[025]
+	     DBNr : INT := 834;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0101 : STRUCT 	// MAL1S001RCV34   Interface[026]
+	     DBNr : INT := 844;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0105 : STRUCT 	// MAL1S001SND33   Interface[027]
+	     DBNr : INT := 843;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0109 : STRUCT 	// MAl1S034RCV36   Interface[028]
+	     DBNr : INT := 846;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0113 : STRUCT 	// MAl1S034SND35   Interface[029]
+	     DBNr : INT := 845;	
+	     ByteNr : INT :=41;	
+	    END_STRUCT ;	
+	    B0117 : STRUCT 	// G011G           Interface[030]
+	     DBNr : INT := 111;	
+	     ByteNr : INT :=11;	
+	    END_STRUCT ;	
+	    B0121 : STRUCT 	// spare           Interface[031]
+	     DBNr : INT := -1;	
+	     ByteNr : INT :=0;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	  END_STRUCT ;	
+ END_TYPE

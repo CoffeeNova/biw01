@@ -1,0 +1,49 @@
+	FUNCTION_BLOCK FB 1016
+	TITLE =A_3111_MXZ21_31MA LIFTING DRIVE 
+	//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:       WinCoS_BIW01_09
+	//
+	//TITLE:         LIFTING DRIVE 
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:         AUTHOR:             DEPT:                             DATE:
+	// 
+	//P01_FB1016.1.0 K.Renz              CSB41                             10.Nov.2009
+	//               1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 0.0
+	
+	
+	VAR
+	         Ma :  UDT 20850  ;  // Machine
+	         A_3111_MXZ21 : FB12;  // MotorLeft: Motor
+	         A_3111_MXZ31 : FB12;  // MotorRight: Motor
+	         A_3111_BZS23 : FB14;  // LSTopLeft: DigInpCont
+	         A_3111_BZS33 : FB14; // LSTopRight: DigInpCont
+	         A_3111_QYS22 : FB14;  // LSTopStopLeft: DigInpCont
+	         A_3111_QYS32 : FB14;  // LSTopStopRight: DigInpCont
+	         A_3111_MXZ21_SM : FB14;  // SMLeft: DigInpCont
+	         A_3111_MXZ31_SM : FB14;   // SMRight: DigInpCont
+	         A_3111_MXZ21_31_BM : FB14;   // OffTrackMon: DigInpCont
+	         CounterLeft  : UDT 20851;   // Counter module left side
+	         CounterRight : UDT 20851;   // Counter module right side
+	END_VAR
+	
+	BEGIN
+	NETWORK
+	TITLE =Call SSW
+	   UC  FB85
+	END_FUNCTION_BLOCK

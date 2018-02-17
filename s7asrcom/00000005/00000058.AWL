@@ -1,0 +1,111 @@
+FUNCTION "STD_LineSecStdSub" : VOID
+TITLE =Line and section control standard subroutines
+//COPYRIGHT:    (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      STD_MU664    
+//
+//TITLE:        Line and section control standard subroutines
+//              
+//              Standardfunktionen für Linien und Sektionen              
+//              
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                              DATE:
+//STD_FC120.2.0 A.Egli              CT3                                18-Oct-2002
+//              - New release
+//STD_FC120.1.12Ph. Engler          MU664                              23-Aug-2002
+//              - Function (4,1) added: Search group manual mode
+//STD_FC120.1.11Ph. Engler          MU664                              30-Apr-2002
+//              - Function (1,55) and (2,55) modified: Stopping/Stopped
+//STD_FC120.1.10Ph. Engler          MU664                              21-Mar-2002
+//              - Function (2,55): starting until S.ToSSW.infStarted
+//STD_FC120.1.9 Ph. Engler          MU664                              12-Mar-2002
+//              Status codes for WinCoS implemented:
+//              - General group colour code
+//              - Line and Section info code
+//STD_FC120.1.8 Ph. Engler          MU664                              20-Mar-2001
+//              Line status colour for 2-4 section implemented
+//STD_FC120.1.7 Ph. Engler          MU664                              20-Dec-2000
+//              Pre stop weight for cmdSequenceStop
+//STD_FC120.1.6 Ph. Engler          MU664                              14-Dec-2000
+//              - Substitude Bincode into recipe extended, InCode 3 
+//              - JS Job paramter flags (2,2) Sta-Address corrected
+//STD_FC120.1.5 Ph. Engler          MU664                              01-Nov-2000
+//              CmdSequenceStop only if section is in StActive           
+//STD_FC120.1.4 Ph. Engler          MU664                              19-Okt-2000
+//              Update SND-Binlist staSameSndRcv:
+//               Suppression of the error meassage 'bin not found'
+//STD_FC120.1.3 Ph. Engler          MU664                              28-Jun-2000
+//              Section text and colour code extension 
+//              with code 702, 703 and 1402
+//STD_FC120.1.2 Ph. Engler          MU664                              04-May-2000
+//              LS Line state/fault protocolling (1,10)
+//               esXXX corrected 
+//STD_FC120.1.1 Ph. Engler          MU664                              29-Mar-2000
+//              Line log messages implemented
+//STD_FC120.1.0 Ph. Engler          MU664                              05-Jan-2000
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      These function are callt by Line Control and
+//              Section Control.
+//              The most subroutine are handled by FB90
+//
+//RESTRICTIONS:
+//
+//--------------------------------------------------------------------------------
+//
+//InCode: 
+//1000 to 1999: Subroutines Line
+//              For Input and Output parameter is 
+//              LineDB.VarTemp used  
+//2000 to 2999: Subroutines Section
+//              For Input and Output parameter is
+//              SectionDB.VarTemp used  
+//
+//
+//
+AUTHOR : PE
+FAMILY : STD
+VERSION : 2.0
+
+
+VAR_INPUT
+  InCode : INT ;	//Code number; 1000=Line 2=Section 
+END_VAR
+BEGIN
+NETWORK
+TITLE =Input Data
+
+
+
+NETWORK
+TITLE =Sub1031: CF Clear line flags 
+//Open DB=  Line Parameter DB
+      L     #InCode; 
+      L     1031; 
+      <>I   ; 
+      SPB   CF00; 
+//Line parameter DB
+      L     L#0; 
+      T     DBD  140; // Section 1
+      T     DBD  144; // Section 2
+      T     DBD  148; // Section 3
+      T     DBD  152; // Section 4
+      T     DBD  156; // General
+      T     DBD  160; // General
+CF00: NOP   0; 
+NETWORK
+TITLE =All other Subroutines are handled by FB90
+
+      TDB   ; 
+      L     #InCode; 
+      T     DIW    0; //InCode
+//Call Methode FB90
+      UC    "STD_LineSecStdSub2"; 
+
+END_FUNCTION
+

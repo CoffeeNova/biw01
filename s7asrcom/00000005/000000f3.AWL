@@ -1,0 +1,885 @@
+FUNCTION_BLOCK "GCS7_E_DEVC"
+TITLE =DevCtrl 
+//  
+//COPYRIGHT:    (C) 2004 BY  BUHLER AG, CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element DevCTRL (Profibus)
+//              (GCPROVB Revision 10)
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                      DATE:
+//FB38.1.1      A. Egli             CT3                        20-Sep-2004
+//              Integration test
+//FB38.1.0      A. Egli             CT3                        08-Jun-2004
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DEVCENMAN]
+//
+//RESTRICTIONS: S7
+//
+//              (*2) : Not used for MZDE
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//0     = Fault Cannceled
+//1..79 = AlarmLC : Alarmnumber see manual of MEAF
+//90    = Fault Remote Control
+//91    = StStopped
+//92    = StDosing
+//93    = StEmptied
+//94    = Timeout starting
+//95    = Wrong value
+//96    = Communication fault
+//97    = 
+//98    = 
+//99    = Collected alarm
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32    StFault                 
+// 1    StStopped                   Stopped
+//41    Stopped.HWStop              StStopped + InHWStop 
+//51    Stopped.DPFault             StStopped + DPFault
+// 2    StStarting              
+// 3    StStarted               
+// 7    StStopping              
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DEVCTRL
+VERSION : 1.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run the element (manual and automatic mode)
+  InAutomaticControl : BOOL ;	//1=Automatic Control, 0=Manual Control
+  CmdRestart : BOOL ;	//Pulse to send "Newstart" to LC
+  InHoldStartValue : BOOL ;	//Is sent to LC : de: Startwert aktiv
+  spare0203 : BOOL ;	
+  spare0205 : BOOL ;	
+  spare0206 : BOOL ;	
+  spare0207 : BOOL ;	
+  CmdOff : BOOL ;	//Pulse to stop the element (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual / 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InSimulation : BOOL ;	//MZAH: Simulation with DPSim
+  OutComFault : BOOL ;	//Communication fault
+  OutWrongValue : BOOL ;	//Wrong nominal values, rejected by MEAF
+  OutSteamValueOn : BOOL ;	//de: Dampfventil angesteuert
+  OutLS1Closed : BOOL ;	//de: Endschalter 1 geschlossen
+  OutLS2Closed : BOOL ;	//de: Endschalter 2 geschlossen
+  StStopped : BOOL ;	//Element is stopped
+  StStarting : BOOL ;	//Element is starting
+  StStarted : BOOL ;	//Element is dosing
+  StStopping : BOOL ;	//Element is stopping
+  StFault : BOOL ;	//Element has a communication or device fault
+  InTemperature : INT ;	//Is sent to LC: Target value [0.1°C]  sent to MEAF
+  InSteamValueManual : INT ;	//Is sent to LC: Target value steam control manual mode [0.1%] 
+  InProductFlowrate : DINT ;	//Is sent to LC: Actual flowrate product [kg/h] 
+  InStartValueSteam : INT ;	//Is sent to LC: CTRL.START Start value for steam control [0.1%] 
+  InQMin : INT ;	//Is sent to LC: Minimum dosing value TCON.QMIN
+  InQMax : INT ;	//Is sent to LC: Maximum dosing value TCON.QMAX
+  spare20 : INT ;	
+  spare22 : INT ;	
+  spare24 : INT ;	
+  spare26 : INT ;	
+  OutTemperature1 : INT ;	//Is read from LC: [0.1°C] 
+  OutTemperature2 : INT ;	//Is read from LC: [0.1°C] 
+  OutTemperature3 : INT ;	//Is read from LC: [0.1°C] 
+  OutSteamAc : DINT ;	//Is read from LC: Actual flowrate steam [0.1%] 
+  OutStartValueSteam : DINT ;	//Is read from LC: Start value for steam control [0.1%] 
+  spare42 : DINT ;	//Is read from LC: Minimum dosing value TCON.QMIN
+  spare46 : DINT ;	//Is read from LC: Maximum dosing value TCON.QMAX
+  OutAlarmNr : INT ;	//Is read from MEAF 
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  InFilter : ARRAY  [0 .. 95 ] OF //These alarms are not printed  (1=no alarm)
+  BOOL ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode wihout interlocking
+   ParIOByteNr : INT ;	//PROFIBUS: Address of first input and output byte
+   ParMonTime : INT ;	//Monitoring time starting and stopping
+   OutMonTime : INT ;	//Monitoring time starting and stopping
+   OutHelpFlags : STRUCT 	//Is sent to FBAL
+    OutAlarmTimeOut : BOOL ;	
+    CmdFaultReset : BOOL ;	
+    OutFaultResetDone : BOOL ;	
+    OutTestNewAlarm : BOOL ;	//Aux. signal to retry fault message
+    OutFlagFaultResetDone : BOOL ;	
+    OutComFaultRead : BOOL ;	
+    OutComFaultSend : BOOL ;	
+    OutRelevantFault : BOOL ;	
+    OutNoAlarm : BOOL ;	//Alarmnumber 0 is read form LC
+   END_STRUCT ;	
+   Command : STRUCT 	
+    Start : BOOL ;	//de: Start
+    Automatic : BOOL ;	//de: Automat/Manual
+    Restart : BOOL ;	//de: Neustart mit Startwert und Startzeit
+    StartValueActive : BOOL ;	//de: Startwert aktiv
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    spare06 : BOOL ;	
+    AcceptNewDataReady : BOOL ;	//FBAL: de: Quittierung neue Werte Bereit
+    spare10 : BYTE ;	
+    spare20 : BYTE ;	
+    CommandReady : BOOL ;	//de: Steuersignale gültig
+    spare31 : BOOL ;	
+    spare32 : BOOL ;	
+    spare33 : BOOL ;	
+    spare34 : BOOL ;	
+    ResetAlarm : BOOL ;	//de: Alarm löschen
+    NewSendData : BOOL ;	//de: Aenderung Sendedaten
+    AcceptNewRcvData : BOOL ;	//de: Quittierung Aenderung Empfangsdatensatz
+   END_STRUCT ;	
+   Status : STRUCT 	
+    Operation : BOOL ;	//de: Betrieb
+    spare01 : BOOL ;	
+    RestartDone : BOOL ;	//de: Neustart wurde vorgenommen
+    spare03 : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	// 
+    spare06 : BOOL ;	
+    NewDataReady : BOOL ;	//de: Neue Werte Bereit
+    SteamValueOn : BOOL ;	//de: Dampfventil angesteuert
+    LS1Closed : BOOL ;	//de: Endschalter 1 geschlossen
+    LS2Closed : BOOL ;	//de: Endschalter 2 geschlossen
+    spare20 : BYTE ;	
+    spare30 : BOOL ;	
+    spare31 : BOOL ;	
+    spare32 : BOOL ;	
+    RemoteControl : BOOL ;	//de: Sollwertvorgabe Remote
+    WrongValue : BOOL ;	//de: Falscher Sollwert
+    SumFault : BOOL ;	//de: Sammelalarm
+    AcceptNewSendData : BOOL ;	//de: Quittierung Aenderung Sendedaten
+    NewRcvData : BOOL ;	//de: Aenderung Empfangsdaten
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpCommand : INT ;	
+  tmpFault : BOOL ;	
+  tmpOff : BOOL ;	
+  tmpOn : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  tmpReport : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpAddrOffset : DINT ;	
+  tmpAddr : WORD ;	
+  tmpReturn : INT ;	
+  DPData : STRUCT 	
+   StatusCommand : DWORD ;	
+   NrSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   IdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   NrRcvDataSet : BYTE ;	//de: Nummer Empfangsdatensatz
+   IdxRcvDataSet : BYTE ;	//de: Index Empfangsdatensatz
+   Data : ARRAY  [1 .. 4 ] OF DINT ;	
+  END_STRUCT ;	
+  Set001 : STRUCT 	
+   Temperature1 : INT ;	//Is read from LC: [0.1°C] 
+   Temperature2 : INT ;	//Is read from LC: [0.1°C] 
+   Temperature3 : INT ;	//Is read from LC: [0.1°C] 
+   StreamAc : DINT ;	//Is read from LC: Actual flowrate steam [0.1%] 
+   StartValueSteam : INT ;	//Is read from LC: Start value for steam control [0.1%] 
+   DosingValueMax : INT ;	//Is read from LC: Maximum dosing value TCON.QMAX
+   DosingValueMin : BYTE ;	//Is read from LC: Minimum dosing value TCON.QMIN
+   AlarmNr : BYTE ;	//Is read from MEAF 
+  END_STRUCT ;	
+  Set128 : STRUCT 	
+   Temperature : INT ;	//Is sent to LC: Target value [0.1°C]  sent to MEAF
+   SteamValueManual : INT ;	//Is sent to LC: Target value steam control manual mode [0.1%] 
+   spare12 : INT ;	//Is sent to LC: Target value steam control manual mode [0.1%] 
+   FlowrateProdAc : DINT ;	//Is sent to LC: Actual flowrate product [kg/h] 
+   StartValueSteam : INT ;	//Is sent to LC: CTRL.START Start value for steam control [0.1%] 
+   DosingValueMax : INT ;	//Is sent to LC: Maximum dosing value TCON.QMAX
+   DosingValueMin : INT ;	//Is sent to LC: Minimum dosing value TCON.QMIN
+  END_STRUCT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     90; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1138; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //Cmd1[2]  =CmdRestart
+      S     #CmdRestart; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]  =CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]  =CmdOn
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10] =CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14] =CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14] =CmdReportOff
+      R     #InReport; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; //-->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =(Profibus) Read data and store Data 
+
+      L     #Par.ParIOByteNr; 
+      T     #tmpAddr; 
+      U     #InSimulation; 
+      SPB   rSim; 
+      CALL "SIEMENS_DPRD_DAT" (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #tmpReturn,
+           RECORD                   := #DPData);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.OutHelpFlags.OutComFaultRead; 
+      SPB   rcv0; 
+      SPA   rDP; 
+//read from Simulation
+rSim: R     #Par.OutHelpFlags.OutComFaultRead; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   "TEST_IOSimuliInput"; 
+      L     P#DBX 0.0; 
+rDB1: L     #Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     D [AR1,P#0.0]; 
+      T     #DPData.StatusCommand; 
+      L     B [AR1,P#4.0]; 
+      T     #DPData.NrSndDataSet; 
+      L     B [AR1,P#5.0]; 
+      T     #DPData.IdxSndDataSet; 
+      L     B [AR1,P#6.0]; 
+      T     #DPData.NrRcvDataSet; 
+      L     B [AR1,P#7.0]; 
+      T     #DPData.IdxRcvDataSet; 
+      L     D [AR1,P#8.0]; 
+      T     #DPData.Data[1]; 
+      L     D [AR1,P#12.0]; 
+      T     #DPData.Data[2]; 
+      L     D [AR1,P#16.0]; 
+      T     #DPData.Data[3]; 
+      L     D [AR1,P#20.0]; 
+      T     #DPData.Data[4]; 
+//==Copy Status===============
+rDP:  L     #DPData.NrRcvDataSet; 
+      L     0; 
+      ==I   ; 
+      SPB   R001; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.StatusCommand,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Par.Status);
+      UN    #Par.Status.NewRcvData; 
+      U     #InSimulation; 
+      SPB   rcv0; 
+//===============================
+//Answer Dataset 001
+      L     #DPData.NrRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r127; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Set001);
+      L     #Set001.Temperature1; 
+      T     #OutTemperature1; 
+      L     #Set001.Temperature2; 
+      T     #OutTemperature2; 
+      L     #Set001.Temperature3; 
+      T     #OutTemperature3; 
+      L     #Set001.StreamAc; 
+      T     #OutSteamAc; 
+      L     #Set001.StartValueSteam; 
+      T     #OutStartValueSteam; 
+//Reset old alarm flags with CmdFaultReset
+      U     #Par.OutHelpFlags.OutFlagFaultResetDone; 
+      U     "SYS_Pulse1000ms"; 
+      R     #Par.OutHelpFlags.OutFlagFaultResetDone; 
+      R     #Par.OutHelpFlags.OutFaultResetDone; 
+      S     #Par.OutHelpFlags.OutTestNewAlarm; 
+      L     0; 
+      L     #Set001.AlarmNr; 
+      ==I   ; 
+      =     #Par.OutHelpFlags.OutNoAlarm; 
+//  keep old alalrm number
+      U     #Par.OutHelpFlags.OutNoAlarm; 
+      U     #Par.OutHelpFlags.OutRelevantFault; 
+      UN    #Par.OutHelpFlags.OutTestNewAlarm; 
+      UN    #InLocal; 
+      UN    #InManual; 
+      SPB   rA1; 
+      T     #OutAlarmNr; 
+rA1:  SPA   R127; 
+//===============================
+//Answer  dataset 127
+r127: L     #DPData.NrRcvDataSet; 
+      L     127; 
+      <>I   ; 
+      SPB   r001; 
+      SPA   R001; 
+//===============================
+//Else Read Dataset 1
+r001: SPA   R001; // =no valide answer read dataset 001
+//===============================
+//Read Dataset 001
+R001: L     1; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      U     #Par.OutHelpFlags.OutFaultResetDone; 
+      UN    "SYS_Pulse1000ms"; 
+      S     #Par.OutHelpFlags.OutFlagFaultResetDone; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 127
+R127: L     127; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+rcv0: NOP   0; 
+NETWORK
+TITLE =(Profibus) Status to ASW
+
+      U     #Par.OutHelpFlags.OutComFaultRead; 
+      O     #Par.OutHelpFlags.OutComFaultSend; 
+      =     #OutComFault; 
+
+      U     #Par.Status.SteamValueOn; 
+      UN    #OutComFault; 
+      =     #OutSteamValueOn; 
+      U     #Par.Status.LS1Closed; 
+      UN    #OutComFault; 
+      =     #OutLS1Closed; 
+      U     #Par.Status.LS2Closed; 
+      UN    #OutComFault; 
+      =     #OutLS2Closed; 
+//=======================================
+//Init in local mode  
+//=======================================
+      UN    #InLocal; 
+      UN    #InManual; 
+      ON    #OutComFault; 
+      SPB   alJL; 
+      L     0; 
+      T     #OutSteamAc; 
+alJL: NOP   0; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Global.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Global.InManualMode
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//---State---
+//---Local---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Off---
+      UN    #InManual; 
+      ON    #Par.ParManual; 
+      UN    #InEnable; 
+      O     #tmpLocal; 
+      O     #CmdOff; 
+      =     #tmpOff; 
+//---On---
+      U     #CmdNext; 
+      UN    #InManual; 
+      O     #CmdOn; 
+      UN    #tmpOff; 
+      =     #tmpOn; 
+//--- Time out---
+      UN    #StStarting; 
+      UN    #StStopping; 
+      UN    #StFault; 
+      R     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      SPB   inJ1; 
+      U     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      O     #StFault; 
+      SPB   inJ1; 
+      L     0; 
+      L     #Par.OutMonTime; 
+      >I    ; 
+      =     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      UN    "GCS7_Gr_OutTick200ms"; // Global Tick 200ms
+      SPB   inJ1; 
+      +     -2; // Decrement all 200ms
+      T     #Par.OutMonTime; 
+inJ1: NOP   0; 
+//=======================================
+//Fault   
+//=======================================
+      U     #Par.Status.WrongValue; 
+      =     #OutWrongValue; 
+//--- Fault   
+      LAR1  #tmpAddrOffset; 
+      L     P##InFilter; 
+      +AR1  ; //Pointer to #InFilter
+      L     #OutAlarmNr; 
+      +AR1  ; //Pointer to #InFilter[OutAlarmNumber]
+      L     #OutAlarmNr; 
+      L     0; 
+      <>I   ; 
+      UN    DIX [AR1,P#0.0]; //#InFilter[OutAlarmNumber]
+      O     ; 
+      U     #Par.Status.SumFault; 
+      UN    #InFilter[0]; 
+      =     #Par.OutHelpFlags.OutRelevantFault; 
+
+      U     #Par.OutHelpFlags.OutRelevantFault; 
+      U     #Par.Status.SumFault; 
+      O     #OutComFault; 
+      O     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      O     #Par.Status.WrongValue; 
+      ON    #Par.Status.RemoteControl; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+NETWORK
+TITLE =(Profibus) Prepare Command for MEAF
+
+      U     #Par.Command.Start; 
+      =     #tmpFlag; 
+      U     #tmpOn; 
+      S     #Par.Command.Start; 
+      U     #StFault; 
+      O     #tmpOff; 
+      O     #StStopping; 
+      R     #Par.Command.Start; 
+//==============================
+      U     #InAutomaticControl; 
+      =     #Par.Command.Automatic; 
+//================================
+      U     #CmdRestart; 
+      S     #Par.Command.Restart; 
+      U     #CmdRestart; 
+      U     #Par.Command.Restart; 
+      U     #Par.Status.RestartDone; 
+      R     #Par.Command.Restart; 
+      R     #CmdRestart; 
+//================================
+      U     #InHoldStartValue; 
+      =     #Par.Command.StartValueActive; 
+//==============================
+      U     #Par.Status.AcceptNewSendData; 
+      U     #Par.Command.ResetAlarm; 
+      R     #Par.Command.ResetAlarm; 
+      S     #Par.OutHelpFlags.OutFaultResetDone; 
+      U     #CmdFaultReset; 
+      UN    #Par.Status.AcceptNewSendData; 
+      R     #CmdFaultReset; 
+      S     #Par.Command.ResetAlarm; 
+      R     #Par.OutHelpFlags.OutAlarmTimeOut; 
+//==============================
+      U     #Par.Status.NewDataReady; 
+      =     #Par.Command.AcceptNewDataReady; 
+//==============================
+      SET   ; 
+      =     #Par.Command.CommandReady; 
+//==============================
+      U     #Par.Status.NewRcvData; 
+      =     #Par.Command.AcceptNewRcvData; 
+//==============================
+      UN    #Par.Status.AcceptNewSendData; 
+      =     #Par.Command.NewSendData; 
+NETWORK
+TITLE =(Profibus) Send Data
+
+//======================================================
+//Test Send Dataset 000 done
+      L     #DPData.NrSndDataSet; 
+      L     0; 
+      <>I   ; 
+      SPB   s128; 
+      SPA   S128; //-->send 128
+//------------------------------------------------
+//Test Send Dataset 128 done
+s128: L     #DPData.NrSndDataSet; 
+      L     128; 
+      <>I   ; 
+      SPB   S000; //-->Send 000
+      SPA   S128; //-->Send 128
+//==================================================
+//Send Dataset 128
+S128: L     128; 
+      T     #DPData.NrSndDataSet; 
+      L     0; 
+      T     #DPData.IdxSndDataSet; 
+      L     #InTemperature; 
+      T     #Set128.Temperature; 
+      L     #InSteamValueManual; 
+      T     #Set128.SteamValueManual; 
+      L     0; 
+      T     #Set128.spare12; 
+      L     #InProductFlowrate; 
+      T     #Set128.FlowrateProdAc; 
+      L     #InStartValueSteam; 
+      T     #Set128.StartValueSteam; 
+      L     #InQMax; 
+      T     #Set128.DosingValueMax; 
+      L     #InQMin; 
+      T     #Set128.DosingValueMin; 
+      SPA   send; 
+//======================================================
+//Send Dataset 0
+S000: L     0; 
+      T     #DPData.NrSndDataSet; 
+      L     0; 
+      T     #DPData.IdxSndDataSet; 
+send: CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Par.Command,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.StatusCommand);
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Set128,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.Data);
+      U     #InSimulation; 
+      SPB   sSim; 
+      CALL "SIEMENS_DPWR_DAT" (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #DPData,
+           RET_VAL                  := #tmpReturn);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.OutHelpFlags.OutComFaultSend; 
+      SPA   DP_C; 
+//write to Simulation
+sSim: R     #Par.OutHelpFlags.OutComFaultSend; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   "TEST_IOSimuliOutput"; 
+      L     P#DBX 0.0; 
+rDB2: L     #Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     #DPData.StatusCommand; 
+      T     D [AR1,P#0.0]; 
+      L     #DPData.NrSndDataSet; 
+      T     B [AR1,P#4.0]; 
+      L     #DPData.IdxSndDataSet; 
+      T     B [AR1,P#5.0]; 
+      L     #DPData.NrRcvDataSet; 
+      T     B [AR1,P#6.0]; 
+      L     #DPData.IdxRcvDataSet; 
+      T     B [AR1,P#7.0]; 
+      L     #DPData.Data[1]; 
+      T     D [AR1,P#8.0]; 
+      L     #DPData.Data[2]; 
+      T     D [AR1,P#12.0]; 
+      L     #DPData.Data[3]; 
+      T     D [AR1,P#16.0]; 
+      L     #DPData.Data[4]; 
+      T     D [AR1,P#20.0]; 
+DP_C: NOP   0; 
+
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StStarting; 
+      SPB   S1; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StStopping; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; //Init
+      SPA   S0; 
+
+NETWORK
+TITLE = StStopped
+
+xxS0: S     #StStopped; 
+      R     #StStarted; 
+      SPA   LOGX; 
+S0:   U     #tmpFault; 
+      R     #StStopped; 
+      SPB   xxS4; //--> Transition to StFault
+      U     #Par.Status.Operation; 
+      UN    #OutComFault; 
+      O     #Par.Command.Start; 
+      R     #StStopped; 
+      SPB   xxS1; //--> Transition to StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStarting
+
+xxS1: S     #StStarting; 
+      R     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   OUT; 
+S1:   U     #tmpFault; //Condition for StFault
+      R     #StStarting; 
+      SPB   xxS4; //--> Transition to StFault
+      U     #tmpOff; 
+      R     #StStarting; 
+      SPB   xxS3; //--> Transition to StStopping
+      U     #Par.Status.Operation; 
+      R     #StStarting; 
+      SPB   xxS2; //--> Transition to StStarted
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStarted
+
+xxS2: S     #StStarted; 
+      SPA   LOGX; 
+S2:   U     #tmpFault; //Condition for StFault/StFalse
+      R     #StStarted; 
+      SPB   xxS4; //--> Transition to StFault
+      U     #tmpOff; 
+      ON    #Par.Status.Operation; 
+      R     #StStarted; 
+      SPB   xxS3; //--> Transition to StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStopping
+
+xxS3: S     #StStopping; 
+      R     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      U     #StFault; 
+      R     #StFault; 
+      SPB   LOGC; //-->Message Operator ('fault cancelled' )
+//State StStopping
+S3:   U     #tmpFault; 
+      UN    #tmpLocal; 
+      R     #StStopping; 
+      SPB   xxS4; //-->Transition to StFault
+      U     #tmpOn; 
+      R     #StStopping; 
+      SPB   xxS1; //-->Transition to StStarting 
+      UN    #Par.Status.Operation; 
+      O     #OutComFault; 
+      R     #StStopping; 
+      SPB   xxS0; //-->Transition to StStopped 
+      SPA   OUT; 
+
+NETWORK
+TITLE = FAULT
+
+// State Fault
+S4:   UN    #tmpFault; //---Condition for StStopping
+      U     #Par.OutHelpFlags.OutTestNewAlarm; 
+      O     #tmpLocalFault; 
+      SPB   xxS3; // Transition to StStopping
+      U     #Par.OutHelpFlags.OutTestNewAlarm; 
+      SPB   xxS4; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =LOG
+
+xxS4: S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #StFault; 
+      R     #Par.OutHelpFlags.OutFaultResetDone; 
+      R     #Par.OutHelpFlags.OutTestNewAlarm; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1138,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+//Alarm Communication
+      L     B#(1, 96); 
+      U     #OutComFault; 
+      SPB   LOG; 
+//Tiemout
+      U     #Par.OutHelpFlags.OutAlarmTimeOut; 
+      L     B#(1, 94); // Message ('fault timeout')
+      SPB   LOG; 
+//Alarm-Nr 1..80
+      L     0; 
+      L     #OutAlarmNr; 
+      ==I   ; 
+      SPB   LOG2; 
+      L     B#(1, 0); 
+      OW    ; 
+      SPA   LOG; //Alarms 1..80
+//Fault Remote Control
+LOG2: L     B#(1, 90); // Message ('fault DP Mode')   //[5.2]
+      UN    #Par.Status.RemoteControl; //[5.2]
+      SPB   LOG; //[5.2]
+//Fault Wrong Value
+      U     #Par.Status.WrongValue; 
+      L     B#(1, 95); // Message ('fault wrong value')
+      SPB   LOG; 
+//Collected Alarm
+      L     B#(1, 99); // Message ('fault collected alarm')
+      SPA   LOG; 
+//===============================================
+//State Transition
+LOGX: UN    #tmpReport; 
+      SPB   OUT; 
+      U     #StStopped; 
+      L     B#(4, 91); //Message ('Stopped')
+      SPB   LOG; 
+      U     #StStarted; 
+      L     B#(4, 92); //Message ('Started')
+      SPB   LOG; 
+      SPA   OUT; 
+LOGC: L     B#(4, 0); //Message ('fault cancelled')
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1138);
+
+NETWORK
+TITLE =Global End
+
+OUT:  SET   ; //---Clear all commands
+      R     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+//--Output for group 
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; // Code: stopped
+      SPB   STC; 
+//--------------------
+STC2: L     2; //Code: StStarting
+      U     #StStarting; 
+      SPB   STC; 
+      L     3; //Code: StStarted
+      U     #StStarted; 
+      SPB   STC; 
+      L     7; //Code: StStopping
+      U     #StStopping; 
+      SPB   STC; 
+      L     32; //Code: fault
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+
+END_FUNCTION_BLOCK
+

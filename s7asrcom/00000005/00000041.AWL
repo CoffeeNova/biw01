@@ -1,0 +1,953 @@
+FUNCTION FC 60 : VOID
+TITLE =Section Control: Main function
+//COPYRIGHT:    (C) 1994 BY  BUHLER AG,  CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        SECTION CONTROL: MAIN PROGRAM
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FB60.3.5      A.Egli              CT3                           12-Nov-2003
+//              Transition to Active: Set JobAc.BatchNo=1 when < 0
+//FB60.3.4      A.Egli              CT3                           04-Aug-2003
+//              PCRead.Status.StaImmediateStopASW is DBX120.0
+//FB60.3.3      A.Egli              CT3                           17-Jul-2003
+//              PCDirectControl: ParLineNr is DBW2 and not DBW4
+//FB60.3.2      A.Egli              CT3                           12-Jun-2003
+//              Wrong lenght copy Line to section
+//FB60.3.1      A.Egli              CT3                           14-Mar-2003
+//              Code35: Move to any section DB: DBW20=Destination
+//              Code22,23: No Transition StEmptying to StWait
+//FB60.3.0      A.Egli              CT3                            8-Okt-2002
+//              New release
+//FB60.2.10     A.Egli              CT3                           18-Mar-2002
+//  Send Command only to next section, if InfDataReady=1
+//FB60.2.9      A.Egli              CT3                           24-Sept-2001
+//  ParStartReleaseTime <=0 : Unlimited time
+//FB60.2.8      A.Egli              CT3                           17-Mai-2001
+//  Update Last Batch in next section
+//FB60.2.7      A.Egli              CT3                            5-Jul-2000
+//  Read command from PC only with F_Define 
+//FB60.2.6      A.Egli              CT3                           13-Mar-2000
+//  Replace DBB73 with DBW72 and DBB9 with DBW8 
+//FB60.2E       A.Egli              CT3                           30-Apr-1999
+// -Zustandswechsel nach st_emptied: Abfrage DBX117.3 nicht DIX117.3 
+//FB60.2D       A.Egli              CT3                           01-Apr-1999
+// -Methode 25: Move allways
+// -Bei reset Zustandswechsel nach st_emptied (Verbuchung
+// -Bei reset kein Zustandswechsel nach  StActive
+//FB60.2C       A.Egli              CT3                           22-Jul-98
+//               Line-Nr =DBW2
+//FB60.2B       A.Egli              AEE6                          14-Mai-98
+//               ToASW.InfDataMoved
+//FB60.2A       A.Egli              AEE6                          14-Jan-98
+//               Update  S5 (Version 2M)
+//FB60.1A       A.Egli              AEE6                          16-Jun-96
+//               Convert S5 to S7 (Version 2H)
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GCSOSMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+// CODE of the Methode
+//        0    : METHODE CONTROL
+//        1    : METHODE DECODER
+//        2    : METHODE STEP
+//        3    : METHODE STEP_TRANSITION
+//        4    : METHODE STATE
+//        5    : METHODE MOVE_DATA
+//        6    : METHODE NEXT BATCH
+//        7    : METHODE O_SECTION
+//        9    : METHODE ResultTotal
+//        10   : METHODE ResultBatch
+//        12   : METHODE PC Direct Control (Diagnose)
+//        13   : METHODE WayAdJustTime  
+//        25   : METHODE MOVE_DATA Uncondtion
+//        35   : METHODE MOVE_DATA any section
+//
+//ACTUAL DB BY CALL: SECTION  DB
+//AUFGESCHALGENER  : SEKTIONS DB
+//
+//$EJECT
+//
+//
+//
+//
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : SEC_MAIN
+VERSION : 3.5
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+END_VAR
+VAR_TEMP
+  Fault : BOOL ;	
+  VarLength : INT ;	
+  tmpByteWrite : INT ;	
+  SecDBAc : INT ;	
+  SecDBNext : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     DBNO; 
+      T     #SecDBAc; 
+
+NETWORK
+TITLE = METHODE CONTROL
+
+      L     #CODE; 
+      L     0; 
+      <>I   ; 
+      SPB   aEnd; 
+// === COMMANDS ==================
+      L     DBD   46; // "SecDB".ToASW.Func
+      L     DBD   66; // "SecDB".ToSSW.Func
+      OD    ; // 
+      T     DBD   46; // ->"SecDB".ToASW.Func
+      L     0; // 
+      ==D   ; //   no new commands
+      SPB   aNoC; 
+//=== RESET STATUSBIT ======
+      L     2#111111; // ON-COMMAND
+      L     DBW   46; // "SecDB".ToASW.Func[31..16]
+      UW    ; // 
+      INVI  ; // 
+      L     DBW  120; // "SecDB".PCRead.Status[15..00]
+      UW    ; // 
+      T     DBW  120; // ->"SecDB".PCRead.Status[15..00]
+// === SET STATUSBIT  ======
+      L     2#11111111; // OFF-COMMAND
+      L     DBW   48; // "SecDB".ToASW.Func[15..00]
+      UW    ; // 
+      L     DBW  120; // "SecDB".PCRead.Status[15..00]
+      OW    ; // 
+      T     DBW  120; // -->"SecDB".PCRead.StatusS[15..00]
+// 
+      U     DBX  121.6; // "SecDB".PCRead.Status.StaReset
+      S     DBX  121.7; //  "SecDB".PCRead.Status.StaEndOfJob
+      U     DBX   48.1; // "SecDB".ToASW.Func.CmdAbortBacth
+      S     DBX  201.0; // ->"SecDB".JobAc.StaBatch.StaErrBatch
+      U     DBX   49.6; // "SecDB".ToASW.Func.CmdReset
+      O     DBX   49.7; // "SecDB".ToASW.Func.CmdSequenzStop
+      O     DBX   48.1; // "SecDB".ToASW.Func.CmdAbortBacth
+      U     DBX   45.7; //"SecDB".ToASW.InfDataReady [2.10]
+      SPBN  aNoC; 
+      CALL FC    61 (// SUBROUTINE SEQUENZ_STOP
+           CODE                     := 2);
+aNoC: L     0; // 
+      T     DBD   66; // -> "SecDB".ToSSW.Func
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      L     DBW  168; // "SecDB".JobNom.BatchNo
+      >=I   ; // 
+      S     DBX  201.3; // -> "SecDB".JobAc.StaBatch.StaLastBatch
+      CALL FC    61 (// SUBROUTINE compare
+           CODE                     := 1);
+//===Empyting Time =====================================
+      UN    DBX   64.2; //"SecDB".ToSSW.InfPulseTimer
+      O     DBX   45.0; //  "SecDB".ToASW.InfEmptyingTimeEnd
+      SPB   aE2; // 
+      L     DBW  132; //"SecDB".PCRead.OutEmptyingTime
+      +     1; // 
+      T     DBW  132; // ->"SecDB".PCRead.OutEmptyingTime
+// 
+aE2:  U     DBX   62.5; // "SecDB".ToSSW.InfFeeding
+      S     DBX  119.4; // ->"SecDB".PCRead.Status.StaLoaded
+      U     DBX   64.7; // "SecDB".ToSSW.InfReleaseEmptyingTime
+      SPB   aX3; // 
+      L     0; // 
+      T     DBW  132; // "SecDB".PCRead.OutEmptyingTime
+aX3:  L     DBW  100; // "SecDB".PCWrite.ParEmptyingTime
+      L     DBW  132; // "SecDB".PCRead.OutEmptyingTime
+      <=I   ; // 
+      U     DBX   64.7; //"SecDB".ToSSW.InfReleaseEmptyingTime 
+      =     DBX   45.0; //"SecDB".ToASW.InfEmptyingTimeEnd
+      R     DBX  119.4; // ->"SecDB".PCRead.Status.StaLoaded
+      UN    DBX   45.0; //"SecDB".ToASW.InfEmptyingTimeEnd
+      U     DBX   64.7; // "SecDB".ToSSW.InfReleaseEmptyingTime
+      =     DBX  119.6; // -> "SecDB".PCRead.Status.StaEmptyingTime
+//===== F_RESULT =================
+      UN    DBX   64.1; // "SecDB".ToSSW.CmdSendResult
+      SPB   aCMD; // 
+      UN    DBX   82.1; // "SecDB".PCWrite.Hsk.Q_Result
+      UN    DBX  201.2; // "SecDB".JobAc.StaBatch.StaRegistrated
+      UN    DBX  102.1; //  "SecDB".PCRead.Hsk.F_Result
+      S     DBX  102.1; //  "SecDB".PCRead.Hsk.F_Result
+      S     DBX   41.0; //  "SecDB".ChangeBit.CBit1 
+aCMD: BEA   ; 
+aEnd: NOP   0; 
+NETWORK
+TITLE = METHODE DECODER (Code 1)
+
+      L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   bEnd; 
+      L     0; 
+      L     DBB  145; //  "LineDB".JobWrite.Hsk
+      ==I   ; 
+      BEB   ; 
+      L     DBW  140; // "LineDB".JobRead.ErrCode   [*1C*]
+      L     0; 
+      <>I   ; 
+      BEB   ; 
+      L     64; // Job-Header
+      T     DBW   20; // "LineDB".VarTemp[1] = ObjectNr
+      CALL FC    59 (// Subroutine block_adr
+           CODE                     := 1);
+      AUF   DI [DBW 4]; // -->CALL SECTION-DB[ "LineDB".Para.ParFirstSecDB]
+bLop: UN    DIX   44.7; // "SecDB".ToASW.InfSameJobLineDB
+      SPB   bNxt; 
+//  ==== modify datas ===========
+      S     DIX   44.0; // "SecDB".ToASW.CmdModify  
+      L     DBD  156; // "LineDB".JobWrite.Func
+      L     DID   46; // "SecDB".ToASW.Func
+      OD    ; // 
+      T     DID   46; // --> "SecDB".ToASW.Func
+// === Job-Header ==========
+      L     DINO; 
+      T     #SecDBAc; 
+      CALL FC    49 (
+           DBSource                 := DIW    4,//L_DB
+           ByteSource               := 160,//L_DB.DBB160
+           DBDest                   := #SecDBAc,//SecDB
+           ByteDest                 := 160,//SecDB.DBB160
+           NoOfByte                 := 40,
+           Fault                    := #Fault);
+// === Telegram: Additional data===
+      L     DBW   22; // "LineDB".VarTemp[2]= VarDWNr
+      L     0; // 
+      ==I   ; // 
+      SPB   bEXE; // 
+      L     DIW   12; // "SecDB".Para.ParSecDataLenNomValue
+      T     #VarLength; // ->VarLenth
+      L     DIW   10; // "SecDB".Para.ParSecDataFirstByte
+      L     DIW   14; // "SecDB".Para.ParSecDataLenAcValue [3.1]
+      +I    ; 
+      T     #tmpByteWrite; 
+      CALL FC    49 (
+           DBSource                 := DIW    4,//L_DB
+           ByteSource               := DBW   22,//L_DB.VarDWNr
+           DBDest                   := #SecDBAc,//SecDB
+           ByteDest                 := #tmpByteWrite,
+           NoOfByte                 := #VarLength,
+           Fault                    := #Fault);
+bEXE: UN    DBX  145.1; //"LineDB".JobWrite.Hsk.F_Execute
+      SPB   bNxt; 
+      R     DBX  153.7; // "LineDB".JobWrite.ObjMask[64]
+      L     DBD  146; // "LineDB".JobWrite.ObjMask[64..01]
+      L     DBD  150; // "LineDB".JobWrite.ObjMask[64..01]
+      OD    ; 
+      SPN   bNxt; 
+      TDB   ; 
+      CALL FC    61 (// SUBROUTINE init_section
+           CODE                     := 3);
+      TDB   ; 
+// -- Call next section
+bNxt: L     DIW    8; // "SecDB".Para.ParNextSecDB
+      L     0; //  
+      ==I   ; // no next section
+      SPB   bINI; // 
+      AUF   DI [DIW 8]; // ->CALL SECTION-DB["SecDB".Para.ParNextSecDB]
+      SPA   bLop; 
+bINI: R     DBX  153.7; // "LineDB".JobWrite.ObjMask[64]
+      BEA   ; 
+bEnd: NOP   0; 
+NETWORK
+TITLE = METHODE STEP (Code 2 , 22) 
+
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      U(    ; 
+      L     #CODE; 
+      L     22; 
+      <>I   ; 
+      )     ; 
+      SPB   cEnd; 
+      L     0; 
+      T     DBW   50; // "SecDB".ToASW.Transition:=0
+      U     DBX  111.0; //"SecDB".PCRead.Step.StPassive
+      SPB   cS0; 
+      U     DBX  111.1; // "SecDB".PCRead.Step.StWait
+      SPB   cS1; // 
+      U     DBX  111.2; //  "SecDB".PCRead.Step.StActive
+      SPB   cS2; 
+      U     DBX  111.3; //  "SecDB".PCRead.Step.StReady
+      SPB   cS3; 
+      U     DBX  111.4; //  "SecDB".PCRead.Step.StEmptying
+      SPB   cS4; 
+      U     DBX  111.5; //  "SecDB".PCRead.Step.StEmptied
+      SPB   cS5; 
+      U     DBX  111.6; //  "SecDB".PCRead.Step.StIdling
+      SPB   cS6; 
+      S     DBX  111.0; // "SecDB".PCRead.Step.StPassive
+// === ST_PASSIVE  ========================================
+cS0:  U     DBX   45.7; //"SecDB".ToASW.InfDataReady
+      SPB   cTx1; // --> StWait
+      SPA   cEnd; 
+// === ST_WAIT ============================================
+cS1:  U(    ; 
+      L     #CODE; 
+      L     2; 
+      ==I   ; 
+      )     ; 
+      U     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      UN    DBX   44.5; // "SecDB".ToASW.InfSameBatchPrevSec
+      O     DBX  121.6; // "SecDB".PCRead.Status.StaReset
+      ON    DBX   45.7; // "SecDB".ToASW.InfDataReady
+      SPB   cTx5; // --> StEmpting [2D]
+      UN    DBX  116.0; // es_batchSize
+      U     DBX   63.1; // "SecDB".ToSSW.CmdGotoActive
+      SPB   cTx2; // -->  "SecDB".PCRead.Step.StActive
+      SPA   cEnd; 
+// ===  "SecDB".PCRead.Step.StActive ==========================================
+cS2:  U     DBX   63.2; // "SecDB".ToSSW.CmdGotoReady
+      UN    DBX   44.5; // "SecDB".ToASW.InfSameBatchPrevSec
+      SPB   cTx3; // -->  "SecDB".PCRead.Step.StReady
+      L     DBW   72; //  "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      ==I   ; // 
+      O     DBX   44.6; // "SecDB".ToASW.InfSameBatchNextSec
+      UN    DBX   44.5; // "SecDB".ToASW.InfSameBatchPrevSec
+      U     DBX   63.3; //"SecDB".ToSSW.CmdGotoEmptying
+      SPB   cTx4; // 
+      U     DBX  121.6; // "SecDB".PCRead.Status.StaReset
+      ON    DBX   45.7; // "SecDB".ToASW.InfDataReady
+      SPB   cTx5; // --> StEmpting [2D]
+      SPA   cEnd; 
+// ===  "SecDB".PCRead.Step.StReady ==========================================
+cS3:  L     DBW   72; // "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      ==I   ; // 
+      O     DBX   44.6; // "SecDB".ToASW.InfSameBatchNextSec
+      U     DBX   63.3; // "SecDB".ToSSW.CmdGotoEmptying
+      SPB   cTx4; // -->  "SecDB".PCRead.Step.StEmptying
+      U     DBX  121.6; //  "SecDB".PCRead.Status.StaReset
+      ON    DBX   45.7; //"SecDB".ToASW.InfDataReady
+      SPB   cTx5; // --> StEmpting [2D]
+      SPA   cEnd; 
+// ===  "SecDB".PCRead.Step.StEmptying =======================================
+cS4:  U     DBX   44.5; // "SecDB".ToASW.InfSameBatchPrevSec
+      SPB   cTx2; // -->  "SecDB".PCRead.Step.StActive
+      L     DBW   72; //  "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      ==I   ; // 
+      O     DBX   44.6; // "SecDB".ToASW.InfSameBatchNextSec
+      U     DBX   63.4; // "SecDB".ToSSW.CmdGotoEmptied
+      SPB   cTx5; // --> StEmptied
+      U     DBX  121.6; //  "SecDB".PCRead.Status.StaReset
+      ON    DBX   45.7; // "SecDB".ToASW.InfDataReady 
+      SPB   cTx5; // --> StEmpting [2D]
+      SPA   cEnd; 
+// === ST_EMPTIED =======================================
+cS5:  U     DBX   44.5; // "SecDB".ToASW.InfSameBatchPrevSec
+      UN    DBX  121.6; // STA_RESET  [2D]
+      SPB   cTx2; // -->  "SecDB".PCRead.Step.StActive
+      L     DBW  206; // "SecDB".JobAc.BatchNo 
+      L     DBW  168; // "SecDB".JobNom.BatchNo
+      >=I   ; // 
+      S     DBX  121.7; // --> "SecDB".PCRead.Status.StaEndOfJob
+      L     0; // 
+      L     DBW   70; // "SecDB".ToSSW.InPrevSecDB
+      ==I   ; // 
+      U(    ; 
+      L     #CODE; 
+      L     22; 
+      <>I   ; 
+      )     ; 
+      UN    DBX  121.6; // "SecDB".PCRead.Status.StaReset 
+      UN    DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      U     DBX   45.7; // "SecDB".ToASW.InfDataReady
+      U     DBX   63.5; // "SecDB".ToSSW.CmdGotoIdling
+      SPB   cTx1; // -->StWait
+      U     DBX  121.6; // "SecDB".PCRead.Status.StaReset [2D]
+      ON    DBX   45.7; //  "SecDB".ToASW.InfDataReady
+      UN    DBX  119.3; //"SecDB".PCRead.Status.StaOnline [2E]
+      O     DBX   63.5; // "SecDB".ToSSW.CmdGotoIdling
+      SPB   cTx6; // ->  "SecDB".PCRead.Step.StIdling
+      SPA   cEnd; 
+// ===  "SecDB".PCRead.Step.StIdling =======================================
+cS6:  U     DBX   45.7; //  "SecDB".ToASW.InfDataReady
+      SPB   cTx1; // --> StWait
+      U     DBX   63.6; //  "SecDB".ToSSW.CmdGotoPassive
+      SPB   cTx0; // --> StPassive
+      SPA   cEnd; 
+// === TRANSITION =======================================
+cTx0: L     2#1; // --> "SecDB".PCRead.Step.StPassive
+      SPA   cTra; // 
+cTx1: L     2#10; // --> "SecDB".PCRead.Step.StWait
+      SPA   cTra; // 
+cTx2: L     2#100; // --> "SecDB".PCRead.Step.StActive
+      SPA   cTra; // 
+cTx3: L     2#1000; // --> "SecDB".PCRead.Step.StReady
+      SPA   cTra; // 
+cTx4: L     2#10000; // --> "SecDB".PCRead.Step.StEmptying
+      SPA   cTra; // 
+cTx5: L     2#100000; // --> "SecDB".PCRead.Step.Emptied
+      SPA   cTra; // 
+cTx6: L     2#1000000; // -->  "SecDB".PCRead.Step.StIdling
+// ==== ALL TRANSITION ==================================
+cTra: T     DBW   50; // --> "SecDB".ToASW.Transition
+      BEA   ; 
+cEnd: NOP   0; 
+NETWORK
+TITLE = METHODE TRANSITION_STEP (code 3)
+
+      L     #CODE; 
+      L     3; 
+      <>I   ; 
+      U(    ; 
+      L     #CODE; 
+      L     23; 
+      <>I   ; 
+      )     ; 
+      SPB   dEnd; 
+      L     DBW   50; // "SecDB".ToASW.Transition
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // EXIT
+      U     DBX   51.0; // "SecDB".ToASW.Transition.ToPassive
+      SPB   dTx0; 
+      U     DBX   51.1; // "SecDB".ToASW.Transition.ToWait
+      SPB   dTx1; 
+      U     DBX   51.2; // "SecDB".ToASW.Transition.ToActive 
+      SPB   dTx2; 
+      U     DBX   51.3; // "SecDB".ToASW.Transition.ToReady
+      SPB   dTx3; 
+      U     DBX   51.4; // "SecDB".ToASW.Transition.ToEmptying
+      SPB   dTx4; 
+      U     DBX   51.5; // "SecDB".ToASW.Transition.ToEmptied 
+      SPB   dTx5; 
+      U     DBX   51.6; //"SecDB".ToASW.Transition.ToIdling
+      SPB   dTx6; 
+      SPA   dEnd; 
+// === TRANSITION_TO_ST_PASSIVE =========================
+dTx0: NOP   0; 
+      SPA   dTra; 
+// === TRANSITION_TO_ST_WAIT ============================
+dTx1: R     DBX   63.1; //  "SecDB".ToSSW.CmdGotoActive 
+      R     DBX   64.1; // "SecDB".ToSSW.CmdSendResult
+      U     DBX  111.5; // "SecDB".PCRead.Step.StEmptied 
+      R     DBX  201.0; // -> "SecDB".JobAc.StaBatch.StaErrBatch
+      SPA   dTra; 
+// === TRANSITION_TO_ST_ACTIVE ==========================
+dTx2: R     DBX   63.2; // -> "SecDB".ToSSW.CmdGotoReady
+      R     DBX   63.3; // -> "SecDB".ToSSW.CmdGotoEmptying
+      R     DBX   64.1; // -> "SecDB".ToSSW.CmdSendResult
+      L     DBW  206; // "SecDB".JobAc.BatchNo  [3.5]
+      L     1; //                        [3.5]
+      >=I   ; //                        [3.5]
+      ON    DBX  200.6; // "SecDB".JobAc.StaBatch.StaEmptyingBatch [3.5]
+      SPB   dTra; //                        [3.5]
+      T     DBW  206; // "SecDB".JobAc.BatchNo  [3.5]
+      SPA   dTra; 
+// === TRANSITION_TO_ST_READY ==========================
+dTx3: R     DBX   63.3; // -> "SecDB".ToSSW.CmdGotoEmptying
+      SPA   dTra; 
+// === TRANSITION_TO_ST_EMPYTYING ======================
+dTx4: R     DBX   63.4; // ->  "SecDB".ToSSW.CmdGotoEmptied
+      SPA   dTra; 
+// === TRANSITION_TO_ST_EMPYTIED =======================
+dTx5: R     DBX   63.5; // ->  "SecDB".ToSSW.CmdGotoIdling
+      SPA   dTra; 
+// === TRANSITION_TO_StIdling =========================
+dTx6: R     DBX   63.6; // -> "SecDB".ToSSW.CmdGotoPassive
+      R     DBX  201.0; // -> "SecDB".JobAc.StaBatch.StaErrBatch
+      R     DBX  200.7; // -> "SecDB".JobAc.StaBatch.StaScaleRecipeValid
+      UN    DBX  121.7; // [2.8]"SecDB".PCRead.Status.StaEndOfJob 
+      SPB   dT61; // [2.8]                
+      CALL FC    61 (// [2.8] SUBROUTINE SEQUENZ_STOP
+           CODE                     := 2);
+dT61: L     0; // 
+      L     DBW   70; //  "SecDB".ToSSW.InPrevSecDB 
+      <>I   ; // 
+      O(    ; 
+      L     #CODE; 
+      L     23; 
+      ==I   ; 
+      )     ; 
+      O     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      R     DBX   45.7; // -> "SecDB".ToASW.InfDataReady
+      CALL FC    61 (// Subroutine TestDone
+           CODE                     := 7);
+      UN    DBX   39.0; // OUTP.JobNotFound
+      SPB   dTra; // 
+      UN    DBX  102.0; //  "SecDB".PCRead.Hsk.F_Status 
+      S     DBX  201.4; //"SecDB".JobAc.StaBatch.StaDone
+      S     DBX  102.0; // "SecDB".PCRead.Hsk.F_Status
+      S     DBX   41.0; // "SecDB".ChangeBit.CBit1
+dTra: L     DBW   50; //// "SecDB".ToASW.Transition
+      T     DBB  111; // -->"SecDB".PCRead.Step
+      SET   ; // 
+      S     DBX   41.0; //  "SecDB".ChangeBit.CBit1
+      BEA   ; 
+dEnd: NOP   0; 
+NETWORK
+TITLE = METHODE STATE Code4
+
+      L     #CODE; 
+      L     4; 
+      <>I   ; 
+      SPB   eEnd; 
+      U     DBX  113.0; // "SecDB".PCRead.State.StStopped
+      SPB   eS0; 
+      U     DBX  113.1; // "SecDB".PCRead.State.StStarting
+      SPB   eS1; 
+      U     DBX  113.2; // "SecDB".PCRead.State.StStarted 
+      SPB   eS2; 
+      U     DBX  113.3; // "SecDB".PCRead.State.StStopping
+      SPB   eS3; 
+      U     DBX  113.5; // "SecDB".PCRead.State.StFeeding
+      SPB   eS4; 
+      S     DBX  113.0; // "SecDB".PCRead.State.StStopped
+// === StStopped  ============
+eS0:  UN    DBX   62.0; // "SecDB".ToSSW.InfStopped
+      SPB   eT01; // --> StStarting
+      SPA   eEnd; // 
+eT01: L     2#10; // --> StStarting
+      SPA   eTra; 
+// === StStarting ============
+eS1:  U     DBX   62.2; // "SecDB".ToSSW.InfStarted
+      SPB   eT12; // --> StStarted
+      U     DBX  120.0; // "SecDB".PCRead.Status.StaImmediateStopASW // [3.4]
+      O     DBX   62.0; // "SecDB".ToSSW.InfStopped
+      O     DBX  111.6; // "SecDB".PCRead.Step.StIdling
+      SPB   eT13; // -> StStopping
+      SPA   eEnd; 
+eT12: L     2#100; // -> StStarted
+      SPA   eTra; 
+eT13: L     2#1000; // -> StStopping
+      SPA   eTra; 
+// === StStarted  ===========
+eS2:  U     DBX  120.0; // "SecDB".PCRead.Status.StaImmediateStopASW
+      O     DBX   62.0; // "SecDB".ToSSW.InfStopped
+      SPB   eT23; // --> StStopping
+      UN    DBX   62.2; // "SecDB".ToSSW.InfStarted
+      SPB   eT21; // --> StStarting
+      U     DBX   62.5; // "SecDB".ToSSW.InfFeeding
+      SPB   eT25; // --> StFeeding
+      SPA   eEnd; 
+eT21: L     2#10; // --> StStarting
+      SPA   eTra; 
+eT23: L     2#1000; // --> StStopping
+      SPA   eTra; 
+eT25: L     2#100000; // --> StFeeding
+      SPA   eTra; 
+// ==== STOPPING ==============
+eS3:  U     DBX   62.0; // "SecDB".ToSSW.InfStopped
+      SPB   eT30; // -> StStopped
+      UN    DBX  120.0; // "SecDB".PCRead.Status.StaImmediateStopASW
+      UN    DBX   62.0; // "SecDB".ToSSW.InfStopped
+      U     DBX   62.2; // "SecDB".ToSSW.InfStarted
+      SPB   eT32; // --> StStarted
+      UN    DBX  120.0; // "SecDB".PCRead.Status.StaImmediateStopASW
+      UN    DBX  111.6; // "SecDB".PCRead.Step.StIdling
+      SPB   eT32; // --> StStarting
+      SPA   eEnd; 
+eT30: L     2#1; // --> StStopped
+      SPA   eTra; 
+eT32: L     2#100; // --> StStarted
+      SPA   eTra; 
+      L     2#10; // --> StStarting
+      SPA   eTra; 
+// ==== FEEDING  ==============
+eS4:  UN    DBX   62.5; // "SecDB".ToSSW.InfFeeding
+      SPB   eT52; // --> StStarted
+      SPA   eEnd; // 
+eT52: L     2#100; // --> StStarted
+// ==== ALL TRANSITION ========
+eTra: T     DBB  113; // --> "SecDB".PCRead.State
+      SET   ; // 
+      S     DBX   41.0; // Changebit.CBit1
+      BEA   ; 
+eEnd: NOP   0; 
+NETWORK
+TITLE = METHODE MOVE_DATA Code 5,25,35
+//Code 35:
+//    Section destination=DBW20
+      L     #CODE; 
+      L     5; 
+      ==I   ; 
+      SPB   m5; 
+      L     #CODE; 
+      L     25; 
+      ==I   ; 
+      SPB   m25; 
+      L     #CODE; 
+      L     35; 
+      <>I   ; 
+      SPB   fEnd; 
+//Move to section DBW20
+      R     DBX   44.2; //S_DB[n].ToASW.CmdDataMoved
+      L     0; 
+      L     DBW   20; // "Sec".VarTemp.InOutValue1
+      ==I   ; // 
+      BEB   ; // --> no next section
+      T     #SecDBNext; 
+      AUF   DI [#SecDBNext]; // >>>CALL NEXT SECTION-DB["SecDB".ToSSW.InNextSecDB]
+      SPA   m35; 
+//====== Move uncondition (Code=25)
+m25:  R     DBX   44.2; //S_DB[n].ToASW.CmdDataMoved
+      L     DBW   72; // "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // --> no next section
+      UN    DBX   44.6; //"SecDB".ToASW.InfSameBatchNextSec
+      AUF   DI [DBW 72]; // >>>CALL NEXT SECTION-DB["SecDB".ToSSW.InNextSecDB]
+      U     DIX   64.0; // S_DB[n+1].ToSSW.InfReadyForNewBatch
+      UN    DIX  121.3; // S_DB[n+1].PCRead.Status.StaHold
+      U(    ; 
+      UN    DIX  102.0; // S_DB[n+1].PCRead.Hsk.F_Status
+      ON    DIX  119.3; // S_DB[n+1].PCRead.Status.StaOnline
+      )     ; 
+      SPB   C3; 
+      BEA   ; // THEN
+//=== Move Regular (Code=5)
+m5:   R     DBX   44.2; //S_DB[n].ToASW.CmdDataMoved
+      U     DBX   44.6; // "SecDB".ToASW.InfSameBatchNextSec
+      BEB   ; //  
+      L     DBW   72; // "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // --> no next section
+      AUF   DI [DBW 72]; // >>>CALL NEXT SECTION-DB["SecDB".ToSSW.InNextSecDB]
+m35:  U     DBX  201.0; // "SecDB".JobAc.StaBatch.StaErrBatch
+      U     DIX   45.7; // S_DB[n+1].ToASW.InfDataRead
+      BEB   ; // 
+      U     DIX  165.0; // S_DB[n+1].sta_err_batch
+      U     DIX   45.7; // S_DB[n+1].ToASW.InfDataReady
+      BEB   ; // 
+      U     DIX  111.0; // S_DB[n+1].PCRead.Step.StPassive
+      O     DIX  111.6; // S_DB[n+1].PCRead.Step.StIdling
+      O     DIX  111.4; // S_DB[n+1].PCRead.Step.StEmptying
+      O     DIX  111.5; // S_DB[n+1].PCRead.Step.StEmptied
+      SPB   C2; 
+      BEA   ; // THEN
+
+      UN    DBX   45.7; // S_DB[n+1].ToASW.InfDataReady
+      O     DBX   44.3; // S_DB[n+1].ToASW.InfSameJobPrevSec
+      U     DBX   64.0; // S_DB[n+1].ToSSW.InfReadyForNewBatch
+      UN    DBX  121.3; // S_DB[n+1].PCRead.Status.StaHold
+      U(    ; 
+      UN    DBX  102.0; // S_DB[n+1].PCRead.Hsk.F_Status
+      ON    DBX  119.3; // S_DB[n+1].PCRead.Status.StaOnline
+      )     ; 
+C2:   UN    DIX   45.7; // S_DB[n+1].ToASW.InfDataReady
+      O     DIX   44.3; // S_DB[n+1].ToASW.InfSameJobPrevSec
+      U     DIX   64.0; // S_DB[n+1].ToSSW.InfReadyForNewBatch
+      UN    DIX  121.3; // S_DB[n+1].PCRead.Status.StaHold
+      U(    ; 
+      UN    DIX  102.0; // S_DB[n+1].PCRead.Hsk.F_Status
+      ON    DIX  119.3; // S_DB[n+1].PCRead.Status.StaOnline
+      )     ; 
+      SPB   C3; 
+      BEA   ; 
+// ==== MOVE DATA =================
+// Copy header
+C3:   L     DINO; 
+      T     #SecDBNext; 
+      CALL FC    49 (
+           DBSource                 := #SecDBAc,
+           ByteSource               := 160,//"SecDB".JobNom.JobNr
+           DBDest                   := #SecDBNext,
+           ByteDest                 := 160,//Sec[n+1].JobNom.JobNr
+           NoOfByte                 := 80,
+           Fault                    := #Fault);
+//-- copy dynamic datas 
+      L     DIW   14; //Para.ParSecDataLenAcValue
+      L     DIW   12; //Para.ParSecDataLenNomValue
+      +I    ; 
+      T     #VarLength; 
+      CALL FC    49 (
+           DBSource                 := #SecDBAc,
+           ByteSource               := DBW   10,//Sec[n].Para.ParSecDataFirstByte
+           DBDest                   := #SecDBNext,
+           ByteDest                 := DIW   10,//Sec[n+1].Para.ParSecDataFirstByte
+           NoOfByte                 := #VarLength,
+           Fault                    := #Fault);
+//-- Copy bin data 
+      CALL FC    49 (
+           DBSource                 := #SecDBAc,
+           ByteSource               := DBW   16,//Sec[n].Para.ParBinDataFirstByte
+           DBDest                   := #SecDBNext,
+           ByteDest                 := DIW   16,//Sec[n+1].Para.ParBinDataFirstByte
+           NoOfByte                 := DIW   18,//Sec[n+1].Para.ParBinDataLength
+           Fault                    := #Fault);
+// Init Sec[n+1]
+      SET   ; 
+      S     DIX   45.7; //S_DB[n+1].ToASW.InfDataReady 
+      S     DIX   44.1; //S_DB[n+1].ToASW.CmdNewBatch
+      S     DBX   44.2; //S_DB[n].ToASW.CmdDataMoved
+      R     DIX  121.6; //S_DB[n+1].PCRead.Status.StaReset
+      R     DIX  121.7; //S_DB[n+1].PCRead.Status.StaEndOfJob
+      R     DIX   64.1; //S_DB[n+1].ToSSW.CmdSendResult
+
+      UN    DBX  121.0; //S_DB[n].PCRead.Status.StaImmediateStop   
+      R     DIX  121.0; //S_DB[n+1].PCRead.Status.StaImmediateStop      
+      UN    DBX  121.1; //S_DB[n].PCRead.Status.StaTransferOff
+      R     DIX  121.1; //S_DB[n+1].PCRead.Status.StaTransferOff
+      UN    DBX  121.2; //S_DB[n].PCRead.Status.StaFeedOff
+      R     DIX  121.2; //S_DB[n+1].PCRead.Status.StaFeedOff
+      TDB   ; // 
+      CALL FC    61 (//SUBROUTINE compare S_DB[n+1]
+           CODE                     := 1);
+      TDB   ; 
+      CALL FC    61 (//SUBROUTINE compare S_DB[n]
+           CODE                     := 1);
+      BEA   ; 
+fEnd: NOP   0; 
+NETWORK
+TITLE = METHODE NEXT_BATCH (code 6)
+
+      L     #CODE; 
+      L     6; 
+      <>I   ; 
+      SPB   gEnd; 
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      L     DBW  188; // "SecDB".JobNom.BatchNoOffset
+      >=I   ; 
+      SPB   gOK; 
+      T     DBW  206; // ->"SecDB".JobAc.BatchNo
+gOK:  U     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      BEB   ; // 
+//==== start batch ===============
+      CALL FC    61 (// Subroutine CalcBatchSize
+           CODE                     := 6);
+      U     DBX  116.0; // "SecDB".PCRead.Fault.EsBatchSize
+      O     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      BEB   ; 
+      L     DBD  210; // "SecDB".JobAc.BatchWeightTarget
+      L     DBD  202; // "SecDB".JobAc.JobWeigth
+      +D    ; // 
+      T     DBD  202; // ->"SecDB".JobAc.JobWeigth
+
+      L     DBW  206; //  "SecDB".JobAc.BatchNo
+      +     1; // 
+      T     DBW  206; //  "SecDB".JobAc.BatchNo
+
+      L     0; 
+      T     DBD  214; // "SecDB".JobAc.BatchWeightActual
+
+      SET   ; 
+      R     DBX  201.1; //"SecDB".JobAc.StaBatch.StaHandAddReady
+      R     DBX  201.2; //"SecDB".JobAc.StaBatch.StaRegistrated
+
+      L     DBW  206; //"SecDB".JobAc.BatchNo
+      L     DBW  168; //"SecDB".JobNom.BatchNo
+      >=I   ; // 
+      S     DBX  201.3; //->"SecDB".JobAc.StaBatch.StaLastBatch 
+      SET   ; // 
+      S     DBX   45.7; //"SecDB".ToASW.InfDataReady
+      S     DBX   44.1; //"SecDB".ToASW.CmdNewBatch
+      CALL FC    61 (// SUBROUTINE compare S_DB[n]
+           CODE                     := 1);
+      BEA   ; 
+gEnd: NOP   0; 
+NETWORK
+TITLE = METHODE O_SECTION (Code 7)
+
+      L     #CODE; 
+      L     7; 
+      <>I   ; 
+      SPB   hEnd; 
+      L     DBW   82; //"SecDB".PCWrite.Hsk
+      L     0; 
+      ==I   ; 
+      BEB   ; 
+//-- commands --------------
+      UN    DBX   83.0; //"SecDB".PCWrite.Hsk.F_Define [2.7]
+      SPB   hDef; // 
+      L     DBD   46; // "SecDB".ToASW.Func
+      L     DBD   86; // "SecDB".PCWrite.Func
+      OD    ; // 
+      T     DBD   46; // ->"SecDB".ToASW.Func
+//--Q_Result----------------
+hDef: UN    DBX   82.1; //"SecDB".PCWrite.Hsk.Q_Result
+      SPB   hIni; 
+      S     DBX  201.2; // "SecDB".JobAc.StaBatch.StaRegistrated 
+//---Init Interface---------
+hIni: L     DBB   82; // "SecDB".PCWrite.Hsk.Q_xxxx
+      INVI  ; 
+      L     DBB  102; // "SecDB".PCRead.Hsk.F_
+      UW    ; 
+      T     DBB  102; // ->Reset "SecDB".PCRead.Hsk.F_xxxx
+      L     0; 
+      T     DBW   82; // "SecDB".PCWrite.Hsk
+      SET   ; 
+      S     DBX   41.1; // "SecDB".ChangeBit.CBit2
+      BEA   ; 
+hEnd: NOP   0; 
+NETWORK
+TITLE = METHODE ResultTotal (Code=9)
+
+      L     #CODE; // )
+      L     9; // )  CODE= KF+9
+      <>I   ; // )
+      SPB   iEnd; // )
+      AUF   DI [DBW 4]; //>>call LineDB  DI"SecDB".Para.ParLineDB]
+      AUF   DI [DIW 4]; //>>Call 1.SecDB DI["LineDB".Para.ParFirstSecDB]
+//Loop over all section
+iLop: UN    DIX   45.7; // S_DB[x].ToASW.InfDataReady
+      SPB   iNxt; 
+      L     DID  160; // S_DB[x].JobNom.JobNr
+      L     DBD  160; // S_DB[n].JobNom.JobNr
+      <>D   ; // 
+      SPB   iNxt; 
+      L     DBD   32; // "SecDB".VarTemp.InOutValue Input value for registration
+      L     DID  202; // S_DB[x].JobAc.JobWeigth
+      +D    ; // 
+      T     DID  202; // ->S_DB[x].JobAc.JobWeigth
+iNxt: L     0; // )
+      L     DIW    8; // )   SEC[x].Para.ParNextSecDB
+      ==I   ; // )
+      BEB   ; // )
+      AUF   DI [DIW 8]; //-->  Call next SecDb  DI["SecDB".Para.ParNextSecDB]
+      SPA   iLop; 
+iEnd: NOP   0; 
+NETWORK
+TITLE = METHODE TotalBatch (Code=10)
+
+      L     #CODE; 
+      L     10; 
+      <>I   ; 
+      SPB   jEnd; 
+      AUF   DI [DBW 4]; //>>Call LineDB  DI["SecDB".Para.ParLineDB]
+      AUF   DI [DIW 4]; //>>Call 1.SecDB DI["LineDB".Para.ParFirstSecDB]
+//Loop over all section
+jLop: UN    DIX   45.7; //S_DB[x].ToASW.InfDataReady
+      SPB   jNxt; 
+      L     DID  160; // S_DB[x].JobNom.JobNr
+      L     DBD  160; // S_DB[n].JobNom.JobNr
+      <>D   ; //  
+      SPB   jNxt; 
+      L     DIW  206; // S_DB[x].JobAc.BatchNo
+      L     DBW  206; // S_DB[n].JobAc.BatchNo
+      <>I   ; //  
+      SPB   jNxt; 
+      L     DBD   32; // "SecDB".VarTemp.InOutValue  Input value for registration
+      L     DID  214; // JobAc.BatchWeightActual
+      +D    ; //  
+      T     DID  214; // ->JobAc.BatchWeightActual
+jNxt: L     0; // 
+      L     DIW    8; // SEC[x].Para.ParNextSecDB
+      ==I   ; // 
+      BEB   ; // 
+      AUF   DI [DIW 8]; //-->Call next SecDb  DI["SecDB".Para.ParNextSecDB]
+      SPA   jLop; 
+jEnd: NOP   0; 
+NETWORK
+TITLE = PC Direct Control (Diagnose) (code= 12)
+
+      L     #CODE; 
+      L     12; 
+      <>I   ; 
+      SPB   kEnd; 
+      AUF   DI     3; 
+      L     0; 
+      L     DIW   42; // DB3.PC.Hsk
+      ==I   ; // 
+      BEB   ; // 
+//-- commands --------------
+      L     DIW   48; // DB3.PC.ObjectType
+      L     4000; 
+      <>I   ; 
+      BEB   ; 
+      L     DIW   50; // DB3.PC.ObjectNo
+      SRW   8; 
+      L     DBW    2; // "SecDB".Para.ParLineDB [3.3]
+      <>I   ; 
+      BEB   ; 
+      L     DIB   51; // DB3.PC.ObjectNo (low byte)
+      T     DBW   20; // "SecDB".VarTemp[1] ==VarSecNr
+      CALL FC    61 (
+           CODE                     := 4);
+      L     0; 
+      T     DBW   22; // "SecDB".VarTemp[2] == Search_mode=SectionNr
+      CALL FC    61 (// Subroutine SearchSection
+           CODE                     := 4);
+      L     DBW   22; //"SecDB".VarTemp[2]
+      L     0; 
+      ==I   ; 
+      L     20; // Error code: illegal_object
+      SPB   ERRO; // ->illegal section-nr
+//--Call Section DB---
+      AUF   DB [DBW 22]; // CALL DB["SecDB".VarTemp[2]] = VarSecDB
+//  --Commands ------
+      UN    DIX   43.0; // DB3.PC.Hsk.FDefineCmd
+      SPB   D2; // 
+      L     DID   52; // DB3..PC.Cmd1
+      L     DBD   46; // "SecDB".ToASW.Func
+      OD    ; // 
+      T     DBD   46; // "SecDB".ToASW.Func
+//  --Parameter ------
+D2:   UN    DIX   43.1; // DB3.PC.Hsk.FDefineCmd
+      SPB   EXAM; // 
+      L     DIW   58; // DB3.PC.Value[1]
+      T     DBW   90; // "SecDB".PCWrite.Value1
+      L     DIW   60; // DB3.PC.Value[2]
+      T     DBW   92; // "SecDB".PCWrite.Value2
+      L     DIW   62; // DB3.PC.Value[3]
+      T     DBW   94; // "SecDB".PCWrite.Value3
+      L     DIW   64; // DB3.PC.Value[4]
+      T     DBW   96; // "SecDB".PCWrite.ParWayAdjustTime
+      L     DIW   66; // DB3.PC.Value[5]
+      T     DBW   98; // "SecDB".PCWrite.Value5
+      L     DIW   68; // DB3.PC.Value[6]
+      T     DBW  100; // "SecDB".PCWrite.ParEmptyingTime
+//  --Examine ----
+EXAM: UN    DIX   43.3; // DB3.PC.Hsk.FExamine
+      SPB   DONE; // 
+      L     DBD   90; // 
+      T     DID   58; // DB3.Value[1..2]
+      L     DBD   94; // 
+      T     DID   62; // DB3.Value[3..4]
+      L     DBD   98; // 
+      T     DID   66; // DB3.Value[5..6]
+DONE: L     0; 
+ERRO: T     DB3.DBW   46; // "SYS_PCControl".PC.ErrCode
+      L     0; // 
+      T     DB3.DBW   42; // DB3.PC.Hsk
+      SET   ; //  
+      S     DB3.DBX   41.0; // DB3.ChangeBit.CBit1
+      BEA   ; 
+kEnd: NOP   0; 
+NETWORK
+TITLE =Methode WayAdJsutTime
+
+      L     #CODE; 
+      L     13; 
+      <>I   ; 
+      SPB   lEnd; 
+      UN    DBX   64.3; //"SecDB".ToSSW.CmdNewWay
+      SPB   lJ1; 
+      R     DBX   45.1; //"SecDB".ToASW.InfWayAdjustTimeEnd
+      R     DBX   64.3; //"SecDB".ToSSW.CmdNewWay
+      L     0; 
+      T     DBW  128; //"SecDB".PCRead.OutWayAdjustTime
+lJ1:  U     DBX   45.1; // "SecDB".ToASW.InfWayAdjustTimeEnd
+      BEB   ; 
+      UN    M     10.3; 
+      BEB   ; 
+      L     DBW  128; //"SecDB".PCRead.OutWayAdjustTime
+      +     2; 
+      T     DBW  128; //"SecDB".PCRead.OutWayAdjustTime
+      L     DBW   96; //"SecDB".PCWrite.ParWayAdjustTime
+      >=I   ; 
+      S     DBX   45.1; //"SecDB".ToASW.InfWayAdjustTimeEnd
+      BEA   ; 
+lEnd: NOP   0; 
+
+
+END_FUNCTION
+

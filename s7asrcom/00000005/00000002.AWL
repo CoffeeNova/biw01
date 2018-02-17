@@ -1,0 +1,53 @@
+TYPE "GCS7_FB85_Counter"
+
+
+  STRUCT 	// Interface to maschine FB50
+   OutpSetCount : DWORD ;	//de:Ladewert des 1Count24V/100kHz
+   OutpSW_GATE : BOOL ;	//de:Steuerbit SW-Tor
+   OutpCTRL_SYN : BOOL ;	//de:Freigabe Synchronisation
+   OutpRES_STS : BOOL ;	//de:Anstoß Rücksetzen Statusbit
+   OutpSET_DO1 : BOOL ;	//de:Steuerbit DO1
+   OutpCTR_DO1 : BOOL ;	//de:Freigabe DO1
+   OutpSET_DO2 : BOOL ;	//de:Steuerbit DO2
+   OutpCTR_DO2 : BOOL ;	//de:Freigabe DO2
+   OutpEXTF_ACK : BOOL ;	//de:Diagnosefehlerquittung
+   OutpLOAD_VAL : BOOL ;	//de:Zähler direkt laden
+   OutpLOAD_PREPARE : BOOL ;	//de:Zähler vorbereitend laden
+   OutpCMP_VAL1 : BOOL ;	//de:Vergleichswert 1 laden 
+   OutpCMP_VAL2 : BOOL ;	//de:Vergleichswert 2 laden 
+   OutpC_DOPARAM : BOOL ;	//de:Funktion und Verhalten von DO1, DO2 ändern
+   OutpSpare65 : BOOL ;	//de:Reserve = 0
+   OutpSpare66 : BOOL ;	//de:Reserve = 0
+   OutpSpare67 : BOOL ;	//de:Reserve = 0
+   OutpSpare7 : BYTE ;	//de:Reserve = 0
+   OutpSpare8 : BYTE ;	//de:Reserve = 0
+   InpActCount : DWORD ;	//de:Aktueller Zählwert
+   InpSTS_LOAD : BOOL ;	//de:Ladefunktion läuft
+   InpERR_LOAD : BOOL ;	//de:Fehler bei Ladefunktion
+   InpRES_STS_A : BOOL ;	//de:Rücksetzen der Statusbit läuft
+   InpSpare53 : BOOL ;	//de:Reserve = 0
+   InpSpare54 : BOOL ;	//de:Reserve = 0
+   InpERR_PARA : BOOL ;	//de:Parametrierfehler
+   InpERR_DO1 : BOOL ;	//de:Kurzschluss / Drahtbruch / Übertemperatur
+   InpERR_24V : BOOL ;	//de:Kurschluss Geberversorgung
+   InpSTS_GATE : BOOL ;	//de:Status internes Tor
+   InpSTS_DI : BOOL ;	//de:Status DI
+   InpSpare62 : BOOL ;	//de:Reserve = 0
+   InpSTS_DO1 : BOOL ;	//de:Status DO1
+   InpSTS_DO2 : BOOL ;	//de:Status DO2
+   InpSpare65 : BOOL ;	//de:Reserve = 0
+   InpSTS_C_UP : BOOL ;	//de:Status Richtung vorwärts
+   InpSTS_C_DN : BOOL ;	//de:Status Richtung rückwärts
+   InpSTS_SYN : BOOL ;	//de:Status Synchronisation
+   InpSpare71 : BOOL ;	//de:Reserve = 0
+   InpSpare72 : BOOL ;	//de:Reserve = 0
+   InpSTS_CMP1 : BOOL ;	//de:Status Vergleicher 1
+   InpSTS_CMP2 : BOOL ;	//de:Status Vergleicher 2
+   InpSTS_OFWL : BOOL ;	//de:Obere Zählgrenze
+   InpSTS_UFWL : BOOL ;	//de:Untere Zählgrenze
+   InpSTS_ND : BOOL ;	//de:Nulldurchgang im Zählbereich bei Zählen ohne Hauptzählrichtung
+   InpSpare8 : BYTE ;	//de:Reserve = 0
+   VarInpHold : DWORD ;	//Internal used to restor counter value after power fault
+  END_STRUCT ;	
+END_TYPE
+

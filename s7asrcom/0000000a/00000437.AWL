@@ -1,0 +1,355 @@
+	DATA_BLOCK DB418
+	TITLE =DBG318M  WAY AFTER BUFFER BIN 192 - 196
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        WAY AFTER BUFFER BIN 192 - 196
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB418.1.0 K.Renz              CSB41             18.Dez.2011
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG318M 
+	VERSION : 00.00
+	
+	FB418
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=31800; 
+	      #Gr.Par.ParIdling      	:=30; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=13;
+	//Parameter =A-6164-MXZ01_MA : SCREW CONV. 6164
+	      #A_6164_MXZ01_MA.Ma.Par.ParObjectNo                                     :=31804;
+	      #A_6164_MXZ01_MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_6164_MXZ01_MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_6164_MXZ01_MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParEBM                                          :=False;
+	      #A_6164_MXZ01_MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_6164_MXZ01_MA.=A-6164-BQS09 : SCREW CONV. 6164 - STOWING DETECTOR
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParObjectNo                             :=31805;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParMsgType                              :=7165;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParHornCode                             :=0;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParDelayChange                          :=20;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParDelayCovered                         :=10;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParDelayUncovered                       :=30;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParTimeoutCovered                       :=0;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParTimeoutUncovered                     :=0;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParLogOff                               :=False;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.Par2WorkingCond                         :=False;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParFaultRetry                           :=False;
+	      #A_6164_MXZ01_MA.A_6164_BQS09.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6164_MXZ01_MA.=A-6164-BSA11 : SCREW CONV. 6164 - SPEED CONTROL
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParObjectNo                             :=31806;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParMsgType                              :=7135;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParHornCode                             :=0;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParDelayChange                          :=0;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParDelayTrue                            :=10;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParDelayFalse                           :=0;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParTimeoutTrue                          :=50;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParTimeoutFalse                         :=0;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParLogOff                               :=False;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.Par2WorkingCond                         :=True;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParFaultRetry                           :=False;
+	      #A_6164_MXZ01_MA.A_6164_BSA11.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6164_MXZ01_MA.=A-6164-MXZ01 : SCREW CONV. 6164 - STARTED
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParObjectNo                             :=31807;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParHornCode                             :=1;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParMonTime                              :=20;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParLogOff                               :=False;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParManual                               :=True;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.Par2Speed                               :=False;
+	      #A_6164_MXZ01_MA.A_6164_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-6163-MXZ01_MA : ELEVATOR 6163
+	      #A_6163_MXZ01_MA.Ma.Par.ParObjectNo                                     :=31808;
+	      #A_6163_MXZ01_MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParWithMon4                                     :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon1IsHL                                     :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon1IsLS                                     :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon2IsLS                                     :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon3IsLS                                     :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon4StopByFault                              :=True;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParWithMon1                                     :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParEBM                                          :=False;
+	      #A_6163_MXZ01_MA.Ma.Par.ParMon4IsSM                                     :=True;
+	//
+	//Parameter A_6163_MXZ01_MA.=A-6163-BZ08CU : ELEVATOR 6163 - BELT MONITOR
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParObjectNo                             :=31809;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParMsgType                              :=7135;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParHornCode                             :=0;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParDelayChange                          :=0;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParDelayTrue                            :=10;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParDelayFalse                           :=0;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParTimeoutTrue                          :=50;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParTimeoutFalse                         :=0;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParLogOff                               :=False;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.Par2WorkingCond                         :=True;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParFaultRetry                           :=False;
+	      #A_6163_MXZ01_MA.A_6163_BZ08CU.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6163_MXZ01_MA.=A-6163-BST09 : ELEVATOR 6163 - SPEED CONTROL
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParObjectNo                             :=31810;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParMsgType                              :=7135;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParHornCode                             :=0;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParDelayChange                          :=0;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParDelayTrue                            :=10;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParDelayFalse                           :=0;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParTimeoutTrue                          :=50;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParTimeoutFalse                         :=0;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParLogOff                               :=False;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.Par2WorkingCond                         :=True;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParFaultRetry                           :=False;
+	      #A_6163_MXZ01_MA.A_6163_BST09.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6163_MXZ01_MA.=A-6163-MXZ01 : ELEVATOR 6163
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParObjectNo                             :=31811;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParHornCode                             :=13;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParMonTime                              :=20;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParLogOff                               :=False;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParManual                               :=True;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.Par2Speed                               :=False;
+	      #A_6163_MXZ01_MA.A_6163_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-6163-PII35 : ACT. CURRENT ELEVATOR 6163
+	      #A_6163_PII35.Par.ParObjectNo                             :=31812;
+	      #A_6163_PII35.Par.ParHornCode                             :=13;
+	      #A_6163_PII35.Par.ParMsgType                              :=7252;
+	      #A_6163_PII35.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_6163_PII35.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_6163_PII35.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_6163_PII35.Par.ParDelayTimeDown                        :=10;
+	      #A_6163_PII35.Par.ParDelayTimeUp                          :=10;
+	      #A_6163_PII35.Par.ParDelayTime                            :=0;
+	      #A_6163_PII35.Par.ParLimitLL                              :=L#0;
+	      #A_6163_PII35.Par.ParLimitL                               :=L#2000;
+	      #A_6163_PII35.Par.ParLimitH                               :=L#10000;
+	      #A_6163_PII35.Par.ParLimitHH                              :=L#10100;
+	      #A_6163_PII35.Par.ParMonTimeLL                            :=0;
+	      #A_6163_PII35.Par.ParMonTimeL                             :=50;
+	      #A_6163_PII35.Par.ParMonTimeMid                           :=0;
+	      #A_6163_PII35.Par.ParMonTimeH                             :=30;
+	      #A_6163_PII35.Par.ParMonTimeHH                            :=0;
+	      #A_6163_PII35.Par.ParLogOff                               :=False;
+	      #A_6163_PII35.Par.ParValueByUser                          :=False;
+	      #A_6163_PII35.Par.ParLimitsPc                             :=True;
+	      #A_6163_PII35.Par.ParWago                                 :=False;
+	      #A_6163_PII35.Par.ParNoHornByWarning                      :=True;
+	      #A_6163_PII35.Par.ParWarningLL                            :=False;
+	      #A_6163_PII35.Par.ParWarningL                             :=False;
+	      #A_6163_PII35.Par.ParWarningMid                           :=False;
+	      #A_6163_PII35.Par.ParWarningH                             :=False;
+	      #A_6163_PII35.Par.ParWarningHH                            :=False;
+	      #A_6163_PII35.Par.ParPreAlarmLL                           :=False;
+	      #A_6163_PII35.Par.ParPreAlarmL                            :=False;
+	      #A_6163_PII35.Par.ParPreAlarmMid                          :=False;
+	      #A_6163_PII35.Par.ParPreAlarmH                            :=False;
+	      #A_6163_PII35.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-6162-BLL05 : CHAIN CONV. 6162 - PROD. SENSING DEVICE
+	      #A_6162_BLL05.Par.ParObjectNo                             :=31813;
+	      #A_6162_BLL05.Par.ParMsgType                              :=7154;
+	      #A_6162_BLL05.Par.ParHornCode                             :=0;
+	      #A_6162_BLL05.Par.ParDelayChange                          :=20;
+	      #A_6162_BLL05.Par.ParDelayTrue                            :=10;
+	      #A_6162_BLL05.Par.ParDelayFalse                           :=30;
+	      #A_6162_BLL05.Par.ParTimeoutTrue                          :=0;
+	      #A_6162_BLL05.Par.ParTimeoutFalse                         :=0;
+	      #A_6162_BLL05.Par.ParLogOff                               :=False;
+	      #A_6162_BLL05.Par.Par2WorkingCond                         :=False;
+	      #A_6162_BLL05.Par.ParFaultRetry                           :=False;
+	      #A_6162_BLL05.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-6163-BQS07 : ELEVATOR 6163 - STOWING DETECTOR/ INLET
+	      #A_6163_BQS07.Par.ParObjectNo                             :=31814;
+	      #A_6163_BQS07.Par.ParMsgType                              :=7165;
+	      #A_6163_BQS07.Par.ParHornCode                             :=0;
+	      #A_6163_BQS07.Par.ParDelayChange                          :=20;
+	      #A_6163_BQS07.Par.ParDelayCovered                         :=10;
+	      #A_6163_BQS07.Par.ParDelayUncovered                       :=30;
+	      #A_6163_BQS07.Par.ParTimeoutCovered                       :=0;
+	      #A_6163_BQS07.Par.ParTimeoutUncovered                     :=0;
+	      #A_6163_BQS07.Par.ParLogOff                               :=False;
+	      #A_6163_BQS07.Par.Par2WorkingCond                         :=False;
+	      #A_6163_BQS07.Par.ParFaultRetry                           :=False;
+	      #A_6163_BQS07.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-6162-MXZ01_MA : CHAIN CONV. 6162
+	      #A_6162_MXZ01_MA.Ma.Par.ParObjectNo                                     :=31818;
+	      #A_6162_MXZ01_MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_6162_MXZ01_MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_6162_MXZ01_MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParEBM                                          :=False;
+	      #A_6162_MXZ01_MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_6162_MXZ01_MA.=A-6162-BQS06 : CHAIN CONV. 6162 - OVERFILL PROTECTION
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParObjectNo                             :=31815;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParMsgType                              :=7165;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParHornCode                             :=0;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParDelayChange                          :=20;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParDelayCovered                         :=10;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParDelayUncovered                       :=30;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParTimeoutCovered                       :=0;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParTimeoutUncovered                     :=0;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParLogOff                               :=False;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.Par2WorkingCond                         :=False;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParFaultRetry                           :=False;
+	      #A_6162_MXZ01_MA.A_6162_BQS06.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6162_MXZ01_MA.=A-6162-BSA11 : CHAIN CONV. 6162 - SPEED CONTROL
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParObjectNo                             :=31816;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParMsgType                              :=7135;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParHornCode                             :=0;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParDelayChange                          :=0;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParDelayTrue                            :=10;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParDelayFalse                           :=0;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParTimeoutTrue                          :=50;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParTimeoutFalse                         :=0;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParLogOff                               :=False;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.Par2WorkingCond                         :=True;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParFaultRetry                           :=False;
+	      #A_6162_MXZ01_MA.A_6162_BSA11.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6162_MXZ01_MA.=A-6162-MXZ01 : CHAIN CONV. 6162
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParObjectNo                             :=31817;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParHornCode                             :=13;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParMonTime                              :=20;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParLogOff                               :=False;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParManual                               :=True;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.Par2Speed                               :=False;
+	      #A_6162_MXZ01_MA.A_6162_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-6161-MXZ01_MA : CHAIN CONV. 6161
+	      #A_6161_MXZ01_MA.Ma.Par.ParObjectNo                                     :=31819;
+	      #A_6161_MXZ01_MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_6161_MXZ01_MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_6161_MXZ01_MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParEBM                                          :=False;
+	      #A_6161_MXZ01_MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_6161_MXZ01_MA.=A-6161-BQS06 : CHAIN CONV. 6161 - OVERFILL PROTECTION
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParObjectNo                             :=31820;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParMsgType                              :=7165;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParHornCode                             :=0;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParDelayChange                          :=20;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParDelayCovered                         :=10;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParDelayUncovered                       :=30;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParTimeoutCovered                       :=0;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParTimeoutUncovered                     :=0;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParLogOff                               :=False;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.Par2WorkingCond                         :=False;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParFaultRetry                           :=False;
+	      #A_6161_MXZ01_MA.A_6161_BQS06.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6161_MXZ01_MA.=A-6161-BSA11 : CHAIN CONV. 6161 - SPEED CONTROL
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParObjectNo                             :=31821;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParMsgType                              :=7135;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParHornCode                             :=0;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParDelayChange                          :=0;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParDelayTrue                            :=10;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParDelayFalse                           :=0;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParTimeoutTrue                          :=50;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParTimeoutFalse                         :=0;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParLogOff                               :=False;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.Par2WorkingCond                         :=True;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParFaultRetry                           :=False;
+	      #A_6161_MXZ01_MA.A_6161_BSA11.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_6161_MXZ01_MA.=A-6161-MXZ01 : CHAIN CONV. 6161
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParObjectNo                             :=31822;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParHornCode                             :=13;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParMonTime                              :=20;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParLogOff                               :=False;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParManual                               :=True;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.Par2Speed                               :=False;
+	      #A_6161_MXZ01_MA.A_6161_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	END_DATA_BLOCK

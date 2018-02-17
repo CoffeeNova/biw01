@@ -1,0 +1,344 @@
+FUNCTION "SYS_DPDiag1" : VOID
+TITLE =DP-additional Diag
+//COPYRIGHT:     (C) 2001 BY  BUEHLER LTD. 
+//                            CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:       DP-Diagnosis
+//
+//TITLE:         DP-additional Diag
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC76.1B       K. Tischer          CT3                          20-Febr-2003
+//              new buskoppler Wago 750-333 added
+//FC76.1A       K. Tischer          CT3                          28-MAY-2001
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:  - each mastersystem is a separate Network
+//              - initial same Bit
+//              - Call DP-Diagnostic (orig. Siemens) 
+//              - Call additional Diagnostic for not Siemens Slaves
+//              - reset same parameters
+//
+//RESTRICTIONS:   NEEDS SIEMENS FB76 (original FB125)
+//                NEEDS FC75 Main Diagnostic
+//
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : TiK
+FAMILY : DP
+NAME : DPDiag1
+VERSION : 1.0
+
+
+VAR_TEMP
+  Sum_Slave_Diag_Int : BYTE ;	//summary Slave Diagnosen
+  ErrorNo : BYTE ;	//TiK
+  ByteStart : INT ;	//TiK
+  Diag_Lentgh : BYTE ;	//TiK
+  Adr : DINT ;	//adress1
+  Adr2 : DINT ;	//Adress 2
+END_VAR
+BEGIN
+NETWORK
+TITLE =check is diagtic present
+
+      UN    DBX  932.3; // additional diagnostic data present
+      BEB   ; 
+NETWORK
+TITLE =WAxx Wago (B750) 
+//additianal Diagnisis for Wago Slaves Type (B750)
+//
+// - check result from SIEMENS FB76 => error type = device diagnosis
+// - check result from SIEMENS FB76 => slave ident = B750
+//
+      NOP   0; 
+// error type = device diagnosis
+      U(    ; 
+      L     DBB   11; // error typ
+      L     5; // check device diagnostic
+      ==I   ; 
+      )     ; 
+// slave ident = B750
+      U(    ; 
+      L     DBW    8; // slave ident
+      L     W#16#B750; // B750 = Wago
+      ==I   ; 
+      )     ; 
+      SPBN  WA00; // jump end
+// Init wago standard
+      L     8; // standard length of wago diagnostic data
+      T     #Diag_Lentgh; 
+      L     DBB 1398; // old error no (stored)
+      T     #ErrorNo; // error no
+// calc summary DiagData
+      L     DBB  938; // norm diag data byte 6 (length)
+      +     -2; // 2 byte length info
+      L     #Diag_Lentgh; // Wago standard length =8
+      /I    ; 
+      T     #Sum_Slave_Diag_Int; // summary diag data
+// Diag counter intialisieren
+      U     DBX    2.3; // single step error
+      SPBN  WA07; 
+// Diag counter inkrementieren
+      L     #ErrorNo; // actual diagnostic data no
+      +     1; // inkrement 1
+      T     #ErrorNo; // actual diagnostic data no
+// Diag conter upper and lower limit
+WA07: U(    ; 
+      L     #ErrorNo; 
+      L     #Sum_Slave_Diag_Int; // upper limit 
+      >I    ; 
+      )     ; 
+      O(    ; 
+      L     #ErrorNo; 
+      L     1; // lower limit
+      <I    ; 
+      )     ; 
+      SPBN  WA06; 
+      L     1; // set count diag =1
+      T     #ErrorNo; // out of range
+WA06: NOP   0; 
+// write diagnostic to siemens DB
+      L     #ErrorNo; 
+      T     DBB   10; // => error number
+      T     DBB 1398; // => reserve byte siemens to store old error number
+// calc start byte
+      L     #ErrorNo; // actual diagnostic data no
+      L     #Diag_Lentgh; // length diagnostic data
+      *D    ; // offset to start byte
+      L     932; // start byte diagnostic data
+      +D    ; 
+      T     #ByteStart; // => byte src diagnostic data
+// ==check for Profibus or Klemmbus Diagnosis (first byte diagnostic data=0)===================      
+      L     0; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; // first byte diagnostic data
+      L     0; 
+      ==I   ; 
+      SPB   WA02; //>>jump to check Klembus diagnosis >>>>>>>>>>>>>>>>>>>
+// Modul / Kanal Diagnose ============================
+      L     DBB [#Adr]; // first byte diagnostic data
+      T     DBB   12; // => modul no
+      L     1; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      T     DBB   14; // => cannel no
+// Error analyse
+      L     4; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+// == check Lower limit violated ======
+      L     DBB [#Adr]; 
+      L     2#100000001; // compare bit 0 set
+      UW    ; 
+      L     0; 
+      SPBN  WA05; // >> jump to check overrange >>>>>>>>>>>>>>>>>>>>>>>>>
+      L     8; //  8=Lower limit violated
+      SPA   WA03; // >> jump to => canal error code >>>>>>>>>>>>>>>>>>>>>
+// == check Upper limit violated ======
+WA05: L     DBB [#Adr]; 
+      L     2#100000010; // compare bit 1 set
+      UW    ; 
+      SPBN  WA04; // >> jump to other fault
+      L     7; // 7=Upper limit violated
+      SPA   WA03; // >> jump to => canal error code >>>>>>>>>>>>>>>>>>>>>
+WA04: L     DBB [#Adr]; 
+      L     2#101000000; // compare bit 6 set
+      UW    ; 
+      SPBN  WA03; // >> jump to => canal error code >>>>>>>>>>>>>>>>>>>>>
+      L     9; // 9= Fault (e.g. encoder supply, load voltage at the output...;
+WA03: T     DBW   16; // => canal error code
+      L     3; // 3= channel error
+      T     DBB   11; // => error type
+      SPA   WA00; // jump end
+WA02: NOP   0; // << check Klemmbus diagnosis <<<<<<<<<<<<<<<<<<<<<<<<<
+      L     1; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      L     0; 
+      ==I   ; 
+      SPB   WA01; //>>jump to Klemmbus diagnosis >>>>>>>>>>>>>>>>>>>>>>>>>
+// Profibus Diagnosis =================================
+      L     4; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      L     100; // 100=not enough configuration data;200=error in 1st configuration byte;300=non-supported module at position N
+      *I    ; 
+      T     DBB   13; // => modul state
+      L     2; // 2=Modul Diagnosis
+      T     DBB   11; // => error type
+      SPA   WA00; // >> jump end >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// << Klemmenbus Diagnosis <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+WA01: NOP   0; 
+// prepair modul no
+      L     5; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      T     DBB   12; // => modul no
+// prepair modul state
+      L     4; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      L     10; // 10=EEPROM Checksum Error;20=error in programmed process image;30=modules have identified error in fieldbus commands;40=fieldbus break after module N
+      *I    ; // 50=filedbus error in register communication with module N;60=error in PROFIBUS-DP configuration telegram;70=non-supported module at position N
+      T     DBB   13; // => modul state
+// prepair error type
+      L     2; // 2=Modul Diagnosis
+      T     DBB   11; // => error type
+
+      SPA   WA00; // jump end
+WA00: NOP   0; 
+NETWORK
+TITLE =WAxx Wago (B754) 
+//additianal Diagnisis for Wago Slaves Type (B750-333)
+//
+// - check result from SIEMENS FB76 => error type = device diagnosis
+// - check result from SIEMENS FB76 => slave ident = B750
+//
+      NOP   0; 
+// error type = device diagnosis
+      U(    ; 
+      L     DBB   11; // error typ
+      L     5; // check device diagnostic
+      ==I   ; 
+      )     ; 
+// slave ident = B750-333
+      U(    ; 
+      L     DBW    8; // slave ident
+      L     W#16#B754; // B754 = Wago
+      ==I   ; 
+      )     ; 
+      SPBN  WB00; // jump end
+
+// Init wago standard
+      L     3; 
+      T     #Diag_Lentgh; // kanaldiagsostic standard length =3
+      L     DBB 1398; // old error no (stored)
+      T     #ErrorNo; // error no
+
+// calc summary DiagData
+      L     DBB   44; // length of diagnostic data (SFC13) incl. header
+      L     22; // 22 byte (header=6Byte; kennungdata=9Byte; modulstate=7
+      >=I   ; 
+      SPBN  WB00; 
+      L     DBB   44; // length of diagnostic data (SFC13) incl. header
+      +     -22; // 22 byte (header=6Byte; kennungdata=9Byte; modulstate=7
+      L     3; // Wago standard length =3
+      /I    ; 
+      T     #Sum_Slave_Diag_Int; // summary diag data
+// Diag counter intialisieren
+      U     DBX    2.3; // single step error
+      SPBN  WB07; 
+// Diag counter inkrementieren
+      L     #ErrorNo; // actual diagnostic data no
+      +     1; // inkrement 1
+      T     #ErrorNo; // actual diagnostic data no
+// Diag conter upper and lower limit
+WB07: U(    ; 
+      L     #ErrorNo; 
+      L     #Sum_Slave_Diag_Int; // upper limit 
+      >I    ; 
+      )     ; 
+      O(    ; 
+      L     #ErrorNo; 
+      L     1; // lower limit
+      <I    ; 
+      )     ; 
+      SPBN  WB06; 
+      L     1; // set error no =1
+      T     #ErrorNo; // out of range
+WB06: NOP   0; 
+// write diagnostic to siemens DB
+      L     #ErrorNo; 
+      T     DBB   10; // => error number
+      T     DBB 1398; // => reserve byte siemens to store old error number
+
+// ==check for Profibus or Klemmbus Diagnosis (first byte diagnostic data=0)===================      
+      L     951; //byte 20 => device diagnostic 
+      SLD   3; 
+      T     #Adr; 
+      L     952; 
+      SLD   3; 
+      T     #Adr2; 
+      L     DBB [#Adr]; // state message 0= no error
+      L     0; 
+      >I    ; 
+      SPBN  WB10; 
+      L     2; // 2=Modul Diagnosis
+      T     DBB   11; // => error type
+      L     DBB [#Adr2]; 
+      T     DBB   12; // => modul no
+      L     DBB [#Adr]; 
+      T     DBB   13; // => modul state
+      L     0; 
+      T     DBW   16; // => error no
+      SPA   WB00; // >> jump end >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+// << Klemmenbus Diagnosis <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+WB10: NOP   0; 
+// calc start byte
+      L     #ErrorNo; // actual diagnostic data no
+      L     #Diag_Lentgh; // length diagnostic data (3Byte)
+      *D    ; // offset to start byte
+      L     951; // start byte diagnostic data
+      +D    ; 
+      T     #ByteStart; // => byte src diagnostic data
+// Kanal Diagnose ============================
+      L     3; // 3= channel error
+      T     DBB   11; // => error type
+
+      L     #ByteStart; 
+      SLD   3; 
+      T     #Adr; 
+      L     DBB [#Adr]; // first byte diagnostic data
+      L     B#16#3F; 
+      UW    ; 
+      T     DBB   12; // => modul no
+
+      L     1; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      L     B#16#3F; 
+      UW    ; 
+      T     DBB   14; // => cannel no
+
+      L     2; // byte no
+      L     #ByteStart; // byte no start actual data
+      +D    ; 
+      SLD   3; // convert to bit value
+      T     #Adr; // store bit value
+      L     DBB [#Adr]; 
+      L     B#16#1F; 
+      UW    ; 
+      T     DBW   16; // => error no
+WB00: NOP   0; 
+END_FUNCTION
+

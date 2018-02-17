@@ -1,0 +1,203 @@
+FUNCTION "Simu" : VOID
+TITLE =
+VERSION : 0.1
+
+BEGIN
+NETWORK
+TITLE =Fahrantrieb Germ 1
+
+
+      L     0; 
+      T     "G100M".A_2111_MXZ41MA.Ma.Par.ParIOByteNoCounter; 
+
+
+      U     "G100M".A_2111_MXZ41MA.A_2111_MXZ41.OutpRunFwd; 
+      U     "SYS_Scan0_Tick500ms"; // Scan0.Tick1s
+      SPBN  M105; 
+      L     "G100M".A_2111_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G100M".A_2111_MXZ41MA.IncCounter.InpActCount; 
+M105: NOP   0; 
+
+      U     "G100M".A_2111_MXZ41MA.A_2111_MXZ41.OutpRunRev; 
+      U     "SYS_Scan0_Tick500ms"; // Scan0.Tick1s
+      SPBN  M106; 
+      L     "G100M".A_2111_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G100M".A_2111_MXZ41MA.IncCounter.InpActCount; 
+M106: NOP   0; 
+
+NETWORK
+TITLE =Hubzüge und Fahrantrieb Kiln 1
+
+      SPA   end4; 
+      L     0; 
+      T     "G265M".A_3111_MXZ21_31MA.Ma.Par.ParIOByteNoCounterLeft; 
+      T     "G265M".A_3111_MXZ21_31MA.Ma.Par.ParIOByteNoCounterRight; 
+      T     "G266M".A_3111_MXZ41MA.Ma.Par.ParIOByteNoCounter; 
+
+
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ31.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M901; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+M901: NOP   0; 
+
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ31.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M902; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+M902: NOP   0; 
+
+      NOP   0; 
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ21.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M903; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+M903: NOP   0; 
+
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ21.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M904; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+M904: NOP   0; 
+
+      U     "G266M".A_3111_MXZ41MA.A_3111_MXZ41.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M905; 
+      L     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+M905: NOP   0; 
+
+      U     "G266M".A_3111_MXZ41MA.A_3111_MXZ41.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M906; 
+      L     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+M906: NOP   0; 
+end4: NOP   0; 
+NETWORK
+TITLE =Hubzüge und Fahrantrieb Kiln 2
+
+      SPA   end3; 
+      L     0; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParIOByteNoCounterLeft; 
+      T     "G291M".A_3211_MXZ21_31MA.Ma.Par.ParIOByteNoCounterRight; 
+      T     "G292M".A_3211_MXZ41MA.Ma.Par.ParIOByteNoCounter; 
+
+
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_MXZ31.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M951; 
+      L     "G291M".A_3211_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G291M".A_3211_MXZ21_31MA.CounterLeft.InpActCount; 
+M951: NOP   0; 
+
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_MXZ31.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M952; 
+      L     "G291M".A_3211_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G291M".A_3211_MXZ21_31MA.CounterLeft.InpActCount; 
+M952: NOP   0; 
+
+
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_MXZ21.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M953; 
+      L     "G291M".A_3211_MXZ21_31MA.CounterRight.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G291M".A_3211_MXZ21_31MA.CounterRight.InpActCount; 
+M953: NOP   0; 
+
+      U     "G291M".A_3211_MXZ21_31MA.A_3211_MXZ21.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M954; 
+      L     "G291M".A_3211_MXZ21_31MA.CounterRight.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G291M".A_3211_MXZ21_31MA.CounterRight.InpActCount; 
+M954: NOP   0; 
+
+      U     "G292M".A_3211_MXZ41MA.A_3211_MXZ41.OutpRunFwd; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M955; 
+      L     "G292M".A_3211_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      +D    ; 
+      T     "G292M".A_3211_MXZ41MA.IncCounter.InpActCount; 
+M955: NOP   0; 
+
+      U     "G292M".A_3211_MXZ41MA.A_3211_MXZ41.OutpRunRev; 
+      U     "SYS_Scan0_Tick1s"; // Scan0.Tick1s
+      SPBN  M956; 
+      L     "G292M".A_3211_MXZ41MA.IncCounter.InpActCount; 
+      L     L#1; 
+      -D    ; 
+      T     "G292M".A_3211_MXZ41MA.IncCounter.InpActCount; 
+M956: NOP   0; 
+end3: NOP   0; 
+NETWORK
+TITLE =0=Umrichter nicht betriebsbereit    1=Umrichter betriebsbereit  
+//      SET   
+//
+//      =     DB260.DBX  677.1
+//      =     DB261.DBX  691.1
+//
+//      =     DB302.DBX  423.1
+//      =     DB317.DBX  423.1
+//      =     DB332.DBX  423.1
+//      =     DB347.DBX  423.1
+//      =     DB362.DBX  423.1
+//
+//      =     DB392.DBX  423.1
+//      =     DB407.DBX  423.1
+//
+      SET   ; 
+
+
+
+
+// Darren
+
+      =     "G267M".A_3111_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      =     "G293M".A_3211_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+
+      =     DB371.DBX  703.1; 
+      =     DB371.DBX 1731.1; 
+
+      =     "G297M".A_3225_TSC01_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      =     "G297M".A_3226_TSC01_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+
+      =     "G266M".A_3111_TSC41_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      =     "G292M".A_3211_TSC41_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+NETWORK
+TITLE =
+
+      NOP   0; 
+      BE    ; 
+
+END_FUNCTION
+

@@ -1,0 +1,451 @@
+	FUNCTION_BLOCK FB 101
+	TITLE =G001G Power supply circuit +C11
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Power supply circuit +C11
+	//                General group control
+	//                Allgemeine Gruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB101.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #G_C_VOLTAGE : FB14;   // DigInpCont 
+	     #G_ES_GENERAL : FB14;   // DigInpCont 
+	     #G_FUSE_SWITCHED : FB14;   // DigInpCont 
+	     #G_SMOKE : FB14;   // DigInpCont 
+	     #G_EXFLAPS : FB14;   // DigInpCont 
+	     #G_FIRE : FB14;   // DigInpCont 
+	     #G_FUSE_NSWITCHED : FB14;   // DigInpCont 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      R   GCS7_GrCtrlDB.ParMGR[1];
+	      R   GCS7_GrCtrlDB.ParWGR[1];
+	      S   GCS7_GrCtrlDB.ParGGR[1];
+	      R   GCS7_GrCtrlDB.ParFeed[1];
+	      S   GCS7_GrCtrlDB.ParShare[1];
+	      R   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      S   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[1];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[1];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[1];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[1];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[1];
+	      R   #GCS7_GrCtrlDB.CmdNext[1];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[1];
+	      O   #GCS7_GrCtrlDB.OutOccupied[1];
+	      R   GCS7_GrCtrlDB.CmdManualOff[1];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[1];
+	      R   GCS7_GrCtrlDB.CmdContinue[1];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[1];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX31.2;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =G_C_VOLTAGE : Control voltage
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_C_VOLTAGE.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_C_VOLTAGE.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_C_VOLTAGE.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_C_VOLTAGE.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_C_VOLTAGE.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_C_VOLTAGE;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_ES_GENERAL : Emergency stop circuit
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_ES_GENERAL.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_ES_GENERAL.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_ES_GENERAL.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_ES_GENERAL.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_ES_GENERAL.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ES_GENERAL;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_FUSE_NSWITCHED : Sicherungsüberwachung
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_FUSE_NSWITCHED.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_FUSE_NSWITCHED.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_FUSE_NSWITCHED.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_FUSE_NSWITCHED.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_FUSE_NSWITCHED.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_FUSE_NSWITCHED;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_FUSE_SWITCHED : Sicherungsüberwachung - geschaltete Kreise
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_FUSE_SWITCHED.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_FUSE_SWITCHED.InMonTrue; 
+	      CLR;
+	      =      #G_FUSE_SWITCHED.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #G_FUSE_SWITCHED.InPreAlarmTrue; 
+	      CLR;
+	      =      #G_FUSE_SWITCHED.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_FUSE_SWITCHED.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_FUSE_SWITCHED.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_FUSE_SWITCHED;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_FIRE : Fire alarm
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_FIRE.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_FIRE.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_FIRE.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_FIRE.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_FIRE.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_FIRE;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_SMOKE : Smoke alarm
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_SMOKE.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_SMOKE.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_SMOKE.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_SMOKE.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_SMOKE.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_SMOKE;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_EXFLAPS : Explosion flaps circuit
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_EXFLAPS.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_EXFLAPS.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_EXFLAPS.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_EXFLAPS.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_EXFLAPS.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_EXFLAPS;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #G_C_VOLTAGE.StFault;
+	      O     #G_ES_GENERAL.StFault;
+	      O     #G_FUSE_NSWITCHED.StFault;
+	      O     #G_FUSE_SWITCHED.StFault;
+	      O     #G_FIRE.StFault;
+	      O     #G_SMOKE.StFault;
+	      O     #G_EXFLAPS.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      U     #G_C_VOLTAGE.StFalse;
+	      O     #G_ES_GENERAL.StFalse;
+	      O     #G_FUSE_NSWITCHED.StFalse;
+	      O     #G_FIRE.StFalse;
+	      O     #G_SMOKE.StFalse;
+	      O     #G_EXFLAPS.StFalse;
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      SET;
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U(;
+	      O     #G_C_VOLTAGE.StTrue; 
+	      O     #G_C_VOLTAGE.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_ES_GENERAL.StTrue; 
+	      O     #G_ES_GENERAL.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_FUSE_NSWITCHED.StTrue; 
+	      O     #G_FUSE_NSWITCHED.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_FIRE.StTrue; 
+	      O     #G_FIRE.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_SMOKE.StTrue; 
+	      O     #G_SMOKE.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_EXFLAPS.StTrue; 
+	      O     #G_EXFLAPS.StCtoFalse; 
+	      );
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[1];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[1];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[1];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[1];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[1];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[1];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[1];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[1];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[1];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[1];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

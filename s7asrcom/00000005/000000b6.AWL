@@ -1,0 +1,583 @@
+FUNCTION_BLOCK "GCS7_M_MotorBypass"
+TITLE =Motor with bypass flap 
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 52 MACHINE-CONTROL:Motor with bypass flap
+//              (GCPROVB Revision 4)
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB52.5.4      A. Egli             CT3                         26-Jan-2005
+//              Transition StStopping --> StBypassed
+//FB52.5.3      A. Egli             CT3                         11-Oct-2004
+//              Restart Clearing time when changing position of bypass flap 
+//FB52.5.2      A. Egli             CT3                         22-Apr-2004
+//              For Clearing time check <=0 
+//FB52.5.1      A. Egli             CT3                         26-Mai-2003
+//              Condition StStarted, if Mon1 is HL
+//              Send CmdOff to Motor
+//FB52.5.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//              If no Mon1 then reset ParMon1IsLS,ParMon1IsHL,ParMon1StopByFault
+//FB52.4.1      A.Egli              CT3                         12-Mar-2002
+//              InBypass2 
+//FB52.4.0      A.Egli              CT3                         30-Jan-2002
+//              VLS2: 2nd Bypass flap
+//FB52.3.2      S. Kalberer         CT3                         09-Oct-2000
+//              3.1 corrected and local mode for HLInlet if bypassed
+//FB52.3.1      A. Egli             CT3                         08-Sep-2000
+//              Local mode for motor if, bypassed
+//FB52.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB52.2C       A.Egli              CT3                         13-Sep-1999
+//              Start condtion for motor by change maunal flap
+//FB52.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB52.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB52.1A       A.Egli              AEE61                       5-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.M1VxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : M1V
+VERSION : 5.4
+
+
+VAR
+  Ma : "GCS7_M_FB52_Data";	
+  Mon1 : "GCS7_E_DigInput";	//Element
+  Motor : "GCS7_E_Motor";	//Element
+  VLS1 : "GCS7_E_ValveControl";	//Element
+  HLInlet : "GCS7_E_DigInput";	//Element
+  VLS2 : "GCS7_E_ValveControl";	//Element [4.0]
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpStartReq : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     16; 
+      T     #tmpLenDyn; 
+//Init flags
+      UN    #Ma.Par.ParWithMon1; 
+      R     #Ma.Par.ParMon1IsLS; 
+      R     #Ma.Par.ParMon1IsHL; 
+      R     #Ma.Par.ParMon1StopByFault; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2052; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParClearingTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      S     #VLS1.InManual; 
+      S     #VLS2.InManual; //[4.0]
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      R     #Motor.InManual; 
+      R     #VLS1.InManual; 
+      R     #VLS2.InManual; //[4.0]
+      U     "SYS_DirectCtrlDB".PC.Cmd1[5]; //Cmd1[5]=CmdBypass
+      S     #VLS1.CmdHN; 
+      S     #VLS2.CmdHN; //[4.0]
+      U     "SYS_DirectCtrlDB".PC.Cmd2[5]; //Cmd1[5]=CmdMachine
+      S     #VLS1.CmdLN; 
+      S     #VLS2.CmdLN; //[4.0]
+      SPA   aIni; 
+aExa: TAR2  ; // Address dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+//--- Fault----
+      U     #VLS2.StFault; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      O     #Mon1.StFault; 
+      O     #Motor.StFault; 
+      O     #VLS1.StFault; 
+      O     #HLInlet.StFault; 
+      =     #tmpFaultSum; 
+//--- Motor----
+      U     #Ma.CmdOff; //[5.1]
+      S     #Motor.CmdOff; //[5.1]
+      U(    ; 
+      O     #VLS2.StLN; //[4.0]
+      O     #VLS2.StCtoLN; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      O     #VLS1.StLN; 
+      O     #VLS1.StCtoLN; //[2C]
+      U     #Ma.Par.ParLocalPosition; 
+      O     ; 
+      U(    ; 
+      UN    #Ma.InBypass2; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      ON    #Ma.InBypass; 
+      )     ; 
+      UN    #Ma.Par.ParLocalPosition; 
+      )     ; 
+      UN    #Ma.InManual; 
+      UN    #tmpLocal; 
+      =     #tmpStartReq; 
+
+      U     #tmpStartReq; 
+      UN    #Motor.StStartedFwd; 
+      UN    #Motor.StStartedRev; 
+      =     #Ma.OutStartReq; 
+
+      U     #Mon1.StTrue; 
+      ON    #Ma.Par.ParMon1IsLS; 
+      UN    #Mon1.StFault; 
+      ON    #Ma.Par.ParMon1StopByFault; 
+      UN    #Ma.CmdOff; 
+      U(    ; 
+      U     #tmpStartReq; 
+      ON    #Ma.StBypassed; 
+      O     #Ma.InManual; 
+      )     ; 
+      =     #tmpEnable; 
+
+      U     #tmpEnable; 
+      U     #Ma.InEnableFwd; 
+      =     #Motor.InEnableFwd; 
+
+      U     #tmpEnable; 
+      U     #Ma.InEnableRev; 
+      =     #Motor.InEnableRev; 
+
+      U     #Ma.OutStartReq; 
+      UN    #Ma.InManual; 
+      U     #Ma.CmdNext; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.CmdOn; 
+      S     #Motor.CmdNext; 
+
+      U     #Ma.InSeqStop; 
+      =     #Motor.InSeqStop; 
+//--- VLS----
+      U     #Ma.InBypass; 
+      UN    #Ma.Par.ParLocalPosition; 
+      =     #VLS1.InEnableHN; 
+
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      UN    #Ma.InBypass; 
+      UN    #Ma.Par.ParLocalPosition; 
+      =     #VLS1.InEnableLN; 
+
+      U     #Ma.InBypass2; 
+      UN    #Ma.Par.ParLocalPosition; 
+      =     #VLS2.InEnableHN; //[4.0]
+
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      UN    #Ma.InBypass2; 
+      UN    #Ma.Par.ParLocalPosition; 
+      =     #VLS2.InEnableLN; //[4.0]
+
+      SET   ; 
+      S     #VLS1.CmdNext; 
+      S     #VLS2.CmdNext; //[4.0]
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #VLS1.InLocal; 
+      =     #VLS2.InLocal; //[4.0]
+
+      U     #VLS2.StHN; //[4.0]
+      UN    #VLS2.InEnableLN; //[4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      U     #VLS1.StHN; //[3.2 -->
+      UN    #VLS1.InEnableLN; 
+      O     #tmpLocal; 
+      =     #HLInlet.InLocal; 
+
+      U     #VLS2.StHN; //[4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      U     #VLS1.StHN; 
+      U     #Motor.StStopped; 
+      O     #tmpLocal; 
+      S     #Motor.InLocal; 
+      U(    ; 
+      UN    #Ma.InBypass2; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      ON    #Ma.InBypass; 
+      UN    #Ma.Par.ParLocalPosition; 
+      O     ; 
+      UN    #VLS1.StHN; 
+      U     #Ma.Par.ParLocalPosition; 
+      O     ; 
+      UN    #VLS2.StHN; //[4.0]
+      U     #Ma.Par.ParLocalPosition; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      )     ; 
+      UN    #tmpLocal; 
+      R     #Motor.InLocal; // <-- 3.2]
+
+//      UN    #Ma.InBypass;  //[3.1 -->
+//      UN    #Ma.Par.ParLocalPosition;
+//      ON    #VLS.InEnableHN;
+//      UN    #tmpLocal; 
+//      R     #Motor.InLocal;
+//      U     #VLS.InEnableHN;
+//      U     #Motor.StStopped;
+//      O     #tmpLocal; 
+//      S     #Motor.InLocal; // <-- 3.1]
+
+      U     #Motor.StStopped; 
+      ON    #Ma.Par.ParMon1IsLS; 
+      U     #tmpLocal; 
+      =     #Mon1.InLocal; 
+
+//--- Monitoring
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      UN    #Ma.Par.ParMon1IsHL; 
+      O(    ; 
+      UN    #VLS2.StHN; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      O     #Ma.OutStartReq; 
+      ON    #Motor.StStopped; 
+      ON    #VLS1.StHN; 
+      U     #Ma.Par.ParMon1IsLS; 
+      )     ; 
+      =     #Mon1.InMonTrue; 
+
+      U     #Ma.Par.ParMon1IsHL; 
+      =     #Mon1.InMonFalse; 
+      SET   ; 
+      =     #HLInlet.InMonFalse; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Mon1.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+      S     #VLS1.CmdFaultReset; 
+      S     #HLInlet.CmdFaultReset; 
+      S     #VLS2.CmdFaultReset; //[4.0]
+
+NETWORK
+TITLE =Call Digital Input: Monitor B1
+
+      UN    #Ma.Par.ParWithMon1; 
+      SPB   Moto; 
+      CALL #Mon1 ;
+
+NETWORK
+TITLE =Call Motor
+
+Moto: CALL #Motor ;
+
+NETWORK
+TITLE =Call VLS1
+
+      CALL #VLS1 ;
+
+NETWORK
+TITLE =Call VLS2
+
+      UN    #Ma.Par.ParWithVLS2; 
+      SPB   elHL; 
+      CALL #VLS2 ;
+
+NETWORK
+TITLE =Call Digital Input: HL Inlet
+
+elHL: UN    #Ma.Par.ParWithHLInlet; 
+      SPB   StJ0; 
+      CALL #HLInlet ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StClearing; 
+      SPB   S5; // ===> State
+      U     #Ma.StBypassed; 
+      SPB   S6; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+
+NETWORK
+TITLE =Stopped
+
+xxS0: S     #Ma.StStopped; 
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> StFault
+      UN    #Motor.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+// Condition for StBypassed
+      U     #VLS2.StHN; // Bypassed [4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      U     #VLS1.StHN; // Bypassed
+      R     #Ma.StStopped; 
+      SPB   xxS6; //--> StBypassed
+      SPA   OUT; 
+
+NETWORK
+TITLE =Starting
+
+xxS1: S     #Ma.StStarting; 
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      U     #Motor.StStopped; 
+      O     #Motor.StStopping; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+// Condition for StStarted
+      U     #Mon1.StTrue; 
+      ON    #Ma.Par.ParWithMon1; 
+      O     #Ma.Par.ParMon1IsHL; //5.1
+      U(    ; 
+      O     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      )     ; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //--> StStarted
+      SPA   OUT; 
+
+NETWORK
+TITLE =Started
+
+xxS2: S     #Ma.StStarted; 
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #Motor.StStartedRev; 
+      UN    #Motor.StStartedFwd; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //--> StStopping
+// Condition for StClearing
+      U     #VLS2.StHN; //[4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      U     #VLS1.StHN; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //--> StClearing
+      SPA   OUT; 
+
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+      L     #Ma.Par.ParClearingTime; 
+      T     #Ma.Par.OutClearingTime; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StClearing; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      U     #VLS1.StLN; 
+      U(    ; //[4.0]
+      U     #VLS2.StLN; //[4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      )     ; 
+      R     #Ma.StClearing; 
+      SPB   xxS2; //--> StStarted
+      U     #VLS2.StHN; //[5.3]
+      ON    #Ma.Par.ParWithVLS2; //[5.3]
+      U     #VLS1.StHN; //[5.3]
+      SPB   S5J1; //[5.3]
+      L     #Ma.Par.ParClearingTime; //[5.3]
+      T     #Ma.Par.OutClearingTime; //[5.3]
+S5J1: NOP   0; //[5.3]
+// Condition for StBypassed
+      L     0; 
+      L     #Ma.Par.OutClearingTime; 
+      >=I   ; //[5.2]
+      R     #Ma.StClearing; 
+      SPB   xxS6; //--> StBypassed
+
+// Condition for StStopping
+      UN    #Motor.StStartedFwd; 
+      UN    #Motor.StStartedRev; 
+      R     #Ma.StClearing; 
+      SPB   xxS3; //--> StStopping
+
+      ON    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      SPB   OUT; 
+      L     #Ma.Par.OutClearingTime; 
+      +     -5; 
+      T     #Ma.Par.OutClearingTime; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StBypassed
+//any Transition 
+xxS6: S     #Ma.StBypassed; 
+//=== Logic
+// Condition for StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StBypassed; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      UN    #VLS1.StHN; 
+      U(    ; //[4.0]
+      UN    #VLS2.StHN; //[4.0]
+      ON    #Ma.Par.ParWithVLS2; //[4.0]
+      )     ; //[4.0]
+      R     #Ma.StBypassed; 
+      SPB   xxS2; //--> StStarted
+// Condition for StStopping
+      UN    #VLS1.StHN; // Bypassed
+      UN    #VLS1.StCtoLN; //[2C]
+      O(    ; //[4.0]
+      UN    #VLS2.StHN; //[4.0]
+      UN    #VLS2.StCtoLN; //[4.0]
+      U     #Ma.Par.ParWithVLS2; //[4.0]
+      )     ; //[4.0]
+      R     #Ma.StBypassed; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Stopping
+
+xxS3: S     #Ma.StStopping; 
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Motor.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+// Condition for StStarting
+      UN    #Motor.StStopping; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //--> StStarting
+// Condition for StBypassed
+      U     #VLS2.StHN; //[5.4] Bypassed
+      ON    #Ma.Par.ParWithVLS2; //[5.4]
+      U     #VLS1.StHN; //[5.4] Bypassed
+      R     #Ma.StStopping; //[5.4]
+      SPB   xxS6; //[5.4]--> StBypassed
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; 
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Global End
+
+OUT:  CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+NETWORK
+TITLE =State Code
+// Same as motor
+      L     32; // StCode=Fault
+      U     #Ma.StFault; 
+      SPB   Code; 
+      L     8; // StCode=Clearing
+      U     #Ma.StClearing; 
+      SPB   Code; 
+      L     9; // StCode=ByPassed
+      U     #Ma.StBypassed; 
+      SPB   Code; 
+      L     #Motor.StCode; // StCode=Motor
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+END_FUNCTION_BLOCK
+

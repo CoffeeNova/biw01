@@ -1,0 +1,416 @@
+	FUNCTION_BLOCK FB 124
+	TITLE =G024G GERNERAL ELEMENTS +C19
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        GERNERAL ELEMENTS +C19
+	//                General group control
+	//                Allgemeine Gruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB124.1.0 K.Renz              CSB41                              06.Apr.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_1999_SHE01 : FB14;   // DigInpCont 
+	     #A_1999_SHE02 : FB14;   // DigInpCont 
+	     #A_19_A040Z1 : FB14;   // DigInpCont 
+	     #A_19_A097Z1 : FB14;   // DigInpCont 
+	     #A_19_K091Z1 : FB14;   // DigInpCont 
+	     #A_19_S_H097Z1 : FB14;   // DigInpCont 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      R   GCS7_GrCtrlDB.ParMGR[24];
+	      R   GCS7_GrCtrlDB.ParWGR[24];
+	      S   GCS7_GrCtrlDB.ParGGR[24];
+	      R   GCS7_GrCtrlDB.ParFeed[24];
+	      S   GCS7_GrCtrlDB.ParShare[24];
+	      R   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      S   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[24];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[24];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[24];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[24];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[24];
+	      R   #GCS7_GrCtrlDB.CmdNext[24];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[24];
+	      O   #GCS7_GrCtrlDB.OutOccupied[24];
+	      R   GCS7_GrCtrlDB.CmdManualOff[24];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[24];
+	      R   GCS7_GrCtrlDB.CmdContinue[24];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[24];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX30.0;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE ==A-1999-SHE01 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1999_SHE01.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_1999_SHE01.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_1999_SHE01.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1999_SHE01.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1101.0; 
+	      =     #A_1999_SHE01.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1999_SHE01;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1999-SHE02 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1999_SHE02.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_1999_SHE02.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_1999_SHE02.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1999_SHE02.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1101.1; 
+	      =     #A_1999_SHE02.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1999_SHE02;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-19-A040Z1 : POWER SUPPLY FAILURE +C19
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_19_A040Z1.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_19_A040Z1.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_19_A040Z1.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_19_A040Z1.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1100.0; 
+	      =     #A_19_A040Z1.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_19_A040Z1;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-19-A097Z1 : EMERGENCY-STOP +C19
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_19_A097Z1.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_19_A097Z1.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_19_A097Z1.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_19_A097Z1.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1100.3; 
+	      =     #A_19_A097Z1.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_19_A097Z1;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-19-K091Z1 : FUSE SWITCH OFF +C19
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_19_K091Z1.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_19_K091Z1.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_19_K091Z1.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_19_K091Z1.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1100.2; 
+	      =     #A_19_K091Z1.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_19_K091Z1;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-19-S/H097Z1 : OPERATING ON +C19
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_19_S_H097Z1.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #A_19_S_H097Z1.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #A_19_S_H097Z1.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_19_S_H097Z1.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1100.1; 
+	      =     #A_19_S_H097Z1.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_19_S_H097Z1;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_1999_SHE01.StFault;
+	      O     #A_1999_SHE02.StFault;
+	      O     #A_19_A040Z1.StFault;
+	      O     #A_19_A097Z1.StFault;
+	      O     #A_19_K091Z1.StFault;
+	      O     #A_19_S_H097Z1.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      U     #A_1999_SHE01.StFalse;
+	      O     #A_1999_SHE02.StFalse;
+	      O     #A_19_A040Z1.StFalse;
+	      O     #A_19_A097Z1.StFalse;
+	      O     #A_19_K091Z1.StFalse;
+	      O     #A_19_S_H097Z1.StFalse;
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      SET;
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U(;
+	      O     #A_1999_SHE01.StTrue; 
+	      O     #A_1999_SHE01.StCtoFalse; 
+	      );
+	      U(;
+	      O     #A_1999_SHE02.StTrue; 
+	      O     #A_1999_SHE02.StCtoFalse; 
+	      );
+	      U(;
+	      O     #A_19_A040Z1.StTrue; 
+	      O     #A_19_A040Z1.StCtoFalse; 
+	      );
+	      U(;
+	      O     #A_19_A097Z1.StTrue; 
+	      O     #A_19_A097Z1.StCtoFalse; 
+	      );
+	      U(;
+	      O     #A_19_K091Z1.StTrue; 
+	      O     #A_19_K091Z1.StCtoFalse; 
+	      );
+	      U(;
+	      O     #A_19_S_H097Z1.StTrue; 
+	      O     #A_19_S_H097Z1.StCtoFalse; 
+	      );
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[24];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[24];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[24];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[24];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[24];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[24];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[24];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[24];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[24];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[24];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

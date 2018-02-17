@@ -1,0 +1,191 @@
+	DATA_BLOCK DB420
+	TITLE =DBG320M  PCC GRAPHIC SUPPORT
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        PCC GRAPHIC SUPPORT
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB420.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG320M 
+	VERSION : 00.00
+	
+	FB420
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=32000; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=99;
+	//Parameter PCC_VIS_01 : , only for graphic support
+	      #PCC_VIS_01.Par.ParObjectNo                             :=32001;
+	      #PCC_VIS_01.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_01.Par.ParHornCode                             :=99;
+	      #PCC_VIS_01.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_01.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_01.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_01.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_01.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_01.Par.ParLogOff                               :=False;
+	      #PCC_VIS_01.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_01.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_02 : , only for graphic support
+	      #PCC_VIS_02.Par.ParObjectNo                             :=32002;
+	      #PCC_VIS_02.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_02.Par.ParHornCode                             :=99;
+	      #PCC_VIS_02.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_02.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_02.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_02.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_02.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_02.Par.ParLogOff                               :=False;
+	      #PCC_VIS_02.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_02.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_02.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_03 : , only for graphic support
+	      #PCC_VIS_03.Par.ParObjectNo                             :=32003;
+	      #PCC_VIS_03.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_03.Par.ParHornCode                             :=99;
+	      #PCC_VIS_03.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_03.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_03.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_03.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_03.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_03.Par.ParLogOff                               :=False;
+	      #PCC_VIS_03.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_03.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_03.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_04 : , only for graphic support
+	      #PCC_VIS_04.Par.ParObjectNo                             :=32004;
+	      #PCC_VIS_04.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_04.Par.ParHornCode                             :=99;
+	      #PCC_VIS_04.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_04.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_04.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_04.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_04.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_04.Par.ParLogOff                               :=False;
+	      #PCC_VIS_04.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_04.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_04.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_05 : , only for graphic support
+	      #PCC_VIS_05.Par.ParObjectNo                             :=32005;
+	      #PCC_VIS_05.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_05.Par.ParHornCode                             :=99;
+	      #PCC_VIS_05.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_05.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_05.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_05.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_05.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_05.Par.ParLogOff                               :=False;
+	      #PCC_VIS_05.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_05.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_05.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_06 : , only for graphic support
+	      #PCC_VIS_06.Par.ParObjectNo                             :=32006;
+	      #PCC_VIS_06.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_06.Par.ParHornCode                             :=99;
+	      #PCC_VIS_06.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_06.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_06.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_06.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_06.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_06.Par.ParLogOff                               :=False;
+	      #PCC_VIS_06.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_06.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_06.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_07 : , only for graphic support
+	      #PCC_VIS_07.Par.ParObjectNo                             :=32007;
+	      #PCC_VIS_07.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_07.Par.ParHornCode                             :=99;
+	      #PCC_VIS_07.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_07.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_07.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_07.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_07.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_07.Par.ParLogOff                               :=False;
+	      #PCC_VIS_07.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_07.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_07.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_08 : , only for graphic support
+	      #PCC_VIS_08.Par.ParObjectNo                             :=32008;
+	      #PCC_VIS_08.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_08.Par.ParHornCode                             :=99;
+	      #PCC_VIS_08.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_08.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_08.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_08.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_08.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_08.Par.ParLogOff                               :=False;
+	      #PCC_VIS_08.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_08.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_08.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_09 : , only for graphic support
+	      #PCC_VIS_09.Par.ParObjectNo                             :=32009;
+	      #PCC_VIS_09.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_09.Par.ParHornCode                             :=99;
+	      #PCC_VIS_09.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_09.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_09.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_09.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_09.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_09.Par.ParLogOff                               :=False;
+	      #PCC_VIS_09.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_09.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_09.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter PCC_VIS_10 : Groups with objects in manual mode
+	      #PCC_VIS_10.Par.ParObjectNo                             :=32010;
+	      #PCC_VIS_10.Par.ParMsgType                              :=7147;
+	      #PCC_VIS_10.Par.ParHornCode                             :=99;
+	      #PCC_VIS_10.Par.ParDelayChange                          :=0;
+	      #PCC_VIS_10.Par.ParDelayTrue                            :=0;
+	      #PCC_VIS_10.Par.ParDelayFalse                           :=0;
+	      #PCC_VIS_10.Par.ParTimeoutTrue                          :=0;
+	      #PCC_VIS_10.Par.ParTimeoutFalse                         :=0;
+	      #PCC_VIS_10.Par.ParLogOff                               :=False;
+	      #PCC_VIS_10.Par.Par2WorkingCond                         :=False;
+	      #PCC_VIS_10.Par.ParFaultRetry                           :=False;
+	      #PCC_VIS_10.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,315 @@
+FUNCTION "CWA_ScaleRead" : VOID
+TITLE =CWA READ SCALE
+//
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      CWA
+//
+//TITLE:        SCALE CONTROL: READ SCALE
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC42.3.1      A. Egli             CT3                           29-Jun-2004
+//              InLocal to disable alarm EsReading
+//FC42.3.0      A. Egli             CT3                            8-Feb-2000
+//              BCD: Check niybble in range '0' to '9'
+//FC42.2A       A. Egli             CT3                           23-Feb-99
+//              ERG2: DBX125.7: ParErg2Parallel (16+4Bit)
+//              Attention: By Pulse input Bit-Number new on DBB134 not DBB135
+//FC42.1D       A. Egli             CT3                           22-Oct-98
+//              ERG2: DBX125.6: ParErg2DP
+//
+//FC42.1C       A. Egli             CT3                           16-Jan-98
+//              Fault Reading BCD Value
+//
+//FC42.1B       A. Egli             CT3                           20-Jan-98
+//              Update to  Version S5 2A
+//
+//FC42.1A       S. Kalberer         AEE61                         24-APR-96
+//              1st Release in S7, converted from FB42.1B
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : CWAMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//
+//ACTUAL DB BY CALL: SCALE    DB
+AUTHOR : EA
+FAMILY : CWA
+NAME : CWARead
+VERSION : 3.1
+CODE_VERSION1
+
+
+VAR_TEMP
+  AddrPointer : DWORD ;	
+  tmpValue : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =BCD/ERG
+
+      UN    DBX  125.1; // ParERG
+      UN    DBX  125.0; // ParBCD
+      SPB   NX02; 
+      U     DBX   57.0; // inp_ReadingLocked
+      O     DBX  125.5; // ParmeasurmentASW
+      SPB   NX02; 
+      U     DBX  125.1; // ParERG
+      SPB   ERG; // === BCD (MINIPOND)==============
+      L     DBB  135; // ParAddrInp2Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     DBB  134; // ParAddrInpBit
+      L     PEW [#AddrPointer]; // temp2
+      SRW   ; // Bit 0= sign
+      T     DBW  154; // --> temp2
+      UN    DBX  155.1; // inp_data_ready
+      SPB   D_R; 
+      L     DBW  132; // ParAddrInp1Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     PEW [#AddrPointer]; 
+      T     DBW  152; // --> temp1
+      L     W#16#FFFF; 
+      ==I   ; 
+      SPB   ERR1; // --> reading error
+// Begin [3A]  
+//    Tesat Digit in range ['0' .. '9']   
+      L     DBW  152; // temp1
+      L     W#16#F000; 
+      UW    ; 
+      SRW   12; // Move to bottom nybble
+      L     9; 
+      >I    ; 
+      SPB   D_R; // --> Nibble BCD conversion error
+      L     DBW  152; // temp1
+      L     W#16#F00; 
+      UW    ; 
+      L     W#16#900; 
+      >I    ; 
+      SPB   D_R; // --> Nibble BCD conversion error
+      L     DBW  152; // temp1
+      L     W#16#F0; 
+      UW    ; 
+      L     W#16#90; 
+      >I    ; 
+      SPB   D_R; // --> Nibble BCD conversion error
+      L     DBW  152; // temp1
+      L     W#16#F; 
+      UW    ; 
+      L     W#16#9; 
+      >I    ; 
+      SPB   D_R; // --> Nibble BCD conversion error
+// End [3A] 
+      L     DBW  152; // temp1
+      BTD   ; 
+      UN    DBX  155.2; // inp_10000
+      ON    DBX  124.0; // ParBCD_Inp10000
+      SPB   B20; 
+      +     10000; 
+B20:  UN    DBX  155.3; // inp_20000
+      ON    DBX  124.1; // ParBCD_Inp10000
+      SPB   B40; 
+      +     L#20000; // +20000
+B40:  UN    DBX  155.4; // inp_40000
+      ON    DBX  124.2; // ParBCD_Inp10000
+      SPB   B80; 
+      +     L#40000; // +40000
+B80:  UN    DBX  155.5; // inp_80000
+      ON    DBX  124.3; // ParBCD_Inp10000
+      SPB   BX; 
+      +     L#80000; // +80000
+BX:   U     DBX  155.0; // inp_positiv
+      SPB   POS; 
+      SPA   NEG; // === ERG ======================
+ERG:  L     DBW  132; // ParAddrInp1Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     PEW [#AddrPointer]; 
+      T     DBW  152; // --> temp1
+      UN    DBX  152.6; // temp1.fault
+      SPB   ERR1; 
+      U     DBX  152.7; // temp1.data_ready
+      SPB   READ; // ==== Not data ready ============
+D_R:  L     DBW  138; // ME.VarNotDataReadyCnt
+      +     1; 
+      T     DBW  138; // --> ME.VarNotDataReadyCnt
+      L     DBW  136; 
+      <I    ; // ME.ParNotDataReadyCntMax
+      SPB   NX02; 
+      L     77; // CODE: Time_out Data_ready
+ERRO: T     DBW  246; // --> ErrCodeWorking
+      UN    DBX   55.5; //InLocal      [3.1]
+      O     DBX   43.7; //InfActive    [3.1] 
+      S     DBX  244.2; // --> Fault.EsReading
+      SPA   NX02; 
+ERR1: L     78; // CODE: Fault
+      SPA   ERRO; 
+READ: L     W#16#FFF; // 12-BIT
+      UW    ; 
+      U     DBX  152.4; // sign=positiv
+      SPB   POS; 
+NEG:  L     0; 
+      TAK   ; 
+      -D    ; 
+POS:  T     DBD  152; // var_temp_1/temp2
+      L     DBD  148; // ME.VarScaleValueInput
+      -D    ; 
+      L     DBW  130; // ME.ParDiffReadWtMax
+      SPP   X2; 
+      INVI  ; // invert
+      TAK   ; 
+X2:   <=I   ; 
+      O     DBX   81.0; // Loc.Flag.Inf2Reading
+      SPB   OK; 
+      S     DBX   81.0; // Loc.Flag.Inf2Reading
+      SPA   NX02; 
+OK:   R     DBX   81.0; // Loc.Flag.Inf2Reading
+      L     DBD  152; // var_temp_1/temp2
+      T     DBD  148; // ME.VarScaleValueInput
+      L     0; 
+      T     DBW  138; // --> var_NotDataReadyCnt
+NETWORK
+TITLE =ERG2
+
+NX02: UN    DBX  125.6; // ParERG2DP
+      UN    DBX  125.7; // ParERG2Parallel
+      SPB   e2NX; 
+      U     DBX   57.0; // inp_ReadingLocked
+      O     DBX  125.5; // ParmeasurmentASW
+      SPB   e2NX; 
+      U     DBX  125.6; // ParERG2DP
+      SPB   ERDP; 
+//ERG2Parallel
+      L     DBB  135; // ParAddrInp2Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     DBB  134; // ME.ParAddrBit
+      L     PEW [#AddrPointer]; 
+      SRW   ; // Bit 0= sign
+      T     #tmpValue; 
+      SLW   12; 
+      T     DBW  152; // --> temp1
+      L     DBW  132; // ParAddrInp1Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     PEW [#AddrPointer]; 
+      T     #tmpValue; 
+      SPA   ERD; 
+//ERG2DP
+ERDP: L     DBW  132; // ParAddrInp1Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     PED [#AddrPointer]; 
+      T     #tmpValue; 
+      SRD   12; 
+      T     DBW  152; // --> temp1
+ERD:  UN    DBX  152.6; // temp1.fault
+      SPB   e2E1; 
+      U     DBX  152.7; // temp1.data_ready
+      SPB   e2RE; // ==== Not data ready ============
+      L     DBW  138; // ME.VarNotDataReadyCnt
+      +     1; 
+      T     DBW  138; // --> ME.VarNotDataReadyCnt
+      L     DBW  136; 
+      <I    ; // ME.ParNotDataReadyCntMax
+      SPB   e2NX; 
+      L     77; // CODE: Time_out Data_ready
+e2EO: T     DBW  246; // --> ErrCodeWorking
+      UN    DBX   55.5; //InLocal      [3.1]
+      O     DBX   43.7; //InfActive    [3.1] 
+      S     DBX  244.2; // --> Fault.EsReading
+      SPA   e2NX; 
+e2E1: L     78; // CODE: Fault
+      SPA   e2EO; 
+e2RE: L     #tmpValue; 
+      L     DW#16#FFFFFF; // 24-BIT
+      UD    ; 
+      U     DBX  152.4; // sign=positiv
+      SPB   e2PO; 
+      NEGD  ; 
+e2PO: T     DBD  152; // var_temp_1/temp2
+      L     DBD  148; // ME.VarScaleValueInput
+      -D    ; 
+      L     DBW  130; // ME.ParDiffReadWtMax
+      SPP   e2X2; 
+      INVI  ; // invert
+      TAK   ; 
+e2X2: <=I   ; 
+      O     DBX   81.0; // Loc.Flag.Inf2Reading
+      SPB   e2OK; 
+      S     DBX   81.0; // Loc.Flag.Inf2Reading
+      SPA   e2NX; 
+e2OK: R     DBX   81.0; // Loc.Flag.Inf2Reading
+      L     DBD  152; // var_temp_1/temp2
+      T     DBD  148; // ME.VarScaleValueInput
+      L     0; 
+      T     DBW  138; // --> var_NotDataReadyCnt
+NETWORK
+TITLE =Impulse
+
+e2NX: UN    DBX  125.2; // ParPulseInterruptCall
+      UN    DBX  125.3; // ParPulseTimeCall
+      SPB   NX03; // 
+      U     DBX   57.0; // ToSSW.InpReadingLocked
+      O     DBX  125.5; // ParMesurmentASW
+      SPB   NX03; // 
+      U     DBX  125.2; // ParPulseInterruptCall
+      SPB   IM_I; 
+// -- Time CALL -----------------
+      L     DBW  132; // ME.ParAddr1Word
+      SLD   3; 
+      T     #AddrPointer; 
+      L     DBB  134; // ME.ParAddrBit  [REL.2A]
+      L     PEB [#AddrPointer]; 
+      SRW   ; // Bit 0= sign
+      T     DBW  154; // -> Bit 0 = Copy of the Input
+      U     DBX   81.1; // Loc.Flag.InfFlagInpPulse
+      ON    DBX  155.0; // copy of the Input
+      SPB   OUT; 
+IM_I: L     DBD  148; // ME.VarScaleValueInput
+      +     L#1; 
+      T     DBD  148; // ->ME.VarScaleValueInput
+OUT:  U     DBX  155.0; // copy of the Input
+      =     DBX   81.1; // inf_positive_flag_inp
+NETWORK
+TITLE =Calulate value absolute
+
+NX03: L     DBD  148; // ME.VarScaleValueInput
+      DTR   ; 
+      L     DBD  126; // Parscale_unit
+      *R    ; 
+      RND   ; 
+      T     DBD  254; // --> scale_value_absolute
+NETWORK
+TITLE =Test weight
+
+      L     DBD  254; // ScaleWt
+      L     DBD  140; // ME.VarCutoffWt
+      UN    DBX    7.0; 
+      SPB   POS2; 
+      TAK   ; 
+POS2: <D    ; 
+      O     DBX  248.1; // StaReconveying
+      O     DBX  125.4; // ParDosingRemote
+      UN    DBX  252.1; // StaScrapBatch
+      UN    DBX   58.1; // CmdAbortBatch
+      SPB   NX05; // 
+      S     DBX   81.2; // Loc.Flag.InfFlagStopValue
+      R     DBX   42.6; // ToASW.OutpFast
+      R     DBX   42.7; // ToASW.OutpDosing
+NETWORK
+TITLE =
+
+NX05: BE    ; 
+
+END_FUNCTION
+

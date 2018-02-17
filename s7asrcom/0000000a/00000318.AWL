@@ -1,0 +1,790 @@
+FUNCTION_BLOCK "G129M_Code"
+TITLE =G129M TURNING SCREWS GERM 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TURNING SCREWS GERM 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB229.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2211_MXZ61 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ62 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ63 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ64 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ65 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ66 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ67 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ68 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ69 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ70 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ71 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ72 : "GCS7_E_Motor";	// Motor 
+  A_2211_MXZ73 : "GCS7_E_Motor";	// Motor 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[129]; 
+      R     "GCS7_GrCtrlDB".ParWGR[129]; 
+      R     "GCS7_GrCtrlDB".ParGGR[129]; 
+      R     "GCS7_GrCtrlDB".ParFeed[129]; 
+      R     "GCS7_GrCtrlDB".ParShare[129]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[129]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[129]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[129]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[129]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[129]; 
+      R     "GCS7_GrCtrlDB".CmdNext[129]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[129]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[129]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[129]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[129]
+//      O     "GCS7_GrCtrlDB".OutOccupied[129]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[129]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[129]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[129]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[129]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+//BRT200310      CLR   
+      ON    "G006G".Gr.OutAutostart; //BRT200310
+      O     "G006G".A_22_A097Z1.StFault; 
+      O     "G006G".A_22_A098Z1.StFault; 
+      O     "G006G".A_22_A106Z1.StFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      UN(   ; 
+      O     "G006G".A_22_A097Z1.StFault; 
+      O     "G006G".A_22_A098Z1.StFault; 
+      O     "G006G".A_22_A106Z1.StFault; 
+      )     ; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[3].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G129M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 3,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-2211-MXZ61 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ61.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ61.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ61.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ61.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ61_I1"; 
+      =     #A_2211_MXZ61.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ61.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ61.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ61 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ61.OutpRunFwd; 
+      =     "A_2211_MXZ61_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ62 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ62.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ62.InEnableFwd; 
+// 
+      U     #A_2211_MXZ61.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ62.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ62.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ62_I1"; 
+      =     #A_2211_MXZ62.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ62.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ62.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ62 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ62.OutpRunFwd; 
+      =     "A_2211_MXZ62_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ63 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ63.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ63.InEnableFwd; 
+// 
+      U     #A_2211_MXZ62.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ63.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ63.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ63_I1"; 
+      =     #A_2211_MXZ63.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ63.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ63.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ63 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ63.OutpRunFwd; 
+      =     "A_2211_MXZ63_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ64 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ64.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ64.InEnableFwd; 
+// 
+      U     #A_2211_MXZ63.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ64.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ64.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ64_I1"; 
+      =     #A_2211_MXZ64.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ64.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ64.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ64 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ64.OutpRunFwd; 
+      =     "A_2211_MXZ64_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ65 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ65.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ65.InEnableFwd; 
+// 
+      U     #A_2211_MXZ64.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ65.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ65.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ65_I1"; 
+      =     #A_2211_MXZ65.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ65.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ65.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ65 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ65.OutpRunFwd; 
+      =     "A_2211_MXZ65_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ66 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ66.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ66.InEnableFwd; 
+// 
+      U     #A_2211_MXZ65.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ66.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ66.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ66_I1"; 
+      =     #A_2211_MXZ66.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ66.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ66.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ66 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ66.OutpRunFwd; 
+      =     "A_2211_MXZ66_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ67 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ67.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ67.InEnableFwd; 
+// 
+      U(    ; 
+      O     #A_2211_MXZ66.StStartedFwd; 
+      O     #A_2211_MXZ68.StStartedFwd; 
+      )     ; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ67.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ67.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ67_I1"; 
+      =     #A_2211_MXZ67.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ67.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ67.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ67 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ67.OutpRunFwd; 
+      =     "A_2211_MXZ67_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ68 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ68.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ68.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ67.StStartedFwd
+      U     #A_2211_MXZ69.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ68.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ68.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ68_I1"; 
+      =     #A_2211_MXZ68.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ68.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ68.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ68 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ68.OutpRunFwd; 
+      =     "A_2211_MXZ68_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ69 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ69.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ69.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ68.StStartedFwd
+      U     #A_2211_MXZ70.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ69.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ69.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ69_I1"; 
+      =     #A_2211_MXZ69.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ69.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ69.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ69 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ69.OutpRunFwd; 
+      =     "A_2211_MXZ69_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ70 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ70.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ70.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ69.StStartedFwd
+      U     #A_2211_MXZ71.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ70.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ70.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ70_I1"; 
+      =     #A_2211_MXZ70.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ70.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ70.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ70 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ70.OutpRunFwd; 
+      =     "A_2211_MXZ70_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ71 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ71.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ71.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ70.StStartedFwd
+      U     #A_2211_MXZ72.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ71.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ71.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ71_I1"; 
+      =     #A_2211_MXZ71.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ71.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ71.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ71 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ71.OutpRunFwd; 
+      =     "A_2211_MXZ71_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ72 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ72.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ72.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ71.StStartedFwd
+      U     #A_2211_MXZ73.StStartedFwd; 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ72.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ72.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ72_I1"; 
+      =     #A_2211_MXZ72.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ72.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ72.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ72 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ72.OutpRunFwd; 
+      =     "A_2211_MXZ72_O1"; 
+NETWORK
+TITLE ==A-2211-MXZ73 : TURNING SCREW DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ73.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2211_MXZ73.InEnableFwd; 
+// 
+//BRT200310      U     #A_2211_MXZ72.StStartedFwd
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ73.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ73.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2211_MXZ73_I1"; 
+      =     #A_2211_MXZ73.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ73.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[21]; 
+      =     #A_2211_MXZ73.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ73 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ73.OutpRunFwd; 
+      =     "A_2211_MXZ73_O1"; 
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2211_MXZ61.StFault; 
+      O     #A_2211_MXZ62.StFault; 
+      O     #A_2211_MXZ63.StFault; 
+      O     #A_2211_MXZ64.StFault; 
+      O     #A_2211_MXZ65.StFault; 
+      O     #A_2211_MXZ66.StFault; 
+      O     #A_2211_MXZ67.StFault; 
+      O     #A_2211_MXZ68.StFault; 
+      O     #A_2211_MXZ69.StFault; 
+      O     #A_2211_MXZ70.StFault; 
+      O     #A_2211_MXZ71.StFault; 
+      O     #A_2211_MXZ72.StFault; 
+      O     #A_2211_MXZ73.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//BRT200310      U     #A_2211_MXZ61.StStopped
+//BRT200310      U     #A_2211_MXZ62.StStopped
+//BRT200310      U     #A_2211_MXZ63.StStopped
+//BRT200310      U     #A_2211_MXZ64.StStopped
+//BRT200310      U     #A_2211_MXZ65.StStopped
+//BRT200310      U     #A_2211_MXZ66.StStopped
+//BRT200310      U     #A_2211_MXZ67.StStopped
+//BRT200310      U     #A_2211_MXZ68.StStopped
+//BRT200310      U     #A_2211_MXZ69.StStopped
+//BRT200310      U     #A_2211_MXZ70.StStopped
+//BRT200310      U     #A_2211_MXZ71.StStopped
+//BRT200310      U     #A_2211_MXZ72.StStopped
+//BRT200310      U     #A_2211_MXZ73.StStopped
+//BRT200310      UN    #Gr.VarFault
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_2211_MXZ61.StStartedFwd; 
+      U     #A_2211_MXZ62.StStartedFwd; 
+      U     #A_2211_MXZ63.StStartedFwd; 
+      U     #A_2211_MXZ64.StStartedFwd; 
+      U     #A_2211_MXZ65.StStartedFwd; 
+      U     #A_2211_MXZ66.StStartedFwd; 
+      U     #A_2211_MXZ67.StStartedFwd; 
+      U     #A_2211_MXZ68.StStartedFwd; 
+      U     #A_2211_MXZ69.StStartedFwd; 
+      U     #A_2211_MXZ70.StStartedFwd; 
+      U     #A_2211_MXZ71.StStartedFwd; 
+      U     #A_2211_MXZ72.StStartedFwd; 
+      U     #A_2211_MXZ73.StStartedFwd; 
+//BRT200310      UN    #Gr.VarStopped
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[129]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[129]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[129]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[129]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[129]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[129]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[129]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[129]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[129]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[129]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

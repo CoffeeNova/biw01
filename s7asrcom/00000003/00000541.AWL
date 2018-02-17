@@ -1,0 +1,287 @@
+	DATA_BLOCK DB305
+	TITLE =DBG205M  TRAVELLING DRIVE GERM 6
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        TRAVELLING DRIVE GERM 6
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB305.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG205M 
+	VERSION : 00.00
+	
+	FB305
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=20500; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=7;
+	//Parameter =A-2611-BZS44 : TRAVELING DRIVE STOP LEFT SIDE
+	      #A_2611_BZS44.Par.ParObjectNo                             :=20501;
+	      #A_2611_BZS44.Par.ParMsgType                              :=7163;
+	      #A_2611_BZS44.Par.ParHornCode                             :=7;
+	      #A_2611_BZS44.Par.ParDelayChange                          :=20;
+	      #A_2611_BZS44.Par.ParDelayTrue                            :=10;
+	      #A_2611_BZS44.Par.ParDelayFalse                           :=0;
+	      #A_2611_BZS44.Par.ParTimeoutTrue                          :=0;
+	      #A_2611_BZS44.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_BZS44.Par.ParLogOff                               :=False;
+	      #A_2611_BZS44.Par.Par2WorkingCond                         :=False;
+	      #A_2611_BZS44.Par.ParFaultRetry                           :=False;
+	      #A_2611_BZS44.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2611-BZS46 : TRAVELING DRIVE STOP RIGHT SIDE
+	      #A_2611_BZS46.Par.ParObjectNo                             :=20502;
+	      #A_2611_BZS46.Par.ParMsgType                              :=7163;
+	      #A_2611_BZS46.Par.ParHornCode                             :=7;
+	      #A_2611_BZS46.Par.ParDelayChange                          :=20;
+	      #A_2611_BZS46.Par.ParDelayTrue                            :=10;
+	      #A_2611_BZS46.Par.ParDelayFalse                           :=0;
+	      #A_2611_BZS46.Par.ParTimeoutTrue                          :=0;
+	      #A_2611_BZS46.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_BZS46.Par.ParLogOff                               :=False;
+	      #A_2611_BZS46.Par.Par2WorkingCond                         :=False;
+	      #A_2611_BZS46.Par.ParFaultRetry                           :=False;
+	      #A_2611_BZS46.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2611-QYS45 : TRAVELING DRIVE SAFETY STRIGHT SIDE
+	      #A_2611_QYS45.Par.ParObjectNo                             :=20503;
+	      #A_2611_QYS45.Par.ParMsgType                              :=7154;
+	      #A_2611_QYS45.Par.ParHornCode                             :=7;
+	      #A_2611_QYS45.Par.ParDelayChange                          :=20;
+	      #A_2611_QYS45.Par.ParDelayTrue                            :=10;
+	      #A_2611_QYS45.Par.ParDelayFalse                           :=0;
+	      #A_2611_QYS45.Par.ParTimeoutTrue                          :=0;
+	      #A_2611_QYS45.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_QYS45.Par.ParLogOff                               :=False;
+	      #A_2611_QYS45.Par.Par2WorkingCond                         :=False;
+	      #A_2611_QYS45.Par.ParFaultRetry                           :=False;
+	      #A_2611_QYS45.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2611-QYS43 : TRAVELING DRIVE SAFETY STLEFT SIDE
+	      #A_2611_QYS43.Par.ParObjectNo                             :=20504;
+	      #A_2611_QYS43.Par.ParMsgType                              :=7154;
+	      #A_2611_QYS43.Par.ParHornCode                             :=7;
+	      #A_2611_QYS43.Par.ParDelayChange                          :=20;
+	      #A_2611_QYS43.Par.ParDelayTrue                            :=10;
+	      #A_2611_QYS43.Par.ParDelayFalse                           :=0;
+	      #A_2611_QYS43.Par.ParTimeoutTrue                          :=0;
+	      #A_2611_QYS43.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_QYS43.Par.ParLogOff                               :=False;
+	      #A_2611_QYS43.Par.Par2WorkingCond                         :=False;
+	      #A_2611_QYS43.Par.ParFaultRetry                           :=False;
+	      #A_2611_QYS43.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2611-MXZ41MA : TRAVELING DRIVE
+	      #A_2611_MXZ41MA.Ma.Par.ParObjectNo                                     :=20508;
+	      #A_2611_MXZ41MA.Ma.Par.ParEndless                                      :=False;
+	      #A_2611_MXZ41MA.Ma.Par.ParIncrementsPerRound                           :=L#591;
+	      #A_2611_MXZ41MA.Ma.Par.ParTolPosition                                  :=0;
+	      #A_2611_MXZ41MA.Ma.Par.ParMonTime                                      :=200;
+	      #A_2611_MXZ41MA.Ma.Par.ParIOByteNoCounter                              :=180;
+	//
+	//Parameter A_2611_MXZ41MA.=A-2611-MXZ41 : TRAVELING DRIVE
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParObjectNo                             :=20509;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParMsgType                              :=7056;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParHornCode                             :=7;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParMonTime                              :=60;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParStartingTime                         :=60;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParStoppingTime                         :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParIdlingTime                           :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParDelayTime                            :=10;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParLogOff                               :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParManual                               :=True;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParRestartDelay                         :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.Par2Speed                               :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41.Par.ParHeavyStartup                         :=False;
+	//
+	//Parameter A_2611_MXZ41MA.=A-2611-MXZ41TF : TARGET FREQUENCY TRAVELING DRIVE
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParObjectNo                             :=20510;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParMsgType                              :=7241;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParHornCode                             :=7;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParUnitsByMaxDigit                      :=L#16875;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParLimitMin                             :=L#2000;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParLimitMax                             :=L#8700;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParDelayTime                            :=30;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParLogOff                               :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParValuePc                              :=True;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParLimitsPc                             :=True;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParWago                                 :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41TF.Par.ParFU                                   :=False;
+	//
+	//Parameter A_2611_MXZ41MA.=A-2611-MXZ41BLH : PRODUCT SENSOR TRAVELING DRIVE
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParObjectNo                             :=20511;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParMsgType                              :=7154;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParHornCode                             :=99;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParDelayChange                          :=10;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParDelayTrue                            :=10;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParDelayFalse                           :=10;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParTimeoutTrue                          :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParLogOff                               :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.Par2WorkingCond                         :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParFaultRetry                           :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41BLH.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_2611_MXZ41MA.=A-2611-MXZ41SM : SM TRAVELING DRIVE
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParObjectNo                             :=20512;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParMsgType                              :=7135;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParHornCode                             :=99;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParDelayChange                          :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParDelayTrue                            :=10;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParDelayFalse                           :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParTimeoutTrue                          :=50;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParTimeoutFalse                         :=0;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParLogOff                               :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.Par2WorkingCond                         :=True;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParFaultRetry                           :=False;
+	      #A_2611_MXZ41MA.A_2611_MXZ41SM.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2611-TSC41_COM : FREQUENCY INVERTER TRAVELING DRIVE FU COMMUNICATION
+	      #A_2611_TSC41_COM.Par.ParMovidrive                            :=1;
+	      #A_2611_TSC41_COM.Par.ParSinamics                             :=0;
+	      #A_2611_TSC41_COM.Par.ParMicromaster                          :=0;
+	      #A_2611_TSC41_COM.Par.ParABB                                  :=0;
+	      #A_2611_TSC41_COM.Par.ParNord                                 :=0;
+	      #A_2611_TSC41_COM.Par.ParDanfoss                              :=0;
+	      #A_2611_TSC41_COM.Par.ParIOByteNo                             :=0;
+	//
+	//
+	//Parameter =A-2611-TSC41_PD1 : FREQUENCY FREQ. TRAVELING DRIVE
+	      #A_2611_TSC41_PD1.Par.ParObjectNo                             :=20505;
+	      #A_2611_TSC41_PD1.Par.ParHornCode                             :=7;
+	      #A_2611_TSC41_PD1.Par.ParMsgType                              :=7252;
+	      #A_2611_TSC41_PD1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2611_TSC41_PD1.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2611_TSC41_PD1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2611_TSC41_PD1.Par.ParDelayTimeDown                        :=10;
+	      #A_2611_TSC41_PD1.Par.ParDelayTimeUp                          :=10;
+	      #A_2611_TSC41_PD1.Par.ParDelayTime                            :=0;
+	      #A_2611_TSC41_PD1.Par.ParLimitLL                              :=L#0;
+	      #A_2611_TSC41_PD1.Par.ParLimitL                               :=L#2000;
+	      #A_2611_TSC41_PD1.Par.ParLimitH                               :=L#10000;
+	      #A_2611_TSC41_PD1.Par.ParLimitHH                              :=L#10100;
+	      #A_2611_TSC41_PD1.Par.ParMonTimeLL                            :=0;
+	      #A_2611_TSC41_PD1.Par.ParMonTimeL                             :=50;
+	      #A_2611_TSC41_PD1.Par.ParMonTimeMid                           :=0;
+	      #A_2611_TSC41_PD1.Par.ParMonTimeH                             :=30;
+	      #A_2611_TSC41_PD1.Par.ParMonTimeHH                            :=0;
+	      #A_2611_TSC41_PD1.Par.ParLogOff                               :=False;
+	      #A_2611_TSC41_PD1.Par.ParValueByUser                          :=False;
+	      #A_2611_TSC41_PD1.Par.ParLimitsPc                             :=True;
+	      #A_2611_TSC41_PD1.Par.ParWago                                 :=False;
+	      #A_2611_TSC41_PD1.Par.ParNoHornByWarning                      :=True;
+	      #A_2611_TSC41_PD1.Par.ParWarningLL                            :=False;
+	      #A_2611_TSC41_PD1.Par.ParWarningL                             :=False;
+	      #A_2611_TSC41_PD1.Par.ParWarningMid                           :=False;
+	      #A_2611_TSC41_PD1.Par.ParWarningH                             :=False;
+	      #A_2611_TSC41_PD1.Par.ParWarningHH                            :=False;
+	      #A_2611_TSC41_PD1.Par.ParPreAlarmLL                           :=False;
+	      #A_2611_TSC41_PD1.Par.ParPreAlarmL                            :=False;
+	      #A_2611_TSC41_PD1.Par.ParPreAlarmMid                          :=False;
+	      #A_2611_TSC41_PD1.Par.ParPreAlarmH                            :=False;
+	      #A_2611_TSC41_PD1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2611-TSC41_PD2 : CURRENT FREQ. TRAVELING DRIVE
+	      #A_2611_TSC41_PD2.Par.ParObjectNo                             :=20506;
+	      #A_2611_TSC41_PD2.Par.ParHornCode                             :=7;
+	      #A_2611_TSC41_PD2.Par.ParMsgType                              :=7252;
+	      #A_2611_TSC41_PD2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2611_TSC41_PD2.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2611_TSC41_PD2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2611_TSC41_PD2.Par.ParDelayTimeDown                        :=10;
+	      #A_2611_TSC41_PD2.Par.ParDelayTimeUp                          :=10;
+	      #A_2611_TSC41_PD2.Par.ParDelayTime                            :=0;
+	      #A_2611_TSC41_PD2.Par.ParLimitLL                              :=L#0;
+	      #A_2611_TSC41_PD2.Par.ParLimitL                               :=L#200;
+	      #A_2611_TSC41_PD2.Par.ParLimitH                               :=L#10000;
+	      #A_2611_TSC41_PD2.Par.ParLimitHH                              :=L#10100;
+	      #A_2611_TSC41_PD2.Par.ParMonTimeLL                            :=0;
+	      #A_2611_TSC41_PD2.Par.ParMonTimeL                             :=50;
+	      #A_2611_TSC41_PD2.Par.ParMonTimeMid                           :=0;
+	      #A_2611_TSC41_PD2.Par.ParMonTimeH                             :=30;
+	      #A_2611_TSC41_PD2.Par.ParMonTimeHH                            :=0;
+	      #A_2611_TSC41_PD2.Par.ParLogOff                               :=False;
+	      #A_2611_TSC41_PD2.Par.ParValueByUser                          :=False;
+	      #A_2611_TSC41_PD2.Par.ParLimitsPc                             :=True;
+	      #A_2611_TSC41_PD2.Par.ParWago                                 :=False;
+	      #A_2611_TSC41_PD2.Par.ParNoHornByWarning                      :=True;
+	      #A_2611_TSC41_PD2.Par.ParWarningLL                            :=False;
+	      #A_2611_TSC41_PD2.Par.ParWarningL                             :=False;
+	      #A_2611_TSC41_PD2.Par.ParWarningMid                           :=False;
+	      #A_2611_TSC41_PD2.Par.ParWarningH                             :=False;
+	      #A_2611_TSC41_PD2.Par.ParWarningHH                            :=False;
+	      #A_2611_TSC41_PD2.Par.ParPreAlarmLL                           :=False;
+	      #A_2611_TSC41_PD2.Par.ParPreAlarmL                            :=False;
+	      #A_2611_TSC41_PD2.Par.ParPreAlarmMid                          :=False;
+	      #A_2611_TSC41_PD2.Par.ParPreAlarmH                            :=False;
+	      #A_2611_TSC41_PD2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2611-BZS49 : TRAVELING DRIVE POSITION CHANNEL 1/2
+	      #A_2611_BZS49.Par.ParObjectNo                             :=20513;
+	      #A_2611_BZS49.Par.ParHornCode                             :=7;
+	      #A_2611_BZS49.Par.ParMsgType                              :=7252;
+	      #A_2611_BZS49.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2611_BZS49.Par.ParUnitsByMaxDigit                      :=L#360;
+	      #A_2611_BZS49.Par.ParUnitsBy100Pc                         :=L#360;
+	      #A_2611_BZS49.Par.ParDelayTimeDown                        :=10;
+	      #A_2611_BZS49.Par.ParDelayTimeUp                          :=10;
+	      #A_2611_BZS49.Par.ParDelayTime                            :=0;
+	      #A_2611_BZS49.Par.ParLimitLL                              :=L#0;
+	      #A_2611_BZS49.Par.ParLimitL                               :=L#0;
+	      #A_2611_BZS49.Par.ParLimitH                               :=L#0;
+	      #A_2611_BZS49.Par.ParLimitHH                              :=L#0;
+	      #A_2611_BZS49.Par.ParMonTimeLL                            :=0;
+	      #A_2611_BZS49.Par.ParMonTimeL                             :=0;
+	      #A_2611_BZS49.Par.ParMonTimeMid                           :=0;
+	      #A_2611_BZS49.Par.ParMonTimeH                             :=0;
+	      #A_2611_BZS49.Par.ParMonTimeHH                            :=0;
+	      #A_2611_BZS49.Par.ParLogOff                               :=False;
+	      #A_2611_BZS49.Par.ParValueByUser                          :=False;
+	      #A_2611_BZS49.Par.ParLimitsPc                             :=True;
+	      #A_2611_BZS49.Par.ParWago                                 :=False;
+	      #A_2611_BZS49.Par.ParNoHornByWarning                      :=False;
+	      #A_2611_BZS49.Par.ParWarningLL                            :=False;
+	      #A_2611_BZS49.Par.ParWarningL                             :=False;
+	      #A_2611_BZS49.Par.ParWarningMid                           :=False;
+	      #A_2611_BZS49.Par.ParWarningH                             :=False;
+	      #A_2611_BZS49.Par.ParWarningHH                            :=False;
+	      #A_2611_BZS49.Par.ParPreAlarmLL                           :=False;
+	      #A_2611_BZS49.Par.ParPreAlarmL                            :=False;
+	      #A_2611_BZS49.Par.ParPreAlarmMid                          :=False;
+	      #A_2611_BZS49.Par.ParPreAlarmH                            :=False;
+	      #A_2611_BZS49.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	END_DATA_BLOCK

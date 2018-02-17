@@ -1,0 +1,61 @@
+ORGANIZATION_BLOCK "SYS_RACK_FLT"
+TITLE = "Loss Of Rack Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      STD_MU664
+//
+//TITLE:        Loss of rack fault
+//               Extended rack faults
+//               DP-Master or slave faults
+//              Erweiterungsgerätanschaltungsfehler
+//               Erweiterungsgerätefehler
+//               Profibus-DB Master- und Slavefehler
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//STD_OB086.2.0 Ph. Engler          MU664                              10-Feb-2003
+//              Redesign GCS7 Release 2
+//GEN_OB086.1.1 Ph. Engler          MU664                              23-Jul-2002
+//              MEAF-DP-Communcation integrated
+//GEN_OB086.1.0 Ph. Engler          MU664                              16-Jan-2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : PE
+FAMILY : STD
+NAME : Rack
+VERSION : 1.0
+
+
+VAR_TEMP
+  OB86_EV_CLASS : BYTE ;	//16#38/39 Event class 3
+  OB86_FLT_ID : BYTE ;	//16#C1/C4/C5, Fault identification code
+  OB86_PRIORITY : BYTE ;	//26/28 (Priority of 1 is lowest)
+  OB86_OB_NUMBR : BYTE ;	//86 (Organization block 86, OB86)
+  OB86_RESERVED_1 : BYTE ;	//Reserved for system
+  OB86_RESERVED_2 : BYTE ;	//Reserved for system
+  OB86_MDL_ADDR : WORD ;	//Depending on fault identification code
+  OB86_RACKS_FLTD : ARRAY  [0 .. 31 ] OF BOOL ;	//Racks in fault
+  OB86_DATE_TIME : DATE_AND_TIME ;	//Date and time OB86 started
+END_VAR
+BEGIN
+NETWORK
+TITLE =Detailed Diagnosis in OB86 (interrupt)
+
+      CALL "SYS_DPDiagMain" ;
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

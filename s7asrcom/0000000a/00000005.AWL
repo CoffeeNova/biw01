@@ -1,0 +1,1579 @@
+ORGANIZATION_BLOCK "SYS_CycInt100ms"
+TITLE = "Cyclic Interrupt" 100ms
+VERSION : 0.1
+
+
+VAR_TEMP
+  OB37_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+  OB37_STRT_INF : BYTE ;	//16#38 (OB 37 has started)
+  OB37_PRIORITY : BYTE ;	//Priority of OB Execution
+  OB37_OB_NUMBR : BYTE ;	//37 (Organization block 37, OB37)
+  OB37_RESERVED_1 : BYTE ;	//Reserved for system
+  OB37_RESERVED_2 : BYTE ;	//Reserved for system
+  OB37_PHS_OFFSET : INT ;	//Phase offset (integer, milliseconds)
+  OB37_RESERVED_3 : INT ;	//Reserved for system
+  OB37_EXC_FREQ : INT ;	//Frequency of execution (msec)
+  OB37_DATE_TIME : DATE_AND_TIME ;	//Date and time OB37 started
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      NOP   0; 
+
+NETWORK
+TITLE =General Cooling for all Sections
+//// MW 2010.03.18
+// Start cooling, with delay
+      L     "G269M".A_3191_BTE11.OutValueUnits; // TEMPERATURE AMBIENT AIR            
+      L     L#100; // von xx,xx°C AUF xx°C
+      /D    ; 
+      L     "MAL1Par".Values1.Value01; // Target temperature for start cooling
+      >D    ; 
+      =     "MAL1Par".FaultTimeoutFeedOff.EN; 
+
+      L     "MAL1Par".Values1.Value02; // Delay start cooling
+      L     L#600; // xx Minuten => xxxxx.x Secunden
+      *D    ; 
+      T     "MAL1Par".FaultTimeoutFeedOff.PT; 
+      CALL "GCS7_TON_LONG" (
+           IN                       := "MAL1Par".FaultTimeoutFeedOff.EN,
+           PT                       := "MAL1Par".FaultTimeoutFeedOff.PT,
+           Q                        := "MAL1Par".FaultTimeoutFeedOff.Q,
+           ET                       := "MAL1Par".FaultTimeoutFeedOff.ET);
+
+// Stopp cooling, with delay
+      L     "G269M".A_3191_BTE11.OutValueUnits; // TEMPERATURE AMBIENT AIR            
+      L     L#100; // von xx,xx°C AUF xx°C
+      /D    ; 
+      L     "MAL1Par".Values1.Value01; // Target temperature for start cooling
+      <D    ; 
+      =     "MAL1Par".FaultTimeoutImmStop.EN; 
+
+      L     "MAL1Par".Values1.Value02; // Delay start cooling
+      L     L#600; // xx Minuten => xxxxx.x Secunden
+      *D    ; 
+      T     "MAL1Par".FaultTimeoutImmStop.PT; 
+      CALL "GCS7_TON_LONG" (
+           IN                       := "MAL1Par".FaultTimeoutImmStop.EN,
+           PT                       := "MAL1Par".FaultTimeoutImmStop.PT,
+           Q                        := "MAL1Par".FaultTimeoutImmStop.Q,
+           ET                       := "MAL1Par".FaultTimeoutImmStop.ET);
+
+// General cooling
+      U     "MAL1Par".FaultTimeoutFeedOff.Q; // Delay start cooling
+      UN    "MAL1Par".FaultTimeoutImmStop.Q; // Delay stopp cooling
+      O     "SYS_infLog1"; //BRT26062010 - da kein Remotebetrieb zu Kunden-Kühlanlage
+      =     "MAL1Par".FlagGen00.Cooling_ON; 
+      NOP   0; 
+NETWORK
+TITLE =Darre 1 + 2: REGLER-BRENNER 1
+
+      SET   ; 
+      R     "G279M"._A_3191_BTE08_Active; 
+      R     "G279M"._A_3291_BTE08_Active; 
+
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "G279M".Gr.InManual; // Heating Kilningbox 1 + 2
+      SPB   END2; 
+
+
+// Temperatur-Istwert Mischkanal zum Brenner 2
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      O     ; 
+      U(    ; 
+//      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S032Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb   //BRT20100828
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling   //JV020810
+      U(    ; 
+//MW 2010.04.29      L     "G273M".A_3136_MXZ11.OutPosition
+      L     "G273M".A_3135_MXZ11.OutPosition; 
+      L     600; // 60%
+      <=I   ; 
+      )     ; 
+      )     ; 
+      O     ; //JV020810 =======>      
+      U(    ; 
+//      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S032Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb  //BRT20100828
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling   //JV020810
+      U(    ; 
+//MW 2010.04.29      L     "G273M".A_3136_MXZ11.OutPosition
+      L     "G273M".A_3135_MXZ11.OutPosition; 
+      L     600; // 60%
+      >I    ; 
+      )     ; 
+      )     ; //JV020810 <=======  
+      O     ; 
+      U(    ; 
+//      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S033Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb    //BRT20100828
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      U(    ; 
+//MW 2010.04.29      L     "G299M".A_3236_MXZ11.OutPosition
+      L     "G299M".A_3235_MXZ11.OutPosition; 
+      L     600; // 60%
+      >I    ; 
+      )     ; 
+      )     ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; //JV050810
+//JV030810      U     "G271M".A_3125_TSC01_AF.OutL    // Ventilator 1 dreht mind. 40% SW
+//JV030810      U     "G271M".A_3126_TSC01_AF.OutL    // Ventilator 1 dreht mind. 40% SW
+      SPBN  M201; 
+      L     "G269M".A_3191_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 1)
+      T     "Regler Brenner 1".PV_PER; 
+
+// A_3191_BTE08 --> Brenner 1 Regel-Istwert 
+      SET   ; 
+      =     "G279M"._A_3191_BTE08_Active; 
+
+M201: NOP   0; 
+
+// Temperatur-Istwert Mischkanal zum Brenner 3
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+// Einzelbetrieb Darre 2
+      O     ; 
+      U(    ; 
+//      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S033Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb   //BRT20100828
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling //JV020810
+      U(    ; 
+//MW 2010.04.29      L     "G299M".A_3236_MXZ11.OutPosition
+      L     "G299M".A_3235_MXZ11.OutPosition; 
+      L     600; // 60%
+      <=I   ; 
+      )     ; 
+      )     ; 
+      O     ; //JV020810 =======>   
+      U(    ; 
+//      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S033Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb  //BRT20100828
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      U(    ; 
+//MW 2010.04.29      L     "G299M".A_3236_MXZ11.OutPosition
+      L     "G299M".A_3235_MXZ11.OutPosition; 
+      L     600; // 60%
+      >I    ; 
+      )     ; 
+      )     ; //JV020810 <=======  
+      O     ; 
+      U(    ; 
+//      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv    //BRT20100828
+      U     "MAL1S032Par".Par.FlagProcess2.Inf22; // Hilfsbit für Abdarr-Betrieb   //BRT20100828
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      U(    ; 
+//MW 2010.04.29      L     "G273M".A_3136_MXZ11.OutPosition
+      L     "G273M".A_3135_MXZ11.OutPosition; 
+      L     600; // 60%
+      >I    ; 
+      )     ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; //JV050810
+//JV030810      U     "G297M".A_3225_TSC01_AF.OutL    // Ventilator 1 dreht mind. 40% SW
+//JV030810      U     "G297M".A_3226_TSC01_AF.OutL    // Ventilator 1 dreht mind. 40% SW
+      SPBN  M202; 
+      L     "G295M".A_3291_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 2)
+      T     "Regler Brenner 1".PV_PER; 
+
+// A_3291_BTE08 --> Brenner 1 Regel-Istwert 
+      SET   ; 
+      =     "G279M"._A_3291_BTE08_Active; 
+
+M202: NOP   0; 
+
+// A_3291_BTE08 --> Brenner 1 Regel-Istwert 
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      R     "G279M"._A_3191_BTE08_Active; 
+      S     "G279M"._A_3291_BTE08_Active; 
+
+// A_3191_BTE08 --> Brenner 1 Regel-Istwert 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      S     "G279M"._A_3191_BTE08_Active; 
+      R     "G279M"._A_3291_BTE08_Active; 
+
+      UN    "G279M".A_3161_KCL11_REG_ON.StTrue; // Reglerfreigabe vom Brenner
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      =     "Regler Brenner 1".COM_RST; 
+      CLR   ; 
+      =     "Regler Brenner 1".MAN_ON; 
+
+      CALL "TCONT_CP" , "Regler Brenner 1" (
+           DISV                     := 0.000000e+000,
+           INT_HPOS                 := FALSE,
+           INT_HNEG                 := FALSE);
+
+
+END2: NOP   0; 
+NETWORK
+TITLE =Darre 1: REGLER-BRENNER 2
+
+//BRT20100826 ====> es wird nur noch nach Temp unter der Horde geregelt! Tempverteilung in dieser Anlage Katastrophal!!!
+//      L     "G269M".A_3191_BTE05.InpValue    //Diffusor 1
+//      L     "G269M".A_3191_BTE06.InpValue    //Diffusor 2
+//      +I    
+//      ITD   
+//      L     L#2
+//      /D    
+      L     "G269M".A_3191_BTE01.InpValue; //temp under sieve
+//BRT20100826 <====
+      UN    DB922.DBX 1569.0; // emergency regime without fan 1
+      UN    DB922.DBX 1569.1; // emergency regime without fan 2
+//JV090810      SPBN  sum2
+      SPB   sum2; //JV090810
+      L     "G269M".A_3191_BTE05.InpValue; //Diffusor 1
+      U     DB922.DBX 1569.1; // emergency regime without fan 2
+//JV090810      SPBN  sum2
+      SPB   sum2; //JV090810
+      L     "G269M".A_3191_BTE06.InpValue; //Diffusor 2
+sum2: T     MW   232; 
+
+
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "G276M".Gr.InManual; // Heating Kilningbox 1
+      SPB   END3; 
+
+
+      UN    "G276M".A_3161_KCL12_REG_ON.StTrue; // Reglerfreigabe vom Brenner
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      =     "Regler Brenner 2".COM_RST; 
+      CLR   ; 
+      =     "Regler Brenner 2".MAN_ON; 
+
+
+      CALL "TCONT_CP" , "Regler Brenner 2" (
+           PV_PER                   := MW   232,
+           DISV                     := 0.000000e+000,
+           INT_HPOS                 := FALSE,
+           INT_HNEG                 := FALSE);
+
+
+END3: NOP   0; 
+NETWORK
+TITLE =Darre 2: REGLER-BRENNER 3
+
+//BRT20100826 ====> es wird nur noch nach Temp unter der Horde geregelt! Tempverteilung in dieser Anlage Katastrophal!!!
+//      L     "G295M".A_3291_BTE05.InpValue    //Diffusor 1
+//      L     "G295M".A_3291_BTE06.InpValue    //Diffusor 2
+//      +I    
+//      ITD   
+//      L     L#2
+//      /D    
+      L     "G295M".A_3291_BTE01.InpValue; //temp under sieve
+//BRT20100826 <====
+      UN    DB923.DBX 1569.0; // emergency regime without fan 1
+      UN    DB923.DBX 1569.1; // emergency regime without fan 2
+//JV090810      SPBN  sum3
+      SPB   sum3; //JV090810
+      L     "G295M".A_3291_BTE05.InpValue; //Diffusor 1
+      U     DB923.DBX 1569.1; // emergency regime without fan 2
+//JV090810      SPBN  sum3
+      SPB   sum3; //JV090810
+      L     "G295M".A_3291_BTE06.InpValue; //Diffusor 2
+sum3: T     MW   234; 
+
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "G302M".Gr.InManual; // Heating Kilningbox 2
+      SPB   END4; 
+
+
+      UN    "G302M".A_3261_KCL11_REG_ON.StTrue; // Reglerfreigabe vom Brenner
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      =     "Regler Brenner 3".COM_RST; 
+      CLR   ; 
+      =     "Regler Brenner 3".MAN_ON; 
+
+
+      CALL "TCONT_CP" , "Regler Brenner 3" (
+           PV_PER                   := MW   234,
+           DISV                     := 0.000000e+000,
+           INT_HPOS                 := FALSE,
+           INT_HNEG                 := FALSE);
+
+END4: NOP   0; 
+NETWORK
+TITLE =Reglator cooling flaps kilningbox 1
+////MW 2010.04.29 - Changed
+//DB922.DBX2509.0 to DB922.DBX1569.0
+//DB922.DBX2509.1 to DB922.DBX1569.1
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      U     "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      SPB   END5; 
+
+// Reglerparameter zum Kühlen
+      L     -2.000000e-001; 
+      T     "RegDBKiln1FreshAirFlap".GAIN; 
+
+      L     50; //JV290710 TI 50sec
+      ITD   ; 
+      DTR   ; 
+      T     "RegDBKiln1FreshAirFlap".TI; 
+
+      L     95; // max 95%  //JV300710
+      ITD   ; 
+      DTR   ; 
+      T     "RegDBKiln1FreshAirFlap".LMN_HLM; 
+
+      U(    ; 
+      U(    ; 
+      UN    "G271M".A_3125_MXZ01MA.Ma.StStartedFwd; 
+      UN    DB922.DBX 1569.0; // emergency regime without fan 1
+      O     ; 
+      UN    "G271M".A_3126_MXZ01MA.Ma.StStartedFwd; 
+      UN    DB922.DBX 1569.1; // emergency regime without fan 2
+      )     ; 
+      ON    "G272M".USW8; // Klappenregelung Ein
+      ON    "G272M".Gr.InEnableGr; 
+      )     ; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      =     "RegDBKiln1FreshAirFlap".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKiln1FreshAirFlap".MAN_ON; 
+
+// Rezept-Sollwert zum Regler 
+//MW 2010.04.29      L     DB922.DBD 1670
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      /D    ; 
+      L     L#2; 
+      -D    ; 
+      DTR   ; 
+      T     "RegDBKiln1FreshAirFlap".SP_INT; 
+
+//MW 2010.04.29
+      CALL "TCONT_CP" , "RegDBKiln1FreshAirFlap" (
+           PV_PER                   := "G269M".A_3191_BTE10.InpValue,// was BTE01 temperature below floor
+           INT_HPOS                 := FALSE,
+           INT_HNEG                 := FALSE,
+           SELECT                   := 0);
+
+END5: NOP   0; 
+NETWORK
+TITLE =Reglator cooling flaps kilningbox 2
+////MW 2010.04.29 - Changed
+//DB923.DBX2509.0 to DB923.DBX1569.0
+//DB923.DBX2509.1 to DB923.DBX1569.1
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "G297M".A_3225_MXZ01MA.Ma.StStopped; 
+      U     "G297M".A_3226_MXZ01MA.Ma.StStopped; 
+      SPB   END6; 
+
+// Reglerparameter zum Kühlen
+      L     -2.000000e-001; 
+      T     "RegDBKiln2FreshAirFlap".GAIN; 
+
+      L     50; //JV290710 TI 50sec
+      ITD   ; 
+      DTR   ; 
+      T     "RegDBKiln2FreshAirFlap".TI; 
+
+      L     95; // max 95% //JV300710
+      ITD   ; 
+      DTR   ; 
+      T     "RegDBKiln2FreshAirFlap".LMN_HLM; 
+
+      U(    ; 
+      U(    ; 
+      UN    "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; 
+      UN    DB923.DBX 1569.0; // emergency regime without fan 1
+      O     ; 
+      UN    "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; 
+      UN    DB923.DBX 1569.1; // emergency regime without fan 2
+      )     ; 
+      ON    "G298M".USW8; // Klappenregelung Ein
+      ON    "G298M".Gr.InEnableGr; 
+      )     ; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      =     "RegDBKiln2FreshAirFlap".COM_RST; 
+
+//      CLR   
+//      =     "RegDBKiln2FreshAirFlap".MAN_ON
+
+// Rezept-Sollwert zum Regler 
+//MW 2010.04.29      L     DB923.DBD 1670
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      /D    ; 
+      L     L#2; 
+      -D    ; 
+      DTR   ; 
+      T     "RegDBKiln2FreshAirFlap".SP_INT; 
+
+//MW 2010.04.29      
+      CALL "TCONT_CP" , "RegDBKiln2FreshAirFlap" (
+           PV_PER                   := "G295M".A_3291_BTE10.InpValue,// was BTE01 temperature below floor
+           INT_HPOS                 := FALSE,
+           INT_HNEG                 := FALSE,
+           SELECT                   := 0);
+
+END6: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 1
+//      UN    "MAL1S017Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN11
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK1_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB907.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G112M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK1_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK1_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK1_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN11: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S017Par".Par.FlagProcess.ProcessActive; 
+      U     "G105M".A_2160_MXZ01.StStopped; 
+      SPB   EN11; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK1_1".GAIN; 
+
+      UN    "G105M".A_2160_MXZ01.StStartedFwd; 
+      ON    "G112M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S017Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK1_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK1_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK1_1" (
+           PV_PER                   := "G103M".A_2191_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK1_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK1_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN11: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 1
+//      UN    "MAL1S017Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN12
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK1_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB907.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G112M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK1_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK1_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK1_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN12: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S017Par".Par.FlagProcess.ProcessActive; 
+      U     "G105M".A_2160_MXZ02.StStopped; 
+      SPB   EN12; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK1_2".GAIN; 
+
+      UN    "G105M".A_2160_MXZ02.StStartedFwd; 
+      ON    "G112M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S017Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK1_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK1_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK1_2" (
+           PV_PER                   := "G103M".A_2191_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK1_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK1_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN12: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 2
+//      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN21
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK2_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB908.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G137M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK2_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK2_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK2_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN21: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      U     "G130M".A_2260_MXZ01.StStopped; 
+      SPB   EN21; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK2_1".GAIN; 
+
+      UN    "G130M".A_2260_MXZ01.StStartedFwd; 
+      ON    "G137M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S018Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK2_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK2_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK2_1" (
+           PV_PER                   := "G128M".A_2291_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK2_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK2_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN21: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 2
+//      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN22
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK2_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB908.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G137M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK2_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK1_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK2_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN22: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      U     "G130M".A_2260_MXZ02.StStopped; 
+      SPB   EN22; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK2_2".GAIN; 
+
+      UN    "G130M".A_2260_MXZ02.StStartedFwd; 
+      ON    "G137M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S018Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK2_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK2_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK2_2" (
+           PV_PER                   := "G128M".A_2291_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK2_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK2_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN22: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 3
+//      UN    "MAL1S019Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN31
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK3_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB909.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G157M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK3_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK3_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK3_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN31: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S019Par".Par.FlagProcess.ProcessActive; 
+      U     "G150M".A_2360_MXZ01.StStopped; 
+      SPB   EN31; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK3_1".GAIN; 
+
+      UN    "G150M".A_2360_MXZ01.StStartedFwd; 
+      ON    "G157M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S019Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK3_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK3_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK3_1" (
+           PV_PER                   := "G148M".A_2391_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK3_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK3_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN31: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 3
+//      UN    "MAL1S019Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN32
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK3_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB909.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G157M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK3_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK3_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK3_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN32: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S019Par".Par.FlagProcess.ProcessActive; 
+      U     "G150M".A_2360_MXZ02.StStopped; 
+      SPB   EN32; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK3_2".GAIN; 
+
+      UN    "G150M".A_2360_MXZ02.StStartedFwd; 
+      ON    "G157M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S019Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK3_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK3_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK3_2" (
+           PV_PER                   := "G148M".A_2391_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK3_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK3_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN32: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 4
+//      UN    "MAL1S020Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN41
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK4_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB910.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G177M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK4_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK4_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK4_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN41: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S020Par".Par.FlagProcess.ProcessActive; 
+      U     "G170M".A_2460_MXZ01.StStopped; 
+      SPB   EN41; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK4_1".GAIN; 
+
+      UN    "G170M".A_2460_MXZ01.StStartedFwd; 
+      ON    "G177M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S020Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK4_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK4_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK4_1" (
+           PV_PER                   := "G168M".A_2491_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK4_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK4_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN41: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 4
+//      UN    "MAL1S020Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN42
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK4_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB910.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G177M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK4_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK4_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK4_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN42: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S020Par".Par.FlagProcess.ProcessActive; 
+      U     "G170M".A_2460_MXZ02.StStopped; 
+      SPB   EN42; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK4_2".GAIN; 
+
+      UN    "G170M".A_2460_MXZ02.StStartedFwd; 
+      ON    "G177M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S020Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK4_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK4_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK4_2" (
+           PV_PER                   := "G168M".A_2491_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK4_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK4_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN42: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 5
+//      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN51
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK5_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB911.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G197M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK5_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK5_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK5_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN51: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      U     "G190M".A_2560_MXZ01.StStopped; 
+      SPB   EN51; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK5_1".GAIN; 
+
+      UN    "G190M".A_2560_MXZ01.StStartedFwd; 
+      ON    "G197M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S021Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK5_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK5_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK5_1" (
+           PV_PER                   := "G188M".A_2591_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK5_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK5_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN51: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 5
+//      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN52
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK5_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB911.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G197M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK5_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK5_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK5_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN52: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      U     "G190M".A_2560_MXZ02.StStopped; 
+      SPB   EN52; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK5_2".GAIN; 
+
+      UN    "G190M".A_2560_MXZ02.StStartedFwd; 
+      ON    "G197M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S021Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK5_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK5_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK5_2" (
+           PV_PER                   := "G188M".A_2591_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK5_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK5_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN52: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 6
+//      UN    "MAL1S022Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN61
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK6_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB912.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G217M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK6_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK6_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK6_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN61: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S022Par".Par.FlagProcess.ProcessActive; 
+      U     "G210M".A_2660_MXZ01.StStopped; 
+      SPB   EN61; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK6_1".GAIN; 
+
+      UN    "G210M".A_2660_MXZ01.StStartedFwd; 
+      ON    "G217M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S022Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK6_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK6_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK6_1" (
+           PV_PER                   := "G208M".A_2691_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK6_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK6_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN61: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 6
+//      UN    "MAL1S022Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN62
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK6_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB912.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G217M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK6_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK6_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK6_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN62: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S022Par".Par.FlagProcess.ProcessActive; 
+      U     "G210M".A_2660_MXZ02.StStopped; 
+      SPB   EN62; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK6_2".GAIN; 
+
+      UN    "G210M".A_2660_MXZ02.StStartedFwd; 
+      ON    "G217M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S022Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK6_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK6_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK6_2" (
+           PV_PER                   := "G208M".A_2691_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK6_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK6_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN62: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 7
+//      UN    "MAL1S023Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN71
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK7_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB913.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G237M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK7_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK7_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK7_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN71: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S023Par".Par.FlagProcess.ProcessActive; 
+      U     "G230M".A_2760_MXZ01.StStopped; 
+      SPB   EN71; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK7_1".GAIN; 
+
+      UN    "G230M".A_2760_MXZ01.StStartedFwd; 
+      ON    "G237M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S023Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK7_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK7_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK7_1" (
+           PV_PER                   := "G228M".A_2791_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK7_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK7_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN71: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 7
+//      UN    "MAL1S023Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN72
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK7_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB913.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G237M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK7_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK7_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK7_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN72: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S023Par".Par.FlagProcess.ProcessActive; 
+      U     "G230M".A_2760_MXZ02.StStopped; 
+      SPB   EN72; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK7_2".GAIN; 
+
+      UN    "G230M".A_2760_MXZ02.StStartedFwd; 
+      ON    "G237M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S023Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK7_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK7_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK7_2" (
+           PV_PER                   := "G228M".A_2791_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK7_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK7_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN72: NOP   0; 
+NETWORK
+TITLE =Reglator 1 cooling germinatingbox 8
+//      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ01.StStopped
+//      SPB   EN81
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK8_1".GAIN
+//
+//      UN    "G105M".A_2160_MXZ01.StStartedFwd
+//      ON    DB914.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G257M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK8_1".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK8_1".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK8_1"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN81: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      U     "G250M".A_2860_MXZ01.StStopped; 
+      SPB   EN81; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK8_1".GAIN; 
+
+      UN    "G250M".A_2860_MXZ01.StStartedFwd; 
+      ON    "G257M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S024Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK8_1".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK8_1".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK8_1" (
+           PV_PER                   := "G248M".A_2891_BTE01.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK8_1".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK8_1".QLMN_LLM,
+           SELECT                   := 0);
+
+EN81: NOP   0; 
+NETWORK
+TITLE =Reglator 2 cooling germinatingbox 8
+//      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive
+//      U     "G105M".A_2160_MXZ02.StStopped
+//      SPB   EN82
+//
+//// Reglerparameter zum Kühlen
+//      L     -5.000000e-001
+//      T     "RegDBKK8_2".GAIN
+//
+//      UN    "G105M".A_2160_MXZ02.StStartedFwd
+//      ON    DB914.DBX 2722.0            // Activate Cooling System y/n (1/0)
+//      ON    "G257M".Gr.InEnableGr
+//      UN    "PLC_SystemDB".Startup.CmdRestartAuto
+//      ON    "MAL1Par".FlagGen00.Inf00
+//      =     "RegDBKK8_2".COM_RST
+//
+//      CLR   
+//      =     "RegDBKK8_2".MAN_ON
+//
+//      CALL  "TCONT_CP" , "RegDBKK8_2"
+//       PV_IN   :=
+//       PV_PER  :="G103M".A_2191_BTE01.InpValue    // temperature below floor
+//       DISV    :=
+//       INT_HPOS:=FALSE
+//       INT_HNEG:=FALSE
+//       SELECT  :=0
+//       PV      :=
+//       LMN     :=
+//       LMN_PER :=
+//       QPULSE  :=
+//       QLMN_HLM:=
+//       QLMN_LLM:=
+//       QC_ACT  :=
+//       CYCLE   :=
+//       CYCLE_P :=
+//       SP_INT  :=
+//       MAN     :=
+//       COM_RST :=
+//       MAN_ON  :=
+//
+//EN82: NOP   0
+//
+//MW 2010.03.18  
+      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      U     "G250M".A_2860_MXZ02.StStopped; 
+      SPB   EN82; 
+// Reglerparameter zum Kühlen
+      L     -5.000000e-001; 
+      T     "RegDBKK8_2".GAIN; 
+
+      UN    "G250M".A_2860_MXZ02.StStartedFwd; 
+      ON    "G257M".Gr.InEnableGr; 
+      UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      ON(   ; // Activate Cooling System y/n (1/0)
+      L     "MAL1S024Par".StepAct.Cooling; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      ON    "MAL1Par".FlagGen00.Cooling_ON; 
+      =     "RegDBKK8_2".COM_RST; 
+
+      CLR   ; 
+      =     "RegDBKK8_2".MAN_ON; 
+
+      CALL "TCONT_CP" , "RegDBKK8_2" (
+           PV_PER                   := "G248M".A_2891_BTE03.InpValue,// temperature below floor
+           INT_HPOS                 := "RegDBKK8_2".QLMN_HLM,
+           INT_HNEG                 := "RegDBKK8_2".QLMN_LLM,
+           SELECT                   := 0);
+
+EN82: NOP   0; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

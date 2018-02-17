@@ -1,0 +1,73 @@
+	DATA_BLOCK DB139
+	TITLE =DBG039M  AERATION AIR STEEPING 4
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        AERATION AIR STEEPING 4
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB139.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG039M 
+	VERSION : 00.00
+	
+	FB139
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=3900; 
+	      #Gr.Par.ParIdling      	:=30; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter =A-1114-QXV/BZS41/42 : AERATION AIR RING ST 4
+	      #A_1114_QXV_BZS41_42.Par.ParObjectNo                             :=3901;
+	      #A_1114_QXV_BZS41_42.Par.ParMsgType                              :=7081;
+	      #A_1114_QXV_BZS41_42.Par.ParHornCode                             :=1;
+	      #A_1114_QXV_BZS41_42.Par.ParMonTime                              :=100;
+	      #A_1114_QXV_BZS41_42.Par.ParPulseTimeHN                          :=5;
+	      #A_1114_QXV_BZS41_42.Par.ParPulseTimeLN                          :=5;
+	      #A_1114_QXV_BZS41_42.Par.ParIdlingTime                           :=0;
+	      #A_1114_QXV_BZS41_42.Par.ParDelayTime                            :=0;
+	      #A_1114_QXV_BZS41_42.Par.ParLogOff                               :=False;
+	      #A_1114_QXV_BZS41_42.Par.ParManual                               :=True;
+	      #A_1114_QXV_BZS41_42.Par.ParPulseValve                           :=False;
+	      #A_1114_QXV_BZS41_42.Par.ParContValve                            :=True;
+	      #A_1114_QXV_BZS41_42.Par.ParManualFlap                           :=False;
+	//
+	//
+	//Parameter =A-1114-MXZ45/BZS47/48 : AERATION AIR TUBE ST 4
+	      #A_1114_MXZ45_BZS47_48.Par.ParObjectNo                             :=3902;
+	      #A_1114_MXZ45_BZS47_48.Par.ParMsgType                              :=7081;
+	      #A_1114_MXZ45_BZS47_48.Par.ParHornCode                             :=1;
+	      #A_1114_MXZ45_BZS47_48.Par.ParMonTime                              :=200;
+	      #A_1114_MXZ45_BZS47_48.Par.ParPulseTimeHN                          :=0;
+	      #A_1114_MXZ45_BZS47_48.Par.ParPulseTimeLN                          :=0;
+	      #A_1114_MXZ45_BZS47_48.Par.ParIdlingTime                           :=0;
+	      #A_1114_MXZ45_BZS47_48.Par.ParDelayTime                            :=10;
+	      #A_1114_MXZ45_BZS47_48.Par.ParLogOff                               :=False;
+	      #A_1114_MXZ45_BZS47_48.Par.ParManual                               :=True;
+	      #A_1114_MXZ45_BZS47_48.Par.ParPulseValve                           :=True;
+	      #A_1114_MXZ45_BZS47_48.Par.ParContValve                            :=False;
+	      #A_1114_MXZ45_BZS47_48.Par.ParManualFlap                           :=False;
+	//
+	//
+	END_DATA_BLOCK

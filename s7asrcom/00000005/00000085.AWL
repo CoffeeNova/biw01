@@ -1,0 +1,470 @@
+FUNCTION_BLOCK "GCS7_M_RotaryDis"
+TITLE =Rotary
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 69 MACHINE-CONTROL: Rotary
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB69.4.1      A. Egli             CT3                         12-Sep-2003
+//              Reset Ma.OutFlagAdjusted in state StFault
+//FB69.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB69.3.0      A.Egli              CT3                         11-Oct-1999
+//              New ident type
+//FB69.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB69.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB69.1A       A.Egli              AEE61                       05-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.ROTxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Rotary
+VERSION : 4.1
+
+
+VAR
+  Ma : "GCS7_M_FB69_Data";	
+  Motor : "GCS7_E_Motor";	//Element
+  Mon : "GCS7_E_DigInput";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpInPosition : BOOL ;	
+  tmpPosition : BOOL ;	
+  tmpCnt : INT ;	
+  tmpAnyPosition : BOOL ;	
+  tmp2LS : BOOL ;	// 2 or more LS pressed
+  tmpFlagNewPosition : BOOL ;	
+  tmpPrevPos : BOOL ;	// Actual position is before target position 
+  tmpSetPos : DWORD ;	
+  tmpLastPos : DWORD ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     32; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2069; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdPrevPos
+      S     #Ma.CmdPrevPos; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[15]; //Cmd1[15]=CmdNextPos
+      S     #Ma.CmdNextPos; 
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking 1 
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//----
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Set position
+
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      T     #tmpSetPos; 
+      L     #Ma.Par.ParNoOfPosition; 
+      L     1; 
+      RLD   ; //Last position
+      RRD   1; 
+      T     #tmpLastPos; 
+
+      U     #Ma.InManual; 
+      SPB   INJ1; 
+//    Automatic
+      L     DID [AR2,P#6.0]; // Ma.InpSetPos[1..32] 
+      SPA   INJx; //-->Set position
+//    Manual
+INJ1: UN    #Ma.CmdPrevPos; 
+      SPB   INJ3; 
+      S     #Ma.OutFlagChange; 
+      L     1; // Fist position  
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      TAD   ; 
+      ==D   ; 
+      L     #tmpLastPos; 
+      SPB   INJe; //-->  goto last position
+      TAK   ; 
+      RRD   1; 
+      TAD   ; 
+      SPA   INJx; 
+INJ3: UN    #Ma.CmdNextPos; 
+      SPB   IN2; 
+      S     #Ma.OutFlagChange; 
+      L     #tmpLastPos; 
+      TAD   ; 
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      ==D   ; 
+      L     1; //--> goto first pos
+      SPB   INJe; 
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      TAD   ; 
+      RLD   1; 
+INJe: TAD   ; 
+INJx: T     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+
+//--- Test ---
+IN2:  L     0; 
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      ==D   ; 
+      L     1; //--> First position
+      TAD   ; 
+      SPB   INJx; 
+      L     32; 
+      L     #Ma.Par.ParNoOfPosition; 
+      ==I   ; 
+      SPB   IN3; 
+      L     #tmpLastPos; 
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      TAD   ; 
+      <D    ; 
+      TAK   ; 
+      TAD   ; 
+      SPB   INJx; //--> Set last position
+//---Test modification set position
+IN3:  L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      L     #tmpSetPos; 
+      <>D   ; 
+      =     #tmpFlagNewPosition; 
+
+      U     #tmpFlagNewPosition; 
+      O     #tmpLocal; 
+      R     #Ma.OutFlagAdjusted; 
+      S     #Ma.OutRev; //--> Reverse
+
+//---Test actual position 
+      LAR1  AR2; 
+      SET   ; 
+      R     #tmpAnyPosition; 
+      R     #tmp2LS; 
+      L     32; 
+LOP:  T     #tmpCnt; 
+      U     DIX [AR1,P#10.0]; // Ma.InpLSPos[1..32] 
+      U     #tmpAnyPosition; 
+      S     #tmp2LS; //--> Fault 2 LS
+      UN    DIX [AR1,P#14.0]; // Ma.OutSetPos[1..32] 
+      SPB   L2; 
+L2:   U     DIX [AR1,P#10.0]; // Ma.InpLSPos[1..32] 
+      S     #tmpAnyPosition; 
+      +AR1  P#0.1; 
+      L     #tmpCnt; 
+      LOOP  LOP; 
+      U     #tmp2LS; 
+      R     #tmpAnyPosition; 
+
+      L     DID [AR2,P#14.0]; // Ma.OutSetPos[1..32] 
+      TAD   ; 
+      L     DID [AR2,P#10.0]; // Ma.InpLSPos[1..32] 
+      TAD   ; 
+      ==D   ; 
+      U     #tmpAnyPosition; 
+      =     #tmpInPosition; 
+      >D    ; 
+      U     #tmpAnyPosition; 
+      =     #tmpPrevPos; 
+
+NETWORK
+TITLE =Interlocking 2
+//--- Fault----
+      U     #Mon.StFault; 
+      O     #Motor.StFault; 
+      =     #tmpFaultSum; 
+      =     #tmpFaultStop; 
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #Motor.InLocal; 
+      =     #Mon.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+      S     #Mon.CmdFaultReset; 
+
+//--- Motor ---------
+      U     #tmpPrevPos; 
+      U     #tmpAnyPosition; 
+      O     #Ma.InpLSPos[1]; 
+      ON    #Ma.Par.Par2Dir; 
+      R     #Ma.OutRev; //--> Reverse
+
+      U     #Motor.OutpRunRev; 
+      S     #Ma.OutFlagChange; 
+
+      U     #tmpInPosition; 
+      UN    #Ma.OutRev; 
+      S     #Ma.OutFlagAdjusted; 
+
+      U     #Ma.InEnable; 
+      UN    #Ma.OutFlagAdjusted; 
+      O     #Ma.InManual; 
+      UN    #Ma.StFault; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+// Forward
+      UN    #Ma.OutRev; 
+      UN    #tmpInPosition; 
+      U     #tmpEnable; 
+      =     #Motor.InEnableFwd; 
+// Reverse
+      U     #tmpEnable; 
+      U     #Ma.OutRev; 
+      U     #Ma.Par.Par2Dir; 
+      =     #Motor.InEnableRev; 
+// Next
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.CmdPrevPos; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.CmdNextPos; 
+      O     #Ma.CmdOn; 
+      O     #Ma.OutFlagChange; 
+      S     #Motor.CmdNext; 
+
+      UN    #tmpEnable; 
+      O     #Motor.OutpRunFwd; 
+      R     #Ma.OutFlagChange; 
+
+
+//--- Mon -----------
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      O     #Ma.OutFlagAdjusted; 
+      UN    #tmpFlagNewPosition; 
+      UN    #Ma.CmdFaultReset; //***
+      =     #Mon.InMonTrue; 
+      CLR   ; 
+      =     #Mon.InMonFalse; 
+// 
+      U     #tmpInPosition; 
+      =     #Mon.InpTrue; 
+NETWORK
+TITLE =Call Motor
+
+      CALL #Motor ;
+
+NETWORK
+TITLE =Call Digital Input: Monitor B1
+//Modify element parameter
+      UN    #Ma.OutFlagAdjusted; 
+      UN    #tmpFlagNewPosition; 
+      =     #Mon.Par.Par2WorkingCond; 
+      SET   ; 
+      S     #Mon.Par.ParFaultRetry; 
+// Call element
+      CALL #Mon ;
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StAdjusted; 
+      SPB   S2; // ===> State
+      U     #Ma.StAdjusting; 
+      SPB   S1; // ===> State
+      U     #Ma.StNoPosition; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+
+NETWORK
+TITLE =Stopped
+
+xxS0: S     #Ma.StStopped; 
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> StFault
+      UN    #Motor.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StAdjusting
+// Condition for StAdjusted
+      U     #tmpInPosition; 
+      R     #Ma.StStopped; 
+      SPB   xxS2; //--> StAdjusted
+// Condition for StNoPosition
+      UN    #tmpAnyPosition; 
+      R     #Ma.StStopped; 
+      SPB   xxS3; //--> StNoPosition
+      SPA   OUT; 
+NETWORK
+TITLE =StAdjusting
+
+xxS1: S     #Ma.StAdjusting; 
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StAdjusting; 
+      SPB   xxS4; //--> StFault
+// Condition for StAdjusted
+      U     #tmpInPosition; 
+      UN    #Ma.OutRev; 
+      R     #Ma.StAdjusting; 
+      SPB   xxS2; //--> StAdjusted
+// Condition for StNoPosition
+      U     #Motor.StStopped; 
+      R     #Ma.StAdjusting; 
+      SPB   xxS3; //--> StNoPosition
+      SPA   OUT; 
+NETWORK
+TITLE =StAdjusted
+
+xxS2: S     #Ma.StAdjusted; 
+      S     #Ma.OutFlagAdjusted; 
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS4; //--> StFault
+// Condition for StNoPosition
+      UN    #tmpAnyPosition; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS3; //--> StNoPosition
+// Condition for StStopped
+      UN    #tmpInPosition; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS3; //--> StStopped
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StNoPosition
+
+xxS3: S     #Ma.StNoPosition; 
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StNoPosition; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #tmpAnyPosition; 
+      R     #Ma.StNoPosition; 
+      SPB   xxS0; //--> StStopped
+// Condition for StAdjusting
+      UN    #Motor.StStopped; 
+      R     #Ma.StNoPosition; 
+      SPB   xxS1; //--> StAdjusting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; 
+      R     #Ma.OutFlagAdjusted; 
+      S     #Ma.OutRev; //--> Reverse
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.OutFlagAdjusted; //[4.1]
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StNoPosition
+      SPA   OUT; 
+
+OUT:  NOP   0; 
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdPrevPos; 
+      =     #Ma.CmdNextPos; 
+
+
+NETWORK
+TITLE =State Code
+//Started
+      L     3; // StCode=Adjsuted
+      U     #Ma.StAdjusted; 
+      SPB   Code; 
+      L     1; // StCode=Stopped
+      U     #Ma.StStopped; 
+      SPB   Code; 
+      L     2; // StCode=Adjusting
+      U     #Ma.StAdjusting; 
+      SPB   Code; 
+      L     5; // StCode=StNoPosition
+      U     #Ma.StNoPosition; 
+      SPB   Code; 
+      L     32; // StCode=Fault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+END_FUNCTION_BLOCK
+

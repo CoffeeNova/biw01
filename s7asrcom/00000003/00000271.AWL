@@ -1,0 +1,85 @@
+	DATA_BLOCK DB 10
+	TITLE =PC Direct Control Interface LC Parameter DB
+	//COPYRIGHT:    (C) 2000 BY  BUHLER LTD.
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      GCS7
+	//
+	//TITLE:        PC Direct Control Interface LC Parameter
+	//
+	//              PC Direct Control Interface LC Parameter
+	//
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTOR:              DEPT:                              DATE:
+	//
+	//SSW_DB010.1A  A.Egli              CT3                                05.Jan.2005
+	//              1st Release 
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE:      MANUAL : CTRxxMNA
+	//              CODE   : FC3
+	//
+	//RESTRICTIONS: S7
+	//              only for PC-Interface
+	//
+	//--------------------------------------------------------------------------------
+	//
+	AUTHOR : EA
+	FAMILY : GCS7SYS
+	NAME : PCCtrl
+	VERSION : 0.0
+	  STRUCT    
+	   Spare0 : WORD ;  
+	   Spare2 : WORD ;  
+	   Spare4 : WORD ;  
+	   Spare6 : DWORD ; 
+	   Spare10 : DWORD ;    
+	   ParAnswerTime : INT  := 10;  //Maximum time for answer
+	   VarActControlDB : INT ;  //DB from actual communication
+	   VarAnswerTime : INT ;    //Actual answer time
+	   GC : STRUCT  //=== Working memory 
+	    InDBNr : INT ;  
+	    InDynLen : INT ;    
+	    InDynAddr : DINT ;  
+	    InParaLen : INT ;   
+	    InParaAddr : DINT ; 
+	    Set11Done : BOOL ;  
+	    InObjectNo : INT ;  
+	    InLCAddr : INT ;   
+	   END_STRUCT ; 
+	   ChangeBit : STRUCT   //Change Bit
+	    Spare : BYTE ;  
+	    CBit1 : BOOL ;  //Function done
+	    CBit2 : BOOL ;  
+	    CBit3 : BOOL ;  
+	    CBit4 : BOOL ;  
+	   END_STRUCT ; 
+	   PC : STRUCT  //== PC: Read/Write
+	    Hsk : STRUCT    // Handshake
+	     Spare0 : BYTE ;    
+	     FDefineCmd : BOOL ;    
+	     FDefinePara : BOOL ;   
+	     FDefineValue : BOOL ;  
+	     FExamine : BOOL ;   
+	     FExamineFirst : BOOL ; 
+	     FExamineNext : BOOL ;  
+	     F06 : BOOL ;   
+	     F07 : BOOL ;   
+	    END_STRUCT ;    
+	    ErrObj : INT ;  //Spare
+	    ErrCode : INT ; //Fault reason: 0=No Fault
+	    ObjectType : INT ;  //Type of addressed object
+	    ObjectNo : INT ;    //Addressd object
+	    Cmd1 : ARRAY  [0 .. 15 ] OF BOOL ;  
+	    Cmd2 : ARRAY  [0 .. 15 ] OF BOOL ;  
+	    Cmd3 : ARRAY  [0 .. 15 ] OF BOOL ;  
+	    Value : ARRAY  [1 .. 100 ] OF //Data from or for actual object
+	    WORD ;  
+	   END_STRUCT ; 
+	  END_STRUCT ;  
+	BEGIN
+	   ParAnswerTime := 10; 
+	END_DATA_BLOCK

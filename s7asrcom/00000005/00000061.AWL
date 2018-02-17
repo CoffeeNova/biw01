@@ -1,0 +1,1956 @@
+FUNCTION_BLOCK FB 90
+TITLE =Line and section control standard subroutines
+//OPYRIGHT:    (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      STD_MU664    
+//
+//TITLE:        Line and section control standard subroutines
+//              
+//              Standardfunktionen für Linien und Sektionen              
+//              
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                              DATE:
+//
+//STD_FB90.2.5  A. Egli             CT3                               11-Aug-2003
+//              Sub2071: PICFU.SectionInfoCode     
+//STD_FB90.2.4  Ph. Engler          MU664                             04-Aug-2003
+//              Sub1061: LB not LW                    
+//STD_FB90.2.3  Ph. Engler          MU664                             30-Aug-2003
+//              Sub1061: Copy  #VarTemp.InOutValue3 to TmpDInt
+//                       LB not LW                    
+//STD_FB90.2.1  A.Egli              CT3                               14-Mai-2003
+//              Sub1001: On Off Command Line
+//STD_FB90.2.0  A.Egli              CT3                               18-Oct-2002
+//              New release: Function moved from FC120 to FB90
+//STD_FC120.1.12Ph. Engler          MU664                             23-Aug-2002
+//              - Function (4,1) added: Search group manual mode
+//STD_FC120.1.11Ph. Engler          MU664                              30-Apr-2002
+//              - Function (1,55) and (2,55) modified: Stopping/Stopped
+//STD_FC120.1.10Ph. Engler          MU664                              21-Mar-2002
+//              - Function (2,55): starting until S.ToSSW.infStarted
+//STD_FC120.1.9 Ph. Engler          MU664                              12-Mar-2002
+//              Status codes for WinCoS implemented:
+//              - General group colour code
+//              - Line and Section info code
+//STD_FC120.1.8 Ph. Engler          MU664                              20-Mar-2001
+//              Line status colour for 2-4 section implemented
+//STD_FC120.1.7 Ph. Engler          MU664                              20-Dec-2000
+//              Pre stop weight for cmdSequenceStop
+//STD_FC120.1.6 Ph. Engler          MU664                              14-Dec-2000
+//              - Substitude BtmpInCode into recipe extended, tmpInCode 3 
+//              - JS Job paramter flags (2,2) Sta-Address corrected
+//STD_FC120.1.5 Ph. Engler          MU664                              01-Nov-2000
+//              CmdSequenceStop only if section is in StActive           
+//STD_FC120.1.4 Ph. Engler          MU664                              19-Okt-2000
+//              Update SND-Binlist staSameSndRcv:
+//               Suppression of the error meassage 'bin not found'
+//STD_FC120.1.3 Ph. Engler          MU664                              28-Jun-2000
+//              Section text and colour code extension 
+//              with code 702, 703 and 1402
+//STD_FC120.1.2 Ph. Engler          MU664                              04-May-2000
+//              LS Line state/fault protocolling (1,10)
+//               esXXX corrected 
+//STD_FC120.1.1 Ph. Engler          MU664                              29-Mar-2000
+//              Line log messages implemented
+//STD_FC120.1.0 Ph. Engler          MU664                              05-Jan-2000
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS:
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : STD
+NAME : STD_FB90
+VERSION : 2.5
+
+
+VAR_INPUT
+  InCode : INT ;	
+END_VAR
+VAR
+  Para : STRUCT 	
+   ParSecNr : INT  := 1;	
+   ParLineDB_ParFirstSecDB : INT  := 320;	
+   spare4 : INT ;	
+   ParNextSecDB : INT ;	//Next section DB of this project line
+   ParSecDataFirstByte : INT  := 240;	
+   ParSecDataLenNomValue : INT  := 20;	
+   ParSecDataLenAcValue : INT  := 20;	
+   ParBinDataFirstByte : INT  := 300;	
+   ParBinDataLength : INT  := 72;	
+  END_STRUCT ;	
+  VarTemp : STRUCT 	
+   InOutValue1 : INT ;	
+   InOutValue2 : INT ;	
+   InOutValue3 : DINT ;	
+   InOutValue4 : DINT ;	
+   InOutValue5 : DINT ;	
+   InOutValue6 : DINT ;	
+  END_STRUCT ;	
+  ChangeBit : STRUCT 	
+   spare : BYTE ;	
+   CBit1 : BOOL ;	
+   CBit2 : BOOL ;	
+   CBit3 : BOOL ;	
+   CBit4 : BOOL ;	
+  END_STRUCT ;	
+  ToASW : STRUCT 	
+   spare00 : WORD ;	
+   CmdModify : BOOL ;	
+   CmdNewBatch : BOOL ;	
+   CmdDataMoved : BOOL ;	
+   InfSameJobPrevSec : BOOL ;	
+   InfSameJobNextSec : BOOL ;	
+   InfSameBatchPrevSec : BOOL ;	
+   InfSameBatchNextSec : BOOL ;	
+   InfSameJobLineDB : BOOL ;	//Job in reveive box is equal
+   InfEmptyingTimeEnd : BOOL ;	
+   InfWayAdjustTimeEnd : BOOL ;	
+   spare32 : BOOL ;	
+   spare33 : BOOL ;	
+   spare34 : BOOL ;	
+   spare35 : BOOL ;	
+   spare36 : BOOL ;	
+   InfDataReady : BOOL ;	
+   Func : UDT 10601;	
+   Transition : STRUCT 	
+    spare00 : BYTE ;	
+    ToPassive : BOOL ;	
+    ToWait : BOOL ;	
+    ToActive : BOOL ;	
+    ToReady : BOOL ;	
+    ToEmptying : BOOL ;	
+    ToEmptied : BOOL ;	
+    ToIdling : BOOL ;	
+   END_STRUCT ;	
+   spare10 : WORD ;	
+   spare12 : DWORD ;	
+   spare16 : DWORD ;	
+  END_STRUCT ;	
+  ToSSW : STRUCT 	
+   InfStopped : BOOL ;	
+   spare01 : BOOL ;	
+   InfStarted : BOOL ;	
+   spare03 : BOOL ;	
+   spare04 : BOOL ;	
+   InfFeeding : BOOL ;	
+   spare06 : BOOL ;	
+   spare07 : BOOL ;	
+   spare00 : BOOL ;	
+   CmdGotoActive : BOOL ;	
+   CmdGotoReady : BOOL ;	
+   CmdGotoEmptying : BOOL ;	
+   CmdGotoEmptied : BOOL ;	
+   CmdGotoIdling : BOOL ;	
+   CmdGotoPassive : BOOL ;	
+   spare17 : BOOL ;	
+   InfReadyForNewBatch : BOOL ;	
+   CmdSendResult : BOOL ;	
+   InfPulseTimer : BOOL ;	
+   CmdNewWay : BOOL ;	
+   spare24 : BOOL ;	
+   spare25 : BOOL ;	
+   spare26 : BOOL ;	
+   InfReleaseEmptyingTime : BOOL ;	
+   Func : UDT 10601;	
+   InPrevSecDB : INT ;	//Previouse section DB in product flow
+   InNextSecDB : INT ;	//Next section DB in product flow
+   spare12 : DWORD ;	
+   spare16 : DWORD ;	
+  END_STRUCT ;	
+  PCWrite : STRUCT 	//PC Write : Section Data
+   Hsk : STRUCT 	
+    Q_Status : BOOL ;	
+    Q_Result : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    Q_MDEEData : BOOL ;	//Acknowledge data sended to MDEE by PCC
+    Q_MYRAData : BOOL ;	//Acknowledge data sended to MYRA by PCC
+    F_Define : BOOL ;	
+   END_STRUCT ;	
+   spare2 : WORD ;	
+   Func : UDT 10601;	
+   Value1 : INT ;	
+   Value2 : INT ;	
+   Value3 : INT ;	
+   ParWayAdjustTime : INT  := 2;	
+   Value5 : INT ;	
+   ParEmptyingTime : INT  := 20;	
+  END_STRUCT ;	
+  PCRead : STRUCT 	//PC Read : Section Data
+   Hsk : STRUCT 	
+    F_Status : BOOL ;	
+    F_Result : BOOL ;	
+    F_2 : BOOL ;	
+    F_3 : BOOL ;	
+    F_4 : BOOL ;	
+    F_5 : BOOL ;	
+    F_MDEEData : BOOL ;	//Request PCC to send data to MDEE
+    F_MYRAData : BOOL ;	//Request PCC to send data to MYRA
+   END_STRUCT ;	
+   ErrElement : INT ;	
+   ErrCode : INT ;	
+   ErrObject : INT ;	//(*new*)
+   Step : STRUCT 	
+    spare : BYTE ;	
+    StPassive : BOOL ;	
+    StWait : BOOL ;	
+    StActive : BOOL ;	
+    StReady : BOOL ;	//Line= Idling
+    StEmptying : BOOL ;	
+    StEmptied : BOOL ;	
+    StIdling : BOOL ;	
+   END_STRUCT ;	
+   State : STRUCT 	
+    spare : BYTE ;	
+    StStopped : BOOL ;	
+    StStarting : BOOL ;	
+    StStarted : BOOL ;	
+    StStopping : BOOL ;	
+    spare04 : BOOL ;	
+    StFeeding : BOOL ;	
+   END_STRUCT ;	
+   Fault : UDT 10602;	
+   Status : UDT 10603;	
+   StateColor : INT ;	
+   StateInfoCode : INT ;	//Line: GenGrpColorCode
+   ExtStatus : INT ;	
+   OutWayAdjustTime_ExtOn : INT ;	
+   OutStartWarningTime : INT ;	//Copy of Startwarning modul
+   OutEmptyingTime : INT ;	
+   Value7 : INT ;	
+   Value8 : INT ;	
+   Value9 : INT ;	
+   Value10 : INT ;	
+   Value11 : INT ;	
+   Value12 : INT ;	
+   Value13 : INT ;	
+   Value14 : INT ;	
+   Value15 : INT ;	
+   Value16 : INT ;	
+   Value17 : INT ;	
+   Value18 : INT ;	
+   Value19 : INT ;	
+  END_STRUCT ;	
+  JobNom : STRUCT 	//PC Read: Job header: Nominal values
+   JobNr : DINT ;	
+   JobWeight : DINT ;	//Total Job weight
+   BatchNo : INT  := 10;	//Number of batch requested form PC
+   ScaleUsed : ARRAY  [1 .. 64 ] OF BOOL ;	
+   RecipeNr : INT ;	
+   BatchWeight : DINT ;	
+   BatchMinPpm : INT ;	//Minimum batch size [0.1%]
+   BatchMaxPpm : INT ;	//Maximum batch size [0.1%]
+   BatchNoOffset : INT ;	//Batch number of first batch
+   MixingTime : INT ;	//Mixing time
+   JobChangeTime : INT ;	//Job change time
+   FeedingTime : INT ;	//Feeding Time
+   Value13 : INT ;	
+   Value14 : INT ;	
+  END_STRUCT ;	
+  JobAc : STRUCT 	//PC Read: Job header: Actual values
+   StaBatch : STRUCT 	
+    spare0 : BOOL ;	
+    spare1 : BOOL ;	
+    spare2 : BOOL ;	
+    spare3 : BOOL ;	
+    spare4 : BOOL ;	
+    spare5 : BOOL ;	
+    StaEmptyingBatch : BOOL ;	
+    StaScaleRecipeValid : BOOL ;	
+    StaErrBatch : BOOL ;	
+    StaHandAddReady : BOOL ;	
+    StaRegistrated : BOOL ;	
+    StaLastBatch : BOOL ;	
+    StaDone : BOOL ;	
+   END_STRUCT ;	
+   JobWeight : DINT ;	
+   BatchNo : INT ;	
+   BatchNoCal : INT ;	
+   BatchWeightTarget : DINT ;	//Calculated target batch weight
+   BatchWeightActual : DINT ;	//Actual weight of all dosed ingredient
+   BatchSizePpm : INT ;	//Calculated batch size [1/1000]
+   BatchValue8 : INT ;	
+   BatchValue9 : INT ;	
+   MixingTime : INT ;	//Mixing time
+   JobChangeTime : INT ;	//Job change time
+   FeedingTime : INT ;	//Feeding Time
+   RecipePlace : INT ;	//Actual recipe place
+   Value16 : INT ;	
+   Value17 : INT ;	
+   Value18 : INT ;	
+   Value19 : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  TmpWord : WORD ;	
+  TmpInt : INT ;	
+  TmpDInt : DINT ;	
+  TmpBool : BOOL ;	
+  tmpLineStStopped : BOOL ;	
+  tmpLineStaAutostart : BOOL ;	
+  tmpLineInfFeeding : BOOL ;	
+  DB9SecArray : DWORD ;	//Address Pointer Section in DB9
+  tmpSecDB : INT ;	
+  tmpAddrGrInterfaceSec : DINT ;	//Pointer to Interface in section DB
+  tmpLineDB : INT ;	
+  tmpRelevantGroups : DINT ;	
+  tmpSec_GenGrpCoulorCode : STRUCT 	
+   lightGrey : BOOL ;	
+   Bit1 : BOOL ;	
+   darkGreen : BOOL ;	
+   magenta : BOOL ;	
+   red : BOOL ;	
+  END_STRUCT ;	
+  tmpLin_GenGrpCoulorCode : STRUCT 	
+   lightGrey : BOOL ;	
+   Bit1 : BOOL ;	
+   darkGreen : BOOL ;	
+   magenta : BOOL ;	
+   red : BOOL ;	
+  END_STRUCT ;	
+  tmpStateColorS1 : STRUCT 	
+   white : BOOL ;	
+   yellow : BOOL ;	
+   blue : BOOL ;	
+   dark_green : BOOL ;	
+   green : BOOL ;	
+   light_green : BOOL ;	
+   mangenta : BOOL ;	
+   red : BOOL ;	
+   Bit8 : BOOL ;	
+   Bit9 : BOOL ;	
+   Bit10 : BOOL ;	
+   Bit11 : BOOL ;	
+   Bit12 : BOOL ;	
+   brown : BOOL ;	
+   orange : BOOL ;	
+   tuerkis : BOOL ;	
+  END_STRUCT ;	
+  tmpStateColorS2 : STRUCT 	
+   white : BOOL ;	
+   yellow : BOOL ;	
+   blue : BOOL ;	
+   dark_green : BOOL ;	
+   green : BOOL ;	
+   light_green : BOOL ;	
+   mangenta : BOOL ;	
+   red : BOOL ;	
+   Bit8 : BOOL ;	
+   Bit9 : BOOL ;	
+   Bit10 : BOOL ;	
+   Bit11 : BOOL ;	
+   Bit12 : BOOL ;	
+   brown : BOOL ;	
+   orange : BOOL ;	
+   tuerkis : BOOL ;	
+  END_STRUCT ;	
+  tmpStateColorS3 : STRUCT 	
+   white : BOOL ;	
+   yellow : BOOL ;	
+   blue : BOOL ;	
+   dark_green : BOOL ;	
+   green : BOOL ;	
+   light_green : BOOL ;	
+   mangenta : BOOL ;	
+   red : BOOL ;	
+   Bit8 : BOOL ;	
+   Bit9 : BOOL ;	
+   Bit10 : BOOL ;	
+   Bit11 : BOOL ;	
+   Bit12 : BOOL ;	
+   brown : BOOL ;	
+   orange : BOOL ;	
+   tuerkis : BOOL ;	
+  END_STRUCT ;	
+  tmpStateColorS4 : STRUCT 	
+   white : BOOL ;	
+   yellow : BOOL ;	
+   blue : BOOL ;	
+   dark_green : BOOL ;	
+   green : BOOL ;	
+   light_green : BOOL ;	
+   mangenta : BOOL ;	
+   red : BOOL ;	
+   Bit8 : BOOL ;	
+   Bit9 : BOOL ;	
+   Bit10 : BOOL ;	
+   Bit11 : BOOL ;	
+   Bit12 : BOOL ;	
+   brown : BOOL ;	
+   orange : BOOL ;	
+   tuerkis : BOOL ;	
+  END_STRUCT ;	
+  tmpStateColorLine : STRUCT 	
+   white : BOOL ;	
+   yellow : BOOL ;	
+   blue : BOOL ;	
+   dark_green : BOOL ;	
+   green : BOOL ;	
+   light_green : BOOL ;	
+   mangenta : BOOL ;	
+   red : BOOL ;	
+   Bit8 : BOOL ;	
+   Bit9 : BOOL ;	
+   Bit10 : BOOL ;	
+   Bit11 : BOOL ;	
+   Bit12 : BOOL ;	
+   brown : BOOL ;	
+   orange : BOOL ;	
+   tuerkis : BOOL ;	
+  END_STRUCT ;	
+  tmpUserState : STRUCT 	//PIC FU
+   stEmptying : BOOL ;	
+   stEmptied : BOOL ;	
+   stIdling : BOOL ;	
+   stFault : BOOL ;	
+   stHand : BOOL ;	
+   stHold : BOOL ;	
+   stStep : BOOL ;	
+   spare : BOOL ;	
+   stPassiv : BOOL ;	
+   stWait : BOOL ;	
+   stStarting : BOOL ;	
+   stStarted : BOOL ;	
+   stStopping : BOOL ;	
+   stStopped : BOOL ;	
+   stFeeding : BOOL ;	
+   stReady : BOOL ;	
+  END_STRUCT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Init
+
+      LAR2  P##InCode; 
+      L     DINO; 
+      T     #tmpLineDB; 
+      T     #tmpSecDB; 
+
+NETWORK
+TITLE =Sub1001: LS Line On Off Command
+//Called by line controler subroutines, with opened L-DB
+      L     #InCode; 
+      L     1001; 
+      <>I   ; 
+      SPB   LS01; 
+      L     #PCWrite.Value1; // PCWrite.ExtFuncOn 
+      T     #PCRead.OutWayAdjustTime_ExtOn; 
+//-Update ExtStatus------------------------
+      L     #PCRead.ExtStatus; // ExtStatus
+      L     #PCWrite.Value1; // PCWrite.ExtFuncOn 
+      OD    ; // 
+      L     #PCWrite.Value2; // PCWrite.ExtFuncOff 
+      INVD  ; //  
+      UD    ; //  
+      T     #PCRead.ExtStatus; //->ExtStatus
+//Reset on commands 
+      L     0; 
+      T     #PCWrite.Value1; // PCWrite.ExtFuncOn 
+//Reset off commands 
+      L     0; 
+      T     #PCWrite.Value2; // PCWrite.ExtFuncOff 
+      BEA   ; 
+LS01: NOP   0; 
+
+NETWORK
+TITLE =Sub1010: LS Line state/fault protocolling
+//Called by line controler subroutines, with opened L-DB
+//
+//Output: LineDB.VarTemp.InOutValue1 = LineMsg
+      L     #InCode; 
+      L     1010; 
+      <>I   ; 
+      SPB   LS00; 
+//-Init var---
+      L     0; 
+      T     MW  2018; 
+//Read old value: PCRead.StateColor
+      L     #PCRead.StateColor; 
+      LAR1  P##tmpStateColorS1; // LineDB.PCRead.StateColor
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS1
+//-Generate summary step---
+      U     #tmpStateColorS1.tuerkis; // 
+      =     M   2019.3; // --> LineMsg.suspended
+      SET   ; 
+      S     M   2019.0; // --> LineMsg.terminated
+      S     M   2019.1; // --> LineMsg.stopped
+      R     M   2019.2; // --> LineMsg.started
+      R     M   2019.4; // --> LineMsg.faulted
+      R     M   2019.5; // --> LineMsg.warning
+      R     M   2018.0; // --> LineMsg.SenderEmpty
+      R     M   2018.3; // --> LineMsg.allPreselectRcvFull
+      R     M   2018.4; // --> LineMsg.MachinesNotAvailable
+
+      L     #Para.ParLineDB_ParFirstSecDB; // Para.ParFirstSecDB   
+LOOP: T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; 
+
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      R     M   2019.0; // --> LineMsg.terminated
+
+      UN    #PCRead.State.StStopped; // Section
+      ON    #PCRead.Status.StaImmediateStopASW; // Section
+      R     M   2019.1; // --> LineMsg.stopped
+
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2019.2; // --> LineMsg.started
+
+      U     #PCRead.Fault.EsMech; // Section
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2019.4; // --> LineMsg.faulted
+
+      U     #PCRead.Fault.EsWarning; // Section
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2019.5; // --> LineMsg.warning
+
+      U     #PCRead.Fault.EsEmpty; // Section
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2018.0; // --> LineMsg.SenderEmpty
+
+      U     #PCRead.Fault.EsFull; // Section
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2018.3; // --> LineMsg.allPreselectRcvFull
+
+      U     #PCRead.Fault.EsWayConflict; // Section
+      UN    #PCRead.Step.StPassive; // Section
+      UN    #PCRead.Step.StIdling; // Section
+      S     M   2018.4; // --> LineMsg.MachinesNotAvailable
+
+//-Check next section---
+      L     0; 
+      L     #Para.ParNextSecDB; // Section
+      <>I   ; 
+      SPB   LOOP; 
+//-Return messages---
+      AUF   DI [#tmpLineDB]; 
+      L     MW  2018; // LineMsg
+      T     #VarTemp.InOutValue1; 
+      BEA   ; 
+LS00: NOP   0; 
+NETWORK
+TITLE =Sub1051: C1 Line status colour for 1 section
+//Called by line controler subroutines
+      L     #InCode; 
+      L     1051; 
+      <>I   ; 
+      SPB   C100; 
+//Init
+      L     0; 
+      LAR1  P##tmpStateColorLine; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorLine
+//Read state of section 1
+      L     #Para.ParLineDB_ParFirstSecDB; 
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call 1st section
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS1; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS1
+//-Red----------------------------------
+      U     #tmpStateColorS1.red; // Section
+      S     #tmpStateColorLine.red; 
+      SPB   C101; 
+//-Magenta------------------------------
+      U     #tmpStateColorS1.mangenta; // Section
+      S     #tmpStateColorLine.mangenta; 
+      SPB   C101; 
+//-Turkis-------------------------------
+      U     #tmpStateColorS1.tuerkis; // Section
+      S     #tmpStateColorLine.tuerkis; 
+      SPB   C101; 
+//-Brown--------------------------------
+      U     #tmpStateColorS1.brown; // Section
+      S     #tmpStateColorLine.brown; 
+      SPB   C101; 
+//-Orange-------------------------------
+      U     #tmpStateColorS1.orange; // Section
+      S     #tmpStateColorLine.orange; 
+      SPB   C101; 
+//-Lightgreen---------------------------
+      U     #tmpStateColorS1.light_green; // Section
+      S     #tmpStateColorLine.light_green; 
+      SPB   C101; 
+//-Green--------------------------------
+      U     #tmpStateColorS1.green; // Section
+      S     #tmpStateColorLine.green; 
+      SPB   C101; 
+//-Darkgreen----------------------------
+      U     #tmpStateColorS1.dark_green; // Section
+      S     #tmpStateColorLine.dark_green; 
+      SPB   C101; 
+//-Yellow-------------------------------
+      U     #tmpStateColorS1.yellow; // Section
+      S     #tmpStateColorLine.yellow; 
+      SPB   C101; 
+//-Blue---------------------------------
+      U     #tmpStateColorS1.blue; // Section
+      S     #tmpStateColorLine.blue; 
+      SPB   C101; 
+//-White--------------------------------
+      U     #tmpStateColorS1.white; // Section
+      S     #tmpStateColorLine.white; //(default)
+//-Data to PCC--------------------------
+C101: AUF   DI [#tmpLineDB]; 
+      LAR1  P##tmpStateColorLine; 
+      L     LW [AR1,P#0.0]; // tmpStateColorLine
+      L     #PCRead.StateColor; // LineDB
+      ==I   ; // 
+      BEB   ; 
+      S     #ChangeBit.CBit1; // LineDB
+      TAK   ; 
+      T     #PCRead.StateColor; // LineDB
+      BEA   ; 
+C100: NOP   0; 
+NETWORK
+TITLE =Sub1052: C2 Line status colour for 2 section
+//Called by line controler subroutines
+//
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     1052; 
+      <>I   ; 
+      SPB   C200; 
+//Init
+      L     0; 
+      LAR1  P##tmpStateColorLine; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorLine
+//Read Status Section 1
+      L     #Para.ParLineDB_ParFirstSecDB; 
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call 1st section DB Para.ParFirstSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS1; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS1
+
+//Read Status Section2
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS2; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS2
+
+
+      AUF   DI [#tmpLineDB]; // Call line DB .Para.ParLineDB
+//-Red----------------------------------
+      U     #tmpStateColorS1.red; 
+      O     #tmpStateColorS2.red; 
+      S     #tmpStateColorLine.red; 
+      SPB   C201; 
+//-Magenta------------------------------
+      U     #tmpStateColorS1.mangenta; 
+      O     #tmpStateColorS2.mangenta; 
+      S     #tmpStateColorLine.mangenta; 
+      SPB   C201; 
+//-Turkis-------------------------------
+      U     #tmpStateColorS1.tuerkis; 
+      O     #tmpStateColorS2.tuerkis; 
+      S     #tmpStateColorLine.tuerkis; 
+      SPB   C201; 
+//-Brown--------------------------------
+      U     #tmpStateColorS1.brown; 
+      O     #tmpStateColorS2.brown; 
+      S     #tmpStateColorLine.brown; 
+      SPB   C201; 
+//-Orange-------------------------------
+      U     #tmpStateColorS1.orange; 
+      O     #tmpStateColorS2.orange; 
+      S     #tmpStateColorLine.orange; 
+      SPB   C201; 
+//-Lightgreen---------------------------
+      U     #tmpStateColorS1.light_green; 
+      O     #tmpStateColorS2.light_green; 
+      S     #tmpStateColorLine.light_green; 
+      SPB   C201; 
+//-Green--------------------------------
+      U     #tmpStateColorS1.green; 
+      O     #tmpStateColorS2.green; 
+      S     #tmpStateColorLine.green; 
+      SPB   C201; 
+//-Darkgreen----------------------------
+      U     #tmpStateColorS1.dark_green; 
+      O     #tmpStateColorS2.dark_green; 
+      S     #tmpStateColorLine.dark_green; 
+      SPB   C201; 
+//-Blue---------------------------------
+      U     #tmpStateColorS1.blue; 
+      O     #tmpStateColorS2.blue; 
+      S     #tmpStateColorLine.blue; 
+      SPB   C201; 
+//-Yellow-------------------------------
+      U     #tmpStateColorS1.yellow; 
+      O     #tmpStateColorS2.yellow; 
+      S     #tmpStateColorLine.yellow; 
+      SPB   C201; 
+//-White--------------------------------
+      U     #tmpStateColorS1.white; 
+      U     #tmpStateColorS2.white; 
+      S     #tmpStateColorLine.white; // (default)
+//-Data to PCC--------------------------
+C201: AUF   DI [#tmpLineDB]; 
+      LAR1  P##tmpStateColorLine; 
+      L     LW [AR1,P#0.0]; // tmpStateColorLine
+      L     #PCRead.StateColor; // LineDB
+      ==I   ; 
+      BEB   ; 
+      S     #ChangeBit.CBit1; // LineDB
+      TAK   ; 
+      T     #PCRead.StateColor; // LineDB
+      BEA   ; 
+C200: NOP   0; 
+NETWORK
+TITLE =Sub1053: C3 Line status colour for 3 section
+//Called by line controler subroutines
+//
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     1053; 
+      <>I   ; 
+      SPB   C300; 
+//Init
+      L     0; 
+      LAR1  P##tmpStateColorLine; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorLine
+//Read Status Section1
+      L     #Para.ParLineDB_ParFirstSecDB; 
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call 1st section DB Para.ParFirstSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS1; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS1
+//Read Status Section2
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS2; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS2
+//Read Status Section3
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS3; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS3
+
+//-Red----------------------------------
+      AUF   DI [#tmpLineDB]; 
+      U     #tmpStateColorS1.red; 
+      O     #tmpStateColorS2.red; 
+      O     #tmpStateColorS3.red; 
+      S     #tmpStateColorLine.red; 
+      SPB   C301; 
+//-Magenta------------------------------
+      U     #tmpStateColorS1.mangenta; 
+      O     #tmpStateColorS2.mangenta; 
+      O     #tmpStateColorS3.mangenta; 
+      S     #tmpStateColorLine.mangenta; 
+      SPB   C301; 
+//-Turkis-------------------------------
+      U     #tmpStateColorS1.tuerkis; 
+      O     #tmpStateColorS2.tuerkis; 
+      O     #tmpStateColorS3.tuerkis; 
+      S     #tmpStateColorLine.tuerkis; 
+      SPB   C301; 
+//-Brown--------------------------------
+      U     #tmpStateColorS1.brown; 
+      O     #tmpStateColorS2.brown; 
+      O     #tmpStateColorS3.brown; 
+      S     #tmpStateColorLine.brown; 
+      SPB   C301; 
+//-Orange-------------------------------
+      U     #tmpStateColorS1.orange; 
+      O     #tmpStateColorS2.orange; 
+      O     #tmpStateColorS3.orange; 
+      S     #tmpStateColorLine.orange; 
+      SPB   C301; 
+//-Lightgreen---------------------------
+      U     #tmpStateColorS1.light_green; 
+      O     #tmpStateColorS2.light_green; 
+      O     #tmpStateColorS3.light_green; 
+      S     #tmpStateColorLine.light_green; 
+      SPB   C301; 
+//-Green--------------------------------
+      U     #tmpStateColorS1.green; 
+      O     #tmpStateColorS2.green; 
+      O     #tmpStateColorS3.green; 
+      UN    #tmpStateColorS2.dark_green; 
+      S     #tmpStateColorLine.green; 
+      SPB   C301; 
+//-Darkgreen----------------------------
+//      U     #tmpStateColorS1.dark_green
+      U     #tmpStateColorS2.dark_green; 
+//      U     #tmpStateColorS3.dark_green
+      S     #tmpStateColorLine.dark_green; 
+      SPB   C301; 
+//-Blue---------------------------------
+      U     #tmpStateColorS1.blue; 
+      O     #tmpStateColorS2.blue; 
+      O     #tmpStateColorS3.blue; 
+      S     #tmpStateColorLine.blue; 
+      SPB   C301; 
+//-Yellow-------------------------------
+//      U     #tmpStateColorS1.yellow
+      U     #tmpStateColorS2.yellow; 
+//      U     #tmpStateColorS3.yellow
+      S     #tmpStateColorLine.yellow; 
+      SPB   C301; 
+//-White--------------------------------
+//      U     #tmpStateColorS1.white
+      U     #tmpStateColorS2.white; 
+      U     #tmpStateColorS3.white; 
+      S     #tmpStateColorLine.white; // (default)
+      SPB   C301; 
+//-Data to PCC--------------------------
+C301: AUF   DI [#tmpLineDB]; 
+      LAR1  P##tmpStateColorLine; 
+      L     LW [AR1,P#0.0]; // tmpStateColorLine
+      L     #PCRead.StateColor; // LineDB
+      ==I   ; // 
+      BEB   ; 
+      S     #ChangeBit.CBit1; // LineDB
+      TAK   ; 
+      T     #PCRead.StateColor; // LineDB
+      BEA   ; 
+C300: NOP   0; 
+NETWORK
+TITLE =Sub1054: C4 Line status colour for 4 section
+//Called by line controler subroutines
+      L     #InCode; 
+      L     1054; 
+      <>I   ; 
+      SPB   C400; 
+//Init
+      L     0; 
+      LAR1  P##tmpStateColorLine; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorLine
+//Read Status Section1
+      L     #Para.ParLineDB_ParFirstSecDB; 
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call 1st section DB Para.ParFirstSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS1; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS1
+
+//Read Status Section2
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS2; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS2
+
+//Read Status Section3
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS3; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS3
+
+//Read Status Section4
+      L     #Para.ParNextSecDB; // Section
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next section DB Para.ParNextSecDB
+      L     #PCRead.StateColor; // Section
+      LAR1  P##tmpStateColorS4; 
+      T     LW [AR1,P#0.0]; //-->tmpStateColorS4
+
+      AUF   DI [#tmpLineDB]; // Call line DB 
+// 
+//-Red----------------------------------
+      U     #tmpStateColorS1.red; 
+      O     #tmpStateColorS2.red; 
+      O     #tmpStateColorS3.red; 
+      O     #tmpStateColorS4.red; 
+      S     #tmpStateColorLine.red; 
+      SPB   C401; 
+//-Magenta------------------------------
+      U     #tmpStateColorS1.mangenta; 
+      O     #tmpStateColorS2.mangenta; 
+      O     #tmpStateColorS3.mangenta; 
+      O     #tmpStateColorS4.mangenta; 
+      S     #tmpStateColorLine.mangenta; 
+      SPB   C401; 
+//-Turkis-------------------------------
+      U     #tmpStateColorS1.tuerkis; 
+      O     #tmpStateColorS2.tuerkis; 
+      O     #tmpStateColorS3.tuerkis; 
+      O     #tmpStateColorS4.tuerkis; 
+      S     #tmpStateColorLine.tuerkis; 
+      SPB   C401; 
+//-Yellow-------------------------------
+      U     #tmpStateColorS1.yellow; 
+      U     #tmpStateColorS2.yellow; 
+      U     #tmpStateColorS3.yellow; 
+      U     #tmpStateColorS4.yellow; 
+      S     #tmpStateColorLine.yellow; 
+      SPB   C401; 
+//-Brown--------------------------------
+      U     #tmpStateColorS1.brown; 
+      O     #tmpStateColorS2.brown; 
+      O     #tmpStateColorS3.brown; 
+      O     #tmpStateColorS4.brown; 
+      S     #tmpStateColorLine.brown; 
+      SPB   C401; 
+//-Orange-------------------------------
+      U     #tmpStateColorS1.orange; 
+      O     #tmpStateColorS2.orange; 
+      O     #tmpStateColorS3.orange; 
+      O     #tmpStateColorS4.orange; 
+      S     #tmpStateColorLine.orange; 
+      SPB   C401; 
+//-Lightgreen---------------------------
+//      U     #tmpStateColorS1.light_green
+//      U     #tmpStateColorS2.light_green
+//      U     #tmpStateColorS3.light_green
+//      U     #tmpStateColorS4.light_green
+      CLR   ; 
+      S     #tmpStateColorLine.light_green; 
+      SPB   C401; 
+//-Green--------------------------------
+//      U     #tmpStateColorS1.green
+//      U     #tmpStateColorS2.green
+//      U     #tmpStateColorS3.green
+//      U     #tmpStateColorS4.green
+      CLR   ; 
+      S     #tmpStateColorLine.green; 
+      SPB   C401; 
+//-Blue---------------------------------
+      U     #tmpStateColorS1.white; 
+      U     #tmpStateColorS2.white; 
+      U     #tmpStateColorS3.white; 
+      U     #tmpStateColorS4.blue; 
+      S     #tmpStateColorLine.blue; 
+      SPB   C401; 
+//-Darkgreen----------------------------
+//      U     #tmpStateColorS1.dark_green
+//      U     #tmpStateColorS2.dark_green
+//      U     #tmpStateColorS3.dark_green
+//      U     #tmpStateColorS4.dark_green
+      U     #PCRead.Step.StActive; // LineDB 
+      O     #PCRead.Step.StReady; // LineDB 
+      S     #tmpStateColorLine.dark_green; 
+      SPB   C401; 
+//-White--------------------------------
+//      U     #tmpStateColorS1.white
+//      U     #tmpStateColorS2.white
+//      U     #tmpStateColorS3.white
+//      U     #tmpStateColorS4.white
+      U     #PCRead.Step.StPassive; // LineDB
+      O     #PCRead.Step.StIdling; // LineDB
+      S     #tmpStateColorLine.white; // (default)
+      SPB   C401; 
+//-Data to PCC--------------------------
+C401: AUF   DI [#tmpLineDB]; 
+      LAR1  P##tmpStateColorLine; 
+      L     LW [AR1,P#0.0]; // tmpStateColorLine
+      L     #PCRead.StateColor; // LineDB
+      ==I   ; // 
+      BEB   ; 
+      S     #ChangeBit.CBit1; // LineDB
+      TAK   ; 
+      T     #PCRead.StateColor; // LineDB
+      BEA   ; 
+C400: NOP   0; 
+NETWORK
+TITLE =Sub1055: I1 Line info code for x sections WinCoS
+
+      L     #InCode; 
+      L     1055; 
+      <>I   ; 
+      SPB   I100; 
+// 
+//-Begin-Scan all sections---
+      L     #Para.ParLineDB_ParFirstSecDB; // LineDB
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call Section DB
+      SET   ; 
+      =     #tmpLineStaAutostart; 
+      =     #tmpLineStStopped; 
+      =     #tmpLineInfFeeding; 
+I1L1: UN    #PCRead.Status.StaAutostart; // Section
+      R     #tmpLineStaAutostart; 
+      UN    #PCRead.State.StStopped; // Section
+      UN    #PCRead.State.StStopping; // Section
+      R     #tmpLineStStopped; 
+      UN    #ToSSW.InfFeeding; // Section
+      R     #tmpLineInfFeeding; 
+//-End-Scan all sections--- 
+      L     #Para.ParNextSecDB; // Section
+      L     0; 
+      <>I   ; 
+      SPBN  I101; 
+      L     #Para.ParNextSecDB; 
+      T     #tmpSecDB; 
+      AUF   DI [#tmpSecDB]; // Call next S-DB
+      SPA   I1L1; 
+//-End-Scan all sections---
+
+//===Line =============================================================
+I101: AUF   DI [#tmpLineDB]; // Call L-DB
+//=Build MainInfoCode=================
+//-Fault------------------------------
+      U     #PCRead.Fault.EsMech; // LineDB
+      O     #PCRead.Fault.EsDosing; // LineDB
+      O     #PCRead.Fault.EsBatchSize; // LineDB
+      O     #PCRead.Fault.EsRefillLevel; // LineDB
+      UN    #PCRead.Step.StPassive; // LineDB
+      UN    #PCRead.Step.StIdling; // LineDB
+      L     2#100000000000000; // bit_main_status.passiv
+      L     1500; // code.Fault
+      SPB   I102; 
+//-Passive------------------------------
+      U     #PCRead.Step.StPassive; // LineDB
+      L     2#1; // bit_main_status.passiv
+      L     100; // code.st_passiv
+      SPB   I102; 
+//-AvailableTest------------------------
+      U     #PCRead.Step.StActive; // LineDB
+      O     #PCRead.Step.StReady; // LineDB
+      U     #PCRead.Fault.EsWayConflict; // LineDB
+      L     2#100; // bit_main_status.AvailableTest 
+      L     300; // code.st_AvailableTest
+      SPB   I102; 
+//-Stopped------------------------------
+      U     #PCRead.Step.StActive; // LineDB
+      O     #PCRead.Step.StReady; // LineDB
+      U     #tmpLineStStopped; 
+      L     2#10000000000000; // bit_main_status.stopped 
+      L     1400; // code.st_stopped
+      SPB   I102; 
+//-Suspended----------------------------
+      U     #PCRead.Step.StActive; // LineDB
+      O     #PCRead.Step.StReady; // LineDB
+      UN    #tmpLineInfFeeding; 
+      L     2#100000; // bit_main_status.suspended 
+      L     600; // code.st_suspended
+      SPB   I102; 
+//-Running------------------------------
+      U     #PCRead.Step.StActive; // LineDB
+      O     #PCRead.Step.StReady; // LineDB
+      L     2#1000000; // bit_main_status.running 
+      L     700; // code.st_running
+      SPB   I102; 
+//-Idling-------------------------------
+      U     #PCRead.Step.StIdling; // LineDB
+      L     2#100000000000; // bit_main_status.idling 
+      L     1200; // code.st_idling
+      SPB   I102; 
+//-No State-----------------------------
+      L     2#0; // bit_main_status.no_state 
+      L     0; // code.st_no_state
+I102: T     #TmpInt; // line text status
+      TAK   ; 
+      T     #TmpWord; // bit_main_status
+// 
+//=Build SubInfoCode====================
+//-Fault--------------------------------
+      AUF   DI [#tmpLineDB]; 
+//-ReStart------------------------------
+      L     #TmpWord; // bit_main_status
+      L     2#110000001100000; // mask with restart code
+      UW    ; 
+      SPZ   I1N2; 
+      U     #PCRead.Status.StaImmediateStop; // LineDB
+      O     #PCRead.Status.StaTransferOff; // LineDB
+      O     #PCRead.Status.StaFeedOff; // LineDB
+      UN    #PCRead.Status.StaStep; // LineDB
+      ON    #tmpLineStaAutostart; 
+      L     3; // code.restart
+      SPB   I103; 
+//-Step mode----------------------------
+I1N2: L     #TmpWord; // bit_main_status
+      L     2#110000001101101; // mask with step-mode code
+      UW    ; 
+      SPZ   I1N3; 
+      U     #PCRead.Status.StaStep; // LineDB
+      L     4; // code.Step-mode
+      SPB   I103; 
+//-Hold---------------------------------
+I1N3: L     #TmpWord; // bit_main_status
+      L     2#110100001101101; // mask with step-mode code
+      UW    ; 
+      SPZ   I1N4; 
+      U     #PCRead.Status.StaHold; // LineDB
+      L     6; // code.Step-mode
+      SPB   I103; 
+//-Warning------------------------------
+I1N4: L     #TmpWord; // bit_main_status
+      L     2#110100001101000; // mask with warning code
+      UW    ; 
+      SPZ   I1N5; 
+      U     #PCRead.Fault.EsWarning; // LineDB
+      L     1; // code.Warning
+      SPB   I103; 
+//-Loaded-------------------------------
+I1N5: L     #TmpWord; // bit_main_status
+      L     2#100000000001; // mask with loaded code
+      UW    ; 
+      SPZ   I1N6; 
+      U     #PCRead.Status.StaLoaded; // LineDB
+      L     5; // code.Loaded
+      SPB   I103; 
+//-NoSubState---------------------------
+I1N6: L     0; // code.NoSubState
+// 
+//=Build InfoCode=======================
+I103: L     #TmpInt; // MainInfoCode
+      +I    ; // Add SubInfoCode
+      T     #PCRead.StateColor; //-->LineDB
+      BEA   ; 
+I100: NOP   0; 
+NETWORK
+TITLE =Sub1061: GC GGRs status colour WinCoS
+//Inputs :
+// LineDB.VarTemp.InOutValue3 = Relevant Groups
+//
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     1061; 
+      <>I   ; 
+      SPB   GC00; 
+//-Init--- 
+      L     #VarTemp.InOutValue3; //[2.3]
+      T     #TmpDInt; //[2.3]
+      L     0; 
+      LAR1  P##tmpLin_GenGrpCoulorCode; 
+      T     LW [AR1,P#0.0]; //Reset tmpLin_GenGrpCoulorCode
+      AUF   DB     9; 
+//============================================
+//Loop Section 
+//============================================
+      L     DB9.DBW    0; //ParByteNoSecDB
+      SLD   3; 
+GCLS: T     #DB9SecArray; 
+      AUF   DB     9; 
+//-----------------------------------
+//Test End Of Array DB9.Sectio
+      L     W#16#FFFF; 
+      L     DBW [#DB9SecArray]; // DB9.Section[x].DBNr
+      ==I   ; 
+      SPB   GCOT; //-> Return
+//-----------------------------------
+//Read pointer to section interface
+      T     #tmpSecDB; 
+      L     0; 
+      ==I   ; 
+      SPB   GCNS; //--> IF DBNr= 0 THEN  Next section
+//-----------------------------------
+//Start address Interface GroupControl in section
+      LAR1  #DB9SecArray; 
+      AUF   DB     9; 
+      L     DBW [AR1,P#2.0]; //  DB9.Section[x].DBB
+      SLD   3; 
+      T     #tmpAddrGrInterfaceSec; //-->Pointer to instance in section DB
+//-----------------------------------
+//Check if section DB belongs to actual process line
+      AUF   DI [#tmpSecDB]; // Call Section DB
+      L     #Para.ParLineDB_ParFirstSecDB; // S_DB
+      L     #tmpLineDB; 
+      <>I   ; 
+      SPB   GCNS; //-->Next section
+//-----------------------------------
+//Start address Interface GroupControl in section
+//========================================================= 
+//Section[x]
+//---------- 
+//-Evaluate involved groups--- 
+      LAR1  #tmpAddrGrInterfaceSec; // Pointer to instance in section DB
+      L     DID [AR1,P#52.0]; // SEC.Gr.OutSelected [08..01/16..09//24..17/32..25]
+      L     #TmpDInt; // USW selected relevant GGR [2.3]
+      UD    ; 
+      T     #tmpRelevantGroups; //--> Mask of relevant GGR
+//-No State----------------------------------
+      L     #tmpRelevantGroups; // Mask of relevant GGR
+      L     2#0; // No group selected
+      ==D   ; 
+      L     2#1; // GenGrpStateCode.lightGrey (DB321.DBX x.0)
+      SPB   GC01; 
+//-Fault-------------------------------
+      L     #tmpRelevantGroups; // Mask of relevant GGR
+      L     DB9.DBD  530; // InFault [08..01/16..09//24..17/32..25]
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      L     2#10000; // GenGrpStateCode.red (DB321.DBX x.4)
+      SPB   GC01; 
+//-Warning--------------------------------
+      L     #tmpRelevantGroups; // Mask of relevant GGR
+      L     DB9.DBD  570; // InWarning [08..01/16..09//24..17/32..25]
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      L     2#1000; // GenGrpStateCode.magenta (DB321.DBX x.3)
+      SPB   GC01; 
+//-Else------------------------------
+      L     2#100; // GenGrpStateCode.darkGreen (DB321.DBX x.2)
+GC01: LAR1  P##tmpSec_GenGrpCoulorCode; 
+      T     LB [AR1,P#0.0]; //-->tmpGenGrpCoulorCode  
+//=================================================================
+// Add Section-State to Line-State
+//====================================================================
+      AUF   DI [#tmpLineDB]; // Call L-DB
+//-Fault--------------------------------
+      U     #tmpLin_GenGrpCoulorCode.red; 
+      O     #tmpSec_GenGrpCoulorCode.red; 
+      L     2#10000; // GenGrpCoulorCode.Fault 
+      SPB   GC02; 
+//-Warning------------------------------
+      U     #tmpLin_GenGrpCoulorCode.magenta; 
+      O     #tmpSec_GenGrpCoulorCode.magenta; 
+      L     2#1000; // GenGrpCoulorCode.Warning
+      SPB   GC02; 
+//-Started------------------------------
+      U     #tmpLin_GenGrpCoulorCode.darkGreen; 
+      O     #tmpSec_GenGrpCoulorCode.darkGreen; 
+      L     2#100; // GenGrpCoulorCode.Started
+      SPB   GC02; 
+//-No State-----------------------------
+      L     2#1; // GenGrpCoulorCode.lightGrey 
+//-Save state---
+GC02: LAR1  P##tmpLin_GenGrpCoulorCode; 
+      T     LB [AR1,P#0.0]; //Reset tmpLin_GenGrpCoulorCode //[2.4] LB not LW
+//=== Call Next Section  =====================================
+GCNS: L     #DB9SecArray; 
+      L     P#4.0; 
+      +D    ; // Pointer to next section
+      SPA   GCLS; 
+GCOT: AUF   DI [#tmpLineDB]; 
+      LAR1  P##tmpLin_GenGrpCoulorCode; 
+      L     LB [AR1,P#0.0]; //Reset tmpLin_GenGrpCoulorCode    //[2.4] LB not LW
+      T     #PCRead.StateInfoCode; //->LineDB  PCRead.GenGrpColorCode
+GC00: NOP   0; 
+NETWORK
+TITLE =Sub2001: SC Section commands
+//Open DB = Section DB
+//
+//Inputs:
+// SectionDB.VarTemp.InOutValue3 = Precutoff weight
+      L     #InCode; 
+      L     2001; 
+      <>I   ; 
+      SPB   SC00; 
+
+//--- FKT.immediate_stop---------------
+      U     #PCRead.Status.StaHWStop; 
+      S     #ToSSW.Func.CmdImmediateStop; 
+
+//--- FKT.empty_section ---------------
+      U     #JobAc.StaBatch.StaEmptyingBatch; 
+      S     #ToSSW.Func.CmdFeedOff; 
+      U     #JobAc.StaBatch.StaEmptyingBatch; 
+      U     #PCRead.Step.StActive; 
+      S     #ToSSW.Func.CmdSequenzStop; 
+      S     #PCRead.Status.StaLoaded; 
+
+//--- FKT.step_mode -------------------
+      U     #PCRead.Status.StaStep; 
+      S     #ToSSW.Func.CmdFeedOff; 
+      U     #ToSSW.InfStarted; 
+      U     #PCRead.Step.StActive; 
+      S     #ToSSW.Func.CmdStepOff; 
+
+//--- FKT.sequnce_stop ----------------
+      U(    ; 
+      L     #JobNom.FeedingTime; 
+      L     #JobAc.FeedingTime; 
+      <=I   ; 
+      U(    ; 
+      L     0; 
+      L     #JobNom.FeedingTime; 
+      <>I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      L     #JobNom.JobWeight; 
+      L     #VarTemp.InOutValue3; // Prestop weight  [1.7]
+      -D    ; //                 [1.7]
+      L     #JobAc.JobWeight; 
+      <=D   ; 
+      U(    ; 
+      L     0; 
+      L     #JobNom.JobWeight; 
+      <>D   ; 
+      )     ; 
+      )     ; 
+      U     #PCRead.Step.StActive; 
+      S     #ToSSW.Func.CmdSequenzStop; 
+      BEA   ; 
+SC00: NOP   0; 
+NETWORK
+TITLE =Sub2003:SI Section init
+//Called by section controler subroutines
+//
+//Open DB = Section DB
+//
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     2003; 
+      <>I   ; 
+      SPB   SI00; 
+//-FKT.immediate_stop------------------
+      SET   ; 
+      R     #PCRead.Status.StaImmediateStop; 
+//-FKT.feeding_time--------------------
+      L     0; 
+      T     #JobAc.FeedingTime; 
+      BEA   ; 
+SI00: NOP   0; 
+NETWORK
+TITLE =Sub2004: FT Feeding time
+//Called by section controler subroutines
+//Open DB = Section DB
+//
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     2004; 
+      <>I   ; 
+      SPB   FT00; 
+      U     #PCRead.State.StFeeding; 
+      U     M      4.6; //"SYS_Scan0_Tick1min"
+      SPBN  FT02; 
+      L     32767; 
+      L     #JobAc.FeedingTime; 
+      <=I   ; 
+      SPB   FT01; //If Time = maxValue then set to 0
+      +     1; 
+      T     #JobAc.FeedingTime; 
+      BEA   ; 
+FT01: L     1; 
+      T     #JobAc.FeedingTime; 
+FT02: BEA   ; 
+FT00: NOP   0; 
+NETWORK
+TITLE =Sub2051: ST Section status text and colour
+//Called by section controler subroutines
+//Open DB = Section DB
+//
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     2051; 
+      <>I   ; 
+      SPB   ST00; 
+//=Build auxiliary status===============
+//-Passive------------------------------
+      U     #PCRead.Step.StPassive; 
+      L     2#1; 
+      L     100; // code.st_passiv
+      SPB   ST01; 
+//-Ready--------------------------------
+      U     M      9.0; // !! not used !!
+      L     2#10; 
+      L     200; // code.st_ready
+      SPB   ST01; 
+//-Available test-----------------------
+      U     #PCRead.Step.StWait; 
+      L     2#100; 
+      L     300; // code.st_available_test
+      SPB   ST01; 
+//-Start Warning------------------------
+      U     #PCRead.Status.StaStartwarning; 
+      L     2#1000; 
+      L     400; // code.st_startwarning
+      SPB   ST01; 
+//-Starting-----------------------------
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarting; 
+      L     2#10000; 
+      L     500; // code.st_starting
+      SPB   ST01; 
+//-Suspended----------------------------
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarted; 
+      UN    #PCRead.State.StFeeding; 
+      L     2#100000; 
+      L     600; // code.st_suspended
+      SPB   ST01; 
+//-Running------------------------------
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StFeeding; 
+      L     2#1000000; 
+      L     700; // code.st_running
+      SPB   ST01; 
+//-Wait---------------------------------
+      U     #PCRead.Step.StReady; 
+      UN    #PCRead.Step.StEmptying; 
+      L     2#10000000; 
+      L     800; // code.st_wait
+      SPB   ST01; 
+//-Emptying-----------------------------
+      U     #PCRead.Step.StEmptying; 
+      UN    #ToSSW.InfReleaseEmptyingTime; 
+      UN    #PCRead.State.StStopped; 
+      L     2#100000000; 
+      L     900; // code.st_emtying
+      SPB   ST01; 
+//-Emptying active----------------------
+      U     #PCRead.Step.StEmptying; 
+      U     #ToSSW.InfReleaseEmptyingTime; 
+      UN    #PCRead.State.StStopped; 
+      L     2#1000000000; 
+      L     1000; // code.st_emptying_activ
+      SPB   ST01; 
+//-Registration-------------------------
+      U     #PCRead.Step.StEmptied; 
+      L     2#10000000000; 
+      L     1100; // code.st_registration
+      SPB   ST01; 
+//-Idling-------------------------------
+      U     #PCRead.Step.StIdling; 
+      L     2#100000000000; 
+      L     1200; // code.st_idling
+      SPB   ST01; 
+//-Stopping-----------------------------
+      U     #PCRead.State.StStopping; 
+      L     2#1000000000000; 
+      L     1300; // code.st_stopping
+      SPB   ST01; 
+//-Stopped------------------------------
+      UN    #PCRead.Step.StPassive; 
+      U     #PCRead.State.StStopped; 
+      L     2#10000000000000; 
+      L     1400; // code.st_stopped
+      SPB   ST01; 
+//-No State-----------------------------
+      L     2#0; 
+      L     0; // code.st_no_state
+ST01: T     #TmpInt; 
+      TAK   ; 
+      T     #TmpWord; 
+
+//==Status text=========================
+//-Fault--------------------------------
+      L     #TmpWord; 
+      L     2#11011111111100; // status with fault code
+      UW    ; 
+      SPZ   ST11; 
+      U     #PCRead.Fault.EsMech; 
+      L     2; // code.st_fault
+      SPB   ST02; 
+//-Warning------------------------------
+ST11: L     #TmpWord; 
+      L     2#11011111111000; // status with warning code
+      UW    ; 
+      SPZ   ST12; 
+      U     #PCRead.Fault.EsWarning; 
+      L     1; // code.st_warning
+      SPB   ST02; 
+//-Restart------------------------------
+ST12: L     #TmpWord; 
+      L     2#11000011110000; // status with restart code
+      UW    ; 
+      SPZ   ST13; 
+      UN    #PCRead.Status.StaAutostart; 
+      L     3; // code.st_restart
+      SPB   ST02; 
+//-Step mode----------------------------
+ST13: L     #TmpWord; 
+      L     2#11000000111111; // status with step_mode code
+      UW    ; 
+      SPZ   ST14; 
+      U     #PCRead.Status.StaStep; 
+      L     4; // code.st_step_mode
+      SPB   ST02; 
+//-Loaded-------------------------------
+ST14: L     #TmpWord; 
+      L     2#11000000000001; // status with loaded code
+      UW    ; 
+      SPZ   ST15; 
+      U     #PCRead.Status.StaLoaded; 
+      L     5; // code.st_loaded
+      SPB   ST02; 
+//-Mixing-------------------------------
+ST15: L     #TmpWord; 
+      L     2#100000; // status with mixing code
+      UW    ; 
+      SPZ   ST03; 
+      U     M      9.0; // !!! not used !!!
+      L     6; // code.st_mixing
+      SPB   ST02; 
+      SPA   ST03; 
+
+//-Build real text status---------------
+ST02: L     #TmpInt; 
+      +I    ; 
+      T     #TmpInt; 
+
+//==Status colour=======================
+//-Fault--------------------------------
+ST03: L     #TmpWord; 
+      L     2#11011111111100; // mask text code
+      UW    ; 
+      SPZ   ST31; 
+      U     #PCRead.Fault.EsMech; 
+      O     #PCRead.Fault.EsDosing; 
+      L     2#1000000000000000; // additional_code.red
+      SPB   ST04; 
+//-Warning------------------------------
+ST31: L     #TmpWord; 
+      L     2#11011111111000; // mask text code
+      UW    ; 
+      SPZ   ST32; 
+      U     #PCRead.Fault.EsWarning; 
+      L     2#100000000000000; // additional_code.magenta
+      SPB   ST04; 
+//-Ready for restart--------------------
+ST32: L     #TmpWord; 
+      L     2#11011111111000; // mask text code
+      UW    ; 
+      SPZ   ST33; 
+      U(    ; 
+      O     #PCRead.Step.StActive; 
+      O     #PCRead.Step.StReady; 
+      O     #PCRead.Step.StEmptying; 
+      O     #PCRead.Step.StEmptied; 
+      )     ; 
+      UN    #PCRead.Status.StaAutostart; 
+      O     ; 
+      U     #PCRead.Status.StaFeedOff; 
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarted; 
+      UN    #PCRead.State.StFeeding; 
+      L     2#10000000; // additional_code.tuerkis
+      SPB   ST04; 
+//-Step mode----------------------------
+ST33: L     #TmpWord; 
+      L     2#11000000111111; // mask text code
+      UW    ; 
+      SPZ   ST34; 
+      UN    #PCRead.Step.StPassive; 
+      U     #PCRead.Status.StaStep; 
+      L     2#100000; // additional_code.brown
+      SPB   ST04; 
+//-Occupied-----------------------------
+ST34: L     #TmpWord; 
+      L     2#100000000001; // mask text code
+      UW    ; 
+      SPZ   ST35; 
+      U     #PCRead.Status.StaLoaded; 
+      L     2#1000000; // additional_code.orange
+      SPB   ST04; 
+//-Starting-----------------------------
+ST35: L     #TmpWord; 
+      L     2#11100; // mask text code
+      UW    ; 
+      SPZ   ST36; 
+      L     2#10000000000000; // code.light green
+      SPA   ST04; 
+//-Suspended----------------------------
+ST36: L     #TmpWord; 
+      L     2#10100000; // mask text code
+      UW    ; 
+      SPZ   ST37; 
+      L     2#1000000000000; // code.green
+      SPA   ST04; 
+//-Running------------------------------
+ST37: L     #TmpWord; 
+      L     2#1000000; // mask text code
+      UW    ; 
+      SPZ   ST38; 
+      L     2#100000000000; // code.dark green
+      SPA   ST04; 
+//-Emptying/Emptied---------------------
+ST38: L     #TmpWord; 
+      L     2#11100000010; // mask text code
+      UW    ; 
+      SPZ   ST39; 
+      L     2#10000000000; // code.blue
+      SPA   ST04; 
+//-Stopping/Stopped---------------------
+ST39: L     #TmpWord; 
+      L     2#11000000000000; // mask text code
+      UW    ; 
+      SPZ   ST40; 
+      L     2#1000000000; // code.yellow
+      SPA   ST04; 
+//-Passive/Idling-----------------------
+ST40: L     #TmpWord; 
+      L     2#100000000001; // mask text code
+      UW    ; 
+      SPZ   ST41; 
+      L     2#100000000; // code.white
+      SPA   ST04; 
+//-Default------------------------------
+ST41: L     2#100000000; // code.weiss (default)
+
+//=Data to MELE=========================
+ST04: T     #TmpWord; // --> Section colour state
+//Check if any value changed PCRead.LineInfoCode
+      L     #PCRead.StateColor; 
+      ==I   ; 
+      U(    ; 
+      L     #TmpInt; 
+      L     #PCRead.StateInfoCode; 
+      ==I   ; 
+      )     ; 
+      BEB   ; 
+      S     #ChangeBit.CBit1; 
+      L     #TmpWord; // Save section color status    
+      T     #PCRead.StateColor; 
+      L     #TmpInt; // Save section text status
+      T     #PCRead.StateInfoCode; 
+      BEA   ; 
+ST00: NOP   0; 
+NETWORK
+TITLE =Sub2055: SI Section info code : WinCoS
+//Called by section controler subroutines
+//
+//Open DB = Section DB
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     2055; 
+      <>I   ; 
+      SPB   I200; 
+// 
+//=Build MainInfoCode===================
+//-Fault--------------------------------
+      U     #PCRead.Fault.EsMech; 
+      O     #PCRead.Fault.EsDosing; 
+      O     #PCRead.Fault.EsBatchSize; 
+      O     #PCRead.Fault.EsRefillLevel; 
+      UN    #PCRead.Step.StPassive; 
+      UN    #PCRead.Step.StIdling; 
+      L     2#100000000000000; 
+      L     1500; // code.st_fault
+      SPB   I201; 
+//-Passive------------------------------
+      U     #PCRead.Step.StPassive; 
+      L     2#1; 
+      L     100; // code.st_passiv
+      SPB   I201; 
+//-Ready--------------------------------
+      CLR   ; // !! not used !!
+      L     2#10; 
+      L     200; // code.st_ready
+      SPB   I201; 
+//-Available test-----------------------
+      U     #PCRead.Step.StWait; 
+      L     2#100; 
+      L     300; // code.st_available_test
+      SPB   I201; 
+//-Start Warning------------------------
+      U     #PCRead.Status.StaStartwarning; // S.PCRead.Status.StaStartwarning
+      L     2#1000; 
+      L     400; // code.st_startwarning
+      SPB   I201; 
+//-Starting-----------------------------
+      U     #PCRead.Step.StActive; 
+      UN    #ToSSW.InfStarted; 
+      UN    #PCRead.State.StStopped; 
+      UN    #PCRead.State.StStopping; 
+//    U     PCRead.State.StStarting    
+      L     2#10000; 
+      L     500; // code.st_starting
+      SPB   I201; 
+//-Suspended----------------------------
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarted; 
+      UN    #PCRead.State.StFeeding; 
+      L     2#100000; 
+      L     600; // code.st_suspended
+      SPB   I201; 
+//-Running------------------------------
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StFeeding; 
+      L     2#1000000; 
+      L     700; // code.st_running
+      SPB   I201; 
+//-Wait---------------------------------
+      U     #PCRead.Step.StReady; 
+      UN    #PCRead.Step.StEmptying; 
+      L     2#10000000; 
+      L     800; // code.st_wait
+      SPB   I201; 
+//-Emptying-----------------------------
+      U     #PCRead.Step.StEmptying; 
+      UN    #ToSSW.InfReleaseEmptyingTime; 
+      UN    #PCRead.State.StStopped; 
+      L     2#100000000; 
+      L     900; // code.st_emtying
+      SPB   I201; 
+//-Emptying active----------------------
+      U     #PCRead.Step.StEmptying; 
+      U     #ToSSW.InfReleaseEmptyingTime; 
+      UN    #PCRead.State.StStopped; 
+      L     2#1000000000; 
+      L     1000; // code.st_emptying_activ
+      SPB   I201; 
+//-Registration-------------------------
+      U     #PCRead.Step.StEmptied; 
+      L     2#10000000000; 
+      L     1100; // code.st_registration
+      SPB   I201; 
+//-Idling-------------------------------
+      U     #PCRead.Step.StIdling; 
+      L     2#100000000000; 
+      L     1200; // code.st_idling
+      SPB   I201; 
+//-Stopping-----------------------------
+      U     #PCRead.State.StStopping; 
+      L     2#1000000000000; 
+      L     1300; // code.st_stopping
+      SPB   I201; 
+//-Stopped------------------------------
+      UN    #PCRead.Step.StPassive; 
+      U     #PCRead.State.StStopped; 
+      L     2#10000000000000; 
+      L     1400; // code.st_stopped
+      SPB   I201; 
+//-No State-----------------------------
+      L     2#0; 
+      L     0; // code.st_no_state
+I201: T     #TmpInt; 
+      TAK   ; 
+      T     #TmpWord; 
+
+//=Build SubInfoCode====================
+//-Fault--------------------------------
+//-Restart------------------------------
+      L     #TmpWord; 
+      L     2#111011111111000; // status with restart code
+      UW    ; 
+      SPZ   I212; 
+      U     #PCRead.Status.StaImmediateStop; 
+      O     #PCRead.Status.StaTransferOff; 
+      O     #PCRead.Status.StaFeedOff; 
+      UN    #PCRead.Status.StaStep; 
+      ON    #PCRead.Status.StaAutostart; 
+      L     3; // code.st_restart
+      SPB   I202; 
+//-Step mode----------------------------
+I212: L     #TmpWord; 
+      L     2#111000000111111; // status with step_mode code
+      UW    ; 
+      SPZ   I213; 
+      U     #PCRead.Status.StaStep; 
+      L     4; // code.st_step_mode
+      SPB   I202; 
+//-Hold---------------------------------
+I213: L     #TmpWord; 
+      L     2#111100001111111; // status with step_mode code
+      UW    ; 
+      SPZ   I214; 
+      U     #PCRead.Status.StaHold; 
+      L     6; // code.st_step_mode
+      SPB   I202; 
+//-Warning------------------------------
+I214: L     #TmpWord; 
+      L     2#111011111111000; // status with warning code
+      UW    ; 
+      SPZ   I215; 
+      U     #PCRead.Fault.EsWarning; 
+      L     1; // code.st_warning
+      SPB   I202; 
+//-Loaded-------------------------------
+I215: L     #TmpWord; 
+      L     2#100000000001; // status with loaded code
+      UW    ; 
+      SPZ   I216; 
+      U     #PCRead.Status.StaLoaded; // S.PCRead.Status.StaLoaded
+      L     5; // code.st_loaded
+      SPB   I202; 
+//-NoSubState---------------------------
+I216: L     0; // code.NoSubState
+// 
+//=Build InfoCode=======================
+I202: L     #TmpInt; // MainInfoCode
+      +I    ; // Add SubInfoCode
+      T     #PCRead.StateColor; 
+      BEA   ; 
+I200: NOP   0; 
+NETWORK
+TITLE =Sub2071: PIC FU: Section info code
+//Called by section controler subroutines
+//
+//Open DB = Section DB
+//Inputs :
+// no
+//Outputs:
+// no
+//
+      L     #InCode; 
+      L     2071; 
+      <>I   ; 
+      SPB   I300; 
+// Reset 
+      L     0; 
+      LAR1  P##tmpUserState; 
+      T     LW [AR1,P#0.0]; 
+//-StFault
+      U(    ; 
+      O     #PCRead.Fault.EsEmpty; 
+      O     #PCRead.Fault.EsFull; 
+      UN    #PCRead.Step.StPassive; 
+      UN    #PCRead.Step.StEmptying; 
+      UN    #PCRead.Step.StEmptied; 
+      UN    #PCRead.Step.StIdling; 
+      )     ; 
+      O     #PCRead.Fault.EsWayConflict; 
+      O     #PCRead.Fault.EsMech; 
+      O     #PCRead.Fault.EsDosing; 
+      O     #PCRead.Fault.EsInterrupt; 
+      O     #PCRead.Fault.EsBatchSize; 
+      =     #tmpUserState.stFault; 
+      SPB   Tran; 
+//-StPassive
+      U     #PCRead.Step.StPassive; 
+      U     #PCRead.State.StStopped; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stPassiv; 
+      SPB   Tran; 
+//-StWait
+      U     #PCRead.Step.StWait; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stWait; 
+      SPB   Tran; 
+//-StStarting--
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarting; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stStarting; 
+      SPB   Tran; 
+//-StStarted--
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStarted; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stStarted; 
+      SPB   Tran; 
+//-StStopping--
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStopping; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stStopping; 
+      SPB   Tran; 
+//-StStopped--
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StStopped; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stStopped; 
+      SPB   Tran; 
+//-StFeeding--
+      U     #PCRead.Step.StActive; 
+      U     #PCRead.State.StFeeding; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      UN    #PCRead.Status.StaEndOfJob; 
+      =     #tmpUserState.stFeeding; 
+      SPB   Tran; 
+//-StReady--
+      U     #PCRead.Step.StReady; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stReady; 
+      SPB   Tran; 
+//-StEmptying--
+      U     #PCRead.State.StFeeding; 
+      U     #PCRead.Status.StaEndOfJob; 
+      O     #PCRead.Step.StEmptying; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stEmptying; 
+      SPB   Tran; 
+//-StEmptied--
+      U     #PCRead.Step.StEmptied; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stEmptied; 
+      SPB   Tran; 
+//-StIdling--
+      U     #PCRead.Step.StIdling; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stIdling; 
+//-StHand--
+      U     #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stHand; 
+      SPB   Tran; 
+//-StHold--
+      U     #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      UN    #PCRead.Status.StaStep; 
+      =     #tmpUserState.stHold; 
+      SPB   Tran; 
+//-StStep--
+      U     #PCRead.Status.StaStep; 
+      UN    #PCRead.Status.StaHold; 
+      UN    #PCRead.Status.StaHand; 
+      =     #tmpUserState.stStep; 
+      SPB   Tran; 
+//Store New Code
+Tran: L     #PCRead.StateInfoCode; 
+      LAR1  P##tmpUserState; 
+      L     LW [AR1,P#0.0]; 
+      T     #PCRead.StateInfoCode; 
+// Changebit
+      <>I   ; 
+      S     #ChangeBit.CBit1; 
+      BEA   ; 
+I300: NOP   0; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

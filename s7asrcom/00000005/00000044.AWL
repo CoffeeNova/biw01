@@ -1,0 +1,403 @@
+FUNCTION "GCS7_LineCtrlMain" : VOID
+TITLE =LineMain
+//COPYRIGHT:    (C) 1994 BY  BUHLER AG,CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        LINE/Job: Main program
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//FC58.2.1      A.Egli              CT3                           28-Feb-2006
+//              Method 2: Remove nonsense bit DBX  152.0
+//FC58.2.0      A.Egli              CT3                            4-Okt-2002
+//              New Release with new addresse
+//FC58.1.4      A.Egli              CT3                            5-Jul-2000
+//              Read command from PC only with F_Define 
+//FC58.1.3      A.Egli              CT3                           14-Apr-2000
+//              Test Job allready active
+//FC58.1C       A.Egli              AEE61                         14-Jan-98
+//              Line-Number DBW2
+//FC58.1B       A.Egli              AEE61                         14-Jan-98
+//               Update  S5 Version 1E
+//FC58.1A       A.Egli              AEE61                         18-Jun-96
+//               Convert S5--> S7 Version 1D
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GCSOSMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//
+//FX-PARAMETER:
+//------------
+//  CODE: CODE of the methode
+//        KF +1    : Methode Init     (Communication)
+//        KF +2    : Methode Control  (Communication)
+//        KF +10   : Methode Commands      (Line)
+//        KF +13   : Methode Step          (Line)
+//        KF +16   : Methode Summary Mask  (Line)
+//
+//ACTUAL DB BY CALL: Line-DB
+//
+//Internal restriction:
+//DB : Line-DB
+//DI : Section DB
+//
+//$EJECT
+//
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : LineMain
+VERSION : 2.1
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+END_VAR
+VAR_TEMP
+  VarAdr : DWORD ;	
+  VarActive : BOOL ;	
+  VarStopped : BOOL ;	
+  VarReadyNext : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+
+NETWORK
+TITLE = Methode Init (Communication)
+
+      L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   BEnd; // 
+      L     DBW  144; // JobWrite.Hsk
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // -->no new datas
+//==New Data ========================================
+      T     DBW  138; // ->JobRead.ErrElement
+      T     DBW  140; //  ->JobRead.ErrCode
+      T     DBW  142; //  ->JobRead.ErrObject
+//==Test job allready active=========================
+      L     0; //  
+      L     DBW  154; // JobWrite.SectionDest
+      ==I   ; //  
+      U(    ; //  
+      U     DBX  145.0; //  JobWrite.Hsk.F_Define
+      O     DBX  145.1; // JobWrite.Hsk.F_Execute
+      )     ; // 
+      SPB   BEr1; // 
+      R     DBX   39.0; // <--err_job_active      [1.3]
+      CALL "GCS7_SecCtrlSub" (// Soubroutine Search Job
+           CODE                     := 5);// 
+      UN    DBX  145.0; // JobWrite.Hsk.F_Define
+      UN    DBX  145.1; // JobWrite.Hsk.F_Execute
+      SPB   BEnd; // --- target section free ?? ----
+      U     DBX   39.0; // <--err_job_active      [1.3]
+      L     13; // error: job all ready active  [1.3]
+      SPB   BErO; // 
+//==Marke all address section =========================
+      L     DBW  154; //  JobWrite.SectionDest
+      T     DBW   20; // 
+      L     0; // 
+      T     DBW   22; // search_mode section_nr
+      CALL "GCS7_SecCtrlSub" (// Subroutine Search section 
+           CODE                     := 4);// 
+      L     DBW   22; // VarSecDB
+      L     0; // 
+      ==I   ; // 
+      SPB   BEr1; // ->illegal section-nr
+      AUF   DI [DBW 22]; //>>>  Call section-DB
+      U     DIX   45.7; // ToASW.InfDataReady
+      SPB   BEr2; // ->section_not_ready
+      BEA   ; // 
+//==Error handling ==================================
+BEr1: L     10; // error: illegal section
+      SPA   BErO; // 
+BEr2: L     11; // error: section not ready
+BErO: T     DBW  140; // ->JobRead.ErrCode
+      L     DBW  154; //  -> JobWrite.SectionDest
+      T     DBW  142; // ->.JobRead.ErrObject
+      L     0; // 
+      T     DBW  144; // ->JobWrite.Hsk
+      S     DBX   41.2; // ->ChangeBit.CBit3 (interface_free)
+      BEA   ; 
+BEnd: NOP   0; 
+NETWORK
+TITLE = Methode Control (Communication)
+
+      L     #CODE; // 
+      L     2; // 
+      <>I   ; // 
+      SPB   CEnd; // 
+      L     DBW  144; // JobWrite.Hsk
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // 
+//========== New Data ========================================
+      L     DBW  140; //  err_code
+      <>I   ; //  
+      SPB   CINI; //  
+//[2.1]  U     DBX  152.0
+      L     DBD  146; //  JobWrite.ObjMask[1..32]
+      L     DBD  150; //  JobWrite.ObjMask[33..64]
+      OD    ; 
+      SPZ   CINI; //  --> OK
+//===Serach object number which is not answered  =============
+      L     1; //   
+      T     DBW  142; //  -->err_object
+      L     P#146.0; //  JobWrite.ObjMask[1]
+CLop: T     #VarAdr; //   
+      U     DBX [#VarAdr]; //  JobWrite.ObjMask[x] 
+      SPB   Cerr; 
+      L     DBW  142; //  JobRead.ErrObject
+      +     1; 
+      T     DBW  142; //  JobRead.ErrObject
+      L     #VarAdr; //   
+      +     1; //  increment x
+      SPA   CLop; 
+//==Error handling ==================================
+Cerr: L     20; //  error: illegal object
+      T     DBW  140; // ->JobRead.ErrCode
+CINI: L     0; //  
+      T     DBW  144; // ->JobWrite.Hsk
+      SET   ; //  
+      S     DBX   41.2; // ->ChangeBit.CBit3 (interface_free)
+      BEA   ; 
+CEnd: NOP   0; 
+NETWORK
+TITLE = Methode commands (Line)
+
+      L     #CODE; 
+      L     10; 
+      <>I   ; 
+      SPB   Dend; 
+      L     0; //   
+      L     DBD   66; // ToSSW.Func
+      ==D   ; //  
+      BEB   ; //  
+      T     DBD   32; // VarTem[7..8]
+      CALL "GCS7_LineCtrlSub" (// Soubroutine send
+           CODE                     := 3);
+      L     0; //  
+      T     DBD   66; // ToSSW.Func
+      BEA   ; 
+Dend: NOP   0; 
+NETWORK
+TITLE = Methode PC_Direct Control (Diagnose)
+
+      L     #CODE; 
+      L     12; 
+      <>I   ; 
+      SPB   Eend; 
+      AUF   DI     3; // Change DB and DI
+      L     0; // 
+      L     DIW   42; // DB3.PC.Hsk
+      ==I   ; // 
+      BEB   ; // 
+//----- Compare Object ID  --------------
+      L     DIW   48; // ) DB3.PC.ObjectType
+      L     5000; // )
+      <>I   ; // )
+      BEB   ; // )
+      L     DIW   50; // ) DB3.PC.ObjectNo
+      L     DBW    2; // ) Para.ParLineNr
+      <>I   ; // )
+      BEB   ; // )
+//----- commands -------------------------
+      UN    DIX   43.0; // PC.Hsk.FDefineCmd
+      SPB   EdfP; // 
+      L     DID   52; // DB3.PC.Cmd1
+      L     DBD   66; // ToSSW.Func
+      OD    ; //  
+      T     DBD   66; // -->ToSSW.Func 
+//----- Parameter -------------------------
+EdfP: UN    DIX   43.1; // DB3.PC.Hsk.FDefinePara
+      SPB   Eexa; // 
+      L     DID   58; // DB3.PC.Value[1..2]
+      T     DBD   90; // PCWrite.Value1..2 
+      L     DID   62; // DB3.PC.Value[3..4]
+      T     DBD   94; // PCWrite.Value3..4
+      L     DID   66; // DB3.PC.Value[5..6]
+      T     DBD   98; // PCWrite.Value5..6 
+Eexa: UN    DIX   43.3; // DB3.PC.Hsk.FExamine
+      SPB   Edon; //  
+      L     DBD   90; // PCWrite.Value1..2 
+      T     DID   58; // DB3.PC.Value[1..2]
+      L     DBD   94; // PCWrite.Value3..4
+      T     DID   62; // DB3.PC.Value[3..4]
+      L     DBD   98; // PCWrite.Value5..6 
+      T     DID   66; // DB3.PC.Value[5..6]
+Edon: L     0; 
+      T     DB3.DBW   42; // DB3.PC.Hsk
+      T     "SYS_DirectCtrlDB".PC.ErrCode; // DB3.PC.ErrCode
+      SET   ; // 
+      S     "SYS_DirectCtrlDB".ChangeBit.CBit1; // -> DB3.ChangeBit.CBit1
+      BEA   ; 
+Eend: NOP   0; 
+NETWORK
+TITLE = Methode Step (Line)
+
+      L     #CODE; 
+      L     13; 
+      <>I   ; 
+      SPB   Fend; 
+      R     #VarActive; 
+      R     #VarReadyNext; 
+      S     #VarStopped; 
+      AUF   DI [DBW 4]; // -->CALL SECTION-DB["LineDB".Para.ParFirstSecDB]
+//===read section information===
+FLop: U     DIX   45.7; // "SecDB1".ToASW.InfDataReady
+      S     #VarActive; // ->VarActive
+      UN    DIX  111.0; // "SecDB1".PCRead.Step.StPassive
+      R     #VarStopped; // -> var_stopped
+      L     DIW   70; // "SecDB1".ToSSW.InPrevSecDB
+      L     0; // 
+      ==I   ; // 
+      UN    DIX   45.7; // "SecDB1".ToASW.InfDataReady
+      S     #VarReadyNext; // ->var_ready
+      L     DIW    8; // "SecDB1".Para.ParNextSecDB
+      ==I   ; // 
+      SPB   Fsta; // -->start
+      AUF   DI [DIW 8]; // ->CALL SECTION-DB["SecDB1".Para.ParNextSecDB]
+      SPA   FLop; // 
+// ===== State-Event ==========
+      U     DBX  111.0; 
+Fsta: U     DBX  111.0; //  "LineDB1".PCRead.Step. ST_PASSIVE
+      SPB   FS0; 
+      U     DBX  111.2; //  "LineDB1".PCRead.Step.StActive
+      SPB   FS1; 
+      U     DBX  111.3; // "LineDB1".PCRead.Step.StActiveReady
+      SPB   FS2; 
+      U     DBX  111.6; // "LineDB1".PCRead.Step.StIdling
+      SPB   FS3; 
+      S     DBX  111.0; //"LineDB1".PCRead.Step.StPassive
+// === ST_PASSIVE  ============
+FS0:  U     #VarActive; 
+      SPB   FT01; // --> StActive
+      SPA   Fend; 
+FT01: L     2#100; // --> StActive
+      SPA   FTRA; 
+// === StActive   ============
+FS1:  UN    #VarActive; 
+      SPB   FT13; // --> StIdling
+      U     #VarReadyNext; 
+      SPB   FT12; // --> StActiveReady
+      SPA   Fend; 
+FT12: L     2#1000; // --> StActiveReady
+      SPA   FTRA; 
+FT13: L     2#1000000; // --> StIdling
+      SPA   FTRA; 
+// === StActiveReady =======
+FS2:  UN    #VarActive; 
+      SPB   FT23; // --> StIdling
+      UN    #VarReadyNext; 
+      SPB   FT21; // --> StActiveReady
+      SPA   Fend; 
+FT21: L     2#100; // --> StActive
+      SPA   FTRA; 
+FT23: L     2#1000000; // --> StIdling
+      SPA   FTRA; 
+// ==== StIdling ==============
+FS3:  U     #VarStopped; 
+      SPB   FT30; // --> StPassive
+      U     #VarActive; 
+      SPB   FT31; // --> StActive
+      SPA   Fend; // 
+FT30: L     2#1; // --> StPassive
+      SPA   FTRA; 
+FT31: L     2#100; // --> StActive
+// ==== ALL TRANSITION ========
+FTRA: T     DBB  111; // --> "LineDB1".PCRead.Step
+      U     "SYS_infLog1"; // 
+      S     DBX   41.0; //"LineDB1".ChangeBit.CBit1
+      BEA   ; 
+//END:
+Fend: NOP   0; 
+NETWORK
+TITLE = Methode Summary Mask (Line)
+
+      L     #CODE; 
+      L     16; 
+      <>I   ; 
+      SPB   GEnd; 
+      L     0; 
+      T     DBD   32; //  VarFault  = "LineDB1".VarTemp[7,8]
+      T     DBD   36; //  VarStatus = "LineDB1".VarTemp[9,10]
+      AUF   DI [DBW 4]; // -->CALL SECTION-DB[Para.ParFirstSecDB]
+//Read section Data
+GLop: L     DID  114; //  "SecDB1".PCRead.Fault
+      L     DBD   32; //  VarFault
+      OD    ; //  
+      T     DBD   32; //  VarFault
+      L     DID  118; //  "SecDB1".PCRead.Status
+      L     DBD   36; //  VarStatus
+      OD    ; //  
+      T     DBD   36; //  VarStatus
+//-- Next section --
+      L     0; // 
+      L     DIW    8; // "SecDB1".Para.ParNextSecDB
+      ==I   ; // 
+      SPB   GJ1; //    
+      AUF   DI [DIW 8]; // ->CALL SECTION-DB["SecDB1".Para.ParNextSecDB]
+      SPA   GLop; // 
+//Store Data
+GJ1:  L     DBD   32; //  VarFault  = "LineDB1".VarTemp[7,8]
+      T     DBD  114; //  "SecDB1".PCRead.Fault
+      L     DBD   36; //  VarStatus = "LineDB1".VarTemp[9,10]
+      T     DBD  118; //  "SecDB1".PCRead.Status
+      BEA   ; 
+GEnd: NOP   0; 
+NETWORK
+TITLE = Methode O_LINE
+
+      L     #CODE; // 
+      L     17; // 
+      <>I   ; // 
+      SPB   HEnd; // 
+      L     DBW   82; // "LineDB1".PCWrite.Hsk
+      L     0; //  
+      ==I   ; //  
+      BEB   ; 
+// -- commands --------------
+      S     DBX   41.0; // "LineDB1".ChangeBit.CBit1 (new data)
+      S     DBX   41.1; // "LineDB1".ChangeBit.CBit2 (interface free)
+      L     0; // 
+      L     DBD   86; //"LineDB1".PCWrite.Func
+      ==D   ; // 
+      ON    DBX   83.0; // "LineDB1".PCWrite.Hsk.F_Define
+      SPB   HIni; // 
+      T     DBD   32; // VarFunction =  "LineDB1".VarTemp[7,8]
+      CALL "GCS7_LineCtrlSub" (// Soubroutien send commands
+           CODE                     := 3);
+//Line:Extended command  
+      L     DBW   90; // "LineDB".PCWrite.ExtFuncOn
+      L     DBW  126; // "LineDB".PCRead.ExtStatus
+      OW    ; 
+      T     DBW  126; // "LineDB".PCRead.ExtStatus
+      L     DBW   92; // "LineDB".PCWrite.ExtFuncOff
+      INVI  ; 
+      L     DBW  126; // "LineDB".PCRead.ExtStatus
+      UW    ; 
+      T     DBW  126; // "LineDB".PCRead.ExtStatus
+HIni: L     0; // 
+      T     DBW   82; // "LineDB1".PCWrite.Hsk
+      BEA   ; 
+HEnd: NOP   0; 
+NETWORK
+TITLE =
+
+
+
+
+END_FUNCTION
+

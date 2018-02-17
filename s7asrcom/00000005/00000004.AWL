@@ -1,0 +1,37 @@
+TYPE UDT 20849
+VERSION : 0.1
+
+
+  STRUCT 	
+   InMonCovered : BOOL ;	//After t4 must be in StCovered, otherwise it is a process fault
+   InMonUncovered : BOOL ;	//After t5 must be in StUncovered, otherwise it is a process fault
+   InPreAlarmCovered : BOOL ;	//LOG Pre-alarm if level is not covered
+   InPreAlarmUncovered : BOOL ;	//LOG Pre-alarm if level is not uncovered
+   InStopCoveredTime : BOOL ;	//Stop delay time t2
+   InStopUncoveredTime : BOOL ;	//Stop delay time t3
+   InpCovered : BOOL ;	//Digital input: 1=Covered , 0=Uncovered
+   InpFaultDev : BOOL ;	//Digital input: fault device
+   CmdRstCoveredTime : BOOL ;	//Restart delay time changing from Uncovered to Covered (t2)
+   CmdRstUncoveredTime : BOOL ;	//Restart delay time changing from Covered to Uncovered (t3)
+   CmdRunTimeoutTime : BOOL ;	//Run timeout time (only 1 working condition)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (automatic fault reset)
+   spare0305 : BOOL ;	
+   InReport : BOOL ;	//Report of all state transitions
+   OutTimeoutTime : BOOL ;	//Timeout time 1 working condition active
+   InHWStop : BOOL ;	//HW stop is detected, no fault
+   InDPFault : BOOL ;	//DP-Fault is detected, no fault
+   OutPreAlarmCovered : BOOL ;	//Flag PreAlarmCovered is done
+   OutPreAlarmUncovered : BOOL ;	//Flag PreAlarmUnCovered is done
+   OutFlagPos : BOOL ;	//Positive flag InpCovered
+   OutFlagNeg : BOOL ;	//Negative flag InpCovered
+   OutpFaultReset : BOOL ;	//Reset alarm
+   OutCovered : BOOL ;	//Copy of input signal
+   StUncovered : BOOL ;	//Level is uncovered, delay time finished, monitoring is off
+   StCtoCovered : BOOL ;	//Changing to Covered
+   StCovered : BOOL ;	//Level is Covered, delay time finished
+   StCtoUncovered : BOOL ;	//Changing to Uncovered
+   StFault : BOOL ;	//Signal has not requested value, monitoring is active
+  END_STRUCT ;	
+END_TYPE
+

@@ -1,0 +1,150 @@
+FUNCTION FC 4 : VOID
+TITLE =Horn Modul
+//COPYRIGHT:    (C) 2000 BUHLER AG, CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        HornCode: Switch on horn 
+//              
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//P01_FC004.1.0 A_Egli              CT3                                29.Okt.2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//REFERENCES: GCSOSMAN
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+//InCode:
+//------
+//InCode=0 =Main Function Cylic Function
+//InCode=1 =Main Function Coldstart/Newstart
+//InCode=2 =Main Function Warm Start
+AUTHOR : EA
+FAMILY : ASW
+NAME : HornCode
+VERSION : 0.0
+
+
+VAR_INPUT
+  FcCode : INT ;	//Function Code: 1=Set Alarm , 2=Check StartWarning
+  ParObjectType : INT ;	//Object Type of the calling Object
+  ParObjectNo : INT ;	//Object number of the calling Object
+  ParHornCode : INT ;	//HornCode of the calling object
+END_VAR
+VAR_TEMP
+  tmpFlag : BOOL ;	
+  tmpHornCode : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =StartWarning
+
+      L     #FcCode; 
+      L     0; 
+      <>I   ; 
+      SPB   ALJ0; 
+//===============================
+//1-A901Horn : Alarmhorn 1
+//===============================
+      CLR   ; 
+      O     DB100.DBX   36.0; 
+      O     DB100.DBX   46.0; 
+      =     DB4.DBX    2.2; 
+
+      U     DB4.DBX    0.0; 
+      S     DB4.DBX    2.0; 
+//===============================
+//1-A902Horn : Alarmhorn 2
+//===============================
+      CLR   ; 
+      O     DB100.DBX   56.0; 
+      O     DB100.DBX   66.0; 
+      =     DB4.DBX    4.2; 
+
+      U     DB4.DBX    0.0; 
+      S     DB4.DBX    4.0; 
+//===============================
+//1-A903Horn : Alarmhorn 3
+//===============================
+      CLR   ; 
+      O     DB100.DBX   76.0; 
+      O     DB100.DBX   86.0; 
+      =     DB4.DBX    6.2; 
+
+      U     DB4.DBX    0.0; 
+      S     DB4.DBX    6.0; 
+//===============================
+//1-A904Horn : Alarmhorn 4
+//===============================
+      CLR   ; 
+      O     DB100.DBX   96.0; 
+      O     DB100.DBX  106.0; 
+      =     DB4.DBX    8.2; 
+
+      U     DB4.DBX    0.0; 
+      S     DB4.DBX    8.0; 
+//===============================
+//Init Flag
+//===============================
+      U     DB4.DBX    0.0; 
+      R     DB4.DBX    0.0; 
+      BEA   ; 
+NETWORK
+TITLE =FcCode=1: Subroutine Alarm
+
+ALJ0: L     #FcCode; 
+      L     1; 
+      <>I   ; 
+      BEB   ; 
+NETWORK
+TITLE = HornCode = 1
+
+      L     #ParHornCode; 
+      L     1; 
+      ==I   ; 
+      S     DB4.DBX    2.1; 
+NETWORK
+TITLE = HornCode = 2
+
+      L     #ParHornCode; 
+      L     2; 
+      ==I   ; 
+      S     DB4.DBX    2.1; 
+NETWORK
+TITLE = HornCode = 4
+
+      L     #ParHornCode; 
+      L     4; 
+      ==I   ; 
+      S     DB4.DBX    4.1; 
+NETWORK
+TITLE = HornCode = 13
+
+      L     #ParHornCode; 
+      L     13; 
+      ==I   ; 
+      =     #tmpFlag; 
+NETWORK
+TITLE = HornCode = 33
+
+      L     #ParHornCode; 
+      L     33; 
+      ==I   ; 
+      =     #tmpFlag; 
+NETWORK
+TITLE =End of Block
+
+
+
+END_FUNCTION
+

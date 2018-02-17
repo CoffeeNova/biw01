@@ -1,0 +1,2057 @@
+FUNCTION_BLOCK FB 36
+TITLE =MYRA
+//
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        MYRA, MYAG, MDEF / MDEA or MDEE 
+//              (OPTO22 or 24V signal) 
+//
+//REVISON:      4
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB36.4.2      K. Tischer          CT3                         13-JAN-2004
+//              Revision=10
+//FB36.4.1      A. Egli             CT3                         11-Nov-2002
+//              Compare ParAlarmResetTime <0
+//FB36.4.0      A. Egli             CT3                         30-Okt-2002
+//              Read Actual values of ingredients
+//FB36.3.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block
+//              OPTO22 communication to MYRA,MAG and MDEF 
+//FB36.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB36.1A       A. Egli             AEE61                       29-Okt-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MYRxxMAN]
+//
+//              (*1): LC is connected to PC
+//                    PLC used 24V signal as interface to PC 
+//                   
+//                    NOTE: In case of OPTO22 the signal are internal used 
+//
+//              (*2): LC is connected to PLC by opto22
+//
+//
+//RESTRICTIONS: S7
+//              CmdOff, CmdOn: always active unless local mode
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0   Off
+// 1   On 
+// 9   fault cancelled
+//10   fault equipement          
+//11   fault fault tolerance
+//12   fault fault transmision
+//
+//15   Communcation Fault Opto22
+//16   MYAG Alarm
+//
+//21   MYRA Alarm Hardware
+//22   MYRA Alarm Product 
+//23   MYRA Alarm Recipe change
+//24   MYRA Alarm Feeder 1
+//25   MYRA Alarm Feeder 2
+//26   MYRA Alarm Feeder 3
+//27   MYRA Alarm Feeder 4
+//
+//41   MDEF Alarm mill 1  
+//42   MDEF Alarm mill 2
+//43   MDEF Alarm mill 3
+//44   MDEF Alarm mill 4
+//
+//51   MDEF Wrong recipe 1  
+//52   MDEF Wrong recipe 2
+//53   MDEF Wrong recipe 3  
+//54   MDEF Wrong recipe 4  
+//
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault                   
+// 1  StOff                     
+//41  StOff.HWStop                     StOff + InHWStop
+//51  StOff.DPFault                    StOff + InDPFault
+// 2  StWaitForResponse         
+// 3  StOn.Ok                   
+// 4  StOn.Warning              
+// 5  StCtoFault                
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MYRA_MDE
+VERSION : 4.2
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run the element   
+  InDefReady : BOOL ;	//(*1) Answer from PLC: Recipe to sent to MYRA
+  InDefFault : BOOL ;	//(*1) Answer from PC:  not eble to send recipe to MYRA
+  spare0203 : BOOL ;	
+  CmdNewValue : BOOL ;	//Send new target values: Send Flowrate to MYRA
+  CmdNewJob : BOOL ;	//Send RecipeNr and Job-Nr to MYRA
+  InpOutOfTolerance : BOOL ;	//(*1) Digital input 1=Fault
+  InpFaultLc : BOOL ;	//(*1) Digital input 1=HW fault of MYRA
+  CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element immediately (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0=Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutWarning : BOOL ;	//Out of tolerance, ParDelayWarning end
+  OutDefRequested : BOOL ;	//Definition requested : PC must send recipe to MYRA
+  OutComFault : BOOL ;	//Communication vault OPTO22
+  OutEnabled : BOOL ;	//Enable to run MYRA (internal used) 
+  OutpAlarmReset : BOOL ;	//(*1) Digital output: Trigger for alarm reset  
+  OutpRelease : BOOL ;	//(*1) Digital output: Release measuring
+  StOff : BOOL ;	//Element is stopped
+  StWaitForResponse : BOOL ;	//PC must send new recipe to MYRA
+  StOn : BOOL ;	
+  StCtoFault : BOOL ;	
+  StFault : BOOL ;	
+  MDEF1 : STRUCT 	//OPTO22: MDEF1
+   CmdNewRecipe : BOOL ;	//Send recipe to mill
+   CmdAlarmReset : BOOL ;	//Send to Mill 
+   OutSendRecipeNrActive : BOOL ;	//Send of recipe nr is active
+   OutSendRecipeNrDone : BOOL ;	//RecipeNr is sent
+   OutWrongRecipe : BOOL ;	//Status 4, 6 or 10
+   OutAlarm : BOOL ;	//Command 'a'
+   StNotOK : BOOL ;	
+   StOK : BOOL ;	
+   StFault : BOOL ;	
+   InRecipeNr : INT ;	//Command 'D'
+   Status : INT ;	//Command 's'
+  END_STRUCT ;	
+  MDEF2 : STRUCT 	//OPTO22: MDEF2
+   CmdNewRecipe : BOOL ;	//Send recipe to mill
+   CmdAlarmReset : BOOL ;	//Send to Mill 
+   OutSendRecipeNrActive : BOOL ;	//Send of recipe nr is active
+   OutSendRecipeNrDone : BOOL ;	//RecipeNr is sent
+   OutWrongRecipe : BOOL ;	//Status 4, 6 or 10
+   OutAlarm : BOOL ;	//Command 'a'
+   StNotOK : BOOL ;	
+   StOK : BOOL ;	
+   StFault : BOOL ;	
+   InRecipeNr : INT ;	//Command 'D'
+   Status : INT ;	//Command 's'
+  END_STRUCT ;	
+  MDEF3 : STRUCT 	//OPTO22: MDEF3
+   CmdNewRecipe : BOOL ;	//Send recipe to mill
+   CmdAlarmReset : BOOL ;	//Send to Mill 
+   OutSendRecipeNrActive : BOOL ;	//Send of recipe nr is active
+   OutSendRecipeNrDone : BOOL ;	//RecipeNr is sent
+   OutWrongRecipe : BOOL ;	//Status 4, 6 or 10
+   OutAlarm : BOOL ;	//Command 'a'
+   StNotOK : BOOL ;	
+   StOK : BOOL ;	
+   StFault : BOOL ;	
+   InRecipeNr : INT ;	//Command 'D'
+   Status : INT ;	//Command 's'
+  END_STRUCT ;	
+  MDEF4 : STRUCT 	//OPTO22: MDEF4
+   CmdNewRecipe : BOOL ;	//Send recipe to mill
+   CmdAlarmReset : BOOL ;	//Send to Mill 
+   OutSendRecipeNrActive : BOOL ;	//Send of recipe nr is active
+   OutSendRecipeNrDone : BOOL ;	//RecipeNr is sent
+   OutWrongRecipe : BOOL ;	//Status 4, 6 or 10
+   OutAlarm : BOOL ;	//Command 'a'
+   StNotOK : BOOL ;	
+   StOK : BOOL ;	
+   StFault : BOOL ;	
+   InRecipeNr : INT ;	//Command 'D'
+   Status : INT ;	//Command 's'
+  END_STRUCT ;	
+  MYRA : STRUCT 	//OPTO22: MYRA
+   InRecipeNr : INT ;	//Command 'P'
+   InJobNr : DINT ;	//Command 'P'
+   InFlowrate : DINT ;	//Command 'Q' [kg/h]
+   Command : STRUCT 	//Command 'S'
+    CheckLimit : BOOL ;	
+    spare11 : BOOL ;	
+    spare12 : BOOL ;	
+    spare13 : BOOL ;	
+    AlarmReset : BOOL ;	//Is programmed by ASW
+    Start : BOOL ;	
+    spare22 : BOOL ;	
+    spare23 : BOOL ;	
+   END_STRUCT ;	
+   OutAlarm : STRUCT 	//Command 'a'
+    SumFault : BOOL ;	
+    AlarmMYRAHardware : BOOL ;	
+    AlarmProduct : BOOL ;	
+    AlarmRecipeChange : BOOL ;	
+    AlarmFeeder1 : BOOL ;	
+    AlarmFeeder2 : BOOL ;	
+    AlarmFeeder3 : BOOL ;	
+    AlarmFeeder4 : BOOL ;	
+   END_STRUCT ;	
+   OutStatus : STRUCT 	//Command 's'
+    Started : BOOL ;	
+    Suspended : BOOL ;	
+    Remote : BOOL ;	
+    BatchMode : BOOL ;	
+    spare4_0 : BOOL ;	
+    spare4_1 : BOOL ;	
+    spare4_2 : BOOL ;	
+    spare4_3 : BOOL ;	
+    EnableFeeder1 : BOOL ;	
+    EnableFeeder2 : BOOL ;	
+    EnableFeeder3 : BOOL ;	
+    EnableFeeder4 : BOOL ;	
+    LimitFeeder1 : BOOL ;	
+    LimitFeeder2 : BOOL ;	
+    LimitFeeder3 : BOOL ;	
+    LimitFeeder4 : BOOL ;	
+   END_STRUCT ;	
+   OutIngr1 : INT ;	//[1/100%] (Command 'i')
+   OutIngr2 : INT ;	//[1/100%] (Command 'i')
+   OutIngr3 : INT ;	//[1/100%] (Command 'i')
+   OutIngr4 : INT ;	//[1/100%] (Command 'i')
+   OutIngr5 : INT ;	//[1/100%] (Command 'i')
+   OutIngr6 : INT ;	//[1/100%] (Command 'i')
+   OutIngr7 : INT ;	//[1/100%] (Command 'i')
+  END_STRUCT ;	
+  MYAG : STRUCT 	//OPTO22: MYRG
+   Start : BOOL ;	//Command 'I': Is sent to LC (internal used)
+   RecipeChange : BOOL ;	//Command 'I': Is sent to LC
+   InRecipeNr : INT ;	//ASW: Command 'I': Is sent to LC  
+   InJobNr : DINT ;	//ASW: Command 'I': Is sent to LC  
+   OutSumFault : BOOL ;	//Command 'b': Is read from LC  
+   OutRecipeNr : INT ;	//Command 'b': Is read from LC  
+   OutJobNr : DINT ;	//Command 'b': Is read from LC  
+   OutYield1 : INT ;	//Command 'b': Is read from LC  
+   OutYield2 : INT ;	//Command 'b': Is read from LC  
+   OutFlowrateAc : DINT ;	//Command 'b': Is read from LC  
+  END_STRUCT ;	
+  OutMsg : STRUCT 	//Active Message
+   A10LC : BOOL ;	
+   A11Tolerance : BOOL ;	
+   A12CommunicationPC : BOOL ;	
+   A15CommunicationLC : BOOL ;	
+   A21MYRAHardware : BOOL ;	
+   A22MYRAProduct : BOOL ;	
+   A23MYRARecipeChange : BOOL ;	
+   A24MYRAFeeder1 : BOOL ;	
+   A25MYRAFeeder2 : BOOL ;	
+   A26MYRAFeeder3 : BOOL ;	
+   A27MYRAFeeder4 : BOOL ;	
+   A41Mill1 : BOOL ;	
+   A42Mill2 : BOOL ;	
+   A43Mill3 : BOOL ;	
+   A44Mill4 : BOOL ;	
+   A51RecipeMill1 : BOOL ;	
+   A52RecipeMill3 : BOOL ;	
+   A53RecipeMill2 : BOOL ;	
+   A54RecipeMill4 : BOOL ;	
+  END_STRUCT ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//not used
+   ParLogOff : BOOL ;	//Report is off
+   ParMDEx : BOOL ;	//MDEx: No Delay time if out of tolerance
+   ParMYRA : BOOL ;	//OPTO22: MYRA
+   ParMDEF : BOOL ;	//OPTO22: MDEF
+   ParMYAG : BOOL ;	//OPTO22: MYAG
+   ParComDB : INT ;	//OPTO22: Communication DB
+   ParLCIdx : INT ;	//OPTO22: Index of data record
+   ParLCAddr : INT ;	//OPTO22: Address of LC 
+   ParNoOfMDEF : INT ;	//OPTO22: Number of connected MDEF 
+   ParDelayFault : INT ;	//Delay time, until the element changes to fault
+   ParAlarmResetTime : INT ;	//Pulse length for OutpFaultReset
+   ParResponseTime : INT ;	//Maximum time to wait for answer from PC
+   ParDelayWarning : INT ;	//Delay time, until the element changes to StWarning
+   OutDelayTime : INT ;	//Actual time
+   spare24 : INT ;	
+   OutHelpFlags : STRUCT 	//Internal used
+    OutFaultResetDone : BOOL ;	
+    OutTestNewAlarm : BOOL ;	
+    CmdNewValue : BOOL ;	
+    CmdNewJob : BOOL ;	
+    OutAlarmActive : BOOL ;	
+    FlagCheckLimit : BOOL ;	
+   END_STRUCT ;	
+   OutComFlags : STRUCT 	
+    a_rDone : BOOL ;	
+    s_rDone : BOOL ;	
+    k_Done : BOOL ;	
+    b_Done : BOOL ;	
+    D_Done : BOOL ;	
+    A_Done : BOOL ;	
+    P_Done : BOOL ;	
+    Q_Done : BOOL ;	
+    S_Done : BOOL ;	
+    I_Done : BOOL ;	
+    f_rDone : BOOL ;	
+   END_STRUCT ;	
+   OutMillNr : INT ;	//Used for MDEF Telegram
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnable : BOOL ;	//Global enable
+  tmpLocal : BOOL ;	
+  tmpTimeDone : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  tmpOpto22 : BOOL ;	
+  tmpFBNO : INT ;	//Number of the actual FB
+  tmpCommand : INT ;	
+  tmpComDB : INT ;	
+  tmpReturn : INT ;	
+  tmpFault : BOOL ;	
+  tmpWrongRecipe : BOOL ;	
+  tmpAddrMsg : DWORD ;	
+  tmpPar : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//not used
+   ParLogOff : BOOL ;	//Report is off
+   ParMDEx : BOOL ;	//MDEx: No Delay time if out of tolerance
+   ParMYRA : BOOL ;	//OPTO22: MYRA
+   ParMDEF : BOOL ;	//OPTO22: MDEF
+   ParMYAG : BOOL ;	//OPTO22: MYAG
+   ParComDB : INT ;	//OPTO22: Communication DB
+   ParLCIdx : INT ;	//OPTO22: Index of data record
+   ParLCAddr : INT ;	//OPTO22: Address of LC 
+   ParNoOfMDEF : INT ;	//OPTO22: Number of connected MDEF 
+   ParDelayFault : INT ;	//Delay time, until the element changes to fault
+   ParAlarmResetTime : INT ;	//Pulse length for OutpFaultReset
+   ParResponseTime : INT ;	//Maximum time to wait for answer from PC
+   ParDelayWarning : INT ;	//Delay time, until the element changes to StWarning
+   OutMillNr : INT ;	//Used for MDEF Telegram
+  END_STRUCT ;	
+  tmpReturn1 : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     124; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+      L     #Par.ParComDB; 
+      T     #tmpComDB; 
+      L     36; 
+      T     #tmpFBNO; 
+
+      U     #Par.ParMYRA; 
+      O     #Par.ParMDEF; 
+      O     #Par.ParMYAG; 
+      =     #tmpOpto22; 
+
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      L     P##OutMsg; 
+      +D    ; 
+      T     #tmpAddrMsg; 
+
+NETWORK
+TITLE = Call back function (***Opto22***)
+////*************************************************
+////***             O P T O 22                    ***
+////*************************************************
+//
+//This functions are called by FBxxx (COM) 
+      UN    #tmpOpto22; 
+      SPB   PC; 
+      AUF   DB [#tmpComDB]; 
+      L     0; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   PC; 
+//Check if object has moved
+      L     #Par.ParObjectNo; 
+      L     DBD   60; //COM.LC0.AddrPara;       
+      ==D   ; 
+      SPB   COok; 
+      BEB   ; 
+//=============================================
+COok: L     DBB   76; //COM.Telegram.Command;
+      T     #tmpCommand; 
+      L     1; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   Send; 
+      L     2; 
+      ==I   ; 
+      SPB   Rcv; 
+      L     4; //NAK
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      S     #OutComFault; //fault MYEB communication
+      BEA   ; 
+//===== Prepare data for send =================================
+//Read telegram length
+Send: L     #tmpCommand; 
+      L     'a'; 
+      ==I   ; 
+      UN    #Par.ParMYRA; 
+      L     4; //Lenght in byte
+      SPB   Sndx; 
+      L     #tmpCommand; 
+      L     'a'; 
+      ==I   ; 
+      U     #Par.ParMYRA; 
+      L     2; //Lenght in byte
+      SPB   Sndx; 
+      L     #tmpCommand; //[4.0]
+      L     'f'; //[4.0]
+      ==I   ; //[4.0]
+      U     #Par.ParMYRA; //[4.0]
+      L     35; //Lenght in byte             //[4.0]
+      SPB   Sndx; 
+      L     #tmpCommand; 
+      L     's'; 
+      ==I   ; 
+      UN    #Par.ParMYRA; 
+      L     2; //Lenght in byte
+      SPB   Sndx; 
+      L     #tmpCommand; 
+      L     's'; 
+      ==I   ; 
+      U     #Par.ParMYRA; 
+      L     3; //Lenght in byte
+      SPB   Sndx; 
+      L     #tmpCommand; 
+      L     'b'; //MYAG
+      ==I   ; 
+      L     25; //Lenght in byte
+      SPB   Sndx; 
+      SPA   SndA; 
+Sndx: T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+//--------------------
+//Send A [3.0]
+//--------------------
+SndA: L     #tmpCommand; 
+      L     'A'; 
+      <>I   ; 
+      SPB   SndD; 
+// command 1
+      L     0; 
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #Par.OutMillNr; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     11; //Convert DInt to 1-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     1; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+//--------------------------
+//Send D
+//--------------------------
+SndD: NOP   0; 
+      L     #tmpCommand; 
+      L     'D'; 
+      <>I   ; 
+      SPB   SndI; 
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     1; 
+      L     #Par.OutMillNr; 
+      ==I   ; 
+      L     #MDEF1.InRecipeNr; 
+      SPB   SD1; 
+      L     2; 
+      L     #Par.OutMillNr; 
+      ==I   ; 
+      L     #MDEF2.InRecipeNr; 
+      SPB   SD1; 
+      L     3; 
+      L     #Par.OutMillNr; 
+      ==I   ; 
+      L     #MDEF3.InRecipeNr; 
+      SPB   SD1; 
+      L     #MDEF4.InRecipeNr; 
+SD1:  T     DBD   36; //COM.Element.InOutValue
+      L     13; //Convert DInt to 3-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     3; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+//--------------------------
+//Send I
+//--------------------------
+SndI: NOP   0; 
+      L     #tmpCommand; 
+      L     'I'; 
+      <>I   ; 
+      SPB   SndP; 
+//Start
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     0; 
+      T     DBD   36; //COM.Element.InOutValue
+      U     #MYAG.Start; 
+      =     DBX   39.0; 
+      L     11; //Convert DInt to 1-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//Recipe change
+      L     1; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     0; 
+      T     DBD   36; //COM.Element.InOutValue
+
+      U     #InManual; 
+      ON    #InLocal; 
+      UN    #InDefReady; 
+      =     #MYAG.RecipeChange; 
+      =     DBX   39.0; 
+      L     11; //Convert DInt to 1-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//RecipeNr
+      L     2; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #MYAG.InRecipeNr; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     12; //Convert DInt to 1-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//JobNr
+      L     4; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #MYAG.InJobNr; 
+      T     DBD   36; //COM.Element.InOutValue
+      T     DBD   36; //COM.Element.InOutValue
+      L     16; //Convert DInt to 1-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     10; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+//--------------------------
+//Send P
+//--------------------------
+SndP: L     #tmpCommand; 
+      L     'P'; 
+      <>I   ; 
+      SPB   SndQ; 
+//RecipeNr 
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #MYRA.InRecipeNr; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     13; //Convert DInt to 3-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//Order Number
+      L     3; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #MYRA.InJobNr; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     16; //Convert DInt to 6-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     9; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+
+//--------------------------
+//Send Q
+//--------------------------
+SndQ: L     #tmpCommand; 
+      L     'Q'; 
+      <>I   ; 
+      SPB   SndS; 
+//Flowrate
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #MYRA.InFlowrate; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     16; //Convert DInt to 6-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     6; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+//--------------------------
+//Send S
+//--------------------------
+SndS: L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   SndZ; 
+      U     #MYRA.Command.AlarmReset; 
+      S     #Par.OutHelpFlags.OutFaultResetDone; 
+//Start
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     0; 
+      T     DBD   36; //COM.Element.InOutValue
+      CALL SFC   20 (
+           SRCBLK                   := #MYRA.Command,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := DBB   39);
+      L     32; //Convert Hex to 2-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     2; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      L     0; //Lenght in byte
+      T     DBW   86; //COM.Telegram.LenAnswer
+      BEA   ; 
+SndZ: BEA   ; 
+//--- Get done ---------------
+//Copy reveived data to element
+//--------------------------
+//Receive f [4.]
+//--------------------------
+Rcv:  R     #OutComFault; 
+      L     #tmpCommand; 
+      L     'f'; 
+      <>I   ; 
+      SPB   Rcva; 
+//OutIngr1 
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr1; 
+//OutIngr2
+      L     5; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr2; 
+//OutIngr3
+      L     10; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr3; 
+//OutIngr4
+      L     15; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr4; 
+//OutIngr5
+      L     20; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr5; 
+//OutIngr6
+      L     25; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr6; 
+//OutIngr7
+      L     30; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     25; //Convert 5-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      DTR   ; 
+      L     1.000001e-001; 
+      *R    ; 
+      RND   ; 
+      T     #MYRA.OutIngr7; 
+      BEA   ; 
+//--------------------------
+//Receive a
+//--------------------------
+Rcva: L     #tmpCommand; 
+      L     'a'; 
+      <>I   ; 
+      SPB   Rcvs; 
+      U     #Par.OutHelpFlags.OutFaultResetDone; 
+      R     #Par.OutHelpFlags.OutFaultResetDone; 
+      S     #Par.OutHelpFlags.OutTestNewAlarm; 
+
+      UN    #Par.ParMYRA; 
+      SPB   aMDF; 
+//--------------------------
+//Receive 'a' MYRA
+//--------------------------
+//OutAlarmNrMill1
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     42; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      CALL SFC   20 (
+           SRCBLK                   := DBB   39,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #MYRA.OutAlarm);
+      BEA   ; 
+//--------------------------
+//Receive 'a' MDEF
+//--------------------------
+//OutAlarmNrMill1
+aMDF: L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     41; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      L     1; 
+      ==I   ; 
+      =     #MDEF1.OutAlarm; 
+//OutAlarmNrMill2
+      L     1; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     41; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      L     1; 
+      ==I   ; 
+      =     #MDEF2.OutAlarm; 
+//OutAlarmNrMill3
+      L     2; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     41; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      L     1; 
+      ==I   ; 
+      =     #MDEF3.OutAlarm; 
+//OutAlarmNrMill4
+      L     3; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     41; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      L     1; 
+      ==I   ; 
+      =     #MDEF4.OutAlarm; 
+      BEA   ; 
+//--------------------------
+//Receive s
+//--------------------------
+Rcvs: L     #tmpCommand; 
+      L     's'; 
+      <>I   ; 
+      SPB   Rcvb; 
+      UN    #Par.ParMYRA; 
+      SPB   sMDF; 
+//--------------------------
+//Receive 's' MYRA
+//--------------------------
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     43; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      CALL SFC   20 (
+           SRCBLK                   := DBW   38,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #MYRA.OutStatus);
+      BEA   ; 
+//--------------------------
+//Receive 's' MDEF
+//--------------------------
+sMDF: L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     22; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     4; 
+      L     DBD   36; //COM.Element.InOutValue
+      ==I   ; 
+      O(    ; 
+      L     4; 
+      ==I   ; 
+      )     ; 
+      O(    ; 
+      L     10; 
+      L     DBD   36; //COM.Element.InOutValue
+      ==I   ; 
+      )     ; 
+      =     #tmpWrongRecipe; 
+      L     #Par.OutMillNr; 
+      L     1; 
+      <>I   ; 
+      SPB   sM2; 
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MDEF1.Status; 
+      L     0; 
+      ==I   ; 
+      U     #MDEF1.OutSendRecipeNrActive; 
+      S     #MDEF1.OutSendRecipeNrDone; 
+      R     #MDEF1.CmdNewRecipe; 
+      SET   ; 
+      R     #MDEF1.OutSendRecipeNrActive; 
+
+      U     #tmpWrongRecipe; 
+      =     #MDEF1.OutWrongRecipe; 
+      BEA   ; 
+sM2:  L     #Par.OutMillNr; 
+      L     2; 
+      <>I   ; 
+      SPB   sM3; 
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MDEF2.Status; 
+      L     0; 
+      ==I   ; 
+      U     #MDEF2.OutSendRecipeNrActive; 
+      S     #MDEF2.OutSendRecipeNrDone; 
+      R     #MDEF2.CmdNewRecipe; 
+      SET   ; 
+      R     #MDEF2.OutSendRecipeNrActive; 
+
+      U     #tmpWrongRecipe; 
+      =     #MDEF2.OutWrongRecipe; 
+      BEA   ; 
+sM3:  L     #Par.OutMillNr; 
+      L     3; 
+      <>I   ; 
+      SPB   sM4; 
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MDEF3.Status; 
+      L     0; 
+      ==I   ; 
+      U     #MDEF3.OutSendRecipeNrActive; 
+      S     #MDEF3.OutSendRecipeNrDone; 
+      R     #MDEF3.CmdNewRecipe; 
+      SET   ; 
+      R     #MDEF3.OutSendRecipeNrActive; 
+
+      U     #tmpWrongRecipe; 
+      =     #MDEF3.OutWrongRecipe; 
+      BEA   ; 
+sM4:  L     DBD   36; //COM.Element.InOutValue
+      T     #MDEF4.Status; 
+      L     0; 
+      ==I   ; 
+      U     #MDEF4.OutSendRecipeNrActive; 
+      S     #MDEF4.OutSendRecipeNrDone; 
+      R     #MDEF4.CmdNewRecipe; 
+      SET   ; 
+      R     #MDEF4.OutSendRecipeNrActive; 
+
+      U     #tmpWrongRecipe; 
+      =     #MDEF4.OutWrongRecipe; 
+      BEA   ; 
+//--------------------------
+//Receive b
+//--------------------------
+Rcvb: L     #tmpCommand; 
+      L     'b'; 
+      <>I   ; 
+      SPB   RcvP; 
+//Alarm
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     41; //Convert 1-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      U     DBX   39.0; //COM.Element.InOutValue
+      =     #MYAG.OutSumFault; 
+//AlarmRecipe  
+      L     1; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     22; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MYAG.OutRecipeNr; 
+//JobNr  
+      L     3; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     26; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MYAG.OutJobNr; 
+//Yield1  
+      L     9; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MYAG.OutYield1; 
+//Yield2  
+      L     13; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MYAG.OutYield2; 
+//Yield2  
+      L     17; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     28; //Convert 2-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    FB     7; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #MYAG.OutFlowrateAc; 
+      BEA   ; 
+//--------------------------
+//Receive P
+//--------------------------
+RcvP: L     #tmpCommand; 
+      L     'P'; 
+      <>I   ; 
+      SPB   RcvQ; 
+      S     #Par.OutComFlags.P_Done; 
+      R     #Par.OutHelpFlags.CmdNewJob; 
+      BEA   ; 
+//--------------------------
+//Receive Q
+//--------------------------
+RcvQ: L     #tmpCommand; 
+      L     'Q'; 
+      <>I   ; 
+      SPB   RcvS; 
+      S     #Par.OutComFlags.Q_Done; 
+      R     #Par.OutHelpFlags.CmdNewValue; 
+      BEA   ; 
+//--------------------------
+//Receive S
+//--------------------------
+RcvS: L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   RcvI; 
+      S     #Par.OutComFlags.S_Done; 
+      U     #MYRA.Command.CheckLimit; 
+      =     #Par.OutHelpFlags.FlagCheckLimit; 
+      U     #MYRA.Command.AlarmReset; 
+      R     #MYRA.Command.AlarmReset; 
+      BEA   ; 
+//--------------------------
+//Receive I
+//--------------------------
+RcvI: L     #tmpCommand; 
+      L     'I'; 
+      <>I   ; 
+      SPB   RcvD; 
+      S     #Par.OutComFlags.I_Done; 
+      BEA   ; 
+//--------------------------
+//Receive D
+//--------------------------
+RcvD: L     #tmpCommand; 
+      L     'D'; 
+      <>I   ; 
+      SPB   RcvA; 
+      S     #Par.OutComFlags.D_Done; 
+      L     #Par.OutMillNr; 
+      L     1; 
+      ==I   ; 
+      S     #MDEF1.OutSendRecipeNrActive; 
+      L     #Par.OutMillNr; 
+      L     2; 
+      ==I   ; 
+      S     #MDEF2.OutSendRecipeNrActive; 
+      L     #Par.OutMillNr; 
+      L     3; 
+      ==I   ; 
+      S     #MDEF3.OutSendRecipeNrActive; 
+      L     #Par.OutMillNr; 
+      L     4; 
+      ==I   ; 
+      S     #MDEF4.OutSendRecipeNrActive; 
+      BEA   ; 
+//--------------------------
+//Receive A
+//--------------------------
+RcvA: L     #tmpCommand; 
+      L     'A'; 
+      <>I   ; 
+      SPB   RcvZ; 
+      S     #Par.OutComFlags.A_Done; 
+      S     #Par.OutHelpFlags.OutFaultResetDone; 
+      BEA   ; 
+RcvZ: BEA   ; 
+PC:   NOP   0; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//===     Test OType      ========================
+      L     1036; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   pExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.ParDelayFault; 
+      L     DBW [AR1,P#18.0]; 
+      T     #Par.ParAlarmResetTime; 
+      L     DBW [AR1,P#20.0]; 
+      T     #Par.ParResponseTime; 
+      L     DBW [AR1,P#22.0]; 
+      T     #Par.ParDelayWarning; 
+// Write new commands from PC to Interface object
+pCmd: U     DB3.DBX   53.0; // CmdOff
+      S     #CmdOff; 
+      U     DB3.DBX   53.1; // CmdOn
+      S     #CmdOn; 
+      U     DB3.DBX   53.2; // CmdNext
+      S     #CmdNext; 
+      U     DB3.DBX   53.3; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     DB3.DBX   53.5; // CmdManualOn
+      S     #InManual; 
+      U     DB3.DBX   53.6; // CmdReportOn
+      S     #InReport; 
+      U     DB3.DBX   55.5; // CmdManualOff
+      R     #InManual; 
+      U     DB3.DBX   55.6; // CmdReportOff
+      R     #InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision [4.2]
+      T     DB3.DBW   34; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE = Read from Queue (****Opto22 ****)
+////*************************************************
+////***             O P T O 22                    ***
+////*************************************************
+//
+      UN    #tmpOpto22; 
+      SPB   Ct00; 
+      AUF   DB [#tmpComDB]; 
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index;
+      L     1; //Read LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    FB     7; 
+      TDB   ; 
+      L     #tmpFBNO; 
+      T     DBW   52; //COM.LC0.FBNO;   
+      L     DINO; 
+      T     DBW   54; //COM.LC0.DINO;
+      TAR2  DBD   56; //COM.LC0.AddrDyn;        
+      L     #Par.ParObjectNo; 
+      T     DBD   60; //COM.LC0.AddrPara;       
+      L     #Par.ParLCAddr; 
+      T     DBD   64; //COM.Telegram.LCAddr;
+Ct00: NOP   0; 
+
+NETWORK
+TITLE = All State Init
+//===Global Group Orders===
+      U     M     12.5; //Global.OutManualOn
+      S     #InManual; 
+      U     M     12.4; //Global.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     M     13.5; //Global.InManualMode
+      UN    #InManual; 
+      U     #InLocal; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Report is on---
+      O     M     12.6; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---Enable---
+      UN    #tmpLocal; 
+      U     #InEnable; 
+      UN    #CmdOff; 
+      =     #tmpEnable; 
+      UN    #tmpEnable; 
+      R     #OutEnabled; 
+//--- Fault   
+      O     #OutComFault; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+
+
+NETWORK
+TITLE =Command to OPTO22 or commad from OTPO22
+////*************************************************
+////***             O P T O 22                    ***
+////*************************************************
+//
+      UN    #tmpOpto22; 
+      SPB   co00; 
+//--------------
+      U     #CmdNewJob; 
+      UN    #Par.OutHelpFlags.CmdNewJob; 
+      S     #Par.OutHelpFlags.CmdNewJob; 
+      R     #CmdNewJob; 
+      U     #CmdNewValue; 
+      UN    #Par.OutHelpFlags.CmdNewValue; 
+      S     #Par.OutHelpFlags.CmdNewValue; 
+      R     #CmdNewValue; 
+//-----------------------
+//New job MDEF1
+      UN    #Par.ParMDEF; 
+      SPB   co01; 
+      L     #Par.ParNoOfMDEF; 
+      L     1; 
+      ==I   ; 
+      U     #Par.OutHelpFlags.CmdNewJob; 
+      UN    #MDEF1.CmdNewRecipe; 
+      S     #MDEF1.CmdNewRecipe; 
+      R     #Par.OutHelpFlags.CmdNewJob; 
+//--------------
+//CmdFaultReset
+co01: U     #CmdFaultReset; 
+      S     #MYRA.Command.AlarmReset; 
+
+//--------------
+//MDEF1
+//--------------
+
+      U     #MDEF1.CmdNewRecipe; 
+      R     #MDEF1.OutSendRecipeNrDone; 
+
+      U     #CmdFaultReset; 
+      S     #MDEF1.CmdAlarmReset; 
+
+      U     #MDEF1.OutWrongRecipe; 
+      O     #MDEF1.OutAlarm; 
+      O     #OutComFault; 
+      =     #MDEF1.StFault; 
+
+      U     #MDEF1.OutSendRecipeNrDone; 
+      UN    #MDEF1.StFault; 
+      =     #MDEF1.StOK; 
+
+      UN    #MDEF1.StOK; 
+      UN    #MDEF1.StFault; 
+      =     #MDEF1.StNotOK; 
+
+//--------------
+//MDEF2
+//--------------
+      U     #MDEF2.CmdNewRecipe; 
+      R     #MDEF2.OutSendRecipeNrDone; 
+
+      U     #CmdFaultReset; 
+      S     #MDEF2.CmdAlarmReset; 
+
+      U     #MDEF2.OutWrongRecipe; 
+      O     #MDEF2.OutAlarm; 
+      O     #OutComFault; 
+      =     #MDEF2.StFault; 
+
+      U     #MDEF2.OutSendRecipeNrDone; 
+      UN    #MDEF2.StFault; 
+      =     #MDEF2.StOK; 
+
+      UN    #MDEF2.StOK; 
+      UN    #MDEF2.StFault; 
+      =     #MDEF2.StNotOK; 
+
+//--------------
+//MDEF3
+//--------------
+
+      U     #MDEF3.CmdNewRecipe; 
+      R     #MDEF3.OutSendRecipeNrDone; 
+
+      U     #CmdFaultReset; 
+      S     #MDEF3.CmdAlarmReset; 
+
+      U     #MDEF3.OutWrongRecipe; 
+      O     #MDEF3.OutAlarm; 
+      O     #OutComFault; 
+      =     #MDEF3.StFault; 
+
+      U     #MDEF3.OutSendRecipeNrDone; 
+      UN    #MDEF3.StFault; 
+      =     #MDEF3.StOK; 
+
+      UN    #MDEF3.StOK; 
+      UN    #MDEF3.StFault; 
+      =     #MDEF3.StNotOK; 
+
+//--------------
+//MDEF4
+//--------------
+      U     #MDEF4.CmdNewRecipe; 
+      R     #MDEF4.OutSendRecipeNrDone; 
+
+      U     #CmdFaultReset; 
+      S     #MDEF4.CmdAlarmReset; 
+
+      U     #MDEF4.OutWrongRecipe; 
+      O     #MDEF4.OutAlarm; 
+      O     #OutComFault; 
+      =     #MDEF4.StFault; 
+
+      U     #MDEF4.OutSendRecipeNrDone; 
+      UN    #MDEF4.StFault; 
+      =     #MDEF4.StOK; 
+
+      UN    #MDEF4.StOK; 
+      UN    #MDEF4.StFault; 
+      =     #MDEF4.StNotOK; 
+      NOP   0; 
+//--------------
+//MYRA
+//--------------
+      U     #OutpRelease; 
+      U     #Par.ParMYRA; 
+      =     #MYRA.Command.Start; 
+
+//--------------
+//MYAG
+//--------------
+      U     #OutpRelease; 
+      U     #Par.ParMYAG; 
+      =     #MYAG.Start; 
+//--------------
+//Alarms
+//Copy alarm from OPTO2 to digital inputs signal 
+//--------------
+      NOP   0; //----MYRA------------
+      U     #MYRA.OutAlarm.AlarmMYRAHardware; 
+      O     #MYRA.OutAlarm.AlarmFeeder1; 
+      O     #MYRA.OutAlarm.AlarmFeeder2; 
+      O     #MYRA.OutAlarm.AlarmFeeder3; 
+      O     #MYRA.OutAlarm.AlarmFeeder4; 
+      U     #Par.ParMYRA; 
+      O     ; //----MYAG------------
+      U     #MYAG.OutSumFault; 
+      U     #Par.ParMYAG; 
+      O     ; //----MDEF------------
+      U(    ; 
+      L     #Par.ParNoOfMDEF; 
+      L     1; 
+      ==I   ; 
+      U     #Par.ParMDEF; 
+      U     #MDEF1.OutAlarm; 
+      )     ; 
+      =     #InpFaultLc; 
+//======================================
+//Tolerance alarm
+      U     #MYRA.OutAlarm.AlarmProduct; 
+      U     #Par.ParMYRA; 
+      =     #InpOutOfTolerance; 
+//===============================================
+//Definition fault
+      NOP   0; //----MYRA-----------
+      U     #MYRA.OutAlarm.AlarmRecipeChange; 
+      U     #Par.ParMYRA; 
+      O     ; //----MDEF------------
+      U(    ; 
+      L     #Par.ParNoOfMDEF; 
+      L     1; 
+      ==I   ; 
+      U     #Par.ParMDEF; 
+      U     #MDEF1.OutWrongRecipe; 
+      )     ; 
+      =     #InDefFault; 
+//Definiton ready
+      NOP   0; //----MYAG-----------
+      L     #MYAG.OutRecipeNr; 
+      L     #MYAG.InRecipeNr; 
+      ==D   ; 
+      U(    ; 
+      L     #MYAG.InJobNr; 
+      L     #MYAG.OutJobNr; 
+      ==D   ; 
+      )     ; 
+      U     #Par.ParMYAG; 
+      O     ; //----MYRA-----------
+      UN    #Par.OutHelpFlags.CmdNewJob; 
+      U     #Par.ParMYRA; 
+      UN    #InDefFault; 
+      O     ; //----MDEF------------
+      U(    ; 
+      L     #Par.ParNoOfMDEF; 
+      L     1; 
+      <>I   ; 
+      ON    #MDEF1.CmdNewRecipe; 
+      )     ; 
+      UN    #InDefFault; 
+      U     #Par.ParMDEF; 
+      =     #InDefReady; 
+co00: NOP   0; 
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StOff; 
+      SPB   S0; 
+      U     #StOn; 
+      SPB   S2; 
+      U     #StWaitForResponse; 
+      SPB   S1; 
+      U     #StCtoFault; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StOff; // Init
+NETWORK
+TITLE =StOff
+// Any transition to StOff
+xxS0: S     #StOff; 
+      R     #OutpAlarmReset; 
+      R     #OutEnabled; 
+      SPA   LOGx; 
+//=== Logic ====
+//Transition to StOn
+S0:   U(    ; 
+      U     #CmdNext; 
+      UN    #InManual; 
+      O     #CmdOn; 
+      O     ; 
+      U     #MYRA.OutStatus.Started; 
+      U     #Par.ParMYRA; 
+      )     ; 
+      U     #tmpEnable; 
+      UN    #tmpLocal; 
+      R     #StOff; 
+      SPB   xxS2; 
+//Transition to StFault
+      U     #tmpFault; 
+      R     #StOff; 
+      R     #OutWarning; 
+      SPB   xxS4; //-->StFault
+//Transition to StWaitForResponse 
+      UN    #InDefReady; 
+      UN    #tmpLocal; 
+      R     #StOff; 
+      SPB   xxS1; 
+      SPA   LOG4; 
+
+NETWORK
+TITLE =StWaitForResponse
+// Any transition to StOn
+xxS1: S     #StWaitForResponse; 
+      L     #Par.ParResponseTime; 
+      T     #Par.OutDelayTime; 
+//=== Logic ====
+S1:   UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S1J3; 
+      +     -2; 
+      T     #Par.OutDelayTime; 
+S1J3: L     0; 
+      <=I   ; 
+      =     #tmpTimeDone; 
+//Transition to StOff
+      U     #InDefReady; 
+      UN    #OutpAlarmReset; 
+      O     #tmpLocal; 
+      R     #StWaitForResponse; 
+      SPB   xxS0; //-->StOff                
+//Transition to StFault 
+      U     #InDefFault; 
+      O     #tmpTimeDone; 
+      O     #tmpFault; 
+      R     #StWaitForResponse; 
+      SPB   xxS4; 
+//Transition to StOn
+      U     #InDefReady; 
+      U     #OutEnabled; 
+      R     #StWaitForResponse; 
+      SPB   xxS2; //-->StOn         
+      SPA   LOG4; 
+NETWORK
+TITLE =StOn
+// Any transition to StOn
+xxS2: S     #StOn; 
+      R     #OutpAlarmReset; 
+      S     #OutEnabled; 
+      L     #Par.ParDelayWarning; 
+      T     #Par.OutDelayTime; 
+      SPA   LOGx; 
+//=== Logic ====
+S2:   U     #InpOutOfTolerance; 
+      SPB   S2J1; 
+      R     #OutWarning; 
+      L     #Par.ParDelayWarning; 
+      T     #Par.OutDelayTime; 
+      SPA   S2J2; 
+//Delay time warning
+S2J1: U     #OutWarning; 
+      SPB   S2J2; 
+      UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S2J3; 
+      +     -2; 
+      T     #Par.OutDelayTime; 
+S2J3: L     0; 
+      <=I   ; 
+      S     #OutWarning; 
+//Transition to StOff
+S2J2: UN    #tmpEnable; 
+      R     #StOn; 
+      R     #OutWarning; 
+      SPB   xxS0; //-->StOff
+//Transition to StWaitForResponse
+      U     #OutDefRequested; 
+      R     #StOn; 
+      R     #OutWarning; 
+      SPB   xxS1; //-->StWaitForResponse
+//Transition to StFault
+      U     #InDefFault; 
+      O     #tmpFault; 
+      R     #StOn; 
+      R     #OutWarning; 
+      SPB   xxS4; //-->StFault
+//Transition to StCtoFault
+      U     #OutWarning; 
+      U     #Par.ParMDEx; 
+      O     #InpFaultLc; 
+      R     #StOn; 
+      R     #OutWarning; 
+      SPB   xxS3; //-->StCtoFault
+      SPA   LOG4; 
+
+NETWORK
+TITLE =StCtoFault
+// Any transition to StOn
+xxS3: S     #StCtoFault; 
+      L     #Par.ParDelayFault; 
+      T     #Par.OutDelayTime; 
+//=== Logic ====
+S3:   UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutDelayTime; 
+      SPB   S3J3; 
+      +     -2; 
+      T     #Par.OutDelayTime; 
+S3J3: L     0; 
+      <=I   ; 
+      =     #tmpTimeDone; 
+
+//Transition to StFault
+      U     #InDefFault; 
+      O     #tmpTimeDone; 
+      O     #tmpFault; 
+      R     #StCtoFault; 
+      SPB   xxS4; //-->StFault
+//Transition to StWaitForResponse
+      U     #OutDefRequested; 
+      R     #StCtoFault; 
+      SPB   xxS1; //-->StWaitForResponse
+//Transition to StOff
+      UN    #tmpEnable; 
+      R     #StCtoFault; 
+      SPB   xxS0; //-->StOff
+//Transition to StOn
+      UN    #Par.ParMDEx; 
+      ON    #InpOutOfTolerance; 
+      UN    #InpFaultLc; 
+      R     #StCtoFault; 
+      SPB   xxS2; //-->StOn
+      SPA   LOG4; 
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     M     13.7; //Gr.InFaultFlag
+      S     #StFault; 
+      R     #OutpAlarmReset; 
+      R     #Par.OutHelpFlags.OutTestNewAlarm; 
+      R     #Par.OutHelpFlags.OutFaultResetDone; 
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 1036,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     #Par.ParAlarmResetTime; 
+      T     #Par.OutDelayTime; 
+      SPA   LOG4; 
+//=== Logic ====
+S4:   UN    M     10.3; //Gr.OutTick200ms
+      ON    #OutpAlarmReset; 
+      L     #Par.OutDelayTime; 
+      SPB   S4J3; 
+      +     -2; 
+      T     #Par.OutDelayTime; 
+S4J3: L     0; 
+      <I    ; //[4.1]
+      =     #tmpTimeDone; 
+
+//Send command to MYRA
+      U     #CmdFaultReset; 
+      O     M     12.3; //Gr.OutFaultReset
+      S     #OutpAlarmReset; 
+//Transition to StOff
+      U     #OutpAlarmReset; 
+      UN    #InDefFault; 
+      UN    #InpFaultLc; 
+      UN    #tmpFault; 
+      O     #tmpLocalFault; 
+      R     #StFault; 
+      S     #StOff; 
+      R     #OutpAlarmReset; 
+      SPB   LOGC; //--> StOff       
+//Retry fault
+      U     #Par.ParMYRA; 
+      O     #Par.ParMDEF; 
+      U     #Par.OutHelpFlags.OutTestNewAlarm; 
+      O     ; 
+      UN    #Par.ParMYRA; 
+      UN    #Par.ParMDEF; 
+      U     #OutpAlarmReset; 
+      U     #tmpTimeDone; 
+      SPB   S4J1; 
+      SPA   LOG4; 
+//Check new alarms
+//Clear Par.OutMsg
+S4J1: L     0; 
+      T     DID [#tmpAddrMsg]; 
+      SPB   xxS4; 
+
+NETWORK
+TITLE =LOG
+
+LOGx: L     B#(4, 0); // Message ('Off')
+      U     #StOff; 
+      U     #InReport; 
+      SPB   LOG; 
+      L     B#(4, 1); // Message ('On')
+      U     #StOn; 
+      U     #InReport; 
+      SPB   LOG; 
+      SPA   OUT; 
+//--------------
+//Check new MDEF alarm
+LOG4: U     #tmpLocal; 
+      SPB   OUT; 
+      UN    #Par.ParMDEF; 
+      SPB   LOG5; 
+      U     #MDEF1.OutAlarm; 
+      FP    #OutMsg.A41Mill1; 
+      L     B#(4, 41); // Message ('Alarm MDEF mill 1' )
+      SPB   LOG; 
+      U     #MDEF2.OutAlarm; 
+      FP    #OutMsg.A42Mill2; 
+      L     B#(4, 42); // Message ('Alarm MDEF mill 2' )
+      SPB   LOG; 
+      U     #MDEF3.OutAlarm; 
+      FP    #OutMsg.A43Mill3; 
+      L     B#(4, 43); // Message ('Alarm MDEF mill 3' )
+      SPB   LOG; 
+      U     #MDEF4.OutAlarm; 
+      FP    #OutMsg.A44Mill4; 
+      L     B#(4, 44); // Message ('Alarm MDEF mill 4' )
+      SPB   LOG; 
+      U     #MDEF1.OutWrongRecipe; 
+      FP    #OutMsg.A51RecipeMill1; 
+      L     B#(4, 51); // Message ('Alarm recipe MDEF mill 1' )
+      SPB   LOG; 
+      U     #MDEF2.OutWrongRecipe; 
+      FP    #OutMsg.A52RecipeMill3; 
+      L     B#(4, 52); // Message ('Alarm recipe MDEF mill 2' )
+      SPB   LOG; 
+      U     #MDEF3.OutWrongRecipe; 
+      FP    #OutMsg.A53RecipeMill2; 
+      L     B#(4, 53); // Message ('Alarm recipe MDEF mill 3' )
+      SPB   LOG; 
+      U     #MDEF4.OutWrongRecipe; 
+      FP    #OutMsg.A54RecipeMill4; 
+      L     B#(4, 54); // Message ('Alarm recipe MDEF mill 4' )
+      SPB   LOG; 
+//----------------
+//Check new MYRA alarm
+LOG5: UN    #Par.ParMYRA; 
+      SPB   LOG6; 
+      L     B#(4, 21); // Message ('MYRA Alarm hardware' )
+      U     #MYRA.OutAlarm.AlarmMYRAHardware; 
+      U     #StFault; 
+      FP    #OutMsg.A21MYRAHardware; 
+      SPB   LOG; 
+      L     B#(4, 22); // Message ('MYRA Alarm product' )
+      U     #MYRA.OutAlarm.AlarmProduct; 
+      U     #StFault; 
+      FP    #OutMsg.A22MYRAProduct; 
+      SPB   LOG; 
+      L     B#(4, 23); // Message ('MYRA RecipeChange' )
+      U     #MYRA.OutAlarm.AlarmRecipeChange; 
+      U     #StFault; 
+      FP    #OutMsg.A23MYRARecipeChange; 
+      SPB   LOG; 
+      U     #MYRA.OutAlarm.AlarmFeeder1; 
+      U     #StFault; 
+      L     B#(4, 24); // Message ('MYRA Feeder1' )
+      FP    #OutMsg.A24MYRAFeeder1; 
+      SPB   LOG; 
+      U     #MYRA.OutAlarm.AlarmFeeder2; 
+      U     #StFault; 
+      L     B#(4, 25); // Message ('MYRA Feeder2' )
+      FP    #OutMsg.A25MYRAFeeder2; 
+      SPB   LOG; 
+      U     #MYRA.OutAlarm.AlarmFeeder3; 
+      U     #StFault; 
+      L     B#(4, 26); // Message ('MYRA Feeder3' )
+      FP    #OutMsg.A26MYRAFeeder3; 
+      SPB   LOG; 
+      U     #MYRA.OutAlarm.AlarmFeeder4; 
+      U     #StFault; 
+      L     B#(4, 27); // Message ('MYRA Feeder4' )
+      FP    #OutMsg.A27MYRAFeeder4; 
+      SPB   LOG; 
+//----------------
+//Check new ALL
+LOG6: L     B#(4, 15); // Message ('fault communication OPTO22' )
+      U     #OutComFault; 
+      U     #StFault; 
+      FP    #OutMsg.A15CommunicationLC; 
+      SPB   LOG; 
+      U     #InDefFault; 
+      ON    #InDefReady; 
+      U     #StFault; 
+      L     B#(4, 12); // Message ('fault transmision' )
+      FP    #OutMsg.A12CommunicationPC; 
+      SPB   LOG; 
+      U     #InpOutOfTolerance; 
+      U     #StFault; 
+      L     B#(4, 11); // Message ('fault tolerance' ) 
+      FP    #OutMsg.A11Tolerance; 
+      SPB   LOG; 
+      L     B#(1, 10); // Message ('fault equipement' )
+      U     #InpFaultLc; 
+      U     #StFault; 
+      FP    #OutMsg.A10LC; 
+      SPB   LOG; 
+      SPA   OUT; 
+LOGC: L     B#(3, 9); //Message ('fault cancelled')
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL FC    45 (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1036);
+
+//===================================================================
+//Clear Alarm Nr
+OUT:  L     0; 
+      L     DID [#tmpAddrMsg]; //OutMsg
+      <>D   ; 
+      =     #Par.OutHelpFlags.OutAlarmActive; 
+      L     10; 
+      L     #OutAlarmNrLog; 
+      <=I   ; 
+      UN    #Par.OutHelpFlags.OutAlarmActive; 
+      UN    #StFault; 
+      SPBN  OUT2; 
+      L     0; 
+      T     #OutAlarmNrLog; 
+OUT2: NOP   0; 
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #CmdOn; 
+      =     #CmdOff; 
+      =     #CmdNext; 
+      =     #CmdFaultReset; 
+
+      UN    #tmpLocal; 
+      U     #OutEnabled; 
+      =     #OutpRelease; 
+      UN    #tmpLocal; 
+      UN    #InDefReady; 
+      =     #OutDefRequested; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #tmpLocalFault; 
+      S     M     15.1; 
+
+      U     #InHWStop; 
+      UN    #tmpLocalFault; 
+      S     M     15.0; 
+
+NETWORK
+TITLE =State Code
+// 
+      UN    #StOff; 
+      SPB   STC2; 
+      L     41; //Code: StOff.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StOff.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     1; //Code: StOff
+      SPA   STC9; 
+STC2: U     #StWaitForResponse; 
+      L     2; // Code: StWaitForResponse
+      SPB   STC9; 
+      U     #StOn; 
+      UN    #OutWarning; 
+      L     3; // Code: StOn.Ok
+      SPB   STC9; 
+      U     #StOn; 
+      L     4; // Code: StOn.Warning
+      SPB   STC9; 
+      U     #StCtoFault; 
+      L     5; // Code: StCtoFault
+      SPB   STC9; 
+      L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    FC     2; 
+
+NETWORK
+TITLE =Communication
+////*************************************************
+////***             O P T O 22                    ***
+////*************************************************
+//
+      UN    #tmpOpto22; 
+      SPB   com0; 
+      U     DBX   50.0; //COM.LC0.CmdPut
+      O     DBX   50.1; //COM.LC0.CmdGet
+      SPB   com0; 
+//--- 'I'
+      UN    #Par.OutComFlags.I_Done; 
+      U     #Par.ParMYAG; 
+      L     'I'; 
+      SPB   PUT; 
+//--- 'b'
+      UN    #Par.OutComFlags.b_Done; 
+      U     #Par.ParMYAG; 
+      S     #Par.OutComFlags.b_Done; 
+      L     'b'; 
+      SPB   GET; 
+//--- 'P'
+      UN    #Par.OutComFlags.P_Done; 
+      U     #Par.OutHelpFlags.CmdNewJob; 
+      U     #Par.ParMYRA; 
+      L     'P'; 
+      SPB   PUT; 
+//--- 'Q'
+      UN    #Par.OutComFlags.Q_Done; 
+      U     #Par.OutHelpFlags.CmdNewValue; 
+      U     #Par.ParMYRA; 
+      L     'Q'; 
+      SPB   PUT; 
+//--- 'S'
+      U(    ; 
+      U     #MYRA.Command.Start; 
+      UN    #MYRA.OutStatus.Started; 
+      UN    #MYRA.OutAlarm.AlarmMYRAHardware; 
+      O     ; 
+      UN    #MYRA.Command.Start; 
+      U     #MYRA.OutStatus.Started; 
+      O     ; 
+      X     #MYRA.Command.CheckLimit; 
+      X     #Par.OutHelpFlags.FlagCheckLimit; 
+      O     #MYRA.Command.AlarmReset; 
+      )     ; 
+      UN    #Par.OutComFlags.S_Done; 
+      U     #Par.ParMYRA; 
+      L     'S'; 
+      SPB   PUT; 
+//--- 'a'
+      UN    #Par.OutComFlags.a_rDone; 
+      U     #Par.ParMYRA; 
+      S     #Par.OutComFlags.a_rDone; 
+      L     'a'; 
+      SPB   GET; 
+//--- 'f'                     //[4.0]
+      UN    #Par.OutComFlags.f_rDone; //[4.0]
+      U     #Par.ParMYRA; //[4.0]
+      S     #Par.OutComFlags.f_rDone; //[4.0]
+      L     'f'; //[4.0]
+      SPB   GET; //[4.0]
+//--- 's'
+      UN    #Par.OutComFlags.s_rDone; 
+      U     #Par.ParMYRA; 
+      S     #Par.OutComFlags.s_rDone; 
+      L     's'; 
+      SPB   GET; 
+      UN    #Par.ParMDEF; 
+      SPB   oA0; 
+// Mill 1
+//--- 'D'
+      UN    #Par.OutComFlags.D_Done; 
+      U     #MDEF1.CmdNewRecipe; 
+      U     #Par.ParMDEF; 
+      SPBN  oA1; 
+      L     1; 
+      T     #Par.OutMillNr; 
+      L     'D'; 
+      SPA   PUT; 
+//--- 'A'
+oA1:  UN    #Par.OutComFlags.A_Done; 
+      U     #MDEF1.CmdAlarmReset; 
+      U     #Par.ParMDEF; 
+      SPBN  oD2; 
+      R     #MDEF1.CmdAlarmReset; 
+      L     1; 
+      T     #Par.OutMillNr; 
+      L     'A'; 
+      SPA   PUT; 
+// Mill 2
+//--- 'D'
+oD2:  UN    #Par.OutComFlags.D_Done; 
+      U     #MDEF2.CmdNewRecipe; 
+      U     #Par.ParMDEF; 
+      SPBN  oA2; 
+      L     2; 
+      T     #Par.OutMillNr; 
+      L     'D'; 
+      SPA   PUT; 
+//--- 'A'
+oA2:  UN    #Par.OutComFlags.A_Done; 
+      U     #MDEF2.CmdAlarmReset; 
+      U     #Par.ParMDEF; 
+      SPBN  oD3; 
+      R     #MDEF2.CmdAlarmReset; 
+      L     2; 
+      T     #Par.OutMillNr; 
+      L     'A'; 
+      SPA   PUT; 
+// Mill 3
+//--- 'D'
+oD3:  UN    #Par.OutComFlags.D_Done; 
+      U     #MDEF3.CmdNewRecipe; 
+      U     #Par.ParMDEF; 
+      SPBN  oA3; 
+      L     3; 
+      T     #Par.OutMillNr; 
+      L     'D'; 
+      SPA   PUT; 
+//--- 'A'
+oA3:  UN    #Par.OutComFlags.A_Done; 
+      U     #MDEF3.CmdAlarmReset; 
+      U     #Par.ParMDEF; 
+      SPBN  oD4; 
+      R     #MDEF3.CmdAlarmReset; 
+      L     3; 
+      T     #Par.OutMillNr; 
+      L     'A'; 
+      SPA   PUT; 
+// Mill 4
+//--- 'D'
+oD4:  UN    #Par.OutComFlags.D_Done; 
+      U     #MDEF4.CmdNewRecipe; 
+      U     #Par.ParMDEF; 
+      SPBN  oA4; 
+      L     4; 
+      T     #Par.OutMillNr; 
+      L     'D'; 
+      SPA   PUT; 
+//--- 'A'
+oA4:  UN    #Par.OutComFlags.A_Done; 
+      U     #MDEF4.CmdAlarmReset; 
+      U     #Par.ParMDEF; 
+      SPBN  oA0; 
+      R     #MDEF4.CmdAlarmReset; 
+      L     4; 
+      T     #Par.OutMillNr; 
+      L     'A'; 
+      SPA   PUT; 
+oA0:  NOP   0; 
+//--- 's'
+      UN    #Par.OutComFlags.s_rDone; 
+      U     #Par.ParMDEF; 
+      S     #Par.OutComFlags.s_rDone; 
+      L     's'; 
+      SPB   GET; 
+//--- 'a'
+      UN    #Par.OutComFlags.a_rDone; 
+      U     #Par.ParMDEF; 
+      S     #Par.OutComFlags.a_rDone; 
+      L     'a'; 
+      SPB   GET; 
+      SPA   CmCR; 
+PUT:  SET   ; 
+      S     DBX   50.0; //COM.LC0.CmdPut ;
+      T     DBB   51; //COM.LC0.Command;
+      SPA   com0; 
+GET:  SET   ; 
+      S     DBX   50.1; //COM.LC0.CmdGet ;
+      T     DBB   51; //COM.LC0.Command;
+      SPA   com0; 
+// 
+//---Clear command flags (x_done)
+CmCR: SET   ; 
+      R     #Par.OutComFlags.a_rDone; 
+      R     #Par.OutComFlags.s_rDone; 
+      R     #Par.OutComFlags.k_Done; 
+      R     #Par.OutComFlags.b_Done; 
+      R     #Par.OutComFlags.D_Done; 
+      R     #Par.OutComFlags.A_Done; 
+      R     #Par.OutComFlags.P_Done; 
+      R     #Par.OutComFlags.Q_Done; 
+      R     #Par.OutComFlags.S_Done; 
+      R     #Par.OutComFlags.I_Done; 
+      R     #Par.OutComFlags.f_rDone; //[4.0]
+com0: NOP   0; 
+NETWORK
+TITLE = Store LC data (***OPTO22 **)
+////*************************************************
+////***             O P T O 22                    ***
+////*************************************************
+//
+      UN    #tmpOpto22; 
+      BEB   ; 
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index; 
+      L     2; //Store LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    FB     7; 
+      TDB   ; 
+      BEA   ; 
+END_FUNCTION_BLOCK
+

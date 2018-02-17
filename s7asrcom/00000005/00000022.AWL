@@ -1,0 +1,206 @@
+ORGANIZATION_BLOCK "SYS_IO_FLT1"
+TITLE = "I/O Point Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      PROJECT
+//
+//TITLE:        Diagnostic Alarm
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//OB082.2.0     A.Egli              CT3                               14-Jul-2004
+//              Log message added
+//OB082.1.0     Ph. Engler          MU664                             10-Feb-2003
+//              Redesign GCS7 Release 2
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : ASW
+NAME : IOFLT1
+VERSION : 2.0
+
+
+VAR_TEMP
+  OB82_EV_CLASS : BYTE ;	//16#39, Event class 3, Entering event state, Internal fault event
+  OB82_FLT_ID : BYTE ;	//16#XX, Fault identifcation code
+  OB82_PRIORITY : BYTE ;	//26/28 (Priority of 1 is lowest)
+  OB82_OB_NUMBR : BYTE ;	//82 (Organization block 82, OB82)
+  OB82_RESERVED_1 : BYTE ;	//Reserved for system
+  OB82_IO_FLAG : BYTE ;	//Input (01010100), Output (01010101)
+  OB82_MDL_ADDR : INT ;	//Base address of module with fault
+  OB82_MDL_DEFECT : BOOL ;	//Module defective
+  OB82_INT_FAULT : BOOL ;	//Internal fault
+  OB82_EXT_FAULT : BOOL ;	//External fault
+  OB82_PNT_INFO : BOOL ;	//Point information
+  OB82_EXT_VOLTAGE : BOOL ;	//External voltage low
+  OB82_FLD_CONNCTR : BOOL ;	//Field wiring connector missing
+  OB82_NO_CONFIG : BOOL ;	//Module has no configuration data
+  OB82_CONFIG_ERR : BOOL ;	//Module has configuration error
+  OB82_MDL_TYPE : BYTE ;	//Type of module
+  OB82_SUB_NDL_ERR : BOOL ;	//Sub-Module is missing or has error
+  OB82_COMM_FAULT : BOOL ;	//Communication fault
+  OB82_MDL_STOP : BOOL ;	//Module is stopped
+  OB82_WTCH_DOG_FLT : BOOL ;	//Watch dog timer stopped module
+  OB82_INT_PS_FLT : BOOL ;	//Internal power supply fault
+  OB82_PRIM_BATT_FLT : BOOL ;	//Primary battery is in fault
+  OB82_BCKUP_BATT_FLT : BOOL ;	//Backup battery is in fault
+  OB82_RESERVED_2 : BOOL ;	//Reserved for system
+  OB82_RACK_FLT : BOOL ;	//Rack fault, only for bus interface module
+  OB82_PROC_FLT : BOOL ;	//Processor fault
+  OB82_EPROM_FLT : BOOL ;	//EPROM fault
+  OB82_RAM_FLT : BOOL ;	//RAM fault
+  OB82_ADU_FLT : BOOL ;	//ADU fault
+  OB82_FUSE_FLT : BOOL ;	//Fuse fault
+  OB82_HW_INTR_FLT : BOOL ;	//Hardware interupt input in fault
+  OB82_RESERVED_3 : BOOL ;	//Reserved for system  
+  OB82_DATE_TIME : DATE_AND_TIME ;	//Date and time OB82 started   
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	//Reserved 1 for system
+  tmpPara4 : WORD ;	//Input module (01010100), Output module (01010101)
+  tmpPara5 : WORD ;	//Base address of module with point fault
+  tmpPara6 : WORD ;	//Module type with point fault
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+  tmpNoStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Detailed Diagnosis in OB82 (interrupt)
+
+      CALL "SYS_DPDiagMain" ;
+
+NETWORK
+TITLE =Log Message: Header
+
+      U(    ; 
+      L     #OB82_EV_CLASS; 
+      L     B#16#38; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//--System Message---
+      L     82; 
+      T     #tmpObjNo; 
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB82_FLT_ID; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB82_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB82_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para4: Input (01010100), Output (01010101)
+      L     #OB82_IO_FLAG; 
+      T     #tmpPara4; 
+
+//Para5: Base address of module with fault
+      L     #OB82_MDL_ADDR; 
+      T     #tmpPara5; 
+
+//Para6: Type of module
+      L     #OB82_MDL_TYPE; 
+      T     #tmpPara6; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB82_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+
+NETWORK
+TITLE =Faults without STOP
+//// alle auskommentierten Einträge führen in STOP
+      CLR   ; //init.VKE  
+// Diagnostic Alarm
+      O(    ; 
+      L     #OB82_FLT_ID; 
+      L     B#16#42; // 
+      ==I   ; 
+      )     ; 
+      =     #tmpNoStop; 
+NETWORK
+TITLE =Log Message: Entry
+
+//Entre Log Message
+      UN    #tmpNoStop; 
+      S     "SYS_LOG_Queue".CmdAddFastMsg; 
+
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := #tmpPara4,//OB82_MDL_ID
+           Para5                    := #tmpPara5,//OB82_MDL_ADDR
+           Para6                    := #tmpPara6,//OB82_MDL_TYPE
+           Para7                    := W#16#0,
+           Para8                    := W#16#0,
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =Stop PLC
+
+      U     #tmpNoStop; 
+      BEB   ; 
+//**********************
+// Bring CPU to Stop
+      CALL "SIEMENS_STP" ;
+//**********************
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

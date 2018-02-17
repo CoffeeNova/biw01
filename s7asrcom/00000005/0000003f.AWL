@@ -1,0 +1,491 @@
+FUNCTION "GCS7_SecCtrlSub" : VOID
+TITLE =Section Control: Subroutines
+//COPYRIGHT:    (C) 1994 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        SECTION CONTROL: SUBROUTINE
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FB61.2.1      A.Egli              CT3                           12-Aug-2003
+//              - Compare Prev Section
+//FB61.2.0      A.Egli              CT3                            8-Okt-2002
+//              - New release
+//              - ToASW.InfSameBatchAnyPrevSec 
+//              - ToASW.IntSameJobAnyPrevSec 
+//FB61.1.5      A.Egli              CT3                            3-Jan-2002
+//              Test minimum size : test < not <=
+//FB61.1.4      A.Egli              CT3                           14-Apr-2000
+//              Test Job active
+//FB61.1D       A.Egli              CT3                           11-Juni-1999
+//              Calculate number of batch: RND+
+//FB61.1C       A.Egli              CT3                           20-Apr-1999
+//              Reset EsBatchSizeUpdate by InitSection
+//FB61.1B       A.Egli              AEE61                         14-Jan-98
+//              Update  to S5 (Version 2G)
+//FB61.1A       A.Egli              AEE61                         20-Jun-96
+//              Convert to S7 (Version 2F)
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GCSOSMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//PARAMETER:
+//---------
+//  CODE: CODE of the Subroutine
+//        KF +1    : SUBROUTINE TEST_MATERIAL
+//        KF +2    : SUBROUTINE SEQUENZ_STOP
+//        KF +3    : SUBROUTINE INIT_SECTION
+//        KF +4    : SUBROUTINE SEARCH_SECTION
+//        KF +5    : SUBROUTINE SEARCH_JOB
+//        KF +6    : SUBROUTINE CALC_BATCH_SIZE
+//        KF +7    : SUBROUTINE TestDone
+//
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : SEC_SUBR
+VERSION : 2.1
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+END_VAR
+VAR_TEMP
+  VarLoop2 : BOOL ;	
+  VarLastBatch : INT ;	
+  VarRest : DINT ;	
+  tmpSameJob : BOOL ;	
+  tmpSameBatch : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE = COMPARE (Code 1)
+//FLAG IN SUBROUTINE COMPARE: (Batch in previous section and next section)
+//==========================
+//
+      L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   aEND; 
+      R     DBX   44.3; // S[n].ToASW.InfSameJobPrevSec
+      R     DBX   44.5; // S[n].ToASW.InfSameBatchPrevSec
+      R     DBX   45.2; // S[n].ToASW.InfSameJobAnyPrevSec
+      R     DBX   45.3; // S[n].ToASW.InfSameBatchAnyPrevSec
+      AUF   DI [DBW 4]; //>>Call LineDB  DI["SecDB".Para.ParLineDB]
+      AUF   DI [DIW 4]; //>>Call SecDB   DI["LineDB".Para.ParFirstSecDB]
+//============================================
+//Loop Prev sections
+//============================================
+pLop: L     DINO; //Prev Section DB 
+      L     DBNO; //Actual Section DB
+      ==I   ; 
+      SPB   aNXT; 
+//-- Compare prev. Section
+      L     DID  160; // S[n-1].JobNom.JobNr
+      L     DBD  160; // S[n  ].JobNom.JobNr
+      ==D   ; // 
+      U     DIX   45.7; // S[n-1].ToASW.InfDataReady
+      U     DBX   45.7; // S[n].ToASW.InfDataReady  [2.1]
+      UN    DIX  111.1; // S[n-1].PCRead.Step.StWait
+      =     #tmpSameJob; 
+      S     DBX   45.2; // ->S[n].ToASW.InfSameJobAnyPrevSec
+      L     DINO; // Prev Section DB 
+      L     DBW   70; // "SecDB".ToSSW.InPrevSecDB
+      ==I   ; 
+      U     #tmpSameJob; 
+      S     DBX   44.3; // ->S[n].ToASW.InfSameJobPrevSec
+//Compare batch
+      L     DIW  206; // S[n-1].JobAc.BatchNo
+      L     DBW  206; // S[n].JobAc.BatchNo
+      ==I   ; // 
+      U     #tmpSameJob; 
+      =     #tmpSameBatch; 
+      S     DBX   45.3; // S[n].ToASW.InfSameBatchAnyPrevSec
+      L     DINO; // Prev Section DB 
+      L     DBW   70; // "SecDB".ToSSW.InPrevSecDB
+      ==I   ; 
+      U     #tmpSameBatch; 
+      S     DBX   44.5; //  )->S[n].ToASW.InfSameBatchPrevSec
+//Next 
+      L     0; 
+      L     DIW    8; // S[i].Para.ParNextSecDB
+      ==I   ; 
+      SPB   aNXT; 
+      AUF   DI [DIW 8]; //-->  Call next SecDB  DI[Para.ParNextSecDB]
+      SPA   pLop; 
+//End Loop Prev sections
+//============================================
+// Compare next Section
+//============================================
+aNXT: L     DBW   72; // "SecDB".ToSSW.InNextSecDB
+      L     0; // 
+      <>I   ; // 
+      U     DBX   45.7; // "SecDB".ToASW.InfDataReady
+      SPB   aCM2; // 
+      R     DBX   44.4; //"SecDB".ToASW.InfSameJobNextSec
+      R     DBX   44.6; //"SecDB".ToASW.InfSameBatchNextSec
+      BEA   ; 
+aCM2: AUF   DI [DBW 72]; // -> CALL NEXT SECTION DB["SecDB".ToSSW.InNextSecDB]
+      L     DID  160; // S[n+1].JobNom.JobNr
+      L     DBD  160; // "SecDB".JobNom.JobNr
+      ==D   ; 
+      U     DIX   45.7; // S[n+1].ToASW.InfDataReady
+      UN    DBX  111.1; // "SecDB".PCRead.Step.StWait
+      =     DBX   44.4; // ->"SecDB".ToASW.InfSameJobNextSec
+
+      L     DIW  206; // S[n+1].JobAc.BatchNo
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      ==I   ; 
+      U     DBX   44.4; // "SecDB".ToASW.InfSameJobNextSec
+      =     DBX   44.6; // ->S"SecDB".ToASW.InfSameBatchNextSec
+      BEA   ; 
+aEND: NOP   0; 
+
+NETWORK
+TITLE = SEQUENZ_STOP
+//1.Scan : Serach last batch
+//2.Scan : Set Bit last batch
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      SPB   bEnd; 
+      R     #VarLoop2; 
+      L     0; 
+      T     #VarLastBatch; 
+bLo2: AUF   DI [DBW 4]; //>>Call LineDB  DI["SecDB".Para.ParLineDB]
+      AUF   DI [DIW 4]; //>>Call SecDB   DI["LineDB".Para.ParFirstSecDB]
+//Loop over all section
+bLop: L     DID  160; // S[i].JobNom.JobNr
+      L     DBD  160; // "SecDB".JobNom.JobNr
+      <>D   ; // 
+      SPB   bNEQ; // 
+      UN    #VarLoop2; 
+      SPB   bL1; 
+// ==== LOOP2 =====================
+      L     DIW  206; // S[i].JobAc.BatchNo
+      L     #VarLastBatch; 
+      ==I   ; // 
+      U     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob
+      S     DIX  201.3; // -> S[i].JobAc.StaBatch.StaLastBatch
+      SPA   bNEQ; 
+// === LOOP 1 =====================
+bL1:  U     DBX  121.7; // "SecDB".PCRead.Status.StaEndOfJob 
+      S     DIX  121.7; // ->S[i].PCRead.Status.StaEndOfJob
+      L     #VarLastBatch; 
+      L     DIW  206; // S[i].JobAc.BatchNo
+      >=I   ; 
+      SPB   bJ1; 
+      T     #VarLastBatch; 
+bJ1:  L     DIW  206; // S[i].JobAc.BatchNo
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      ==I   ; 
+      U     DBX  201.0; // "SecDB".JobAc.StaBatch.StaErrBatch
+      S     DIX  201.0; // ->S[i].JobAc.StaBatch.StaErrBatch
+bNEQ: L     0; 
+      L     DIW    8; // S[i].Para.ParNextSecDB
+      ==I   ; 
+      SPB   bL2; 
+      AUF   DI [DIW 8]; //-->  Call next SecDB  DI[Para.ParNextSecDB]
+      SPA   bLop; 
+//2nd Loop
+bL2:  U     #VarLoop2; 
+      BEB   ; 
+      S     #VarLoop2; 
+      SPA   bLo2; 
+bEnd: NOP   0; 
+NETWORK
+TITLE = INIT_SECTION
+
+      L     #CODE; 
+      L     3; 
+      <>I   ; 
+      SPB   cEnd; 
+      S     DBX   45.7; //"SecDB".ToASW.InfDataReady 
+      S     DBX   44.1; //"SecDB".ToASW.CmdNewBatch
+      R     DBX  121.6; //"SecDB".PCRead.Status.StaReset
+      R     DBX  121.7; //"SecDB".PCRead.Status.StaEndOfJob
+      R     DBX   44.3; //"SecDB".ToASW.InfSameJobPrevSec
+      R     DBX   44.5; //"SecDB".ToASW.InfSameBatchPrevSec
+      R     DBX   44.4; //"SecDB".ToASW.InfSameJobNextSec
+      R     DBX   44.6; //"SecDB".ToASW.InfSameBatchNextSec
+      R     DBX  116.0; //"SecDB".PCRead.Fault.EsBatchSize  [1C]
+      L     0; 
+      T     DBD  202; //"SecDB".JobAc.JobWeigth
+      T     DBW  206; //"SecDB".JobAc.BatchNo
+
+      L     DBW  200; //"SecDB".JobAc.StaBatch
+      L     2#1000000000000000; 
+      UW    ; 
+      T     DBW  200; //-->"SecDB".JobAc.StaBatch
+
+      U     DBX   48.1; // "SecDB".ToASW.Func.CmdAbortBatch
+      S     DBX  201.0; //->"SecDB".JobAc.StaBatch.StaErrBatch
+      U     DBX   46.1; // "SecDB".ToASW.Func.CmdEmptying
+      S     DBX  200.6; //--> "SecDB".JobAc.StaBatch.StaEmptyingBatch
+      BEA   ; 
+cEnd: NOP   0; 
+NETWORK
+TITLE = Search section
+//SUBROUTINE SEARCH SECTION:
+//=======================
+//INPUT : ACTUAL DB = Line-DB
+//INPUT : LineDB.DBW20: SECTION-NR
+//INPUT : LineDB DBW22: search_mode
+//             0= Search section with equal section-Nr as DW10
+//             1= Search first section with D22.15 ToASW.InfSameJobLineDB==1
+//OUTPUT: LineDB DBW22: SECTION-DB
+//        0== ILLEGAL SECTION-NR
+      L     #CODE; 
+      L     4; 
+      <>I   ; 
+      SPB   dEnd; 
+      AUF   DI [DBW 4]; //>>Call SecDB DI["LineDB".Para.ParFirstSecDB]
+//LOOP:
+dLop: L     DIW    2; //"SecDB".Para.ParSecNr
+      L     DBW   20; //"LineDB".VarTemp[1]= Input.SectionNr.
+      ==I   ; //  
+      UN    DBX   23.0; //"LineDB".VarTemp[2]= Input.ModeFirstJob
+      O     ; 
+      U     DBX   23.0; //"LineDB".VarTemp[2]=Input.ModeFirstJob
+      U     DIX   44.7; //"SecDB".ToASW.InfSameJobLineDB
+      SPB   dOK; //->found
+      L     DIW    8; //"SecDB".Para.ParNextSecDB
+      L     0; 
+      ==I   ; 
+      SPB   dErr; 
+      AUF   DI [DIW 8]; //--> Call next SecDB  DI["SecDB".Para.ParNextSecDB]
+      SPA   dLop; 
+//---End Loop ---
+dOK:  L     DINO; // Actual section DB
+dErr: T     DBW   22; //"LineDB".VarTemp[2] == output Section-DB (0=Not found)
+      BEA   ; 
+dEnd: NOP   0; 
+NETWORK
+TITLE = search job
+//SUBROUTINE SEARCH JOB:
+//=======================
+//SEARCH ALL SECTION WITH THE SAME JOB AS IN THE COMMUNICATION DB
+//INPUT : ACTUAL DB = COM_DB
+//OUTPUT: section-DB D22.15: ToASW.InfSameJobLineDB
+//OUTPUT: "LineDB".DBX39.0 (VarTemp[10].0) = Job active
+      L     #CODE; 
+      L     5; 
+      <>I   ; 
+      SPB   eEnd; 
+      R     DBX   39.0; //LineDB.VarTemp[10] : err_job_active      [1.4] 
+      AUF   DI [DBW 4]; //>>Call 1.SecDB DI["LineDB".Para.ParFirstSecDB]
+//LOOP:
+eLop: SET   ; 
+      R     DIX   44.7; //-->"SecDB".ToASW.InfSameJobLineDB
+      U(    ; 
+      L     0; 
+      L     DBW  154; //"LineDB".JobWrite.SectionDest
+      ==I   ; 
+      O(    ; 
+      L     DIW    2; //"SecDB".Para.ParSecNr
+      ==I   ; 
+      )     ; 
+      )     ; 
+      U(    ; 
+      L     DID  160; //"SecDB".JobNom.JobNr
+      L     DBD  160; //"LineDB".JobNom.JobNr
+      ==D   ; 
+      U     DIX   45.7; //"SecDB".ToASW.InfDataReady
+      O(    ; 
+      U     DBX  145.0; //"LineDB".JobWrite.Hsk.F_Define
+      O     DBX  145.1; // "LineDB".JobWrite.Hsk.F_Execute 
+      UN    DIX   45.7; //"SecDB".ToASW.InfDataReady
+      )     ; 
+      )     ; 
+      =     DIX   44.7; //-->"SecDB".ToASW.InfSameJobLineDB
+
+      L     DID  160; //"SecDB ".JobNom.JobNr                  [1.4]
+      L     DBD  160; //"LineDB".JobNom.JobNr                  [1.4]
+      ==D   ; //                                       [1.4]
+      U     DIX   45.7; //"SecDB".ToASW.InfDataReady             [1.4]
+      S     DBX   39.0; //-->LineDB.VarTemp[10]= err_job_active [1.4]
+//Call next section
+      L     DIW    8; //SEC[i].Para.ParNextSecDB
+      L     0; 
+      ==I   ; 
+      BEB   ; 
+      AUF   DI [DIW 8]; //DI["SecDB".Para.ParNextSecDBB]
+      SPA   eLop; 
+//---End Loop ---
+eEnd: NOP   0; 
+NETWORK
+TITLE = CalcBatchSize (Code 6)
+//SUBROUTINE TEST DONE:
+//=======================
+//SEARCH ALL SECTION WITH THE SAME JOB AS IN THE ACTAUL S_DB
+//INPUT : ACTUAL DB = S_DB
+//OUTPUT: D19.0: Job not found in a other section
+//
+//
+      L     #CODE; 
+      L     6; 
+      <>I   ; 
+      SPB   fEnd; 
+      L     DBW  168; // "SecDB".JobNom.BatchNo
+      T     DBW  208; //->"SecDB".JobAc.BatchNoCal
+      L     DBW  186; // "SecDB".JobNom.BatchMaxPpm
+      T     DBW  218; // "SecDB".JobAc.BatchSizePpm
+      L     DBW  168; //  BatchNoTarget
+      L     32767; // 
+      <>I   ; 
+      SPB   fCAL; // 
+      L     DBD  164; // "SecDB".JobNom.JobWeight
+      L     DBD  202; // "SecDB".JobAc.JobWeigth
+      -D    ; //  
+      DTR   ; // WtRest
+      L     DBD  180; // "SecDB".JobNom.BatchWeight
+      DTR   ; // 
+      /R    ; // 
+      L     1.000000e+003; // (promille)
+      *R    ; // 
+      L     DBW  186; // "SecDB".JobNom.BatchMaxPpm
+      DTR   ; 
+      /R    ; 
+//      L     9.999990e-001
+//      +R    
+      RND+  ; //  NrOfMaxBatch  [1D
+      L     DBW  206; //  "SecDB".JobAc.BatchNo
+      +I    ; // 
+      T     DBW  208; // ->"SecDB".JobAc.BatchNoCal
+      L     DBD  164; // "SecDB".JobNom.JobWeight
+      L     DBD  202; // "SecDB".JobAc.JobWeigth
+      -D    ; //  
+      DTR   ; // WtRest
+      L     1.000000e+003; // (promille)
+      *R    ; // 
+      L     DBD  180; // "SecDB".JobNom.BatchWeight==100%
+      DTR   ; 
+      /R    ; 
+      RND   ; 
+      T     #VarRest; // WtRest as  ppm
+      L     DBW  184; // "SecDB".JobNom.BatchMinPpm
+      <=D   ; 
+      U     DBX  201.3; // "SecDB".JobAc.StaBatch.StaLastBatch
+      SPB   fDON; //  -> job done
+      <D    ; // [Rel 1.5]
+      L     #VarRest; // WtRest as ppm
+      SPB   fERO; // ->Fault: EsBatchSize
+// Test 1 batches left 
+      L     DBW  186; // "SecDB".JobNom.BatchMaxPpm
+      <=D   ; 
+      SPB   fRST; // --> Rest
+// Test 2 batches left 
+      SLD   1; // 2* batchMaxPc
+      <=D   ; // 
+      SPB   fHAF; // -> batch:= Rest/2
+// Maximum Batch
+      L     #VarRest; // WtRestPc as ppm
+      L     DBW  186; // "SecDB".JobNom.BatchMaxPpm
+      -D    ; // 
+      L     DBW  184; // "SecDB".JobNom.BatchMinPpm
+      SLD   1; // 2*batchMinPc
+      >=D   ; // 
+      L     DBW  186; // "SecDB".JobNom.BatchMaxPpm
+      SPB   fSIZ; // -> batch := "SecDB".JobNom.BatchMaxPpm
+// Test 3 batches left
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      +     3; // 
+      T     DBW  208; // ->"SecDB".JobAc.BatchNoCal
+      L     #VarRest; // 
+      DTR   ; // 
+      L     3.000000e+000; //   /3
+      /R    ; // 
+      RND   ; // VarBatchSizePc
+      L     DBW  184; //  "SecDB".JobNom.BatchMinPpm
+      <I    ; // 
+      SPB   fSIZ; //->Start minimum Size
+      TAK   ; // 
+      SPA   fSIZ; //->Batch Size = Rest/3
+fHAF: L     #VarRest; 
+      SSD   1; //  /2
+      L     DBW  184; //  "SecDB".JobNom.BatchMinPpm
+      >=I   ; 
+      TAK   ; 
+      SPB   fSIZ; // -> Batch Size = Rest/2
+      SPA   fERO; 
+//== Error =====================
+fERO: T     DBW  218; //"SecDB".JobAc.BatchSizePpm
+      U     DBX   47.7; // "SecDB".ToASW.Func.CmdAcceptSize
+      SPB   fSIZ; // 
+      UN    DBX  116.0; // "SecDB".PCRead.Fault.EsBatchSize
+      S     DBX  116.0; // -> "SecDB".PCRead.Fault.EsBatchSize
+      S     DBX   48.3; // ->"SecDB".ToASW.Func.CmdHornOn
+      SPA   fCAL; 
+// === Start Batch ===============
+//Error batch size
+fDON: R     DBX  116.0; // -> "SecDB".PCRead.Fault.EsBatchSize  
+      S     DBX  121.7; // ->"SecDB".PCRead.Status.StaEndOfJob
+      L     DBW  206; //  "SecDB".JobAc.BatchNo 
+      T     DBW  208; // ->"SecDB".JobAc.BatchNoCal
+      BEA   ; 
+//Last Batch
+fRST: S     DBX  201.3; //->"SecDB".JobAc.StaBatch.StaLastBatch
+      L     #VarRest; //var_WtRestPc
+fSIZ: T     DBW  218; //-->"SecDB".JobAc.BatchSizePpm
+      R     DBX  116.0; //-> "SecDB".PCRead.Fault.EsBatchSize
+fCAL: L     DBW  218; //"SecDB".JobAc.BatchSizePpm
+      DTR   ; // 
+      L     DBD  180; // "SecDB".JobNom.BatchWeight
+      DTR   ; // 
+      *R    ; // 
+      L     1.000000e+003; // [1/1000]
+      /R    ; // 
+      RND   ; // 
+      T     DBD  210; // ->"SecDB".JobAc.BatchWeigthTarget
+      BEA   ; 
+fEnd: NOP   0; 
+NETWORK
+TITLE = TestDone Code 7)
+
+      L     #CODE; // 
+      L     7; // 
+      <>I   ; // 
+      SPB   gEnd; // 
+      S     DBX   39.0; // outp_NotFound
+      AUF   DI [DBW 4]; //>>call LineDB  DI["SecDB".Para.ParLineDB]
+      AUF   DI [DIW 4]; //>>Call 1.SecDB DI["LineDB".Para.ParFirstSecDB]
+//Loop over all section
+gLop: L     DID  160; // SecDB[i].JobNom.JobNr
+      L     DBD  160; // "SecDB".JobNom.JobNr
+      <>D   ; // 
+      ON    DIX   45.7; // "SecDB".ToASW.InfDataReady
+      SPB   gNeq; // 
+      L     DINO; // SecDB[i]
+      L     DBNO; // SecDB
+      <>I   ; // 
+      R     DBX   39.0; // outp_NotFound
+gNeq: L     DIW    8; // SecDB[i].Para.ParNextSecDB
+      L     0; // 
+      ==I   ; // 
+      BEB   ; // 
+//-->Call next SecDB  DI["SecDB".Para.ParNextSecDB]
+      AUF   DI [DIW 8]; 
+      SPA   gLop; 
+//---End Loop ---
+gEnd: NOP   0; 
+NETWORK
+TITLE =
+
+
+
+
+END_FUNCTION
+

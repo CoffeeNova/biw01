@@ -1,0 +1,188 @@
+ORGANIZATION_BLOCK "SYS_CYCL_FLT"
+TITLE = "Cycle Time Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Time Error Organization Block (OB80)
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//STD_OB80.1.0  A.Egli              CT3                               12-Jul-2004
+//              Log message added
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : STD
+NAME : SYS_CYCL
+VERSION : 1.0
+
+
+VAR_TEMP
+  OB80_EV_CLASS : BYTE ;	//16#35, Event class 3, Entering event state, Internal fault event
+  OB80_FLT_ID : BYTE ;	//16#XX, Fault identifcation code
+  OB80_PRIORITY : BYTE ;	//26 (Priority of 1 is lowest)
+  OB80_OB_NUMBR : BYTE ;	//80 (Organization block 80, OB80)
+  OB80_RESERVED_1 : BYTE ;	//Reserved for system
+  OB80_RESERVED_2 : BYTE ;	//Reserved for system
+  OB80_ERROR_INFO : WORD ;	//Error information on event
+  OB80_ERR_EV_CLASS : BYTE ;	//Class of event causing error
+  OB80_ERR_EV_NUM : BYTE ;	//Number of event causing error
+  OB80_OB_PRIORITY : BYTE ;	//Priority of OB causing error
+  OB80_OB_NUM : BYTE ;	//Number of OB causing error
+  OB80_DATE_TIME : DATE_AND_TIME ;	//Date and time OB80 started   
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	//Reserved 1 for system
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Log Message: Header
+
+      U(    ; 
+      L     #OB80_EV_CLASS; 
+      L     B#16#38; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//--System Message---
+      L     80; 
+      T     #tmpObjNo; 
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB80_FLT_ID; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB80_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB80_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB80_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+
+NETWORK
+TITLE =Log Message: Entry
+
+//Log Meldung eintragen
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := W#16#0,
+           Para5                    := W#16#0,
+           Para6                    := W#16#0,
+           Para7                    := W#16#0,
+           Para8                    := W#16#0,
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =Faults without STOP
+//// alle auskommentierten Einträge führen in STOP
+      CLR   ; //init.VKE  
+// 1 Cycle time exceeded
+//      O(    
+//      L     #OB80_FLT_ID
+//      L     B#16#1                      // 
+//      ==I   
+//      )     
+// 2 Called OB is still being executed
+//      O(    
+//      L     #OB80_FLT_ID
+//      L     B#16#2                      // 
+//      ==I   
+//      )     
+// 5 Elapsed time-of-day interrupt due to moving the clock forwar
+//      O(    
+//      L     #OB80_FLT_ID
+//      L     B#16#5                      // 
+//      ==I   
+//      )     
+// 6 Elapsed time-of-day interrupt on return to RUN after HOLD
+//      O(    
+//      L     #OB80_FLT_ID
+//      L     B#16#6                      // 
+//      ==I   
+//      )     
+// 7 Overflow of OB request buffer
+//      O(    
+//      L     #OB80_FLT_ID
+//      L     B#16#26                     // 
+//      ==I   
+//      )     
+      BEB   ; 
+NETWORK
+TITLE =Stop PLC
+
+
+//**********************
+//Read Log Message to PC Interface
+      CALL "SYS_LOG_CtrlQueue" (
+           DBNumber                 := 5);
+
+//**********************
+// CPU auf Stop bringen
+      CALL "SIEMENS_STP" ;
+//**********************
+
+END_ORGANIZATION_BLOCK
+

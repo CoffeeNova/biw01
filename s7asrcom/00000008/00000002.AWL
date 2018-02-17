@@ -1,0 +1,158 @@
+FUNCTION "IOManger.Copy" : VOID
+TITLE =Copy IO Manager
+//COPYRIGHT:          (C) 1994 BY  BUHLER LTD.
+//                                 CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:            GCS90 Obere Schichten
+//
+//TITLE:              Simulation of elements
+// 
+//-------------------------------------------------------------------
+//
+//IDENT:       AUTOR:              DEPT:             DATE:
+//
+//FC016.1B     EA                  CT3               25-Okt-99
+//              Mit OB122 
+//FC016.1A     EA                  CT3               14-Apr-97
+//              1st Release
+//
+//-------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS90
+NAME : SIMU
+VERSION : 0.0
+
+
+VAR_INPUT
+  BlockCopy : BOOL ;	
+  CallSFC36 : BOOL ;	//Nur falls nicht OB122 eingesetzt wird
+  LastIOByte : INT ;	//Länge Prozessabbild in Byte
+END_VAR
+VAR_TEMP
+  tmpAddr : DINT ;	
+  tmpLastIOAddr : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      UN    #CallSFC36; 
+      SPB   X1; 
+      CALL "MSK_FLT" (
+           PRGFLT_SET_MASK          := DW#16#0,
+           ACCFLT_SET_MASK          := DW#16#3F,
+           RET_VAL                  := MW   250,
+           PRGFLT_MASKED            := MD   248,
+           ACCFLT_MASKED            := MD   252);
+X1:   NOP   0; 
+
+NETWORK
+TITLE =
+
+      L     #LastIOByte; 
+      SLD   3; 
+      T     #tmpLastIOAddr; 
+
+NETWORK
+TITLE =Copy Output
+
+      UN    #BlockCopy; 
+      SPB   O1; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#A 0.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#DB17.DBX0.0 BYTE 128);
+      L     #LastIOByte; 
+      L     128; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#A 128.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#DB17.DBX128.0 BYTE 128);
+      L     #LastIOByte; 
+      L     256; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#A 256.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#DB17.DBX256.0 BYTE 128);
+      L     #LastIOByte; 
+      L     384; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#A 384.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#DB17.DBX384.0 BYTE 128);
+      SPA   I0; 
+O1:   NOP   0; 
+      AUF   "IOManger.Output"; 
+      L     P#0.0; 
+      T     #tmpAddr; 
+o2:   L     AW [#tmpAddr]; 
+      T     DBW [#tmpAddr]; 
+      L     #tmpAddr; 
+      +     L#16; 
+      T     #tmpAddr; 
+      L     #tmpLastIOAddr; 
+      <=D   ; 
+      SPB   o2; 
+
+NETWORK
+TITLE =Copy Input
+
+I0:   NOP   0; 
+      UN    #BlockCopy; 
+      SPB   i1; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#DB16.DBX0.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#E 0.0 BYTE 128);
+      L     #LastIOByte; 
+      L     128; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#DB16.DBX128.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#E 128.0 BYTE 128);
+      L     #LastIOByte; 
+      L     256; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#DB16.DBX256.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#E 256.0 BYTE 128);
+      L     #LastIOByte; 
+      L     384; 
+      <I    ; 
+      SPB   I0; 
+      CALL "BLKMOV" (
+           SRCBLK                   := P#DB16.DBX384.0 BYTE 128,
+           RET_VAL                  := MW   200,
+           DSTBLK                   := P#E 384.0 BYTE 128);
+      BEA   ; 
+i1:   AUF   "IOManger.Input"; 
+      L     P#0.0; 
+      T     #tmpAddr; 
+i2:   L     DBW [#tmpAddr]; 
+      T     EW [#tmpAddr]; 
+      L     #tmpAddr; 
+      +     L#16; 
+      T     #tmpAddr; 
+      L     #tmpLastIOAddr; 
+      <=D   ; 
+      SPB   i2; 
+
+END_FUNCTION
+

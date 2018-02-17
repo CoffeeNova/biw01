@@ -1,0 +1,40 @@
+	DATA_BLOCK DB2006
+	TITLE =Section Log Step Values DB : STEEPING ROW 2 (ST9-16)
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section Log Step Values : STEEPING ROW 2 (ST9-16)
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB896.1.0 K.Renz              CSB41                       13.Jan.2010
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	VERSION : 0.0
+	"SSA_MH_Step_Values"
+	BEGIN
+	END_DATA_BLOCK

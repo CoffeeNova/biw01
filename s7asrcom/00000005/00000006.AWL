@@ -1,0 +1,54 @@
+TYPE "GCS7_M_FB60_Data"
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnable : BOOL ;	//Enable to run aspiration (0=Airlock stops after idling time)
+   InDisableAirlock : BOOL ;	//Immediately stop of Airlock
+   spare02 : BOOL ;	
+   spare03 : BOOL ;	
+   spare04 : BOOL ;	
+   spare05 : BOOL ;	
+   spare06 : BOOL ;	
+   spare07 : BOOL ;	
+   CmdOffMan : BOOL ;	//Pulse to stop all elements immediately (manual mode)
+   CmdOnMan : BOOL ;	//Pulse to start  the next element (manual mode)
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   CmdFanOffMan : BOOL ;	//Pulse to stop the Fan in manual mode
+   InSeqStop : BOOL ;	//Stop automatically after idling time
+   OutWarning : BOOL ;	//Pressure to high
+   spare0201 : BOOL ;	
+   spare0202 : BOOL ;	
+   OutPulseVibroOn : BOOL ;	//Internal used for pulsing 
+   spare0204 : BOOL ;	
+   spare0205 : BOOL ;	
+   spare0206 : BOOL ;	
+   spare0207 : BOOL ;	
+   StStopped : BOOL ;	//Aspiration is stopped
+   StStarting : BOOL ;	//Fan or Airlock is starting
+   StStarted : BOOL ;	//Fan and Airlock are started
+   StStopping : BOOL ;	//Fan is stopping
+   StFault : BOOL ;	//Any element is in state StFault
+   StIdling : BOOL ;	//Idling time of Airlock is running
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    ParWithAirlock : BOOL ;	//Machine uses this element
+    ParWithFan : BOOL ;	//Machine uses this element
+    ParWithFilter : BOOL ;	//Machine uses this element
+    ParWithARF : BOOL ;	//Machine uses this element
+    ParWithLSDoor : BOOL ;	//Machine uses this element
+    ParWithPressure : BOOL ;	//Machine uses this element
+    ParWithHLAirlock : BOOL ;	//Machine uses this element
+    ParWithDischarger : BOOL ;	//Machine uses this element
+    ParVibroOnTime : INT ;	//Length pulse on (t1)
+    ParVibroOffTime : INT ;	//Length pulse off (t2)
+    OutDelayTime : INT ;	//Actual time t1 or t2
+    spare1 : INT ;	
+    spare2 : INT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

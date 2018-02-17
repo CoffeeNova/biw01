@@ -1,0 +1,849 @@
+FUNCTION_BLOCK "G279M_Code"
+TITLE =G279M HEATING KILN 1 + 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        HEATING KILN 1 + 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB379.1.0 K.Renz              CSB41                              30.Sep.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  _A_3191_BTE08_Active : BOOL ;	//Data for user
+  _A_3291_BTE08_Active : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3161_KCL11 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3161_KCL11_EXT_ON : "GCS7_E_DigOutput";	// DigOut
+  A_3161_KCL11_ON : "GCS7_E_DigInput";	// DigInpCont 
+  A_3161_KCL11_AI : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3161_KCL11_AO : "GCS7_E_AnalogOutput";	// AnaOutp 
+  A_3161_KCL11_REG_ON : "GCS7_E_DigInput";	// DigInpCont 
+  A_3161_KCL11_REM_OP : "GCS7_E_DigInput";	// DigInpCont 
+  A_3161_KCL11_RUN : "GCS7_E_DigOutput";	// DigOut
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[279]; 
+      R     "GCS7_GrCtrlDB".ParWGR[279]; 
+      R     "GCS7_GrCtrlDB".ParGGR[279]; 
+      R     "GCS7_GrCtrlDB".ParFeed[279]; 
+//MW 2010.04.29      R     "GCS7_GrCtrlDB".ParShare[279]
+      S     "GCS7_GrCtrlDB".ParShare[279]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[279]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[279]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[279]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[279]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[279]; 
+      R     "GCS7_GrCtrlDB".CmdNext[279]; 
+      S     #Gr.CmdNext; 
+
+//MW 2010.04.13
+//      U     "GCS7_GrCtrlDB".CmdManualOff[279]
+//      UN    #Gr.InManual
+//      CLR   
+//      S     #Gr.CmdManualOff
+//      U     "GCS7_GrCtrlDB".CmdManualOff[279]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[279]
+      UN    "MAL1S032".PCRead.Status.StaHand; 
+      UN    "MAL1S033".PCRead.Status.StaHand; 
+      UN    #Gr.InManual; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[279]; 
+      S     #Gr.CmdManualOff; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[279]
+//      O     "GCS7_GrCtrlDB".OutOccupied[279]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[279]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[279]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[279]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[279]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+      CLR   ; 
+      =     #A_3161_KCL11_EXT_ON.InManual; 
+
+NETWORK
+TITLE =Set Pattern (Target position)
+////      L     "MAL1Par".Values1.Value01   // Sollwert vom LS
+//      U     "G279M"._A_3191_BTE08_Active
+//      SPBN  spk2
+//      L     "MAL1S032Par".StepAct.TemperaturBelowFloor
+//      L     L#10                        // setpoint temperature
+//      /D    
+//      L     L#15
+//      -D    
+//      SPA   spk
+//
+//spk2: NOP   0
+//      L     L#0
+//      U     "G279M"._A_3291_BTE08_Active
+//      SPBN  spk
+//      L     "MAL1S033Par".StepAct.TemperaturBelowFloor
+//      L     L#10                        // setpoint temperature
+//      /D    
+//      L     L#20
+//      -D    
+//      SPA   spk
+//
+//spk:  T     MW   279
+//
+//
+//      L     MW   279
+//      L     "MAL1Par".Values1.Value03   // Sollwert vom LS
+//      DTR   
+//      T     "Regler Brenner 1".SP_INT   // setpoint temperature
+//
+//JV110810 zum Testen Sollwert für Brenner weg beim Kaltblasen
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      O     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      L     L#15; // 15°C Sollwert, damit der Brenner runterfährt
+      SPB   Wand; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+Wand: DTR   ; 
+      T     "Regler Brenner 1".SP_INT; // setpoint temperature 
+
+
+//BRT20100904 ====> da Operator zu wenig auf Prozess achtet und meist die Brenner bei 100% heizen, kleine Regelung reingemacht!!!  
+      UN    "MAL1Par".Switches1.StaOn00; // autom. Regelung Brenner EIN/AUS von Linien Parameter
+      SPB   reg2; 
+
+      U     "G279M"._A_3191_BTE08_Active; 
+      UN(   ; 
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      O     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      )     ; 
+      UN    T     39; 
+      SPBN  reg1; 
+      U(    ; 
+      L     "G276M".A_3161_KCL12_AI.OutValuePc; 
+      L     9900; // 99%
+      >=I   ; 
+      )     ; 
+      UN(   ; 
+      L     "G279M".A_3161_KCL11_AI.OutValuePc; 
+      L     9500; // 95%
+      >I    ; 
+      )     ; 
+      SPB   pls1; 
+      UN(   ; 
+      L     "G276M".A_3161_KCL12_AI.OutValuePc; 
+      L     9500; // 95%
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     "G279M".A_3161_KCL11_AI.OutValuePc; 
+      L     9900; // 99%
+      >=I   ; 
+      )     ; 
+      SPB   mns1; 
+      SPA   reg1; 
+mns1: NOP   0; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      L     2; // 2°C
+      -D    ; 
+      T     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      SPA   reg1; 
+pls1: NOP   0; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      L     2; // 2°C
+      +D    ; 
+      T     "MAL1Par".Values1.Value03; // Sollwert vom LS
+reg1: NOP   0; 
+
+
+      U     "G279M"._A_3291_BTE08_Active; 
+      UN(   ; 
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      O     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // switch over to cooling
+      )     ; 
+      UN    T     39; 
+      SPBN  reg2; 
+      U(    ; 
+      L     "G302M".A_3261_KCL11_AI.OutValuePc; 
+      L     9900; // 99%
+      >=I   ; 
+      )     ; 
+      UN(   ; 
+      L     "G279M".A_3161_KCL11_AI.OutValuePc; 
+      L     9500; // 95%
+      >I    ; 
+      )     ; 
+      SPB   pls2; 
+      UN(   ; 
+      L     "G302M".A_3261_KCL11_AI.OutValuePc; 
+      L     9500; // 95%
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     "G279M".A_3161_KCL11_AI.OutValuePc; 
+      L     9900; // 99%
+      >=I   ; 
+      )     ; 
+      SPB   mns2; 
+      SPA   reg2; 
+mns2: NOP   0; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      L     2; // 2°C
+      -D    ; 
+      T     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      SPA   reg2; 
+pls2: NOP   0; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+      L     2; // 2°C
+      +D    ; 
+      T     "MAL1Par".Values1.Value03; // Sollwert vom LS
+reg2: NOP   0; 
+
+
+//Timer Regelung
+      UN    T     39; 
+      L     S5T#10M; 
+      SV    T     39; 
+
+//BRT20100904 <====
+NETWORK
+TITLE =Interlocking WayOk
+
+//MW 2010.04.29 - Change temepatur sensor BTE10 to BTE08
+
+// Kiln 1 process is active or Abdarr-Betrieb
+      U     "G279M"._A_3191_BTE08_Active; 
+      U(    ; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+//      L     MW   279
+      L     100; 
+      *I    ; 
+      L     "G269M".A_3191_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 1)
+      >=I   ; 
+      )     ; 
+      O(    ; 
+// Kiln 2 process is active or Abdarr-Betrieb
+      U     "G279M"._A_3291_BTE08_Active; 
+      U(    ; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+//      L     MW   279
+      L     100; 
+      *I    ; 
+      L     "G295M".A_3291_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 2)
+      >=I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+// No process is active
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      R     "G279M".USW8; // Uebertemperatur Brenner 1
+
+// Kiln 1 process is active or Abdarr-Betrieb
+      U     "G279M"._A_3191_BTE08_Active; 
+      U(    ; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+//      L     MW   279
+      L     10; // 8°C mehr als Sollwert
+      +I    ; 
+      L     100; 
+      *I    ; 
+      L     "G269M".A_3191_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 1)
+      <=I   ; 
+      )     ; 
+      O(    ; 
+// Kiln 2 process is active or Abdarr-Betrieb
+      U     "G279M"._A_3291_BTE08_Active; 
+      U(    ; 
+      L     "MAL1Par".Values1.Value03; // Sollwert vom LS
+//      L     MW   279
+      L     10; // 8°C mehr als Sollwert
+      +I    ; 
+      L     100; 
+      *I    ; 
+      L     "G295M".A_3291_BTE10.OutValuePc; //  Temperature Pre Heater (Kiln 2)
+      <=I   ; 
+      )     ; 
+      )     ; 
+      S     "G279M".USW8; // Uebertemperatur Brenner 1
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      U(    ; 
+      U(    ; 
+      U     "G277M".A_3140_MXZ11.StHN; 
+      U     "G277M".A_3141_MXZ11.StHN; 
+      O     ; 
+      U     "G303M".A_3240_MXZ11.StHN; 
+      U     "G303M".A_3241_MXZ11.StHN; 
+      )     ; 
+      O     "G277M".Gr.OutEnablePrevGr; 
+      O     "G303M".Gr.OutEnablePrevGr; 
+      )     ; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      CLR   ; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3161-KCL11 : BURNER 1 ALARM SUMMARY
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3161_KCL11.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_3161_KCL11.InMonTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3161_KCL11.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3161_KCL11.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_3161_KCL11_I3"; 
+      =     #A_3161_KCL11.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3161_KCL11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3161-KCL11_EXT_ON : BURNER 1 EXTERAL ON
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_EXT_ON.InLocal; 
+//
+//-Interlocking--- 
+      U(    ; 
+// Signal an Brenner 1: Start (von Darre 1)
+      U(    ; 
+      U     T     50; // Nachlauf Brenner    
+      O     #Gr.InManual; 
+      U     #A_3161_KCL11.StTrue; // Keine Brennerstörung
+      U     #A_3161_KCL11_REM_OP.StTrue; // Brenner  ist auf Fernsteuerung
+      U(    ; 
+      U(    ; 
+      O     "G271M".A_3125_MXZ01MA.Ma.StStartedFwd; 
+      O     "G271M".A_3125_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G271M".A_3125_TSC01_AF.OutL; // Ventilator 1 dreht mind. 40% SW
+      U(    ; 
+      O     "G271M".A_3126_MXZ01MA.Ma.StStartedFwd; 
+      O     "G271M".A_3126_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G271M".A_3126_TSC01_AF.OutL; // Ventilator 2 dreht mind. 40% SW
+      O     ; 
+      U(    ; 
+      U(    ; 
+      O     "G271M".A_3125_MXZ01MA.Ma.StStartedFwd; 
+      O     "G271M".A_3125_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G271M".A_3125_TSC01_AF.OutH; // Ventilator 1 dreht mind. 80% SW
+      O     ; 
+      U(    ; 
+      O     "G271M".A_3126_MXZ01MA.Ma.StStartedFwd; 
+      O     "G271M".A_3126_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G271M".A_3126_TSC01_AF.OutH; // Ventilator 2 dreht mind. 80% SW
+      )     ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+// Signal an Brenner 1: Start (von Darre 2)
+      U     T     60; // Nachlauf Brenner    
+      O     #Gr.InManual; 
+      U     #A_3161_KCL11.StTrue; // Keine Brennerstörung
+      U     #A_3161_KCL11_REM_OP.StTrue; // Brenner  ist auf Fernsteuerung
+      U(    ; 
+      U(    ; 
+      O     "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; 
+      O     "G297M".A_3225_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G297M".A_3225_TSC01_AF.OutL; // Ventilator 1 dreht mind. 40% SW
+      U(    ; 
+      O     "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; 
+      O     "G297M".A_3226_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G297M".A_3226_TSC01_AF.OutL; // Ventilator 2 dreht mind. 40% SW
+      O     ; 
+      U(    ; 
+      U(    ; 
+      O     "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; 
+      O     "G297M".A_3225_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G297M".A_3225_TSC01_AF.OutH; // Ventilator 1 dreht mind. 80% SW
+      O     ; 
+      U(    ; 
+      O     "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; 
+      O     "G297M".A_3226_MXZ01MA.Ma.StStarting; 
+      )     ; 
+      U     "G297M".A_3226_TSC01_AF.OutH; // Ventilator 2 dreht mind. 80% SW
+      )     ; 
+      )     ; 
+      )     ; 
+//-------------------------------
+      )     ; 
+      UN    "G279M".USW8; // Uebertemperatur Brenner 1
+      U     #Gr.OutEnableEl; 
+      =     #A_3161_KCL11_EXT_ON.InEnable; 
+//
+      U     #tmpCmdNext; 
+      UN    T     62; // Wieder-Einschaltsperre Brenner
+      S     #A_3161_KCL11_EXT_ON.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_3161_KCL11_EXT_ON.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_EXT_ON.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_EXT_ON ;
+// 
+//-Write outputs---
+      U     #A_3161_KCL11_EXT_ON.OutpRun; 
+      =     "A_3161_KCL11_O2"; 
+
+      U     #A_3161_KCL11_EXT_ON.OutpRun; 
+      L     S5T#2M; 
+      SA    T     61; // Nachlauf Ventilator
+
+// Um Stoerungen zu vermeiden
+      U     #A_3161_KCL11_EXT_ON.OutpRun; 
+      L     S5T#10M; 
+      SA    T     62; // Wieder-Einschaltsperre Brenner
+
+NETWORK
+TITLE ==A-3161-KCL11_ON : BURNER 1 ON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_ON.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3161_KCL11_ON.InMonTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_ON.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3161_KCL11_ON.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_ON.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3161_KCL11_ON.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3161_KCL11_I1"; 
+      =     #A_3161_KCL11_ON.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_ON.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_ON ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3161-KCL11_RUN : BURNER 1 MAIN FAN RUNNING
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_RUN.InLocal; 
+//
+//-Interlocking--- 
+      U     T     61; // Nachlauf Ventilator
+      O     #Gr.OutEnableEl; 
+      =     #A_3161_KCL11_RUN.InEnable; 
+//
+      SET   ; 
+      S     #A_3161_KCL11_RUN.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_3161_KCL11_RUN.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_RUN.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_RUN ;
+// 
+//-Write outputs---
+      U     #A_3161_KCL11_RUN.OutpRun; 
+      =     "A_3161_KCL11_O1"; 
+NETWORK
+TITLE ==A-3161-KCL11_AI : BURNER 1 INPUT SIGNAL ANALOG
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3161_KCL11_AI.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3161_KCL11_AI.InMonLL; 
+      CLR   ; 
+      =     #A_3161_KCL11_AI.InMonL; 
+      CLR   ; 
+      =     #A_3161_KCL11_AI.InMonMid; 
+      CLR   ; 
+      =     #A_3161_KCL11_AI.InMonH; 
+      CLR   ; 
+      =     #A_3161_KCL11_AI.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3161_KCL11_AI1"; 
+// Negative Werte ignorieren
+      L     0; 
+      <I    ; 
+      SPB   v017; 
+      TAK   ; 
+v017: T     #A_3161_KCL11_AI.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3161_KCL11_AI.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_AI ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3161-KCL11_AO : BURNER 1 OUTPUT SIGNAL ANALOG
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_AO.InLocal; 
+//
+//-Interlocking---
+      CLR   ; 
+      =     #A_3161_KCL11_AO.InDisable; 
+//
+//-Values and parameters---
+      L     "Regler Brenner 1".LMN_PER; 
+      T     #A_3161_KCL11_AO.InOutValuePc; 
+      T     "A_3161_KCL11_AO1"; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3161_KCL11_AO.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_AO ;
+// 
+//-Write outputs---
+//      L     #A_3161_KCL11_AO.OutpValue
+//      T     "A_3161_KCL11_AO1"
+//      UN    "PLC_SystemDB".TestFunctions.StaIOSimuli
+//      SPB   PA0
+//      T     AW   928
+//PA0:  NOP   0
+NETWORK
+TITLE ==A-3161-KCL11_REG_ON : BURNER 1 REGULATOR ON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_REG_ON.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3161_KCL11_REG_ON.InMonTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_REG_ON.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3161_KCL11_REG_ON.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_REG_ON.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3161_KCL11_REG_ON.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3161_KCL11_I2"; 
+      =     #A_3161_KCL11_REG_ON.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3161_KCL11_REG_ON.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_REG_ON.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_REG_ON ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3161-KCL11_REM_OP : BURNER 1 REMOTE OPERATION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3161_KCL11_REM_OP.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_3161_KCL11_REM_OP.InMonTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_REM_OP.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3161_KCL11_REM_OP.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3161_KCL11_REM_OP.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3161_KCL11_REM_OP.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3161_KCL11_I4"; 
+      =     #A_3161_KCL11_REM_OP.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3161_KCL11_REM_OP.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3161_KCL11_REM_OP.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3161_KCL11_REM_OP ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3161_KCL11.StFault; 
+      O     #A_3161_KCL11_EXT_ON.StFault; 
+      O     #A_3161_KCL11_ON.StFault; 
+      O     #A_3161_KCL11_RUN.StFault; 
+//      O     #A_3161_KCL11_AI.OutFaulted
+//      O     #A_3161_KCL11_AO.StFault
+      O     #A_3161_KCL11_REG_ON.StFault; 
+      O     #A_3161_KCL11_REM_OP.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_3161_KCL11_EXT_ON.OutWarning; 
+      O     #A_3161_KCL11_RUN.OutWarning; 
+      O     #A_3161_KCL11_AI.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//MW 2010.04.13 - Happy copy
+      U     #Gr.ModeIdling; 
+      U     #Gr.OutSeqStop; 
+      O     #Gr.ModePassive; 
+
+      U     #A_3161_KCL11_EXT_ON.StStopped; 
+      U     #A_3161_KCL11_RUN.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_3161_KCL11_EXT_ON.StStarted; 
+      U     #A_3161_KCL11_RUN.StStarted; 
+//MW 2010.04.13 - Happy copy
+      O     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[279]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[279]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[279]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[279]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[279]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[279]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[279]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[279]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[279]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[279]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

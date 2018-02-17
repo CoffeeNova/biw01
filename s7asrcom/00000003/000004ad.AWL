@@ -1,0 +1,249 @@
+	DATA_BLOCK DB229
+	TITLE =DBG129M  TURNING SCREWS GERM 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        TURNING SCREWS GERM 2
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB229.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG129M 
+	VERSION : 00.00
+	
+	FB229
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=12900; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=3;
+	//Parameter =A-2211-MXZ61 : TURNING SCREW DRIVE
+	      #A_2211_MXZ61.Par.ParObjectNo                             :=12901;
+	      #A_2211_MXZ61.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ61.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ61.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ61.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ61.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ61.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ61.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ61.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ61.Par.ParManual                               :=True;
+	      #A_2211_MXZ61.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ61.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ61.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ62 : TURNING SCREW DRIVE
+	      #A_2211_MXZ62.Par.ParObjectNo                             :=12902;
+	      #A_2211_MXZ62.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ62.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ62.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ62.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ62.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ62.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ62.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ62.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ62.Par.ParManual                               :=True;
+	      #A_2211_MXZ62.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ62.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ62.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ63 : TURNING SCREW DRIVE
+	      #A_2211_MXZ63.Par.ParObjectNo                             :=12903;
+	      #A_2211_MXZ63.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ63.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ63.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ63.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ63.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ63.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ63.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ63.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ63.Par.ParManual                               :=True;
+	      #A_2211_MXZ63.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ63.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ63.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ64 : TURNING SCREW DRIVE
+	      #A_2211_MXZ64.Par.ParObjectNo                             :=12904;
+	      #A_2211_MXZ64.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ64.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ64.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ64.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ64.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ64.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ64.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ64.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ64.Par.ParManual                               :=True;
+	      #A_2211_MXZ64.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ64.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ64.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ65 : TURNING SCREW DRIVE
+	      #A_2211_MXZ65.Par.ParObjectNo                             :=12905;
+	      #A_2211_MXZ65.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ65.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ65.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ65.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ65.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ65.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ65.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ65.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ65.Par.ParManual                               :=True;
+	      #A_2211_MXZ65.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ65.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ65.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ66 : TURNING SCREW DRIVE
+	      #A_2211_MXZ66.Par.ParObjectNo                             :=12906;
+	      #A_2211_MXZ66.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ66.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ66.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ66.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ66.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ66.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ66.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ66.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ66.Par.ParManual                               :=True;
+	      #A_2211_MXZ66.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ66.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ66.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ67 : TURNING SCREW DRIVE
+	      #A_2211_MXZ67.Par.ParObjectNo                             :=12907;
+	      #A_2211_MXZ67.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ67.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ67.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ67.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ67.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ67.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ67.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ67.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ67.Par.ParManual                               :=True;
+	      #A_2211_MXZ67.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ67.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ67.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ68 : TURNING SCREW DRIVE
+	      #A_2211_MXZ68.Par.ParObjectNo                             :=12908;
+	      #A_2211_MXZ68.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ68.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ68.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ68.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ68.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ68.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ68.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ68.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ68.Par.ParManual                               :=True;
+	      #A_2211_MXZ68.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ68.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ68.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ69 : TURNING SCREW DRIVE
+	      #A_2211_MXZ69.Par.ParObjectNo                             :=12909;
+	      #A_2211_MXZ69.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ69.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ69.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ69.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ69.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ69.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ69.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ69.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ69.Par.ParManual                               :=True;
+	      #A_2211_MXZ69.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ69.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ69.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ70 : TURNING SCREW DRIVE
+	      #A_2211_MXZ70.Par.ParObjectNo                             :=12910;
+	      #A_2211_MXZ70.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ70.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ70.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ70.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ70.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ70.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ70.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ70.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ70.Par.ParManual                               :=True;
+	      #A_2211_MXZ70.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ70.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ70.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ71 : TURNING SCREW DRIVE
+	      #A_2211_MXZ71.Par.ParObjectNo                             :=12911;
+	      #A_2211_MXZ71.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ71.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ71.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ71.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ71.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ71.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ71.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ71.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ71.Par.ParManual                               :=True;
+	      #A_2211_MXZ71.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ71.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ71.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ72 : TURNING SCREW DRIVE
+	      #A_2211_MXZ72.Par.ParObjectNo                             :=12912;
+	      #A_2211_MXZ72.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ72.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ72.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ72.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ72.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ72.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ72.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ72.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ72.Par.ParManual                               :=True;
+	      #A_2211_MXZ72.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ72.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ72.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2211-MXZ73 : TURNING SCREW DRIVE
+	      #A_2211_MXZ73.Par.ParObjectNo                             :=12913;
+	      #A_2211_MXZ73.Par.ParMsgType                              :=7053;
+	      #A_2211_MXZ73.Par.ParHornCode                             :=3;
+	      #A_2211_MXZ73.Par.ParMonTime                              :=20;
+	      #A_2211_MXZ73.Par.ParStartingTime                         :=20;
+	      #A_2211_MXZ73.Par.ParStoppingTime                         :=0;
+	      #A_2211_MXZ73.Par.ParIdlingTime                           :=0;
+	      #A_2211_MXZ73.Par.ParDelayTime                            :=10;
+	      #A_2211_MXZ73.Par.ParLogOff                               :=False;
+	      #A_2211_MXZ73.Par.ParManual                               :=True;
+	      #A_2211_MXZ73.Par.ParRestartDelay                         :=False;
+	      #A_2211_MXZ73.Par.Par2Speed                               :=False;
+	      #A_2211_MXZ73.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,71 @@
+	DATA_BLOCK DB103
+	TITLE =DBG003G  PLC monitoring
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        PLC monitoring
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB103.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG003G 
+	VERSION : 00.00
+	
+	FB103
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=300; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter G_PLC : PLC System
+	      #G_PLC.Par.ParObjectNo                             :=301;
+	      #G_PLC.Par.ParMsgType                              :=7136;
+	      #G_PLC.Par.ParHornCode                             :=0;
+	      #G_PLC.Par.ParDelayChange                          :=0;
+	      #G_PLC.Par.ParDelayTrue                            :=10;
+	      #G_PLC.Par.ParDelayFalse                           :=0;
+	      #G_PLC.Par.ParTimeoutTrue                          :=0;
+	      #G_PLC.Par.ParTimeoutFalse                         :=0;
+	      #G_PLC.Par.ParLogOff                               :=False;
+	      #G_PLC.Par.Par2WorkingCond                         :=False;
+	      #G_PLC.Par.ParFaultRetry                           :=False;
+	      #G_PLC.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_PS_BAT : PLC Powersupply battery monitoring
+	      #G_PS_BAT.Par.ParObjectNo                             :=302;
+	      #G_PS_BAT.Par.ParMsgType                              :=7136;
+	      #G_PS_BAT.Par.ParHornCode                             :=0;
+	      #G_PS_BAT.Par.ParDelayChange                          :=0;
+	      #G_PS_BAT.Par.ParDelayTrue                            :=10;
+	      #G_PS_BAT.Par.ParDelayFalse                           :=0;
+	      #G_PS_BAT.Par.ParTimeoutTrue                          :=0;
+	      #G_PS_BAT.Par.ParTimeoutFalse                         :=0;
+	      #G_PS_BAT.Par.ParLogOff                               :=False;
+	      #G_PS_BAT.Par.Par2WorkingCond                         :=False;
+	      #G_PS_BAT.Par.ParFaultRetry                           :=False;
+	      #G_PS_BAT.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

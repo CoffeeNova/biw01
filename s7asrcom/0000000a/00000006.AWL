@@ -1,0 +1,272 @@
+FUNCTION_BLOCK "SSA_SEW_MOVIDRIVE"
+TITLE =SEW MOVIDRIVE
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        SEW MOVIDRIVE Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1812.2.0     M.Wedler            AEB41                            25-Okt-2007
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//Statuswort MOVIDRIVE
+    STATE_WORD_BIT_8 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_9 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_10 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_11 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_12 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_13 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_14 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_15 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    ENDSTUFE_FREIGEGEBEN : BOOL ;	//0=Endstufe gesperrt                 1=Endstufe freigegeben
+    BETRIEBSBEREIT : BOOL ;	//0=Umrichter nicht betriebsbereit    1=Umrichter betriebsbereit              
+    PA_DATEN_FREIGEGEBEN : BOOL ;	//0=PA-Daten gesperrt                 1=PA-Daten freigegeben
+    AKTUELL_INTEGRATORSATZ : BOOL ;	//0=Integrator 1                      1=Integrator 2
+    AKTUELL_PARAMETERSATZ : BOOL ;	//0=Parametersatz 1                   1=Parametersatz 2
+    STOERUNG_WARNUNG : BOOL ;	//0=keine Störung/Warnung             1=Störung/Warnung
+    LS_RECHTS_AKTIV : BOOL ;	//1=Endschalter RECHTS betaetigt -> Drehrichtung RECHTS gesperrt
+    LS_LINKS_AKTIV : BOOL ;	//1=Endschalter LINKS betaetigt -> Drehrichtung LINKS gesperrt
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//Hauptistwert / Prozessdaten PD2
+   ActualValue02 : INT ;	//Prozessdaten PD3
+   ActualValue03 : INT ;	//Prozessdaten PD4
+   ActualValue04 : INT ;	//Prozessdaten PD5
+   ActualValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Steuerwort MOVIDRIVE
+    CONTROL_WORD_BIT_8 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_9 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_10 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_11 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_12 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_13 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_14 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_15 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    REGLERSPERRE : BOOL ;	//0=Freigabe                          1=Regler sperren, Bremse aktivieren
+    FREIGABE_SCHNELLSTOPP : BOOL ;	//0=Schnellstopp                      1=Freigabe                             
+    FREIGABE_HALT : BOOL ;	//0=Halt an Integrator/Prozess-Rampe  1=Freigabe                             
+    HALTEREGELUNG : BOOL ;	//0=Halteregelung nicht aktiv         1=Halteregelung aktiv
+    INTEGRATOR : BOOL ;	//0=Integrator 1                      1=Integrator 2
+    PARAMETERSATZ : BOOL ;	//0=Parametersatz 1                   1=Parametersatz 2
+    RESET : BOOL ;	//0=nicht aktiv                       1=Fehler quittieren
+    RESERVE_BIT_7 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//Hauptsollwert / Prozessdaten PD2
+   SetpointValue02 : INT ;	//Prozessdaten PD3
+   SetpointValue03 : INT ;	//Prozessdaten PD4
+   SetpointValue04 : INT ;	//Prozessdaten PD5
+   SetpointValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMovidrive : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+
+      L     P##Input; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands Par.ParMovidrive
+
+      UN    #Par.ParMovidrive; 
+      SPB   MDJ0; 
+//Load Status Word
+//      LAR1  #tmpAddrInputFU
+//      L     DIW [AR1,P#0.0]             //Status Word
+//      LAR1  P##MD_StateWord
+//      T     LW [AR1,P#0.0]              // MD_StateWord
+// prepare steuerword
+      L     W#16#2; // FREIGABE_SCHNELLSTOPP=1; FREIGABE_HALT=0
+      U     #InEnableFwd; 
+      O     #InEnableRev; 
+      SPBN  MDJ1; 
+      L     W#16#6; // FREIGABE_SCHNELLSTOPP=1; FREIGABE_HALT=1
+MDJ1: LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+//-----------------------------------------
+// Fault Reset ins Steuerwort
+      U     #CmdFaultReset; 
+      U     #Input.StateWord_1.STOERUNG_WARNUNG; // Fehler von FU
+      SPBN  MDR1; 
+      L     W#16#40; // RESET=1; FREIGABE_SCHNELLSTOPP=0; FREIGABE_HALT=0
+      LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+MDR1: NOP   0; 
+//- Feedback for motor
+      U     #Input.StateWord_1.BETRIEBSBEREIT; 
+      U     #Input.StateWord_1.PA_DATEN_FREIGEGEBEN; 
+      U     #Input.StateWord_1.ENDSTUFE_FREIGEGEBEN; 
+      UN    #Input.StateWord_1.STOERUNG_WARNUNG; 
+      =     #OutRunningRev; 
+
+      U     #Input.StateWord_1.BETRIEBSBEREIT; 
+      U     #Input.StateWord_1.PA_DATEN_FREIGEGEBEN; 
+      U     #Input.StateWord_1.ENDSTUFE_FREIGEGEBEN; 
+      UN    #Input.StateWord_1.STOERUNG_WARNUNG; 
+      =     #OutRunningFwd; 
+
+      U     #Input.StateWord_1.STOERUNG_WARNUNG; 
+      =     #OutFault; 
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//C000H = -16384Dez = -100.0% (direction left)
+//4000H = +16384Dez = +100.0% (direction right)
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     1.638400e+000; 
+      *R    ; 
+      RND   ; 
+      U     #InEnableRev; 
+      SPBN  tsp; 
+      NEGD  ; 
+tsp:  T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//C000H = -16384Dez = -100.0% (direction left)
+//4000H = +16384Dez = +100.0% (direction right)
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     1.638400e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =Read Inputs of Inverter
+//      LAR1  #tmpAddrIO
+//      L     PED [AR1,P#0.0]
+//      LAR1  #tmpAddrInputFU
+//      T     DID [AR1,P#0.0]
+//      LAR1  #tmpAddrIO
+//      L     PED [AR1,P#4.0]
+//      LAR1  #tmpAddrInputFU
+//      T     DID [AR1,P#4.0]
+//      LAR1  #tmpAddrIO
+//      L     PED [AR1,P#8.0]
+//      LAR1  #tmpAddrInputFU
+//      T     DID [AR1,P#8.0]
+// 3 Process Data Words  // [2.0]
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#0.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DIW [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#2.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DIW [AR1,P#2.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#4.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DIW [AR1,P#4.0]; 
+
+NETWORK
+TITLE =Write Outputs of Inverter
+//      LAR1  #tmpAddrOutputFU
+//      L     DID [AR1,P#0.0]
+//      LAR1  #tmpAddrIO
+//      T     PAD [AR1,P#0.0]
+//      LAR1  #tmpAddrOutputFU
+//      L     DID [AR1,P#4.0]
+//      LAR1  #tmpAddrIO
+//      T     PAD [AR1,P#4.0]
+//      LAR1  #tmpAddrOutputFU
+//      L     DID [AR1,P#8.0]
+//      LAR1  #tmpAddrIO
+//      T     PAD [AR1,P#8.0]
+// 3 Process Data Words  // [2.0]
+      LAR1  #tmpAddrOutputFU; 
+      L     DIW [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#0.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DIW [AR1,P#2.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#2.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DIW [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#4.0]; 
+
+NETWORK
+TITLE =
+
+MDJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

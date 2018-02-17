@@ -1,0 +1,370 @@
+FUNCTION_BLOCK "G188M_Code"
+TITLE =G188M TEMPERATURE MES. GERM 5
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TEMPERATURE MES. GERM 5
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB288.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2591_BTE01 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2591_BTE02 : "GCS7_E_AnalogInput";	// AnaInp 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[188]; 
+      R     "GCS7_GrCtrlDB".ParWGR[188]; 
+      R     "GCS7_GrCtrlDB".ParGGR[188]; 
+      R     "GCS7_GrCtrlDB".ParFeed[188]; 
+      R     "GCS7_GrCtrlDB".ParShare[188]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[188]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[188]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[188]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[188]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[188]; 
+      R     "GCS7_GrCtrlDB".CmdNext[188]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[188]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[188]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[188]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[188]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[188]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[188]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2591-BTE01 : AIR TEMPERATURE BELOW FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2591_BTE01.InLocal; 
+
+//-Monitoring--- 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2591_BTE01.InMonLL; 
+      =     #A_2591_BTE01.InMonL; 
+      CLR   ; 
+      =     #A_2591_BTE01.InMonMid; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2591_BTE01.InMonH; 
+      =     #A_2591_BTE01.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_2591_BTE01_AI1"; 
+      T     #A_2591_BTE01.InpValue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2591_BTE01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2591_BTE01.InDPFault; 
+// 
+//-Set Parameters---
+      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      SPB   fui; 
+// Toleranzband -1,5°C Temperatur unter der Horde
+      L     "MAL1S021Par".StepAct.TemperaturBelowFloor; 
+//KR20100701    L     L#10
+//KR20100701     *D    
+      L     L#15; //KR20100701 150->15                 // =1,5°C
+      -D    ; 
+      T     #A_2591_BTE01.Par.ParLimitL; 
+// Toleranzband +1,5°C Temperatur unter der Horde
+      L     "MAL1S021Par".StepAct.TemperaturBelowFloor; 
+//KR20100701      L     L#10
+//KR20100701      *D    
+      L     L#15; //KR20100701 150->15               // =1,5°C
+      +D    ; 
+      T     #A_2591_BTE01.Par.ParLimitH; 
+      SPA   hui; 
+fui:  NOP   0; 
+      L     L#-10000; // -100,00°C
+      T     #A_2591_BTE01.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_2591_BTE01.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_2591_BTE01.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_2591_BTE01.Par.ParLimitHH; 
+hui:  NOP   0; 
+// 
+//-Call object control---
+      CALL #A_2591_BTE01 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2591-BTE02 : AIR TEMPERATURE ABOVE FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2591_BTE02.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2591_BTE02.InMonLL; 
+      CLR   ; 
+      =     #A_2591_BTE02.InMonL; 
+      CLR   ; 
+      =     #A_2591_BTE02.InMonMid; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2591_BTE02.InMonH; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_2591_BTE02.OutOverflow; 
+      =     #A_2591_BTE02.Par.ParWarningH; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2591_BTE02.InMonHH; 
+      =     #A_2591_BTE02.Par.ParPreAlarmHH; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_2591_BTE02.OutOverflow; 
+      =     #A_2591_BTE02.Par.ParWarningHH; // 
+//-Read inputs---
+      L     "A_2591_BTE02_AI1"; 
+      T     #A_2591_BTE02.InpValue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2591_BTE02.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2591_BTE02.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      R     #A_2591_BTE02.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      SPB   psp; 
+      L     L#20; //KR20100701
+      T     "MAL1S021Par".StepAct.WarningTempAboveFloor; //KR20100701
+      L     "MAL1S021Par".StepAct.WarningTempAboveFloor; 
+      L     L#10; 
+      *D    ; 
+      T     #A_2591_BTE02.Par.ParLimitH; 
+      L     "MAL1S021Par".RecipeHeader.AlarmOverTempAboveFloor; 
+      L     L#10; 
+      *D    ; 
+      T     #A_2591_BTE02.Par.ParLimitHH; 
+psp:  NOP   0; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      SPB   npsp; 
+      L     L#-10000; // -100,00°C
+      T     #A_2591_BTE02.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_2591_BTE02.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_2591_BTE02.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_2591_BTE02.Par.ParLimitHH; 
+npsp: NOP   0; 
+// 
+//-Call object control---
+      CALL #A_2591_BTE02 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2591_BTE01.OutFaulted; 
+      O     #A_2591_BTE02.OutFaulted; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2591_BTE01.OutWarning; 
+      O     #A_2591_BTE02.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #Gr.ModeIdling; 
+      U     #Gr.OutSeqStop; 
+      O     #Gr.ModePassive; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+
+NETWORK
+TITLE =Test Started
+
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[188]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[188]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[188]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[188]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[188]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[188]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[188]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[188]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[188]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[188]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

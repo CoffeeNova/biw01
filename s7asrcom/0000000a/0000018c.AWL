@@ -1,0 +1,55 @@
+	DATA_BLOCK DB922
+	TITLE =Section parameter DB : LINE 1 SEC 32 KILN 1
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section parameter : LINE 1 SEC 32 KILN 1
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB922.1.0 K.Renz              CSB41                       16.Okt.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	  STRUCT 	
+	   SectionStatus : WORD ;	//Sektionszustand [1=Beladen; 2=Prozess aktiv; 3=Entladen; 4=reinigen]
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   Spare6 : WORD ;	
+	   Spare8 : WORD ;	
+	   Par    : "SSA_Kiln_Par";	
+	   Cmd    : "SSA_Kiln_Cmd";
+	   AnalogValues: SSA_Kiln_Analog;
+	   ActTimeStepProcess : SSA_MH_StepTime;
+	   Processtime : SSA_MH_ProcessTime;
+	   Spare980 : ARRAY  [980 .. 1499 ] OF BYTE ;	
+	   RecipeHeader : SSA_Kiln_Recipe_Header;
+	   StepAct: SSA_Kiln_Step;
+	   Spare1760 : ARRAY  [1760 .. 2999 ] OF BYTE ;	
+	   Ilo : "CMDs_ILO_Funktion";	
+	  END_STRUCT ;	
+	BEGIN
+	END_DATA_BLOCK

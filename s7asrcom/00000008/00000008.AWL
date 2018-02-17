@@ -1,0 +1,491 @@
+FUNCTION_BLOCK "ERE_Communication"
+TITLE =ERE: Communictaion modul
+//  
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS90
+//
+//TITLE:        FB 71 ERE
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB71.1B       A.Egli              CT3                        04-Jan-1999
+//              Address Pointer Read
+//FB71.1A       A.Egli              AEE61                      30-Mar-1998
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MIXxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : ERE
+NAME : ERE
+VERSION : 1.1
+
+
+VAR
+  ToSSW : STRUCT 	
+   ComID : DWORD  := DW#16#10001;	
+   CmdReqRead : BOOL ;	//Command to start a read  sequence
+   CmdReqWrite : BOOL ;	//Command to start a write sequence
+   FcCode : WORD ;	//Function code 
+   DBNR : INT ;	//DB number Source or Destionetion of the data 
+   DBX : DWORD  := DW#16#84000000;	//Bit address Source or Destionetion of the data 	
+   Len : INT  := 200;	//Length in byte of the data from the actual command  
+   RetryCnt : INT  := 3;	//Retry after fault
+  END_STRUCT ;	
+  ToASW : STRUCT 	
+   OutReady : BOOL ;	//Ready for the next telegram sequence
+   CmdDone : BOOL ;	//Telegram done without fault
+   CmdNak : BOOL ;	//Telegram done with fault
+  END_STRUCT ;	
+  Error : STRUCT 	//Last Error
+   ComID : DWORD ;	
+   Object : INT ;	//Object index
+   STATUS : WORD ;	//Error status from Siemens FB  	
+   FcCode : WORD ;	//Function code
+   Count : INT ;	// Error counter
+   RetryCnt : INT ;	// Error counter
+  END_STRUCT ;	
+  Telegram : STRUCT 	
+   Step : INT ;	//Sequence number
+   Offset : INT ;	
+   OutReadSequence : BOOL ;	
+   Object : STRING  [6 ] := '<1400>';	
+  END_STRUCT ;	
+  DataSSWObject : ARRAY  [1 .. 5 ] OF WORD ;	
+  READ : "READ";	//Instanz Read 
+  WRITE : "WRITE";	//Instanz Write
+END_VAR
+VAR_TEMP
+  Addr : ANY ;	//Source or destinaton address
+  tmpNewTelegram : BOOL ;	//Init new telegram 
+END_VAR
+BEGIN
+NETWORK
+TITLE =Test Step
+//S0: Init  Communication
+//S1: Wait  for request
+//S2: Write object 1400
+//S3: Write object 1401..1406
+//S4: Read object  1301..1306
+//s7: Write object 1407
+//
+      CLR   ; 
+      =     #tmpNewTelegram; 
+
+NETWORK
+TITLE =Test Step
+//S1: Wait  for request
+//S2: Write object 1400
+//S3: Write object 1401..1406
+//S4: Read object  1301..1306
+//s7: Write object 1407
+//
+      L     #Telegram.Step; 
+      SPL   sIni; 
+      SPA   S0; 
+      SPA   S1; 
+      SPA   S2; 
+      SPA   S3; 
+      SPA   S4; 
+      SPA   sIni; 
+      SPA   sIni; 
+      SPA   S7; 
+sIni: SPA   S0; 
+
+NETWORK
+TITLE =Init communication
+//Transition to Step 0
+S0:   L     1; 
+      T     #Telegram.Step; // Passive
+      L     W#16#1002; 
+      T     LW     0; //Addr.TYPE
+      L     200; 
+      T     LW     2; //Addr.LEN
+      L     #ToSSW.DBNR; 
+      T     LW     4; //Addr.DB
+      L     W#16#8400; 
+      T     LW     6; 
+      L     #ToSSW.DBX; 
+      T     LW     8; //Addr.DBX
+      SPA   Snd; 
+
+NETWORK
+TITLE =Passive
+//Transition to Step 0
+xxS1: L     1; 
+      T     #Telegram.Step; //-->Passive
+
+//==== Step 1 =============
+S1:   SET   ; 
+      =     #ToASW.OutReady; 
+
+      UN    #ToSSW.CmdReqRead; 
+      UN    #ToSSW.CmdReqWrite; 
+      SPB   Snd; 
+      SPA   xxS2; 
+NETWORK
+TITLE =Send object 1400
+// Transiton to Step 2
+//   Init for object 1400
+// Set Step
+xxS2: L     2; 
+      T     #Telegram.Step; //-->Send Object 1400
+      L     0; 
+      T     #Error.RetryCnt; 
+// Set Object Nr
+      L     '1'; 
+      T     #Telegram.Object[2]; 
+      L     '4'; 
+      T     #Telegram.Object[3]; 
+      L     '0'; 
+      T     #Telegram.Object[4]; 
+      L     '0'; 
+      T     #Telegram.Object[5]; 
+
+      L     #ToSSW.FcCode; 
+      T     #DataSSWObject[2]; 
+      L     #ToSSW.Len; 
+      T     #DataSSWObject[5]; 
+
+      L     W#16#1002; 
+      T     LW     0; //Addr.TYPE
+      L     10; 
+      T     LW     2; //Addr.LEN
+      L     DINO; 
+      T     LW     4; //Addr.DB
+      L     P##DataSSWObject; 
+      T     LD     6; //Addr.DBX
+
+      U     #ToSSW.CmdReqRead; 
+      =     #Telegram.OutReadSequence; 
+      SET   ; 
+      R     #ToSSW.CmdReqRead; 
+      R     #ToSSW.CmdReqWrite; 
+      R     #ToASW.OutReady; 
+      R     #ToASW.CmdDone; 
+      R     #ToASW.CmdNak; 
+S2rt: S     #tmpNewTelegram; //--> Write Object 1400
+      SPA   Snd; 
+//==== Step 1 ==================
+
+S2:   U     #WRITE.ERROR; 
+      SPB   S2Er; //--> Transition to error     
+      U     #Telegram.OutReadSequence; 
+      U     #WRITE.DONE; 
+      SPB   xxS7; //--> Transition to object 1407
+      UN    #Telegram.OutReadSequence; 
+      U     #WRITE.DONE; 
+      SPB   xxS3; //--> Transition to object 1401
+      SPA   Snd; 
+// 
+S2Er: L     1400; 
+      T     #Error.Object; 
+
+      L     #Error.RetryCnt; 
+      +     1; 
+      T     #Error.RetryCnt; 
+      L     #ToSSW.RetryCnt; 
+      <I    ; 
+      SPB   S2rt; 
+      SPA   erro; 
+
+NETWORK
+TITLE =Send object 1401 to 1406
+// Transiton to Step 3
+//   Init for object 1401
+// Set Step
+xxS3: L     3; 
+      T     #Telegram.Step; //-->Send Object 1400
+      L     0; 
+      T     #Telegram.Offset; 
+      T     #Error.RetryCnt; 
+// Set Object Nr
+S3nx: L     #Telegram.Object[5]; 
+      +     1; 
+      T     #Telegram.Object[5]; // Increment Object e.g. 1400 to 1401
+
+      L     W#16#1002; 
+      T     LW     0; //Addr.TYPE
+      L     200; 
+      T     LW     2; //Addr.LEN
+      L     #ToSSW.DBNR; 
+      T     LW     4; //Addr.DB
+      L     W#16#8400; 
+      T     LW     6; 
+      L     #ToSSW.DBX; 
+      L     #Telegram.Offset; 
+      SLD   3; 
+      +D    ; 
+      T     LW     8; //Addr.DBX
+
+S3rt: SET   ; 
+      S     #tmpNewTelegram; //--> Start Write
+      SPA   Snd; 
+//==== Step 1 ==================
+
+S3:   U     #WRITE.DONE; 
+      SPB   S3J1; //--> Transition to next object
+      U     #WRITE.ERROR; 
+      SPB   S3Er; //--> Transition to error 
+      SPA   Snd; 
+S3J1: L     #Telegram.Offset; 
+      +     200; 
+      T     #Telegram.Offset; 
+      L     #ToSSW.Len; 
+      >=D   ; 
+      SPB   xxS7; //--> Transition to object 1407
+      SPB   S3nx; 
+// 
+S3Er: L     #Telegram.Object[5]; 
+      L     '0'; 
+      -I    ; 
+      L     1400; 
+      +I    ; 
+      T     #Error.Object; 
+
+      L     #Error.RetryCnt; 
+      +     1; 
+      T     #Error.RetryCnt; 
+      L     #ToSSW.RetryCnt; 
+      <I    ; 
+      SPB   S3rt; 
+
+      SPA   erro; 
+
+NETWORK
+TITLE =Read object 1301 to 1306
+// Transiton to Step 4
+//   Init for object 1301
+// Set Step
+xxS4: L     4; 
+      T     #Telegram.Step; //-->Send Object 1400
+      L     0; 
+      T     #Telegram.Offset; 
+      T     #Error.RetryCnt; 
+
+// Set Object Nr
+      L     '1'; 
+      T     #Telegram.Object[2]; 
+      L     '3'; 
+      T     #Telegram.Object[3]; 
+      L     '0'; 
+      T     #Telegram.Object[4]; 
+      L     '0'; 
+      T     #Telegram.Object[5]; 
+S4nx: L     #Telegram.Object[5]; 
+      +     1; 
+      T     #Telegram.Object[5]; // Increment Object e.g. 1300 to 1301
+
+S4rt: SET   ; 
+      S     #tmpNewTelegram; //--> Start Read
+      SPA   Read; 
+//==== Step 2 ==================
+
+S4:   U     #READ.NDR; 
+      SPB   S4J1; //--> Transition to next object
+      U     #READ.ERROR; 
+      SPB   S4Er; //--> Transition to error 
+      SPA   Read; 
+S4J1: L     #Telegram.Offset; 
+      +     200; 
+      T     #Telegram.Offset; 
+      L     #ToSSW.Len; 
+      >=D   ; 
+      S     #ToASW.CmdDone; 
+      SPB   xxS1; //--> Transition to passive
+      SPA   S4nx; 
+// 
+S4Er: L     #Telegram.Object[5]; 
+      L     '0'; 
+      -I    ; 
+      L     1300; 
+      +I    ; 
+      T     #Error.Object; 
+
+      L     #Error.RetryCnt; 
+      +     1; 
+      T     #Error.RetryCnt; 
+      L     #ToSSW.RetryCnt; 
+      <I    ; 
+      SPB   S4rt; 
+
+      SPA   erro; 
+
+NETWORK
+TITLE =Send object 1407
+// Transiton to Step 7
+//   Init for object 1407
+// Set Step
+xxS7: L     7; 
+      T     #Telegram.Step; //-->Send Object 1407
+      L     0; 
+      T     #Error.RetryCnt; 
+// Set Object Nr
+      L     '1'; 
+      T     #Telegram.Object[2]; 
+      L     '4'; 
+      T     #Telegram.Object[3]; 
+      L     '0'; 
+      T     #Telegram.Object[4]; 
+      L     '7'; 
+      T     #Telegram.Object[5]; 
+
+      L     0; 
+      T     #DataSSWObject[1]; 
+
+      L     W#16#1002; 
+      T     LW     0; //Addr.TYPE
+      L     2; 
+      T     LW     2; //Addr.LEN
+      L     DINO; 
+      T     LW     4; //Addr.DB
+      L     P##DataSSWObject; 
+      T     LD     6; //Addr.DBX
+
+S7rt: SET   ; 
+      S     #tmpNewTelegram; //--> Start Write
+      SPA   Snd; 
+//==== Step 1 ==================
+
+S7:   UN    #Telegram.OutReadSequence; 
+      U     #WRITE.DONE; 
+      S     #ToASW.CmdDone; 
+      SPB   xxS1; //--> Transition to passive
+      U     #Telegram.OutReadSequence; 
+      U     #WRITE.DONE; 
+      SPB   xxS4; //--> Transition to object 1403
+      U     #WRITE.ERROR; 
+      SPB   S7Er; //--> Transition to error 
+      SPA   Snd; 
+// 
+S7Er: L     1407; 
+      T     #Error.Object; 
+
+      L     #Error.RetryCnt; 
+      +     1; 
+      T     #Error.RetryCnt; 
+      L     #ToSSW.RetryCnt; 
+      <I    ; 
+      SPB   S7rt; 
+
+      SPA   erro; 
+
+NETWORK
+TITLE =Error
+//Transition to Step 0
+erro: L     #Error.Count; 
+      +     1; 
+      T     #Error.Count; 
+      L     #ToSSW.FcCode; 
+      T     #Error.FcCode; 
+      S     #ToASW.CmdNak; 
+      SPA   xxS1; 
+NETWORK
+TITLE =OUT
+
+Read: U     #tmpNewTelegram; //--> Start Read
+      R     #READ.REQ; //--> Start Write seq
+      R     #READ.NDR; 
+      R     #READ.ERROR; 
+
+
+      L     W#16#1002; 
+      T     LW     0; //Addr.TYPE
+      L     200; 
+      T     LW     2; //Addr.LEN
+      L     #ToSSW.DBNR; 
+      T     LW     4; //Addr.DB
+
+      L     W#16#8400; 
+      T     LW     6; 
+      L     #ToSSW.DBX; 
+      L     #Telegram.Offset; 
+      SLD   3; 
+      +D    ; 
+      T     LW     8; //Addr.DBX
+
+      CALL #READ (
+           ID                       := #ToSSW.ComID,
+           VAR_1                    := #Telegram.Object,
+           RD_1                     := #Addr);
+
+      U     #tmpNewTelegram; //--> Start Read
+      R     #tmpNewTelegram; //--> Start Read
+      S     #READ.REQ; //--> Start Write seq
+      SPB   Read; 
+
+//Test Time Out
+      L     #READ.STATUS; 
+      U     #READ.ERROR; 
+      SPB   erRe; 
+      L     1; 
+      L     #Telegram.Step; // Passive
+      <>I   ; 
+      U(    ; 
+      L     #READ.STATUS; 
+      L     0; 
+      ==I   ; 
+      )     ; 
+      UN    #READ.NDR; 
+      L     W#16#FFFF; 
+      S     #READ.ERROR; 
+      SPB   erRe; 
+      SPA   OUT; 
+
+Snd:  U     #tmpNewTelegram; //--> Start Write
+      R     #WRITE.REQ; //--> Start Write seq
+      R     #WRITE.DONE; 
+      R     #WRITE.ERROR; 
+
+      CALL #WRITE (
+           ID                       := #ToSSW.ComID,
+           VAR_1                    := #Telegram.Object,
+           SD_1                     := #Addr);
+
+      U     #tmpNewTelegram; //--> Start Write
+      R     #tmpNewTelegram; //--> Start Write
+      S     #WRITE.REQ; //--> Start Write seq
+      SPB   Snd; //Positiv flag
+
+      U     #WRITE.ERROR; 
+      L     #WRITE.STATUS; 
+      SPB   erRe; 
+
+//Test Time Out
+      L     1; 
+      L     #Telegram.Step; // Passive
+      <>I   ; 
+      U(    ; 
+      L     #WRITE.STATUS; 
+      L     0; 
+      ==I   ; 
+      )     ; 
+      UN    #WRITE.DONE; 
+      L     W#16#FFFF; 
+      S     #WRITE.ERROR; 
+      SPB   erRe; 
+      SPA   OUT; 
+
+erRe: T     #Error.STATUS; 
+      L     #ToSSW.ComID; 
+      T     #Error.ComID; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =
+
+OUT:  NOP   0; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,419 @@
+	FUNCTION_BLOCK FB 102
+	TITLE =G002G Contactor panel power supply 1
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Contactor panel power supply 1
+	//                General group control
+	//                Allgemeine Gruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB102.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #G_POWER_M10 : FB14;   // DigInpCont 
+	     #G_POWER_Mx1 : FB14;   // DigInpCont 
+	     #G_POWER_Mx2 : FB14;   // DigInpCont 
+	     #G_POWER_Mx3 : FB14;   // DigInpCont 
+	     #G_POWER_Mx4 : FB14;   // DigInpCont 
+	     #G_POWER_Mx5 : FB14;   // DigInpCont 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      R   GCS7_GrCtrlDB.ParMGR[2];
+	      R   GCS7_GrCtrlDB.ParWGR[2];
+	      S   GCS7_GrCtrlDB.ParGGR[2];
+	      R   GCS7_GrCtrlDB.ParFeed[2];
+	      S   GCS7_GrCtrlDB.ParShare[2];
+	      R   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      S   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[2];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[2];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[2];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[2];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[2];
+	      R   #GCS7_GrCtrlDB.CmdNext[2];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[2];
+	      O   #GCS7_GrCtrlDB.OutOccupied[2];
+	      R   GCS7_GrCtrlDB.CmdManualOff[2];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[2];
+	      R   GCS7_GrCtrlDB.CmdContinue[2];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[2];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    PLC_SystemDB.HardwareStop.General;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =G_POWER_M10 : Power supply panel +M10
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_M10.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_M10.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_M10.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_M10.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_M10.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_M10;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_POWER_Mx1 : Power supply panel x
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_Mx1.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_Mx1.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_Mx1.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_Mx1.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_Mx1.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_Mx1;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_POWER_Mx2 : Power supply panel x
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_Mx2.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_Mx2.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_Mx2.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_Mx2.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_Mx2.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_Mx2;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_POWER_Mx3 : Power supply panel x
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_Mx3.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_Mx3.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_Mx3.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_Mx3.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_Mx3.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_Mx3;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_POWER_Mx4 : Power supply panel x
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_Mx4.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_Mx4.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_Mx4.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_Mx4.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_Mx4.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_Mx4;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_POWER_Mx5 : Power supply panel x
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #G_POWER_Mx5.InLocal; 
+	// 
+	//-Monitoring---
+	      SET;
+	      =      #G_POWER_Mx5.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #G_POWER_Mx5.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #G_POWER_Mx5.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 050.0; 
+	      =     #G_POWER_Mx5.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_POWER_Mx5;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #G_POWER_M10.StFault;
+	      O     #G_POWER_Mx1.StFault;
+	      O     #G_POWER_Mx2.StFault;
+	      O     #G_POWER_Mx3.StFault;
+	      O     #G_POWER_Mx4.StFault;
+	      O     #G_POWER_Mx5.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      U     #G_POWER_M10.StFalse;
+	      O     #G_POWER_Mx1.StFalse;
+	      O     #G_POWER_Mx2.StFalse;
+	      O     #G_POWER_Mx3.StFalse;
+	      O     #G_POWER_Mx4.StFalse;
+	      O     #G_POWER_Mx5.StFalse;
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      SET;
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U(;
+	      O     #G_POWER_M10.StTrue; 
+	      O     #G_POWER_M10.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_POWER_Mx1.StTrue; 
+	      O     #G_POWER_Mx1.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_POWER_Mx2.StTrue; 
+	      O     #G_POWER_Mx2.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_POWER_Mx3.StTrue; 
+	      O     #G_POWER_Mx3.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_POWER_Mx4.StTrue; 
+	      O     #G_POWER_Mx4.StCtoFalse; 
+	      );
+	      U(;
+	      O     #G_POWER_Mx5.StTrue; 
+	      O     #G_POWER_Mx5.StCtoFalse; 
+	      );
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Lamp panel power failure
+	    NOP 0;
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[2];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[2];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[2];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[2];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[2];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[2];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[2];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[2];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[2];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[2];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

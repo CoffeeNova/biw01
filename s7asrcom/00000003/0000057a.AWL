@@ -1,0 +1,386 @@
+	FUNCTION_BLOCK FB 334
+	TITLE =G234M HP CLEANING GERM 7
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        HP CLEANING GERM 7
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB334.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_2713_QXV_BZS11_12 : FB13;   // VLS 
+	     #A_2715MXZ91 : FB12;   // Motor 
+	     #A_2715_QYS18 : FB14;   // DigInpCont 
+	     #A_2715_QYS19 : FB14;   // DigInpCont 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[234];
+	      R   GCS7_GrCtrlDB.ParWGR[234];
+	      R   GCS7_GrCtrlDB.ParGGR[234];
+	      R   GCS7_GrCtrlDB.ParFeed[234];
+	      R   GCS7_GrCtrlDB.ParShare[234];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[234];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[234];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[234];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[234];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[234];
+	      R   #GCS7_GrCtrlDB.CmdNext[234];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[234];
+	      O   #GCS7_GrCtrlDB.OutOccupied[234];
+	      R   GCS7_GrCtrlDB.CmdManualOff[234];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[234];
+	      R   GCS7_GrCtrlDB.CmdContinue[234];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[234];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX32.1;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =Interlocking Start Warning
+	      NOP 0;
+	//- Restart after fault --
+	      U     #Gr.CmdFaultReset;
+	      U     #Gr.VarFault;
+	      S       "SYS_StartWarningDB".Area[8].CmdResetStartWarning;
+	//- Run Timer --
+	      AUF "G234M";
+	      CALL  FB100 , DB100(
+	       InModeHigher :=FALSE,
+	       InArea     :=8,
+	       InEnable   :=#Gr.OutEnableEl,
+	       InLocal    :=#tmpLocal,
+	       InStarted  :=#Gr.VarStarted,
+	       InCmdNext  :=#tmpCmdNext,
+	       OutCmdNext :=#tmpCmdNext,
+	       OutStartwarning:=#Gr.VarStartWarning);
+	//- Store Startwarning done  --
+	//- Reset Autostart --
+	      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL;
+	      FN    #EdgeStartRelease;
+	      U     #Gr.VarFault;
+	      R     #Gr.OutAutostart;
+	NETWORK
+	TITLE ==A-2713-QXV/BZS11/12 : HP WATER
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2713_QXV_BZS11_12.InLocal; 
+	//
+	//-Interlocking---
+	         =     #A_2713_QXV_BZS11_12.InEnableHN; 
+	         NOT;
+	         =     #A_2713_QXV_BZS11_12.InEnableLN; 
+	//
+	         SET;
+	         S     #A_2713_QXV_BZS11_12.CmdNext; 
+	//
+	      U     #Gr.OutSeqStop; 
+	      =     #A_2713_QXV_BZS11_12.InSeqStop; 
+	// 
+	//-Read inputs---
+	      UN   #A_2713_QXV_BZS11_12.OutpHN; 
+	      =     #A_2713_QXV_BZS11_12.InpLN; 
+	      U   #A_2713_QXV_BZS11_12.OutpHN; 
+	      =     #A_2713_QXV_BZS11_12.InpHN;
+	      U   DB050.DBX32.1;
+	      =     #A_2713_QXV_BZS11_12.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2713_QXV_BZS11_12;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-2715MXZ91 : CLLEANING DEVICE
+	NOP 0;
+	//-InLocal--- 
+	      U     #tmpLocal; 
+	      =     #A_2715MXZ91.InLocal; 
+	//
+	//-Interlocking--- 
+	      	      U(;
+	      U     #A_2713_QXV_BZS11_12.InEnableLN;
+	      U     #A_2713_QXV_BZS11_12.StLN;
+	      O;
+	      U     #A_2713_QXV_BZS11_12.InEnableHN;
+	      U     #A_2713_QXV_BZS11_12.StHN;
+	      );
+	      U     #Gr.OutEnableEl; 
+	      =     #A_2715MXZ91.InEnableFwd; 
+	// 
+	      U    #tmpCmdNext;
+	      S     #A_2715MXZ91.CmdNext; 
+	// 
+	      U     #Gr.OutSeqStop; 
+	      =     #A_2715MXZ91.InSeqStop; 
+	// 
+	//-Read inputs---
+	      U     #A_2715MXZ91.OutpRunFwd; 
+	      =     #A_2715MXZ91.InpRunFwd; 
+	      U   DB050.DBX32.1;
+	      =     #A_2715MXZ91.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2715MXZ91;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-2715-QYS18 : CLEANING FLAP 1
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2715_QYS18.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_2715_QYS18.InMonTrue; 
+	      CLR;
+	      =      #A_2715_QYS18.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_2715_QYS18.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_2715_QYS18.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_2715_QYS18.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 762.4; 
+	      =     #A_2715_QYS18.InpTrue; 
+	      U   DB050.DBX32.1;
+	      =     #A_2715_QYS18.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[75];
+	       =       #A_2715_QYS18.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2715_QYS18;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-2715-QYS19 : CLEANING FLAP 2
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2715_QYS19.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_2715_QYS19.InMonTrue; 
+	      CLR;
+	      =      #A_2715_QYS19.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_2715_QYS19.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_2715_QYS19.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_2715_QYS19.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 762.5; 
+	      =     #A_2715_QYS19.InpTrue; 
+	      U   DB050.DBX32.1;
+	      =     #A_2715_QYS19.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[75];
+	       =       #A_2715_QYS19.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2715_QYS19;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_2713_QXV_BZS11_12.StFault;
+	      O     #A_2715MXZ91.StFault;
+	      O     #A_2715_QYS18.StFault;
+	      O     #A_2715_QYS19.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      CLR;   
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      U     #A_2715MXZ91.StStopped; 
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U     #A_2713_QXV_BZS11_12.StHN; 
+	      U     #A_2715MXZ91.StStartedFwd; 
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[234];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[234];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[234];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[234];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[234];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[234];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[234];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[234];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[234];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[234];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

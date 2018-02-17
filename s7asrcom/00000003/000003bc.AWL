@@ -1,0 +1,146 @@
+	DATA_BLOCK DB101
+	TITLE =DBG001G  Power supply circuit +C11
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Power supply circuit +C11
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB101.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG001G 
+	VERSION : 00.00
+	
+	FB101
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=100; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter G_C_VOLTAGE : Control voltage
+	      #G_C_VOLTAGE.Par.ParObjectNo                             :=101;
+	      #G_C_VOLTAGE.Par.ParMsgType                              :=7147;
+	      #G_C_VOLTAGE.Par.ParHornCode                             :=0;
+	      #G_C_VOLTAGE.Par.ParDelayChange                          :=0;
+	      #G_C_VOLTAGE.Par.ParDelayTrue                            :=10;
+	      #G_C_VOLTAGE.Par.ParDelayFalse                           :=0;
+	      #G_C_VOLTAGE.Par.ParTimeoutTrue                          :=0;
+	      #G_C_VOLTAGE.Par.ParTimeoutFalse                         :=0;
+	      #G_C_VOLTAGE.Par.ParLogOff                               :=False;
+	      #G_C_VOLTAGE.Par.Par2WorkingCond                         :=False;
+	      #G_C_VOLTAGE.Par.ParFaultRetry                           :=False;
+	      #G_C_VOLTAGE.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_ES_GENERAL : Emergency stop circuit
+	      #G_ES_GENERAL.Par.ParObjectNo                             :=102;
+	      #G_ES_GENERAL.Par.ParMsgType                              :=7171;
+	      #G_ES_GENERAL.Par.ParHornCode                             :=0;
+	      #G_ES_GENERAL.Par.ParDelayChange                          :=0;
+	      #G_ES_GENERAL.Par.ParDelayTrue                            :=10;
+	      #G_ES_GENERAL.Par.ParDelayFalse                           :=0;
+	      #G_ES_GENERAL.Par.ParTimeoutTrue                          :=0;
+	      #G_ES_GENERAL.Par.ParTimeoutFalse                         :=0;
+	      #G_ES_GENERAL.Par.ParLogOff                               :=False;
+	      #G_ES_GENERAL.Par.Par2WorkingCond                         :=False;
+	      #G_ES_GENERAL.Par.ParFaultRetry                           :=False;
+	      #G_ES_GENERAL.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_FUSE_NSWITCHED : Sicherungsüberwachung Mühle - ungeschaltete Kreise
+	      #G_FUSE_NSWITCHED.Par.ParObjectNo                             :=107;
+	      #G_FUSE_NSWITCHED.Par.ParMsgType                              :=7135;
+	      #G_FUSE_NSWITCHED.Par.ParHornCode                             :=0;
+	      #G_FUSE_NSWITCHED.Par.ParDelayChange                          :=0;
+	      #G_FUSE_NSWITCHED.Par.ParDelayTrue                            :=100;
+	      #G_FUSE_NSWITCHED.Par.ParDelayFalse                           :=15;
+	      #G_FUSE_NSWITCHED.Par.ParTimeoutTrue                          :=0;
+	      #G_FUSE_NSWITCHED.Par.ParTimeoutFalse                         :=0;
+	      #G_FUSE_NSWITCHED.Par.ParLogOff                               :=False;
+	      #G_FUSE_NSWITCHED.Par.Par2WorkingCond                         :=False;
+	      #G_FUSE_NSWITCHED.Par.ParFaultRetry                           :=False;
+	      #G_FUSE_NSWITCHED.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_FUSE_SWITCHED : Sicherungsüberwachung - geschaltete Kreise
+	      #G_FUSE_SWITCHED.Par.ParObjectNo                             :=103;
+	      #G_FUSE_SWITCHED.Par.ParMsgType                              :=7135;
+	      #G_FUSE_SWITCHED.Par.ParHornCode                             :=0;
+	      #G_FUSE_SWITCHED.Par.ParDelayChange                          :=0;
+	      #G_FUSE_SWITCHED.Par.ParDelayTrue                            :=10;
+	      #G_FUSE_SWITCHED.Par.ParDelayFalse                           :=15;
+	      #G_FUSE_SWITCHED.Par.ParTimeoutTrue                          :=0;
+	      #G_FUSE_SWITCHED.Par.ParTimeoutFalse                         :=0;
+	      #G_FUSE_SWITCHED.Par.ParLogOff                               :=False;
+	      #G_FUSE_SWITCHED.Par.Par2WorkingCond                         :=False;
+	      #G_FUSE_SWITCHED.Par.ParFaultRetry                           :=False;
+	      #G_FUSE_SWITCHED.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_FIRE : Fire alarm
+	      #G_FIRE.Par.ParObjectNo                             :=106;
+	      #G_FIRE.Par.ParMsgType                              :=7164;
+	      #G_FIRE.Par.ParHornCode                             :=0;
+	      #G_FIRE.Par.ParDelayChange                          :=0;
+	      #G_FIRE.Par.ParDelayTrue                            :=10;
+	      #G_FIRE.Par.ParDelayFalse                           :=0;
+	      #G_FIRE.Par.ParTimeoutTrue                          :=0;
+	      #G_FIRE.Par.ParTimeoutFalse                         :=0;
+	      #G_FIRE.Par.ParLogOff                               :=False;
+	      #G_FIRE.Par.Par2WorkingCond                         :=False;
+	      #G_FIRE.Par.ParFaultRetry                           :=False;
+	      #G_FIRE.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_SMOKE : Smoke alarm
+	      #G_SMOKE.Par.ParObjectNo                             :=104;
+	      #G_SMOKE.Par.ParMsgType                              :=7164;
+	      #G_SMOKE.Par.ParHornCode                             :=0;
+	      #G_SMOKE.Par.ParDelayChange                          :=0;
+	      #G_SMOKE.Par.ParDelayTrue                            :=10;
+	      #G_SMOKE.Par.ParDelayFalse                           :=0;
+	      #G_SMOKE.Par.ParTimeoutTrue                          :=0;
+	      #G_SMOKE.Par.ParTimeoutFalse                         :=0;
+	      #G_SMOKE.Par.ParLogOff                               :=False;
+	      #G_SMOKE.Par.Par2WorkingCond                         :=False;
+	      #G_SMOKE.Par.ParFaultRetry                           :=False;
+	      #G_SMOKE.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_EXFLAPS : Explosion flaps circuit
+	      #G_EXFLAPS.Par.ParObjectNo                             :=105;
+	      #G_EXFLAPS.Par.ParMsgType                              :=7167;
+	      #G_EXFLAPS.Par.ParHornCode                             :=0;
+	      #G_EXFLAPS.Par.ParDelayChange                          :=0;
+	      #G_EXFLAPS.Par.ParDelayTrue                            :=10;
+	      #G_EXFLAPS.Par.ParDelayFalse                           :=0;
+	      #G_EXFLAPS.Par.ParTimeoutTrue                          :=0;
+	      #G_EXFLAPS.Par.ParTimeoutFalse                         :=0;
+	      #G_EXFLAPS.Par.ParLogOff                               :=False;
+	      #G_EXFLAPS.Par.Par2WorkingCond                         :=False;
+	      #G_EXFLAPS.Par.ParFaultRetry                           :=False;
+	      #G_EXFLAPS.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

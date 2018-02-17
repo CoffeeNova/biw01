@@ -1,0 +1,122 @@
+	FUNCTION FC75 : VOID
+	TITLE =DP-Diagnosis Main
+	//COPYRIGHT:     (C) 2001 BY  BUEHLER LTD. 
+	//                            CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:       DP-Diagnosis
+	//
+	//TITLE:         DP-DiagMain
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTOR:              DEPT:                         DATE:
+	//
+	//FC75.1A       K. Tischer          CT3                          28-MAY-2001
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE:  - each mastersystem is a separate Network
+	//              - initial same Bit
+	//              - Call DP-Diagnostic (orig. Siemens) 
+	//              - Call additional Diagnostic for not Siemens Slaves
+	//              - reset same parameters
+	//
+	//RESTRICTIONS:   NEEDS SIEMENS FB76 (original FB125)
+	//                NEEDS FC76 additional Diagnostic for not Siemens Slaves
+	//
+	//Paramters to set:
+	//              - FB76 DP_Mastersystem (prepaired 1 .. 4)
+	//              - FB76 EXTERNAL_DP_INTERFACE 
+	//                     prepaired MASTERSYSTEM 1   : FALSE
+	//                               MASTERSYSTEM 2..4: TRUE
+	//
+	//-------------------------------------------------------------------------
+	//
+	AUTHOR : TiK
+	FAMILY : DP
+	NAME : DPDiagM
+	VERSION : 1.0
+	
+	
+	VAR_TEMP
+	  Single_Step_Slave : BOOL ;    
+	  Single_Step_Error : BOOL ;    
+	  Reset : BOOL ;    
+	  Single_Diag : BOOL ;  
+	  Sum_Slave_Diag_Int : BYTE ;   //Anzahl Slave Diagnosen
+	  DiagNo : BYTE ;   //tik
+	  ByteSrc : INT ;   //TIK
+	  Diag_Dat_Norm_Act : ARRAY  [0 .. 7 ] OF //tik
+	  BYTE ;    
+	  Fault : BOOL ;    //tik
+	  tmpValue : INT ;  
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	
+	
+	NETWORK
+	TITLE =Mastersystem 1
+	//dignostic DB: DB75
+	//
+	// Save PCC parameters
+	      U     "SYS_DPInfoM1".SINGLE_STEP_SLAVE; 
+	      S     #Single_Step_Slave; 
+	      U     "SYS_DPInfoM1".SINGLE_STEP_ERROR; 
+	      S     #Single_Step_Error; 
+	      U     "SYS_DPInfoM1".RESET; 
+	      S     #Reset; 
+	      U     "SYS_DPInfoM1".SINGLE_DIAG; 
+	      S     #Single_Diag; 
+	
+	// Call DPDiagnostic (orig. Siemens)
+	      //--> Please check the Parameter EXTERNAL_DP_INTERFACE of the FB75-Call.
+	      //--> Use SYS_infLog0 or SYS_infLog1 instead of M 50.0
+	      CALL "SYS_DP-Diagnosis" , "SYS_DPInfoM1" (
+	           DP_MASTERSYSTEM          := 1,
+	           EXTERNAL_DP_INTERFACE    := M50.0);
+	//Call Diagnostic not Siemens
+	      AUF   "SYS_DPInfoM1"; 
+	      CALL "SYS_DPDiag1" ;
+	//reset PCC parameters
+	      U     "SYS_DPInfoM1".SINGLE_STEP_SLAVE; 
+	      U     #Single_Step_Slave; 
+	      R     "SYS_DPInfoM1".SINGLE_STEP_SLAVE; 
+	      R     #Single_Step_Slave; 
+	      U     "SYS_DPInfoM1".SINGLE_STEP_ERROR; 
+	      U     #Single_Step_Error; 
+	      R     "SYS_DPInfoM1".SINGLE_STEP_ERROR; 
+	      R     #Single_Step_Error; 
+	      U     "SYS_DPInfoM1".RESET; 
+	      U     #Reset; 
+	      R     "SYS_DPInfoM1".RESET; 
+	      R     #Reset; 
+	      U     "SYS_DPInfoM1".SINGLE_DIAG; 
+	      U     #Single_Diag; 
+	      R     "SYS_DPInfoM1".SINGLE_DIAG; 
+	      R     #Single_Diag; 
+	//Copy Info
+	      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+	      SPB P011;
+	      CALL "SIEMENS_BLKMOV" (
+	           SRCBLK                   := "SYS_DPInfoM1".AFFECT_SLAVES,
+	           RET_VAL                  := #tmpValue,
+	           DSTBLK                   := "PLC_DPInfo".Master[1]);
+	      SPA   P021; 
+	P011: L     1; 
+	      T     "SYS_DPInfoM1".SUM_SLAVES_DIAG; 
+	      L     1; 
+	      T     "SYS_DPInfoM1".SLAVE_STATE; 
+	      L     1; 
+	      T     "SYS_DPInfoM1".DIAG_DAT_NORM[1]; 
+	      L     W#16#FF; 
+	      T     "SYS_DPInfoM1".DIAG_DAT_NORM[4]; 
+	      L     W#16#0100; 
+	      T     DB75.DBW 1176; 
+	      T     DB75.DBW 1208; 
+	      L     W#16#0100; 
+	      T     DB75.DBW 1224; 
+	P021: NOP   0; 
+	END_FUNCTION

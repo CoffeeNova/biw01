@@ -1,0 +1,351 @@
+FUNCTION_BLOCK "G047M_Code"
+TITLE =G047M AERATION AIR STEEPING 8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        AERATION AIR STEEPING 8
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB147.1.0 K.Renz              CSB41                              29.Sep.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_1118_QXV_BZS41_42 : "GCS7_E_ValveControl";	// VLS 
+  A_1118_MXZ45_BZS47_48 : "GCS7_E_ValveControl";	// VLS 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[47]; 
+      R     "GCS7_GrCtrlDB".ParWGR[47]; 
+      R     "GCS7_GrCtrlDB".ParGGR[47]; 
+      R     "GCS7_GrCtrlDB".ParFeed[47]; 
+      R     "GCS7_GrCtrlDB".ParShare[47]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[47]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[47]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[47]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[47]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[47]; 
+      R     "GCS7_GrCtrlDB".CmdNext[47]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[47]; 
+//      O     "GCS7_GrCtrlDB".OutOccupied[47]
+      R     "GCS7_GrCtrlDB".CmdManualOff[47]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[47]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[47]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[47]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+//      NOP   0
+////- Restart after fault --
+//      U     #Gr.CmdFaultReset
+//      U     #Gr.VarFault
+//      S     "SYS_StartWarningDB".Area[1].CmdResetStartWarning
+////- Run Timer --
+//      AUF   "G047M"
+//      CALL  "GCS7_StartWarning" , "SYS_StartWarningDB"
+//       InModeHigher   :=FALSE
+//       InArea         :=1
+//       InEnable       :=#Gr.OutEnableEl
+//       InLocal        :=#tmpLocal
+//       InStarted      :=#Gr.VarStarted
+//       InCmdNext      :=#tmpCmdNext
+//       OutCmdNext     :=#tmpCmdNext
+//       OutStartwarning:=#Gr.VarStartwarning
+////- Store Startwarning done  --
+////- Reset Autostart --
+//      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL
+//      FN    #EdgeStartRelease
+//      U     #Gr.VarFault
+//      R     #Gr.OutAutostart
+//
+
+NETWORK
+TITLE ==A-1118-QXV/BZS41/42 : AERATION AIR RING ST 8
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1118_QXV_BZS41_42.InLocal; 
+//
+//-Interlocking---
+      CLR   ; // No automatic --> only manual!!
+      =     #A_1118_QXV_BZS41_42.InEnableHN; 
+      NOT   ; 
+      =     #A_1118_QXV_BZS41_42.InEnableLN; 
+//
+      SET   ; 
+      S     #A_1118_QXV_BZS41_42.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_1118_QXV_BZS41_42.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_1118_BZS41_I1"; 
+      =     #A_1118_QXV_BZS41_42.InpLN; 
+      U     "A_1118_BZS42_I1"; 
+      =     #A_1118_QXV_BZS41_42.InpHN; 
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #A_1118_QXV_BZS41_42.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[6]; 
+      =     #A_1118_QXV_BZS41_42.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1118_QXV_BZS41_42 ;
+// 
+//-Write outputs---
+      U     #A_1118_QXV_BZS41_42.OutpHN; 
+      =     "A_1118_QXV42_O2"; 
+NETWORK
+TITLE ==A-1118-MXZ45/BZS47/48 : AERATION AIR TUBE ST 8
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1118_MXZ45_BZS47_48.InLocal; 
+//
+//-Interlocking---
+      CLR   ; // No automatic --> only manual!!   
+      =     #A_1118_MXZ45_BZS47_48.InEnableHN; 
+      NOT   ; 
+      =     #A_1118_MXZ45_BZS47_48.InEnableLN; 
+//
+      SET   ; 
+      S     #A_1118_MXZ45_BZS47_48.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_1118_MXZ45_BZS47_48.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_1118_BZS47_I1"; 
+      =     #A_1118_MXZ45_BZS47_48.InpLN; 
+      U     "A_1118_BZS48_I1"; 
+      =     #A_1118_MXZ45_BZS47_48.InpHN; 
+      X     "A_1118_MXZ45_O2"; 
+      X     "A_1118_MXZ45_I2"; 
+      O     ; 
+      X     "A_1118_MXZ45_O1"; 
+      X     "A_1118_MXZ45_I1"; 
+      =     #A_1118_MXZ45_BZS47_48.InpFaultDev; 
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #A_1118_MXZ45_BZS47_48.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[10]; 
+      =     #A_1118_MXZ45_BZS47_48.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1118_MXZ45_BZS47_48 ;
+// 
+//-Write outputs---
+      U     #A_1118_MXZ45_BZS47_48.OutpLN; 
+      =     "A_1118_MXZ45_O2"; 
+      U     #A_1118_MXZ45_BZS47_48.OutpHN; 
+      =     "A_1118_MXZ45_O1"; 
+NETWORK
+TITLE =Test Fault
+
+      U     #A_1118_QXV_BZS41_42.StFault; 
+      O     #A_1118_MXZ45_BZS47_48.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_1118_QXV_BZS41_42.StLN; 
+      U     #A_1118_MXZ45_BZS47_48.StLN; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_1118_QXV_BZS41_42.StHN; 
+      U     #A_1118_MXZ45_BZS47_48.StHN; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[47]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[47]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[47]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[47]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[47]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[47]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[47]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[47]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[47]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[47]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

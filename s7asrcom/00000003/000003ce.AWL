@@ -1,0 +1,81 @@
+	DATA_BLOCK DB110
+	TITLE =DBG010G  Line messages
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Line messages
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB110.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG010G 
+	VERSION : 00.00
+	
+	FB110
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=1000; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=98;
+	//Parameter Msg01 : MAL1 MALTINGLINE
+	
+	      #Msg01.Par.ParObjectNo                             :=1013;
+	      #Msg01.Par.ParMsgType                              :=7901;
+	      #Msg01.Par.ParHornCode                             :=0;
+	      #Msg01.Par.ParDisable.Msg0                         :=False;
+	      #Msg01.Par.ParDisable.Msg1                         :=False;
+	      #Msg01.Par.ParDisable.Msg2                         :=False;
+	      #Msg01.Par.ParDisable.Msg3                         :=False;
+	      #Msg01.Par.ParDisable.Msg4                         :=False;
+	      #Msg01.Par.ParDisable.Msg5                         :=False;
+	      #Msg01.Par.ParDisable.Msg6                         :=False;
+	      #Msg01.Par.ParDisable.Msg7                         :=False;
+	      #Msg01.Par.ParDisable.Msg8                         :=False;
+	      #Msg01.Par.ParDisable.Msg9                         :=False;
+	      #Msg01.Par.ParDisable.Msg10                        :=False;
+	      #Msg01.Par.ParDisable.Msg11                        :=False;
+	      #Msg01.Par.ParDisable.Msg12                        :=False;
+	      #Msg01.Par.ParDisable.Msg13                        :=False;
+	      #Msg01.Par.ParDisable.Msg14                        :=False;
+	      #Msg01.Par.ParDisable.Msg15                        :=False;
+	      
+	      #Msg01.Par.ParHornOff.Msg0                         :=False;
+	      #Msg01.Par.ParHornOff.Msg1                         :=False;
+	      #Msg01.Par.ParHornOff.Msg2                         :=False;
+	      #Msg01.Par.ParHornOff.Msg3                         :=False;
+	      #Msg01.Par.ParHornOff.Msg4                         :=False;
+	      #Msg01.Par.ParHornOff.Msg5                         :=False;
+	      #Msg01.Par.ParHornOff.Msg6                         :=False;
+	      #Msg01.Par.ParHornOff.Msg7                         :=False;
+	      #Msg01.Par.ParHornOff.Msg8                         :=False;
+	      #Msg01.Par.ParHornOff.Msg9                         :=False;
+	      #Msg01.Par.ParHornOff.Msg10                        :=False;
+	      #Msg01.Par.ParHornOff.Msg11                        :=False;
+	      #Msg01.Par.ParHornOff.Msg12                        :=False;
+	      #Msg01.Par.ParHornOff.Msg13                        :=False;
+	      #Msg01.Par.ParHornOff.Msg14                        :=False;
+	      #Msg01.Par.ParHornOff.Msg15                        :=False;
+	//
+	//
+	END_DATA_BLOCK

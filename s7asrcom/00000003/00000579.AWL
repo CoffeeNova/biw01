@@ -1,0 +1,89 @@
+	DATA_BLOCK DB333
+	TITLE =DBG233M  PRODUCT MOISTERING  GERM 7
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        PRODUCT MOISTERING  GERM 7
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB333.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG233M 
+	VERSION : 00.00
+	
+	FB333
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=23300; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=8;
+	//Parameter =A-2712-QXV/BZS11/12 : SPRINKLING WATER LINE 1
+	      #A_2712_QXV_BZS11_12.Par.ParObjectNo                             :=23301;
+	      #A_2712_QXV_BZS11_12.Par.ParMsgType                              :=7081;
+	      #A_2712_QXV_BZS11_12.Par.ParHornCode                             :=8;
+	      #A_2712_QXV_BZS11_12.Par.ParMonTime                              :=100;
+	      #A_2712_QXV_BZS11_12.Par.ParPulseTimeHN                          :=5;
+	      #A_2712_QXV_BZS11_12.Par.ParPulseTimeLN                          :=5;
+	      #A_2712_QXV_BZS11_12.Par.ParIdlingTime                           :=0;
+	      #A_2712_QXV_BZS11_12.Par.ParDelayTime                            :=0;
+	      #A_2712_QXV_BZS11_12.Par.ParLogOff                               :=False;
+	      #A_2712_QXV_BZS11_12.Par.ParManual                               :=True;
+	      #A_2712_QXV_BZS11_12.Par.ParPulseValve                           :=False;
+	      #A_2712_QXV_BZS11_12.Par.ParContValve                            :=True;
+	      #A_2712_QXV_BZS11_12.Par.ParManualFlap                           :=False;
+	//
+	//
+	//Parameter =A-2712-QXV/BZS21/22 : SPRINKLING WATER LINE 2
+	      #A_2712_QXV_BZS21_22.Par.ParObjectNo                             :=23302;
+	      #A_2712_QXV_BZS21_22.Par.ParMsgType                              :=7081;
+	      #A_2712_QXV_BZS21_22.Par.ParHornCode                             :=8;
+	      #A_2712_QXV_BZS21_22.Par.ParMonTime                              :=100;
+	      #A_2712_QXV_BZS21_22.Par.ParPulseTimeHN                          :=5;
+	      #A_2712_QXV_BZS21_22.Par.ParPulseTimeLN                          :=5;
+	      #A_2712_QXV_BZS21_22.Par.ParIdlingTime                           :=0;
+	      #A_2712_QXV_BZS21_22.Par.ParDelayTime                            :=0;
+	      #A_2712_QXV_BZS21_22.Par.ParLogOff                               :=False;
+	      #A_2712_QXV_BZS21_22.Par.ParManual                               :=True;
+	      #A_2712_QXV_BZS21_22.Par.ParPulseValve                           :=False;
+	      #A_2712_QXV_BZS21_22.Par.ParContValve                            :=True;
+	      #A_2712_QXV_BZS21_22.Par.ParManualFlap                           :=False;
+	//
+	//
+	//Parameter =A-2716-QXV/BZS11/12 : SPRINKLING WATER LINE 
+	      #A_2716_QXV_BZS11_12.Par.ParObjectNo                             :=23303;
+	      #A_2716_QXV_BZS11_12.Par.ParMsgType                              :=7081;
+	      #A_2716_QXV_BZS11_12.Par.ParHornCode                             :=8;
+	      #A_2716_QXV_BZS11_12.Par.ParMonTime                              :=100;
+	      #A_2716_QXV_BZS11_12.Par.ParPulseTimeHN                          :=5;
+	      #A_2716_QXV_BZS11_12.Par.ParPulseTimeLN                          :=5;
+	      #A_2716_QXV_BZS11_12.Par.ParIdlingTime                           :=0;
+	      #A_2716_QXV_BZS11_12.Par.ParDelayTime                            :=0;
+	      #A_2716_QXV_BZS11_12.Par.ParLogOff                               :=False;
+	      #A_2716_QXV_BZS11_12.Par.ParManual                               :=True;
+	      #A_2716_QXV_BZS11_12.Par.ParPulseValve                           :=False;
+	      #A_2716_QXV_BZS11_12.Par.ParContValve                            :=True;
+	      #A_2716_QXV_BZS11_12.Par.ParManualFlap                           :=False;
+	//
+	//
+	END_DATA_BLOCK

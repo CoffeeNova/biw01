@@ -1,0 +1,1375 @@
+
+FUNCTION_BLOCK "A_3945_MXZ01MA_Code"
+TITLE =A_3945_MXZ01MA EXCISTING ELEVATOR
+//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:       WinCoS_BIW01_09
+//
+//TITLE:         EXCISTING ELEVATOR
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:         AUTHOR:             DEPT:                             DATE:
+// 
+//P01_FB1029.1.0 K.Renz              CSB41                             22.Apr.2010
+//               1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 0.0
+
+
+VAR
+  Ma : "GCS7_M_FB50_Data";	// Machine
+  Mon1 : "GCS7_E_DigInput";	// spare
+  A_3945_BSA07 : "GCS7_E_DigInput";	// Mon2: DigInpCont
+  Mon3 : "GCS7_E_DigInput";	// spare
+  Mon4 : "GCS7_E_DigInput";	// spare
+  A_3945_SHE28 : "GCS7_E_DigInput";	// Mon5: DigInpCont
+  A_3945_SHE29 : "GCS7_E_DigInput";	// Mon6: DigInpCont
+  A_3945_MXZ01 : "GCS7_E_Motor";	// Motor: Motor
+END_VAR
+BEGIN
+NETWORK
+TITLE =Call SSW
+
+      UC    "GCS7_M_Motor6Mon"; 
+END_FUNCTION_BLOCK
+
+
+FUNCTION_BLOCK "G309M_Code"
+TITLE =G309M ELEVATOR EXCISTING
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        ELEVATOR EXCISTING
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB409.1.0 K.Renz              CSB41                              22.Apr.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3945_MXZ01MA : "A_3945_MXZ01MA_Code";	// Motor+6DI 
+  A_3945_KCL01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3945_PII24 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3945_QYS30 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3945_BZ08CU : "GCS7_E_DigInput";	// DigInpCont 
+     #A_3945_BLH31 : FB84;   // SubType FB14: DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[309]; 
+      R     "GCS7_GrCtrlDB".ParWGR[309]; 
+      R     "GCS7_GrCtrlDB".ParGGR[309]; 
+      R     "GCS7_GrCtrlDB".ParFeed[309]; 
+      R     "GCS7_GrCtrlDB".ParShare[309]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[309]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[309]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[309]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[309]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[309]; 
+      R     "GCS7_GrCtrlDB".CmdNext[309]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[309]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[309]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[309]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[309]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[309]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[309]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      UN    "G308M".Gr.StStopped; //BELT CONVEYOR 9009 KILN MALT TRANSFER
+      UN    "G308M".Gr.InOccupied; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      ON    "G311M".Gr.OutAutostart; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     "G311M".Gr.OutEnablePrevGr; 
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[12].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G309M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 12,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-3945-MXZ01MA : EXCISTING ELEVATOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_MXZ01MA.Ma.InLocal; 
+//
+//-Interlocking---
+
+      U     #Gr.OutEnableEl; 
+      =     #A_3945_MXZ01MA.Ma.InEnableFwd; 
+//
+      U     #tmpCmdNext; 
+      S     #A_3945_MXZ01MA.Ma.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_3945_MXZ01MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-3945-BSA07---
+//      CLR
+//      S     #A_3945_MXZ01MA.A_3945_BSA07.CmdRunTimeOutTime
+//-=A-3945-SHE28---
+//      CLR
+//      S     #A_3945_MXZ01MA.A_3945_SHE28.CmdRunTimeOutTime
+//-=A-3945-SHE29---
+//      CLR
+//      S     #A_3945_MXZ01MA.A_3945_SHE29.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_3945_BSA07_I1"; 
+      =     #A_3945_MXZ01MA.A_3945_BSA07.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_MXZ01MA.A_3945_BSA07.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_MXZ01MA.A_3945_BSA07.InDPFault; 
+      U     "A_3945_SHE28_I1"; 
+      =     #A_3945_MXZ01MA.A_3945_SHE28.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_MXZ01MA.A_3945_SHE28.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_MXZ01MA.A_3945_SHE28.InDPFault; 
+      U     "A_3945_SHE29_I1"; 
+      =     #A_3945_MXZ01MA.A_3945_SHE29.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_MXZ01MA.A_3945_SHE29.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_MXZ01MA.A_3945_SHE29.InDPFault; 
+      U     "A_3945_MXZ01_I1"; 
+      =     #A_3945_MXZ01MA.A_3945_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_MXZ01MA.A_3945_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_MXZ01MA.A_3945_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3945_MXZ01MA ;
+// 
+//-Write outputs---
+      U     #A_3945_MXZ01MA.A_3945_MXZ01.OutpRunFwd; 
+      =     "A_3945_MXZ01_O1"; 
+NETWORK
+TITLE ==A-3945-KCL01 : RESET DISTURBANCE ELEVATOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_KCL01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3945_KCL01.InMonTrue; 
+      CLR   ; 
+      =     #A_3945_KCL01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3945_KCL01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3945_KCL01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3945_KCL01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3945_KCL01_I1"; 
+      =     #A_3945_KCL01.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_KCL01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_KCL01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3945_KCL01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3945-PII24 : CURRENT MEASURING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_PII24.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3945_PII24.InMonLL; 
+      CLR   ; 
+      =     #A_3945_PII24.InMonL; 
+      CLR   ; 
+      =     #A_3945_PII24.InMonMid; 
+      CLR   ; 
+      =     #A_3945_PII24.InMonH; 
+      CLR   ; 
+      =     #A_3945_PII24.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3945_PII24_O1"; 
+      T     #A_3945_PII24.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_PII24.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[115]; 
+      =     #A_3945_PII24.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3945_PII24 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3945-QYS30 : EXPLOSION VENT ELEVATOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_QYS30.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3945_QYS30.InMonTrue; 
+      CLR   ; 
+      =     #A_3945_QYS30.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3945_QYS30.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3945_QYS30.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3945_QYS30.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_3945_QYS30_I1"; 
+      =     #A_3945_QYS30.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_QYS30.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_QYS30.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3945_QYS30 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3945-BZ08CU : NO FAILURE ELEVATOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_BZ08CU.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3945_BZ08CU.InMonTrue; 
+      CLR   ; 
+      =     #A_3945_BZ08CU.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3945_BZ08CU.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3945_BZ08CU.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3945_BZ08CU.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3945_BZ08CU_I1"; 
+      =     #A_3945_BZ08CU.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3945_BZ08CU.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3945_BZ08CU.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3945_BZ08CU ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3945-BLH31 : STOWING DETECTOR DISCHARGE
+NOP 0;
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3945_BLH31.InLocal; 
+// 
+//-Monitoring---
+      CLR;
+      =      #A_3945_BLH31.InMonCovered; 
+      SET;
+      =      #A_3945_BLH31.InMonUncovered; 
+// 
+//-PreAlarm---
+      CLR;
+      =      #A_3945_BLH31.InPreAlarmCovered; 
+      CLR;
+      =      #A_3945_BLH31.InPreAlarmUncovered; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3945_BLH31.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    E 1143.0; 
+      =     #A_3945_BLH31.InpCovered; 
+      U   DB050.DBX32.5;
+      =     #A_3945_BLH31.InHWStop;
+       U     PLC_DPInfo.Master[1].SlavesError[115];
+       =       #A_3945_BLH31.InDPFault;
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL  #A_3945_BLH31;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3945_MXZ01MA.Ma.StFault; 
+      O     #A_3945_KCL01.StFault; 
+      O     #A_3945_PII24.OutFaulted; 
+      O     #A_3945_QYS30.StFault; 
+      O     #A_3945_BZ08CU.StFault; 
+      O     #A_3945_BLH31.StFault;
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_3945_PII24.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3945_MXZ01MA.Ma.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_3945_MXZ01MA.Ma.StStartedFwd; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[309]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[309]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[309]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[309]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[309]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[309]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[309]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[309]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[309]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[309]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+
+
+DATA_BLOCK "G309M"
+TITLE =DBG309M  ELEVATOR EXCISTING
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        ELEVATOR EXCISTING
+//                Machine group DB
+//                Maschinengruppen-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//P01_DB409.1.0 K.Renz              CSB41             22.Apr.2010
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+NAME : DBG309M
+VERSION : 0.0
+
+"G309M_Code"
+BEGIN
+   Gr.FcCode := 0; 
+   Gr.Spare2 := 0; 
+   Gr.Spare4 := 0; 
+   Gr.Spare6 := 0; 
+   Gr.OutEmptyingTime := 0; 
+   Gr.ChangeBit.spare := B#16#0; 
+   Gr.ChangeBit.CBit1 := FALSE; 
+   Gr.ChangeBit.CBit2 := FALSE; 
+   Gr.ChangeBit.CBit3 := FALSE; 
+   Gr.ChangeBit.CBit4 := FALSE; 
+   Gr.StCode := 0; 
+   Gr.InEnableGr := FALSE; 
+   Gr.CmdContinue := FALSE; 
+   Gr.CmdRestartIdling := FALSE; 
+   Gr.InReleaseEmptyingTime := FALSE; 
+   Gr.InFeeding := FALSE; 
+   Gr.InOutAutostartMan := FALSE; 
+   Gr.InPreStart := FALSE; 
+   Gr.CmdManualOff := FALSE; 
+   Gr.CmdOff := FALSE; 
+   Gr.CmdOn := FALSE; 
+   Gr.CmdNext := FALSE; 
+   Gr.CmdFaultReset := FALSE; 
+   Gr.InOccupied := FALSE; 
+   Gr.InManual := FALSE; 
+   Gr.InLoadedSec := FALSE; 
+   Gr.InSeqStop := FALSE; 
+   Gr.ModePassive := FALSE; 
+   Gr.ModeActive := FALSE; 
+   Gr.ModeIdling := FALSE; 
+   Gr.spare163 := FALSE; 
+   Gr.spare164 := FALSE; 
+   Gr.spare165 := FALSE; 
+   Gr.spare166 := FALSE; 
+   Gr.spare167 := FALSE; 
+   Gr.StStopped := FALSE; 
+   Gr.StStarting := FALSE; 
+   Gr.StStarted := FALSE; 
+   Gr.StStopping := FALSE; 
+   Gr.StFault := FALSE; 
+   Gr.OutLoaded := FALSE; 
+   Gr.OutWarning := FALSE; 
+   Gr.OutFeeding := FALSE; 
+   Gr.OutEnableEl := FALSE; 
+   Gr.OutEnable1 := FALSE; 
+   Gr.OutHWStop := FALSE; 
+   Gr.OutDPFault := FALSE; 
+   Gr.OutAutostart := FALSE; 
+   Gr.OutManual := FALSE; 
+   Gr.OutHornOn := FALSE; 
+   Gr.OutEnablePrevGr := FALSE; 
+   Gr.VarStopped := FALSE; 
+   Gr.VarStarted := FALSE; 
+   Gr.VarFault := FALSE; 
+   Gr.VarStartwarning := FALSE; 
+   Gr.VarFlag1s := FALSE; 
+   Gr.OutEmptyingTimeDone := FALSE; 
+   Gr.OutNewWay := FALSE; 
+   Gr.OutSeqStop := FALSE; 
+   Gr.OutIdlingTime := 0; 
+   Gr.InCodePreselect := 0; 
+   Gr.InLine := 0; 
+   Gr.InCode := 0; 
+   Gr.OutCode := 0; 
+   Gr.Par.ParObjectNo := 30900; 
+   Gr.Par.ParMgr := TRUE; 
+   Gr.Par.ParWgr := FALSE; 
+   Gr.Par.ParGgr := FALSE; 
+   Gr.Par.ParHornCode := 12; 
+   Gr.Par.ParIdling := 2; 
+   Gr.Par.ParEmptyingTime := 0; 
+   Gr.Par.Para1_0 := FALSE; 
+   Gr.Par.Para1_1 := FALSE; 
+   Gr.Par.Para1_2 := FALSE; 
+   Gr.Par.Para1_3 := FALSE; 
+   Gr.Par.Para1_4 := FALSE; 
+   Gr.Par.Para1_5 := FALSE; 
+   Gr.Par.Para1_6 := FALSE; 
+   Gr.Par.Para1_7 := FALSE; 
+   Gr.Par.Para1_8 := FALSE; 
+   Gr.Par.Para1_9 := FALSE; 
+   Gr.Par.Para1_10 := FALSE; 
+   Gr.Par.Para1_11 := FALSE; 
+   Gr.Par.Para1_12 := FALSE; 
+   Gr.Par.Para1_13 := FALSE; 
+   Gr.Par.Para1_14 := FALSE; 
+   Gr.Par.Para1_15 := FALSE; 
+   Gr.Par.Para2 := 0; 
+   Gr.Par.Para3 := 0; 
+   Gr.Par.Para4 := 0; 
+   Gr.Par.Para5 := 0; 
+   InOutValue1 := L#0; 
+   InOutValue2 := L#0; 
+   OutWayConflict := FALSE; 
+   OutSelectionOk := FALSE; 
+   CmdNewValue := FALSE; 
+   CmdNewJob := FALSE; 
+   OutCodeOK := FALSE; 
+   InEndOfJob := FALSE; 
+   staWayOk := FALSE; 
+   EdgeStartRelease := FALSE; 
+   USW8 := FALSE; 
+   USW9 := FALSE; 
+   USW10 := FALSE; 
+   USW11 := FALSE; 
+   USW12 := FALSE; 
+   USW13 := FALSE; 
+   USW14 := FALSE; 
+   USW15 := FALSE; 
+   A_3945_MXZ01MA.Ma.StCode := 0; 
+   A_3945_MXZ01MA.Ma.InEnableRev := FALSE; 
+   A_3945_MXZ01MA.Ma.InEnableFwd := FALSE; 
+   A_3945_MXZ01MA.Ma.InOverrideHLOutlet := FALSE; 
+   A_3945_MXZ01MA.Ma.spare0203 := FALSE; 
+   A_3945_MXZ01MA.Ma.OutEdgeFaultReset := FALSE; 
+   A_3945_MXZ01MA.Ma.OutFaultResetFcttst := FALSE; 
+   A_3945_MXZ01MA.Ma.InpControlEBM := FALSE; 
+   A_3945_MXZ01MA.Ma.InpLocked := FALSE; 
+   A_3945_MXZ01MA.Ma.CmdOff := FALSE; 
+   A_3945_MXZ01MA.Ma.CmdOn := FALSE; 
+   A_3945_MXZ01MA.Ma.CmdNext := FALSE; 
+   A_3945_MXZ01MA.Ma.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.Ma.InLocal := FALSE; 
+   A_3945_MXZ01MA.Ma.InManual := FALSE; 
+   A_3945_MXZ01MA.Ma.CmdTestEBM := FALSE; 
+   A_3945_MXZ01MA.Ma.InSeqStop := FALSE; 
+   A_3945_MXZ01MA.Ma.OutWarning := FALSE; 
+   A_3945_MXZ01MA.Ma.InfBMTopOk := FALSE; 
+   A_3945_MXZ01MA.Ma.InfBMBottomOk := FALSE; 
+   A_3945_MXZ01MA.Ma.InfSMOk := FALSE; 
+   A_3945_MXZ01MA.Ma.OutpFcttst_BM_Top := FALSE; 
+   A_3945_MXZ01MA.Ma.OutpFcttst_BM_Bottom := FALSE; 
+   A_3945_MXZ01MA.Ma.OutpFcttst_SM := FALSE; 
+   A_3945_MXZ01MA.Ma.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.Ma.StStopped := FALSE; 
+   A_3945_MXZ01MA.Ma.StStarting := FALSE; 
+   A_3945_MXZ01MA.Ma.StStartedFwd := FALSE; 
+   A_3945_MXZ01MA.Ma.StStopping := FALSE; 
+   A_3945_MXZ01MA.Ma.StFault := FALSE; 
+   A_3945_MXZ01MA.Ma.StStartedRev := FALSE; 
+   A_3945_MXZ01MA.Ma.StLocked := FALSE; 
+   A_3945_MXZ01MA.Ma.OutTestTime := 0; 
+   A_3945_MXZ01MA.Ma.Par.ParObjectNo := 30901; 
+   A_3945_MXZ01MA.Ma.Par.ParWithMon1 := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParWithMon3 := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParWithMon4 := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParWithMon5 := TRUE; 
+   A_3945_MXZ01MA.Ma.Par.ParWithMon6 := TRUE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon1IsHL := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon1IsLS := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon1StopByFault := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon2IsLS := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon3IsLS := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon4AsWarning := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon4StopByFault := TRUE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon4IsLS := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParEBM := FALSE; 
+   A_3945_MXZ01MA.Ma.Par.ParMon4IsSM := TRUE; 
+   A_3945_MXZ01MA.Mon1.StCode := 0; 
+   A_3945_MXZ01MA.Mon1.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.InpTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon1.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon1.InLocal := FALSE; 
+   A_3945_MXZ01MA.Mon1.spare0305 := FALSE; 
+   A_3945_MXZ01MA.Mon1.InReport := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon1.InHWStop := FALSE; 
+   A_3945_MXZ01MA.Mon1.InDPFault := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.StFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.StTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.StFault := FALSE; 
+   A_3945_MXZ01MA.Mon1.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParObjectNo := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParMsgType := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParHornCode := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.Par2WorkingCond := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.ParDelayChange := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParDelayTrue := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParTimeoutTrue := 0; 
+   A_3945_MXZ01MA.Mon1.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.Mon1.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.Mon1.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.Mon1.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon1.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.StCode := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InpTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InLocal := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.spare0305 := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InReport := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InHWStop := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.InDPFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.StFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.StTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.StFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParObjectNo := 30902; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParMsgType := 7135; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParHornCode := 12; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.Par2WorkingCond := TRUE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParDelayChange := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParDelayTrue := 10; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParTimeoutTrue := 50; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_BSA07.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.Mon3.StCode := 0; 
+   A_3945_MXZ01MA.Mon3.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.InpTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon3.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon3.InLocal := FALSE; 
+   A_3945_MXZ01MA.Mon3.spare0305 := FALSE; 
+   A_3945_MXZ01MA.Mon3.InReport := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon3.InHWStop := FALSE; 
+   A_3945_MXZ01MA.Mon3.InDPFault := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.StFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.StTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.StFault := FALSE; 
+   A_3945_MXZ01MA.Mon3.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParObjectNo := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParMsgType := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParHornCode := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.Par2WorkingCond := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.ParDelayChange := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParDelayTrue := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParTimeoutTrue := 0; 
+   A_3945_MXZ01MA.Mon3.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.Mon3.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.Mon3.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.Mon3.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon3.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.Mon4.StCode := 0; 
+   A_3945_MXZ01MA.Mon4.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.InpTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon4.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon4.InLocal := FALSE; 
+   A_3945_MXZ01MA.Mon4.spare0305 := FALSE; 
+   A_3945_MXZ01MA.Mon4.InReport := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.Mon4.InHWStop := FALSE; 
+   A_3945_MXZ01MA.Mon4.InDPFault := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.StFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.StTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.StFault := FALSE; 
+   A_3945_MXZ01MA.Mon4.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParObjectNo := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParMsgType := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParHornCode := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.Par2WorkingCond := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.ParDelayChange := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParDelayTrue := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParTimeoutTrue := 0; 
+   A_3945_MXZ01MA.Mon4.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.Mon4.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.Mon4.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.Mon4.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.Mon4.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.StCode := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InpTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InLocal := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.spare0305 := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InReport := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InHWStop := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.InDPFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.StFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.StTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.StFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParObjectNo := 30903; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParMsgType := 7136; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParHornCode := 12; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.Par2WorkingCond := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParDelayChange := 20; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParDelayTrue := 10; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParTimeoutTrue := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE28.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.StCode := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.InMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InStopTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InStopFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InpTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.CmdRstTrueTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.CmdRstFalseTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.CmdRunTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InLocal := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.spare0305 := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InReport := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutTimeoutTime := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InHWStop := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.InDPFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutPreAlarmTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutPreAlarmFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutFlagPos := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutFlagNeg := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.StFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.StCtoTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.StTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.StCtoFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.StFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParObjectNo := 30904; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParMsgType := 7136; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParHornCode := 12; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.spare0401 := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.Par2WorkingCond := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParFaultRetry := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParBinLevel := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParDelayChange := 20; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParDelayTrue := 10; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParDelayFalse := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParTimeoutTrue := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.ParTimeoutFalse := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutMonTrue := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutMonFalse := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_SHE29.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StCode := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InEnableRev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InEnableFwd := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InSlow := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InpRunSlow := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InpRunFast := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InpRunRev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InpRunFwd := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InpFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.CmdOff := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.CmdOn := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.CmdNext := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.CmdFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InLocal := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InManual := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InReport := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InSeqStop := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InHWStop := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InDPFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutIdling := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutpRunSlow := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutpRunFast := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutpRunRev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutpRunFwd := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutpFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StStopped := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StStarting := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StStartedFwd := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StStopping := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.StStartedRev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InOutManSlow := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.InOutManRev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.OutAlarmNrLog := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParObjectNo := 30905; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParMsgType := 7053; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParHornCode := 12; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParLogOff := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParManual := TRUE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParRestartDelay := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.Par2Speed := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParHeavyStartup := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.spare45 := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.spare46 := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutEdgeFaultReset := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutDelayFault := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutFlagFaultDev := FALSE; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParMonTime := 20; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParStartingTime := 20; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParStoppingTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParIdlingTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.ParDelayTime := 10; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutMonTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutTransitionTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.OutDelayTime := 0; 
+   A_3945_MXZ01MA.A_3945_MXZ01.Par.InOutManPulseLen := 0; 
+   A_3945_KCL01.StCode := 0; 
+   A_3945_KCL01.InMonTrue := FALSE; 
+   A_3945_KCL01.InMonFalse := FALSE; 
+   A_3945_KCL01.InPreAlarmTrue := FALSE; 
+   A_3945_KCL01.InPreAlarmFalse := FALSE; 
+   A_3945_KCL01.InStopTrueTime := FALSE; 
+   A_3945_KCL01.InStopFalseTime := FALSE; 
+   A_3945_KCL01.InpTrue := FALSE; 
+   A_3945_KCL01.InpFaultDev := FALSE; 
+   A_3945_KCL01.CmdRstTrueTime := FALSE; 
+   A_3945_KCL01.CmdRstFalseTime := FALSE; 
+   A_3945_KCL01.CmdRunTimeoutTime := FALSE; 
+   A_3945_KCL01.CmdFaultReset := FALSE; 
+   A_3945_KCL01.InLocal := FALSE; 
+   A_3945_KCL01.spare0305 := FALSE; 
+   A_3945_KCL01.InReport := FALSE; 
+   A_3945_KCL01.OutTimeoutTime := FALSE; 
+   A_3945_KCL01.InHWStop := FALSE; 
+   A_3945_KCL01.InDPFault := FALSE; 
+   A_3945_KCL01.OutPreAlarmTrue := FALSE; 
+   A_3945_KCL01.OutPreAlarmFalse := FALSE; 
+   A_3945_KCL01.OutFlagPos := FALSE; 
+   A_3945_KCL01.OutFlagNeg := FALSE; 
+   A_3945_KCL01.OutpFaultReset := FALSE; 
+   A_3945_KCL01.OutTrue := FALSE; 
+   A_3945_KCL01.StFalse := FALSE; 
+   A_3945_KCL01.StCtoTrue := FALSE; 
+   A_3945_KCL01.StTrue := FALSE; 
+   A_3945_KCL01.StCtoFalse := FALSE; 
+   A_3945_KCL01.StFault := FALSE; 
+   A_3945_KCL01.OutAlarmNrLog := 0; 
+   A_3945_KCL01.Par.ParObjectNo := 30906; 
+   A_3945_KCL01.Par.ParMsgType := 7154; 
+   A_3945_KCL01.Par.ParHornCode := 12; 
+   A_3945_KCL01.Par.ParLogOff := FALSE; 
+   A_3945_KCL01.Par.spare0401 := FALSE; 
+   A_3945_KCL01.Par.Par2WorkingCond := FALSE; 
+   A_3945_KCL01.Par.ParFaultRetry := FALSE; 
+   A_3945_KCL01.Par.ParBinLevel := FALSE; 
+   A_3945_KCL01.Par.ParDelayChange := 20; 
+   A_3945_KCL01.Par.ParDelayTrue := 10; 
+   A_3945_KCL01.Par.ParDelayFalse := 0; 
+   A_3945_KCL01.Par.ParTimeoutTrue := 0; 
+   A_3945_KCL01.Par.ParTimeoutFalse := 0; 
+   A_3945_KCL01.Par.OutMonTime := 0; 
+   A_3945_KCL01.Par.OutTransitionTime := 0; 
+   A_3945_KCL01.Par.OutMonTrue := FALSE; 
+   A_3945_KCL01.Par.OutMonFalse := FALSE; 
+   A_3945_KCL01.Par.OutFlagFaultDev := FALSE; 
+   A_3945_KCL01.Par.OutDelayTime := 0; 
+   A_3945_PII24.StCode := 0; 
+   A_3945_PII24.InMonLL := FALSE; 
+   A_3945_PII24.InMonL := FALSE; 
+   A_3945_PII24.InMonMid := FALSE; 
+   A_3945_PII24.InMonH := FALSE; 
+   A_3945_PII24.InMonHH := FALSE; 
+   A_3945_PII24.spare0205 := FALSE; 
+   A_3945_PII24.InpFaultAI := FALSE; 
+   A_3945_PII24.InpFaultDev := FALSE; 
+   A_3945_PII24.InHWStop := FALSE; 
+   A_3945_PII24.InDPFault := FALSE; 
+   A_3945_PII24.InDisable := FALSE; 
+   A_3945_PII24.CmdFaultReset := FALSE; 
+   A_3945_PII24.InLocal := FALSE; 
+   A_3945_PII24.spare0305 := FALSE; 
+   A_3945_PII24.InReport := FALSE; 
+   A_3945_PII24.spare0307 := FALSE; 
+   A_3945_PII24.OutLL := FALSE; 
+   A_3945_PII24.OutL := FALSE; 
+   A_3945_PII24.OutH := FALSE; 
+   A_3945_PII24.OutHH := FALSE; 
+   A_3945_PII24.OutOverflow := FALSE; 
+   A_3945_PII24.spare0405 := FALSE; 
+   A_3945_PII24.OutFaultAI := FALSE; 
+   A_3945_PII24.spare0407 := FALSE; 
+   A_3945_PII24.StLL := FALSE; 
+   A_3945_PII24.StL := FALSE; 
+   A_3945_PII24.StMid := FALSE; 
+   A_3945_PII24.StH := FALSE; 
+   A_3945_PII24.StHH := FALSE; 
+   A_3945_PII24.StFaultAI := FALSE; 
+   A_3945_PII24.OutWarning := FALSE; 
+   A_3945_PII24.OutFaulted := FALSE; 
+   A_3945_PII24.InpValue := 0; 
+   A_3945_PII24.OutValuePc := 0; 
+   A_3945_PII24.OutValueUnits := L#0; 
+   A_3945_PII24.Msg.WarningDoneLL := FALSE; 
+   A_3945_PII24.Msg.WarningDoneL := FALSE; 
+   A_3945_PII24.Msg.WarningDoneMid := FALSE; 
+   A_3945_PII24.Msg.WarningDoneH := FALSE; 
+   A_3945_PII24.Msg.WarningDoneHH := FALSE; 
+   A_3945_PII24.Msg.FaultDoneLL := FALSE; 
+   A_3945_PII24.Msg.FaultDoneL := FALSE; 
+   A_3945_PII24.Msg.FaultDoneMid := FALSE; 
+   A_3945_PII24.Msg.FaultDoneH := FALSE; 
+   A_3945_PII24.Msg.FaultDoneHH := FALSE; 
+   A_3945_PII24.Msg.FaultDoneDev := FALSE; 
+   A_3945_PII24.Msg.FaultDoneAI := FALSE; 
+   A_3945_PII24.OutAlarmNrLog := 0; 
+   A_3945_PII24.Par.ParObjectNo := 30907; 
+   A_3945_PII24.Par.ParMsgType := 7252; 
+   A_3945_PII24.Par.ParHornCode := 12; 
+   A_3945_PII24.Par.ParLogOff := FALSE; 
+   A_3945_PII24.Par.ParSpare0401 := FALSE; 
+   A_3945_PII24.Par.ParValueByUser := FALSE; 
+   A_3945_PII24.Par.ParLimitsPc := TRUE; 
+   A_3945_PII24.Par.ParWago := FALSE; 
+   A_3945_PII24.Par.ParNoHornByWarning := TRUE; 
+   A_3945_PII24.Par.ParWarningLL := FALSE; 
+   A_3945_PII24.Par.ParWarningL := FALSE; 
+   A_3945_PII24.Par.ParWarningMid := FALSE; 
+   A_3945_PII24.Par.ParWarningH := FALSE; 
+   A_3945_PII24.Par.ParWarningHH := FALSE; 
+   A_3945_PII24.Par.ParPreAlarmLL := FALSE; 
+   A_3945_PII24.Par.ParPreAlarmL := FALSE; 
+   A_3945_PII24.Par.ParPreAlarmMid := FALSE; 
+   A_3945_PII24.Par.ParPreAlarmH := FALSE; 
+   A_3945_PII24.Par.ParPreAlarmHH := FALSE; 
+   A_3945_PII24.Par.ParUnitsByZeroDigit := L#0; 
+   A_3945_PII24.Par.ParUnitsByMaxDigit := L#27648; 
+   A_3945_PII24.Par.ParUnitsBy100Pc := L#10000; 
+   A_3945_PII24.Par.ParLimitLL := L#0; 
+   A_3945_PII24.Par.ParLimitL := L#2000; 
+   A_3945_PII24.Par.ParLimitH := L#10000; 
+   A_3945_PII24.Par.ParLimitHH := L#10100; 
+   A_3945_PII24.Par.ParMonTimeLL := 0; 
+   A_3945_PII24.Par.ParMonTimeL := 50; 
+   A_3945_PII24.Par.ParMonTimeMid := 0; 
+   A_3945_PII24.Par.ParMonTimeH := 30; 
+   A_3945_PII24.Par.ParMonTimeHH := 0; 
+   A_3945_PII24.Par.ParDelayTimeDown := 10; 
+   A_3945_PII24.Par.ParDelayTimeUp := 10; 
+   A_3945_PII24.Par.ParDelayTime := 0; 
+   A_3945_PII24.Par.OutMonTimeLL := 0; 
+   A_3945_PII24.Par.OutMonTimeL := 0; 
+   A_3945_PII24.Par.OutMonTimeMid := 0; 
+   A_3945_PII24.Par.OutMonTimeH := 0; 
+   A_3945_PII24.Par.OutMonTimeHH := 0; 
+   A_3945_PII24.Par.OutDelayTimeDown := 0; 
+   A_3945_PII24.Par.OutDelayTimeUp := 0; 
+   A_3945_PII24.Par.OutDelayTime := 0; 
+   A_3945_PII24.Par.Spare66 := 0; 
+   A_3945_QYS30.StCode := 0; 
+   A_3945_QYS30.InMonTrue := FALSE; 
+   A_3945_QYS30.InMonFalse := FALSE; 
+   A_3945_QYS30.InPreAlarmTrue := FALSE; 
+   A_3945_QYS30.InPreAlarmFalse := FALSE; 
+   A_3945_QYS30.InStopTrueTime := FALSE; 
+   A_3945_QYS30.InStopFalseTime := FALSE; 
+   A_3945_QYS30.InpTrue := FALSE; 
+   A_3945_QYS30.InpFaultDev := FALSE; 
+   A_3945_QYS30.CmdRstTrueTime := FALSE; 
+   A_3945_QYS30.CmdRstFalseTime := FALSE; 
+   A_3945_QYS30.CmdRunTimeoutTime := FALSE; 
+   A_3945_QYS30.CmdFaultReset := FALSE; 
+   A_3945_QYS30.InLocal := FALSE; 
+   A_3945_QYS30.spare0305 := FALSE; 
+   A_3945_QYS30.InReport := FALSE; 
+   A_3945_QYS30.OutTimeoutTime := FALSE; 
+   A_3945_QYS30.InHWStop := FALSE; 
+   A_3945_QYS30.InDPFault := FALSE; 
+   A_3945_QYS30.OutPreAlarmTrue := FALSE; 
+   A_3945_QYS30.OutPreAlarmFalse := FALSE; 
+   A_3945_QYS30.OutFlagPos := FALSE; 
+   A_3945_QYS30.OutFlagNeg := FALSE; 
+   A_3945_QYS30.OutpFaultReset := FALSE; 
+   A_3945_QYS30.OutTrue := FALSE; 
+   A_3945_QYS30.StFalse := FALSE; 
+   A_3945_QYS30.StCtoTrue := FALSE; 
+   A_3945_QYS30.StTrue := FALSE; 
+   A_3945_QYS30.StCtoFalse := FALSE; 
+   A_3945_QYS30.StFault := FALSE; 
+   A_3945_QYS30.OutAlarmNrLog := 0; 
+   A_3945_QYS30.Par.ParObjectNo := 30908; 
+   A_3945_QYS30.Par.ParMsgType := 7154; 
+   A_3945_QYS30.Par.ParHornCode := 12; 
+   A_3945_QYS30.Par.ParLogOff := FALSE; 
+   A_3945_QYS30.Par.spare0401 := FALSE; 
+   A_3945_QYS30.Par.Par2WorkingCond := FALSE; 
+   A_3945_QYS30.Par.ParFaultRetry := FALSE; 
+   A_3945_QYS30.Par.ParBinLevel := FALSE; 
+   A_3945_QYS30.Par.ParDelayChange := 20; 
+   A_3945_QYS30.Par.ParDelayTrue := 10; 
+   A_3945_QYS30.Par.ParDelayFalse := 0; 
+   A_3945_QYS30.Par.ParTimeoutTrue := 0; 
+   A_3945_QYS30.Par.ParTimeoutFalse := 0; 
+   A_3945_QYS30.Par.OutMonTime := 0; 
+   A_3945_QYS30.Par.OutTransitionTime := 0; 
+   A_3945_QYS30.Par.OutMonTrue := FALSE; 
+   A_3945_QYS30.Par.OutMonFalse := FALSE; 
+   A_3945_QYS30.Par.OutFlagFaultDev := FALSE; 
+   A_3945_QYS30.Par.OutDelayTime := 0; 
+   A_3945_BZ08CU.StCode := 0; 
+   A_3945_BZ08CU.InMonTrue := FALSE; 
+   A_3945_BZ08CU.InMonFalse := FALSE; 
+   A_3945_BZ08CU.InPreAlarmTrue := FALSE; 
+   A_3945_BZ08CU.InPreAlarmFalse := FALSE; 
+   A_3945_BZ08CU.InStopTrueTime := FALSE; 
+   A_3945_BZ08CU.InStopFalseTime := FALSE; 
+   A_3945_BZ08CU.InpTrue := FALSE; 
+   A_3945_BZ08CU.InpFaultDev := FALSE; 
+   A_3945_BZ08CU.CmdRstTrueTime := FALSE; 
+   A_3945_BZ08CU.CmdRstFalseTime := FALSE; 
+   A_3945_BZ08CU.CmdRunTimeoutTime := FALSE; 
+   A_3945_BZ08CU.CmdFaultReset := FALSE; 
+   A_3945_BZ08CU.InLocal := FALSE; 
+   A_3945_BZ08CU.spare0305 := FALSE; 
+   A_3945_BZ08CU.InReport := FALSE; 
+   A_3945_BZ08CU.OutTimeoutTime := FALSE; 
+   A_3945_BZ08CU.InHWStop := FALSE; 
+   A_3945_BZ08CU.InDPFault := FALSE; 
+   A_3945_BZ08CU.OutPreAlarmTrue := FALSE; 
+   A_3945_BZ08CU.OutPreAlarmFalse := FALSE; 
+   A_3945_BZ08CU.OutFlagPos := FALSE; 
+   A_3945_BZ08CU.OutFlagNeg := FALSE; 
+   A_3945_BZ08CU.OutpFaultReset := FALSE; 
+   A_3945_BZ08CU.OutTrue := FALSE; 
+   A_3945_BZ08CU.StFalse := FALSE; 
+   A_3945_BZ08CU.StCtoTrue := FALSE; 
+   A_3945_BZ08CU.StTrue := FALSE; 
+   A_3945_BZ08CU.StCtoFalse := FALSE; 
+   A_3945_BZ08CU.StFault := FALSE; 
+   A_3945_BZ08CU.OutAlarmNrLog := 0; 
+   A_3945_BZ08CU.Par.ParObjectNo := 30909; 
+   A_3945_BZ08CU.Par.ParMsgType := 7154; 
+   A_3945_BZ08CU.Par.ParHornCode := 12; 
+   A_3945_BZ08CU.Par.ParLogOff := FALSE; 
+   A_3945_BZ08CU.Par.spare0401 := FALSE; 
+   A_3945_BZ08CU.Par.Par2WorkingCond := FALSE; 
+   A_3945_BZ08CU.Par.ParFaultRetry := FALSE; 
+   A_3945_BZ08CU.Par.ParBinLevel := FALSE; 
+   A_3945_BZ08CU.Par.ParDelayChange := 20; 
+   A_3945_BZ08CU.Par.ParDelayTrue := 10; 
+   A_3945_BZ08CU.Par.ParDelayFalse := 0; 
+   A_3945_BZ08CU.Par.ParTimeoutTrue := 0; 
+   A_3945_BZ08CU.Par.ParTimeoutFalse := 0; 
+   A_3945_BZ08CU.Par.OutMonTime := 0; 
+   A_3945_BZ08CU.Par.OutTransitionTime := 0; 
+   A_3945_BZ08CU.Par.OutMonTrue := FALSE; 
+   A_3945_BZ08CU.Par.OutMonFalse := FALSE; 
+   A_3945_BZ08CU.Par.OutFlagFaultDev := FALSE; 
+   A_3945_BZ08CU.Par.OutDelayTime := 0; 
+      #A_3945_BLH31.Par.ParObjectNo                             :=30910;
+      #A_3945_BLH31.Par.ParMsgType                              :=7165;
+      #A_3945_BLH31.Par.ParHornCode                             :=12;
+      #A_3945_BLH31.Par.ParDelayChange                          :=20;
+      #A_3945_BLH31.Par.ParDelayCovered                         :=10;
+      #A_3945_BLH31.Par.ParDelayUncovered                       :=30;
+      #A_3945_BLH31.Par.ParTimeoutCovered                       :=0;
+      #A_3945_BLH31.Par.ParTimeoutUncovered                     :=0;
+      #A_3945_BLH31.Par.ParLogOff                               :=False;
+      #A_3945_BLH31.Par.Par2WorkingCond                         :=False;
+      #A_3945_BLH31.Par.ParFaultRetry                           :=False;
+      #A_3945_BLH31.Par.ParBinLevel                             :=False;
+END_DATA_BLOCK
+

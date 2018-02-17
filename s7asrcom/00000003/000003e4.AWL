@@ -1,0 +1,251 @@
+	DATA_BLOCK DB121
+	TITLE =DBG021G  GENERAL ELEMENTS KILN 1
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        GENERAL ELEMENTS KILN 1
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB121.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG021G 
+	VERSION : 00.00
+	
+	FB121
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=2100; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=10;
+	//Parameter =A-29-A040Z1 : POWER SUPPLY FAILURE +C29
+	      #A_29_A040Z1.Par.ParObjectNo                             :=2201;
+	      #A_29_A040Z1.Par.ParMsgType                              :=7154;
+	      #A_29_A040Z1.Par.ParHornCode                             :=0;
+	      #A_29_A040Z1.Par.ParDelayChange                          :=0;
+	      #A_29_A040Z1.Par.ParDelayTrue                            :=10;
+	      #A_29_A040Z1.Par.ParDelayFalse                           :=0;
+	      #A_29_A040Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_29_A040Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_29_A040Z1.Par.ParLogOff                               :=False;
+	      #A_29_A040Z1.Par.Par2WorkingCond                         :=False;
+	      #A_29_A040Z1.Par.ParFaultRetry                           :=False;
+	      #A_29_A040Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-29-A097Z1 : EMERGENCY-STOP +C29
+	      #A_29_A097Z1.Par.ParObjectNo                             :=2202;
+	      #A_29_A097Z1.Par.ParMsgType                              :=7154;
+	      #A_29_A097Z1.Par.ParHornCode                             :=0;
+	      #A_29_A097Z1.Par.ParDelayChange                          :=0;
+	      #A_29_A097Z1.Par.ParDelayTrue                            :=10;
+	      #A_29_A097Z1.Par.ParDelayFalse                           :=0;
+	      #A_29_A097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_29_A097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_29_A097Z1.Par.ParLogOff                               :=False;
+	      #A_29_A097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_29_A097Z1.Par.ParFaultRetry                           :=False;
+	      #A_29_A097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-29-K091Z1 : FUSE SWITCH OFF +C29
+	      #A_29_K091Z1.Par.ParObjectNo                             :=2203;
+	      #A_29_K091Z1.Par.ParMsgType                              :=7154;
+	      #A_29_K091Z1.Par.ParHornCode                             :=0;
+	      #A_29_K091Z1.Par.ParDelayChange                          :=0;
+	      #A_29_K091Z1.Par.ParDelayTrue                            :=10;
+	      #A_29_K091Z1.Par.ParDelayFalse                           :=0;
+	      #A_29_K091Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_29_K091Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_29_K091Z1.Par.ParLogOff                               :=False;
+	      #A_29_K091Z1.Par.Par2WorkingCond                         :=False;
+	      #A_29_K091Z1.Par.ParFaultRetry                           :=False;
+	      #A_29_K091Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-29-S/H097Z1 : OPERATING ON +C29
+	      #A_29_S_H097Z1.Par.ParObjectNo                             :=2204;
+	      #A_29_S_H097Z1.Par.ParMsgType                              :=7154;
+	      #A_29_S_H097Z1.Par.ParHornCode                             :=0;
+	      #A_29_S_H097Z1.Par.ParDelayChange                          :=0;
+	      #A_29_S_H097Z1.Par.ParDelayTrue                            :=10;
+	      #A_29_S_H097Z1.Par.ParDelayFalse                           :=0;
+	      #A_29_S_H097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_29_S_H097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_29_S_H097Z1.Par.ParLogOff                               :=False;
+	      #A_29_S_H097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_29_S_H097Z1.Par.ParFaultRetry                           :=False;
+	      #A_29_S_H097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2999-SHE01 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	      #A_2999_SHE01.Par.ParObjectNo                             :=2105;
+	      #A_2999_SHE01.Par.ParMsgType                              :=7154;
+	      #A_2999_SHE01.Par.ParHornCode                             :=10;
+	      #A_2999_SHE01.Par.ParDelayChange                          :=0;
+	      #A_2999_SHE01.Par.ParDelayTrue                            :=10;
+	      #A_2999_SHE01.Par.ParDelayFalse                           :=0;
+	      #A_2999_SHE01.Par.ParTimeoutTrue                          :=0;
+	      #A_2999_SHE01.Par.ParTimeoutFalse                         :=0;
+	      #A_2999_SHE01.Par.ParLogOff                               :=False;
+	      #A_2999_SHE01.Par.Par2WorkingCond                         :=False;
+	      #A_2999_SHE01.Par.ParFaultRetry                           :=False;
+	      #A_2999_SHE01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2999-SHE02 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	      #A_2999_SHE02.Par.ParObjectNo                             :=2106;
+	      #A_2999_SHE02.Par.ParMsgType                              :=7154;
+	      #A_2999_SHE02.Par.ParHornCode                             :=10;
+	      #A_2999_SHE02.Par.ParDelayChange                          :=0;
+	      #A_2999_SHE02.Par.ParDelayTrue                            :=10;
+	      #A_2999_SHE02.Par.ParDelayFalse                           :=0;
+	      #A_2999_SHE02.Par.ParTimeoutTrue                          :=0;
+	      #A_2999_SHE02.Par.ParTimeoutFalse                         :=0;
+	      #A_2999_SHE02.Par.ParLogOff                               :=False;
+	      #A_2999_SHE02.Par.Par2WorkingCond                         :=False;
+	      #A_2999_SHE02.Par.ParFaultRetry                           :=False;
+	      #A_2999_SHE02.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3199-SHE01 : EMERGENCY-OFF BELOW FLOOR
+	      #A_3199_SHE01.Par.ParObjectNo                             :=2107;
+	      #A_3199_SHE01.Par.ParMsgType                              :=7154;
+	      #A_3199_SHE01.Par.ParHornCode                             :=10;
+	      #A_3199_SHE01.Par.ParDelayChange                          :=0;
+	      #A_3199_SHE01.Par.ParDelayTrue                            :=10;
+	      #A_3199_SHE01.Par.ParDelayFalse                           :=0;
+	      #A_3199_SHE01.Par.ParTimeoutTrue                          :=0;
+	      #A_3199_SHE01.Par.ParTimeoutFalse                         :=0;
+	      #A_3199_SHE01.Par.ParLogOff                               :=False;
+	      #A_3199_SHE01.Par.Par2WorkingCond                         :=False;
+	      #A_3199_SHE01.Par.ParFaultRetry                           :=False;
+	      #A_3199_SHE01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3199-SHE02 : EMERGENCY-OFF ABOVE FLOOR
+	      #A_3199_SHE02.Par.ParObjectNo                             :=2108;
+	      #A_3199_SHE02.Par.ParMsgType                              :=7154;
+	      #A_3199_SHE02.Par.ParHornCode                             :=10;
+	      #A_3199_SHE02.Par.ParDelayChange                          :=0;
+	      #A_3199_SHE02.Par.ParDelayTrue                            :=10;
+	      #A_3199_SHE02.Par.ParDelayFalse                           :=0;
+	      #A_3199_SHE02.Par.ParTimeoutTrue                          :=0;
+	      #A_3199_SHE02.Par.ParTimeoutFalse                         :=0;
+	      #A_3199_SHE02.Par.ParLogOff                               :=False;
+	      #A_3199_SHE02.Par.Par2WorkingCond                         :=False;
+	      #A_3199_SHE02.Par.ParFaultRetry                           :=False;
+	      #A_3199_SHE02.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3199-SHE05 : EMERGENCY-OFF LADDER
+	      #A_3199_SHE05.Par.ParObjectNo                             :=2109;
+	      #A_3199_SHE05.Par.ParMsgType                              :=7154;
+	      #A_3199_SHE05.Par.ParHornCode                             :=10;
+	      #A_3199_SHE05.Par.ParDelayChange                          :=0;
+	      #A_3199_SHE05.Par.ParDelayTrue                            :=10;
+	      #A_3199_SHE05.Par.ParDelayFalse                           :=0;
+	      #A_3199_SHE05.Par.ParTimeoutTrue                          :=0;
+	      #A_3199_SHE05.Par.ParTimeoutFalse                         :=0;
+	      #A_3199_SHE05.Par.ParLogOff                               :=False;
+	      #A_3199_SHE05.Par.Par2WorkingCond                         :=False;
+	      #A_3199_SHE05.Par.ParFaultRetry                           :=False;
+	      #A_3199_SHE05.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-31-A040Z1 : POWER SUPPLY FAILURE +C31
+	      #A_31_A040Z1.Par.ParObjectNo                             :=2110;
+	      #A_31_A040Z1.Par.ParMsgType                              :=7154;
+	      #A_31_A040Z1.Par.ParHornCode                             :=10;
+	      #A_31_A040Z1.Par.ParDelayChange                          :=0;
+	      #A_31_A040Z1.Par.ParDelayTrue                            :=10;
+	      #A_31_A040Z1.Par.ParDelayFalse                           :=0;
+	      #A_31_A040Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_31_A040Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_31_A040Z1.Par.ParLogOff                               :=False;
+	      #A_31_A040Z1.Par.Par2WorkingCond                         :=False;
+	      #A_31_A040Z1.Par.ParFaultRetry                           :=False;
+	      #A_31_A040Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-31-A097Z1 : EMERGENCY-STOP +C31
+	      #A_31_A097Z1.Par.ParObjectNo                             :=2111;
+	      #A_31_A097Z1.Par.ParMsgType                              :=7154;
+	      #A_31_A097Z1.Par.ParHornCode                             :=10;
+	      #A_31_A097Z1.Par.ParDelayChange                          :=0;
+	      #A_31_A097Z1.Par.ParDelayTrue                            :=10;
+	      #A_31_A097Z1.Par.ParDelayFalse                           :=0;
+	      #A_31_A097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_31_A097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_31_A097Z1.Par.ParLogOff                               :=False;
+	      #A_31_A097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_31_A097Z1.Par.ParFaultRetry                           :=False;
+	      #A_31_A097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-31-K091Z1 : FUSE SWITCH OFF +C31
+	      #A_31_K091Z1.Par.ParObjectNo                             :=2112;
+	      #A_31_K091Z1.Par.ParMsgType                              :=7154;
+	      #A_31_K091Z1.Par.ParHornCode                             :=10;
+	      #A_31_K091Z1.Par.ParDelayChange                          :=0;
+	      #A_31_K091Z1.Par.ParDelayTrue                            :=10;
+	      #A_31_K091Z1.Par.ParDelayFalse                           :=0;
+	      #A_31_K091Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_31_K091Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_31_K091Z1.Par.ParLogOff                               :=False;
+	      #A_31_K091Z1.Par.Par2WorkingCond                         :=False;
+	      #A_31_K091Z1.Par.ParFaultRetry                           :=False;
+	      #A_31_K091Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-31-S/H097Z : OPERATING ON +C31
+	      #A_31_S_H097Z.Par.ParObjectNo                             :=2113;
+	      #A_31_S_H097Z.Par.ParMsgType                              :=7154;
+	      #A_31_S_H097Z.Par.ParHornCode                             :=10;
+	      #A_31_S_H097Z.Par.ParDelayChange                          :=0;
+	      #A_31_S_H097Z.Par.ParDelayTrue                            :=10;
+	      #A_31_S_H097Z.Par.ParDelayFalse                           :=0;
+	      #A_31_S_H097Z.Par.ParTimeoutTrue                          :=0;
+	      #A_31_S_H097Z.Par.ParTimeoutFalse                         :=0;
+	      #A_31_S_H097Z.Par.ParLogOff                               :=False;
+	      #A_31_S_H097Z.Par.Par2WorkingCond                         :=False;
+	      #A_31_S_H097Z.Par.ParFaultRetry                           :=False;
+	      #A_31_S_H097Z.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3111-QYS05 : DOOR CLOSED
+	      #A_3111_QYS05.Par.ParObjectNo                             :=2114;
+	      #A_3111_QYS05.Par.ParMsgType                              :=7163;
+	      #A_3111_QYS05.Par.ParHornCode                             :=10;
+	      #A_3111_QYS05.Par.ParDelayChange                          :=20;
+	      #A_3111_QYS05.Par.ParDelayTrue                            :=10;
+	      #A_3111_QYS05.Par.ParDelayFalse                           :=0;
+	      #A_3111_QYS05.Par.ParTimeoutTrue                          :=600;
+	      #A_3111_QYS05.Par.ParTimeoutFalse                         :=30;
+	      #A_3111_QYS05.Par.ParLogOff                               :=False;
+	      #A_3111_QYS05.Par.Par2WorkingCond                         :=False;
+	      #A_3111_QYS05.Par.ParFaultRetry                           :=False;
+	      #A_3111_QYS05.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

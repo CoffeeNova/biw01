@@ -1,0 +1,189 @@
+FUNCTION FC 52 : VOID
+TITLE =TimerFlag
+//  
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      BASIS
+//
+//TITLE:        TimerFlag/Scanner
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FC52.2.1      A. Egli             CT3                         26-Oct-2003
+//              M3.6: Sys_Tick100msFromFastOB for long scan time
+//              M3.7: Sys_Tick200msFromFastOB for long scan time
+//              Modifcation OB35 see below
+//FC52.2.0      S. Kalberer         CT3                         14-Apr-2000
+//              New M10.2: 100ms tick
+//FC52.1C       A.Egli              CT3                         13-Aug-1999
+//              M9.4: 1s High /1s low  M9.3 0.5s high/0.5s low
+//FC52.1B       A.Egli              CT3                         26-NOV-1998
+//              1 min Takt
+//FC52.1A       S. Kalberer         AEE61                       12-JUN-1996
+//              1st Release in S7, converted from FB100.1A
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      - make scan A,B,C  (MB3)
+//              - make time flags  (MB4,MB5, MB6, MB7)
+//              - make flags M9.0-M 9.5
+//              - make ticks M11.2-M11.6
+//              - init timer group M11.3-M11.5
+//
+//RESTRICTIONS: Needs CPU-Tactflag-Byte MB 2
+//              Needs Z0                          
+//                   
+//-------------------------------------------------------------------------
+//
+//
+//
+//-------------------------
+//Code in fast OB: e.g 20ms
+//--------------------------
+//For CPU with long scan time (>100ms) you must add the following code to a fast 
+//OB.
+//      U     "Sys.Pulse100ms"            // 10 Hz CPU-Tactmerker
+//      FP    "Sys.CPulse100ms"           // Positive rise
+//      S     "Sys.Tick100msFromFastOB"   // Sys.Tick100msFromFastOB
+//
+//      U     "Sys.Pulse200ms"            // 5 Hz CPU-Tactmerker
+//      FP    "Sys.CPulse200ms"           // Positive rise
+//      S     "Sys.Tick200msFromFastOB"   // Sys.Tick200msFromFastOB
+//
+//or
+//      U     M      2.0                  // 10 Hz CPU-Tactmerker
+//      FP    M      1.0                  // Positive rise
+//      S     M      3.6                  // Sys.Tick100msFromFastOB 
+//
+//      U     M      2.1                  // 5 Hz CPU-Tactmerker
+//      FP    M      1.1                  // Positive rise
+//      S     M      3.7                  // Sys.Tick200msFromFastOB 
+//
+//
+//
+//
+//
+AUTHOR : EA
+FAMILY : GCS90SYS
+NAME : BLINK
+VERSION : 2.1
+CODE_VERSION1
+
+BEGIN
+NETWORK
+TITLE =Init flags
+
+      CLR   ; 
+      =     M      9.0; // "LOW"-MERKER
+      SET   ; 
+      =     M      9.1; // "HIGH"-MERKER
+// Clear flags
+      R     M      4.2; // [2.0] Scan0.Tick100ms
+      R     M      4.3; // Scan0.Tick200ms
+      R     M      4.4; // Scan0.Tick500ms
+      R     M      4.5; // Scan0.Tick1s
+      R     M      4.6; // Scan0.Tick1min
+// Flasher
+      UN    M      9.2; // Toggle
+      =     M      9.2; // Toggle
+      U     M      2.5; // 1Hz CPU-Tact
+      =     M      9.3; // Flasch500ms
+      U     M      2.7; // 1Hz CPU-Tact
+      =     M      9.4; // Flasch1s
+NETWORK
+TITLE =Scan
+
+      U     M      3.1; // ScanA
+      SPB   SCA; 
+      U     M      3.2; // ScanB
+      SPB   SCB; 
+      U     M      3.3; // ScanB
+      SPB   SCC; 
+SCA:  R     M      3.1; // ScanA
+      S     M      3.2; // ScanB
+      R     M      5.3; // TickA_200ms
+      R     M      5.4; // TickA_500ms
+      R     M      5.5; // TickA_1s
+      R     M      5.6; // TickA_1min
+      SPA   TIME; 
+SCB:  R     M      3.2; // ScanB
+      S     M      3.3; // ScanC
+      R     M      6.3; // TickB_200ms
+      R     M      6.4; // TickB_500ms
+      R     M      6.5; // TickB_1s
+      R     M      6.6; // TickB_1min
+      SPA   TIME; 
+SCC:  R     M      3.3; // ScanC
+      S     M      3.1; // ScanA
+      R     M      7.3; // TickA_200ms
+      R     M      7.4; // TickA_500ms
+      R     M      7.5; // TickA_1s
+      R     M      7.6; // TickA_1min
+NETWORK
+TITLE =Tick
+
+// [2.0] 100ms tick
+TIME: U     M      2.0; // 10 Hz CPU-Tactflag
+      FP    M      1.0; // Positive rise
+      O     M      3.6; //[2.1]
+      R     M      3.6; //[2.1]
+      S     M      4.2; // Tick0_100ms
+// 200ms tick
+      U     M      2.1; // 5 Hz CPU-Tactmerker
+      FP    M      1.1; // Positive rise
+      O     M      3.7; //[2.1]
+      R     M      3.7; //[2.1]
+      S     M      4.3; // Tick0_200ms
+      S     M      5.3; // TickA_200ms
+      S     M      6.3; // TickB_200ms
+      S     M      7.3; // TickC_200ms
+// 500ms tick
+      U     M      2.3; // 2 Hz CPU-Tactmerker
+      FP    M      1.3; // Positive rise
+      S     M      4.4; // Tick0_500ms
+      S     M      5.4; // TickA_500ms
+      S     M      6.4; // TickB_500ms
+      S     M      7.4; // TickC_500ms
+// 1ms tick
+      U     M      2.5; // 1 Hz CPU-Tactmerker
+      FP    M      1.5; // Positive rise
+      S     M      4.5; // Tick0_500ms
+      S     M      5.5; // TickA_500ms
+      S     M      6.5; // TickB_500ms
+      S     M      7.5; // TickC_500ms
+// 1min tick
+      U     M      4.5; // Tick0_500ms
+      ZR    Z      0; 
+      UN    Z      0; 
+      S     M      4.6; // Tick0_1min
+      S     M      5.6; // TickA_1min
+      S     M      6.6; // TickB_1min
+      S     M      7.6; // TickC_1min
+      L     C#60; 
+      S     Z      0; 
+
+NETWORK
+TITLE =Out Flag group
+
+// [2.0] 100ms tick
+      U     M      4.2; // Tick0_100ms
+      =     M     10.2; // OutTick100ms
+
+// 200ms tick
+      U     M      4.3; // Tick0_200ms
+      =     M     10.3; // OutTick200ms
+// 500ms tick
+      U     M      4.4; // Tick0_500ms
+      =     M     10.4; // OutTick500ms
+// 1ms tick
+      U     M      4.5; // Tick0_1s
+      =     M     10.5; // OutTick1s
+      =     M      9.5; // Tick1S
+// 1min tick
+      U     M      4.6; // Scan0.Tick1min
+      =     M     10.6; // Gr.OutTick1min
+
+END_FUNCTION
+

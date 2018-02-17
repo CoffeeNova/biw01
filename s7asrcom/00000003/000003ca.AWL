@@ -1,0 +1,552 @@
+	DATA_BLOCK DB108
+	TITLE =DBG008G  GENERAL ELEMENTS GERM 4
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        GENERAL ELEMENTS GERM 4
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB108.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG008G 
+	VERSION : 00.00
+	
+	FB108
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=800; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=5;
+	//Parameter =A-1999-SHE01 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	      #A_1999_SHE01.Par.ParObjectNo                             :=1401;
+	      #A_1999_SHE01.Par.ParMsgType                              :=7171;
+	      #A_1999_SHE01.Par.ParHornCode                             :=2;
+	      #A_1999_SHE01.Par.ParDelayChange                          :=0;
+	      #A_1999_SHE01.Par.ParDelayTrue                            :=10;
+	      #A_1999_SHE01.Par.ParDelayFalse                           :=0;
+	      #A_1999_SHE01.Par.ParTimeoutTrue                          :=0;
+	      #A_1999_SHE01.Par.ParTimeoutFalse                         :=0;
+	      #A_1999_SHE01.Par.ParLogOff                               :=False;
+	      #A_1999_SHE01.Par.Par2WorkingCond                         :=False;
+	      #A_1999_SHE01.Par.ParFaultRetry                           :=False;
+	      #A_1999_SHE01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1999-SHE02 : EMERGENCY-OFF CONVEYOR GREEN MALT
+	      #A_1999_SHE02.Par.ParObjectNo                             :=1402;
+	      #A_1999_SHE02.Par.ParMsgType                              :=7171;
+	      #A_1999_SHE02.Par.ParHornCode                             :=2;
+	      #A_1999_SHE02.Par.ParDelayChange                          :=0;
+	      #A_1999_SHE02.Par.ParDelayTrue                            :=10;
+	      #A_1999_SHE02.Par.ParDelayFalse                           :=0;
+	      #A_1999_SHE02.Par.ParTimeoutTrue                          :=0;
+	      #A_1999_SHE02.Par.ParTimeoutFalse                         :=0;
+	      #A_1999_SHE02.Par.ParLogOff                               :=False;
+	      #A_1999_SHE02.Par.Par2WorkingCond                         :=False;
+	      #A_1999_SHE02.Par.ParFaultRetry                           :=False;
+	      #A_1999_SHE02.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-19-A040Z1 : POWER SUPPLY FAILURE +C19
+	      #A_19_A040Z1.Par.ParObjectNo                             :=1403;
+	      #A_19_A040Z1.Par.ParMsgType                              :=7135;
+	      #A_19_A040Z1.Par.ParHornCode                             :=2;
+	      #A_19_A040Z1.Par.ParDelayChange                          :=0;
+	      #A_19_A040Z1.Par.ParDelayTrue                            :=10;
+	      #A_19_A040Z1.Par.ParDelayFalse                           :=0;
+	      #A_19_A040Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_19_A040Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_19_A040Z1.Par.ParLogOff                               :=False;
+	      #A_19_A040Z1.Par.Par2WorkingCond                         :=False;
+	      #A_19_A040Z1.Par.ParFaultRetry                           :=False;
+	      #A_19_A040Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-19-A097Z1_ : EMERGENCY-STOP +C19
+	      #A_19_A097Z1.Par.ParObjectNo                             :=1404;
+	      #A_19_A097Z1.Par.ParMsgType                              :=7171;
+	      #A_19_A097Z1.Par.ParHornCode                             :=2;
+	      #A_19_A097Z1.Par.ParDelayChange                          :=0;
+	      #A_19_A097Z1.Par.ParDelayTrue                            :=10;
+	      #A_19_A097Z1.Par.ParDelayFalse                           :=0;
+	      #A_19_A097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_19_A097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_19_A097Z1.Par.ParLogOff                               :=False;
+	      #A_19_A097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_19_A097Z1.Par.ParFaultRetry                           :=False;
+	      #A_19_A097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-19-K091Z1 : FUSE SWITCH OFF +C19
+	      #A_19_K091Z1.Par.ParObjectNo                             :=1405;
+	      #A_19_K091Z1.Par.ParMsgType                              :=7135;
+	      #A_19_K091Z1.Par.ParHornCode                             :=2;
+	      #A_19_K091Z1.Par.ParDelayChange                          :=0;
+	      #A_19_K091Z1.Par.ParDelayTrue                            :=10;
+	      #A_19_K091Z1.Par.ParDelayFalse                           :=0;
+	      #A_19_K091Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_19_K091Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_19_K091Z1.Par.ParLogOff                               :=False;
+	      #A_19_K091Z1.Par.Par2WorkingCond                         :=False;
+	      #A_19_K091Z1.Par.ParFaultRetry                           :=False;
+	      #A_19_K091Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-19-S/H097Z1 : OPERATING ON +C19
+	      #A_19_S_H097Z1.Par.ParObjectNo                             :=1406;
+	      #A_19_S_H097Z1.Par.ParMsgType                              :=7154;
+	      #A_19_S_H097Z1.Par.ParHornCode                             :=2;
+	      #A_19_S_H097Z1.Par.ParDelayChange                          :=0;
+	      #A_19_S_H097Z1.Par.ParDelayTrue                            :=10;
+	      #A_19_S_H097Z1.Par.ParDelayFalse                           :=0;
+	      #A_19_S_H097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_19_S_H097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_19_S_H097Z1.Par.ParLogOff                               :=False;
+	      #A_19_S_H097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_19_S_H097Z1.Par.ParFaultRetry                           :=False;
+	      #A_19_S_H097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2401-SHE20 : CABLE PULL SWITCH RIGHT 1
+	      #A_2401_SHE20.Par.ParObjectNo                             :=807;
+	      #A_2401_SHE20.Par.ParMsgType                              :=7171;
+	      #A_2401_SHE20.Par.ParHornCode                             :=5;
+	      #A_2401_SHE20.Par.ParDelayChange                          :=0;
+	      #A_2401_SHE20.Par.ParDelayTrue                            :=10;
+	      #A_2401_SHE20.Par.ParDelayFalse                           :=0;
+	      #A_2401_SHE20.Par.ParTimeoutTrue                          :=0;
+	      #A_2401_SHE20.Par.ParTimeoutFalse                         :=0;
+	      #A_2401_SHE20.Par.ParLogOff                               :=False;
+	      #A_2401_SHE20.Par.Par2WorkingCond                         :=False;
+	      #A_2401_SHE20.Par.ParFaultRetry                           :=False;
+	      #A_2401_SHE20.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2401-SHE21 : CABLE PULL SWITCH RIGHT 2
+	      #A_2401_SHE21.Par.ParObjectNo                             :=808;
+	      #A_2401_SHE21.Par.ParMsgType                              :=7171;
+	      #A_2401_SHE21.Par.ParHornCode                             :=5;
+	      #A_2401_SHE21.Par.ParDelayChange                          :=0;
+	      #A_2401_SHE21.Par.ParDelayTrue                            :=10;
+	      #A_2401_SHE21.Par.ParDelayFalse                           :=0;
+	      #A_2401_SHE21.Par.ParTimeoutTrue                          :=0;
+	      #A_2401_SHE21.Par.ParTimeoutFalse                         :=0;
+	      #A_2401_SHE21.Par.ParLogOff                               :=False;
+	      #A_2401_SHE21.Par.Par2WorkingCond                         :=False;
+	      #A_2401_SHE21.Par.ParFaultRetry                           :=False;
+	      #A_2401_SHE21.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2401-SHE22 : CABLE PULL SWITCH LEFT 1
+	      #A_2401_SHE22.Par.ParObjectNo                             :=809;
+	      #A_2401_SHE22.Par.ParMsgType                              :=7171;
+	      #A_2401_SHE22.Par.ParHornCode                             :=5;
+	      #A_2401_SHE22.Par.ParDelayChange                          :=0;
+	      #A_2401_SHE22.Par.ParDelayTrue                            :=10;
+	      #A_2401_SHE22.Par.ParDelayFalse                           :=0;
+	      #A_2401_SHE22.Par.ParTimeoutTrue                          :=0;
+	      #A_2401_SHE22.Par.ParTimeoutFalse                         :=0;
+	      #A_2401_SHE22.Par.ParLogOff                               :=False;
+	      #A_2401_SHE22.Par.Par2WorkingCond                         :=False;
+	      #A_2401_SHE22.Par.ParFaultRetry                           :=False;
+	      #A_2401_SHE22.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2401-SHE23 : CABLE PULL SWITCH LEFT 2
+	      #A_2401_SHE23.Par.ParObjectNo                             :=810;
+	      #A_2401_SHE23.Par.ParMsgType                              :=7171;
+	      #A_2401_SHE23.Par.ParHornCode                             :=5;
+	      #A_2401_SHE23.Par.ParDelayChange                          :=0;
+	      #A_2401_SHE23.Par.ParDelayTrue                            :=10;
+	      #A_2401_SHE23.Par.ParDelayFalse                           :=0;
+	      #A_2401_SHE23.Par.ParTimeoutTrue                          :=0;
+	      #A_2401_SHE23.Par.ParTimeoutFalse                         :=0;
+	      #A_2401_SHE23.Par.ParLogOff                               :=False;
+	      #A_2401_SHE23.Par.Par2WorkingCond                         :=False;
+	      #A_2401_SHE23.Par.ParFaultRetry                           :=False;
+	      #A_2401_SHE23.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE01 : EMERGENCY OFF CUSTOMER
+	      #A_2499_SHE01.Par.ParObjectNo                             :=811;
+	      #A_2499_SHE01.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE01.Par.ParHornCode                             :=5;
+	      #A_2499_SHE01.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE01.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE01.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE01.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE01.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE01.Par.ParLogOff                               :=False;
+	      #A_2499_SHE01.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE01.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE02 : EMERGENCY OFF CUSTOMER
+	      #A_2499_SHE02.Par.ParObjectNo                             :=812;
+	      #A_2499_SHE02.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE02.Par.ParHornCode                             :=5;
+	      #A_2499_SHE02.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE02.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE02.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE02.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE02.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE02.Par.ParLogOff                               :=False;
+	      #A_2499_SHE02.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE02.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE02.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE03 : EMERGENCY STOP 1 BMKE
+	      #A_2499_SHE03.Par.ParObjectNo                             :=813;
+	      #A_2499_SHE03.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE03.Par.ParHornCode                             :=5;
+	      #A_2499_SHE03.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE03.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE03.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE03.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE03.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE03.Par.ParLogOff                               :=False;
+	      #A_2499_SHE03.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE03.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE03.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE04 : EMERGENCY STOP 1 DBFL
+	      #A_2499_SHE04.Par.ParObjectNo                             :=814;
+	      #A_2499_SHE04.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE04.Par.ParHornCode                             :=5;
+	      #A_2499_SHE04.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE04.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE04.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE04.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE04.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE04.Par.ParLogOff                               :=False;
+	      #A_2499_SHE04.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE04.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE04.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE05 : EMERGENCY STOP 2 DBFL
+	      #A_2499_SHE05.Par.ParObjectNo                             :=815;
+	      #A_2499_SHE05.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE05.Par.ParHornCode                             :=5;
+	      #A_2499_SHE05.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE05.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE05.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE05.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE05.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE05.Par.ParLogOff                               :=False;
+	      #A_2499_SHE05.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE05.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE05.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE06 : EMERGENCY STOP 2 BMKE
+	      #A_2499_SHE06.Par.ParObjectNo                             :=816;
+	      #A_2499_SHE06.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE06.Par.ParHornCode                             :=5;
+	      #A_2499_SHE06.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE06.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE06.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE06.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE06.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE06.Par.ParLogOff                               :=False;
+	      #A_2499_SHE06.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE06.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE06.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE08 : EMERGENCY STOP 3 DBFL
+	      #A_2499_SHE08.Par.ParObjectNo                             :=817;
+	      #A_2499_SHE08.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE08.Par.ParHornCode                             :=5;
+	      #A_2499_SHE08.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE08.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE08.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE08.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE08.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE08.Par.ParLogOff                               :=False;
+	      #A_2499_SHE08.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE08.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE08.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE20 : CABLE PULL SWITCH RIGHT
+	      #A_2499_SHE20.Par.ParObjectNo                             :=818;
+	      #A_2499_SHE20.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE20.Par.ParHornCode                             :=5;
+	      #A_2499_SHE20.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE20.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE20.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE20.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE20.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE20.Par.ParLogOff                               :=False;
+	      #A_2499_SHE20.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE20.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE20.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2499-SHE21 : CABLE PULL SWITCH LEFT
+	      #A_2499_SHE21.Par.ParObjectNo                             :=819;
+	      #A_2499_SHE21.Par.ParMsgType                              :=7171;
+	      #A_2499_SHE21.Par.ParHornCode                             :=5;
+	      #A_2499_SHE21.Par.ParDelayChange                          :=0;
+	      #A_2499_SHE21.Par.ParDelayTrue                            :=10;
+	      #A_2499_SHE21.Par.ParDelayFalse                           :=0;
+	      #A_2499_SHE21.Par.ParTimeoutTrue                          :=0;
+	      #A_2499_SHE21.Par.ParTimeoutFalse                         :=0;
+	      #A_2499_SHE21.Par.ParLogOff                               :=False;
+	      #A_2499_SHE21.Par.Par2WorkingCond                         :=False;
+	      #A_2499_SHE21.Par.ParFaultRetry                           :=False;
+	      #A_2499_SHE21.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A040Z1 : POWER SUPPLY FAILURE +C24
+	      #A_24_A040Z1.Par.ParObjectNo                             :=820;
+	      #A_24_A040Z1.Par.ParMsgType                              :=7135;
+	      #A_24_A040Z1.Par.ParHornCode                             :=5;
+	      #A_24_A040Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A040Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A040Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A040Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A040Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A040Z1.Par.ParLogOff                               :=False;
+	      #A_24_A040Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A040Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A040Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A097Z1 : EMERGENCY STOP +C24
+	      #A_24_A097Z1.Par.ParObjectNo                             :=821;
+	      #A_24_A097Z1.Par.ParMsgType                              :=7171;
+	      #A_24_A097Z1.Par.ParHornCode                             :=5;
+	      #A_24_A097Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A097Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A097Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A097Z1.Par.ParLogOff                               :=False;
+	      #A_24_A097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A097Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A098Z1 : EMERGENCY STOP +M241 M242
+	      #A_24_A098Z1.Par.ParObjectNo                             :=822;
+	      #A_24_A098Z1.Par.ParMsgType                              :=7171;
+	      #A_24_A098Z1.Par.ParHornCode                             :=5;
+	      #A_24_A098Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A098Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A098Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A098Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A098Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A098Z1.Par.ParLogOff                               :=False;
+	      #A_24_A098Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A098Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A098Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-K091Z1 : FUSE SWITCH OFF +C24
+	      #A_24_K091Z1.Par.ParObjectNo                             :=823;
+	      #A_24_K091Z1.Par.ParMsgType                              :=7135;
+	      #A_24_K091Z1.Par.ParHornCode                             :=5;
+	      #A_24_K091Z1.Par.ParDelayChange                          :=0;
+	      #A_24_K091Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_K091Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_K091Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_K091Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_K091Z1.Par.ParLogOff                               :=False;
+	      #A_24_K091Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_K091Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_K091Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-K738R1 : FUSE SWITCH OFF +M241
+	      #A_24_K738R1.Par.ParObjectNo                             :=824;
+	      #A_24_K738R1.Par.ParMsgType                              :=7135;
+	      #A_24_K738R1.Par.ParHornCode                             :=5;
+	      #A_24_K738R1.Par.ParDelayChange                          :=0;
+	      #A_24_K738R1.Par.ParDelayTrue                            :=10;
+	      #A_24_K738R1.Par.ParDelayFalse                           :=0;
+	      #A_24_K738R1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_K738R1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_K738R1.Par.ParLogOff                               :=False;
+	      #A_24_K738R1.Par.Par2WorkingCond                         :=False;
+	      #A_24_K738R1.Par.ParFaultRetry                           :=False;
+	      #A_24_K738R1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-K838R1 : FUSE SWITCH OFF +M242
+	      #A_24_K838R1.Par.ParObjectNo                             :=825;
+	      #A_24_K838R1.Par.ParMsgType                              :=7135;
+	      #A_24_K838R1.Par.ParHornCode                             :=5;
+	      #A_24_K838R1.Par.ParDelayChange                          :=0;
+	      #A_24_K838R1.Par.ParDelayTrue                            :=10;
+	      #A_24_K838R1.Par.ParDelayFalse                           :=0;
+	      #A_24_K838R1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_K838R1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_K838R1.Par.ParLogOff                               :=False;
+	      #A_24_K838R1.Par.Par2WorkingCond                         :=False;
+	      #A_24_K838R1.Par.ParFaultRetry                           :=False;
+	      #A_24_K838R1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-Q390Z1 : POWER SUPPLY MACHINE BMKE
+	      #A_24_Q390Z1.Par.ParObjectNo                             :=826;
+	      #A_24_Q390Z1.Par.ParMsgType                              :=7135;
+	      #A_24_Q390Z1.Par.ParHornCode                             :=5;
+	      #A_24_Q390Z1.Par.ParDelayChange                          :=0;
+	      #A_24_Q390Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_Q390Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_Q390Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_Q390Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_Q390Z1.Par.ParLogOff                               :=False;
+	      #A_24_Q390Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_Q390Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_Q390Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-Q445Z1 : POWER SUPPLY MACHINE DBFL
+	      #A_24_Q445Z1.Par.ParObjectNo                             :=827;
+	      #A_24_Q445Z1.Par.ParMsgType                              :=7135;
+	      #A_24_Q445Z1.Par.ParHornCode                             :=5;
+	      #A_24_Q445Z1.Par.ParDelayChange                          :=0;
+	      #A_24_Q445Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_Q445Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_Q445Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_Q445Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_Q445Z1.Par.ParLogOff                               :=False;
+	      #A_24_Q445Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_Q445Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_Q445Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-S/H097Z1 : OPERATING ON +C24
+	      #A_24_S_H097Z1.Par.ParObjectNo                             :=828;
+	      #A_24_S_H097Z1.Par.ParMsgType                              :=7154;
+	      #A_24_S_H097Z1.Par.ParHornCode                             :=5;
+	      #A_24_S_H097Z1.Par.ParDelayChange                          :=0;
+	      #A_24_S_H097Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_S_H097Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_S_H097Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_S_H097Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_S_H097Z1.Par.ParLogOff                               :=False;
+	      #A_24_S_H097Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_S_H097Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_S_H097Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A458Z1 : CLEANING FLAP 1/2
+	      #A_24_A458Z1.Par.ParObjectNo                             :=829;
+	      #A_24_A458Z1.Par.ParMsgType                              :=7154;
+	      #A_24_A458Z1.Par.ParHornCode                             :=5;
+	      #A_24_A458Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A458Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A458Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A458Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A458Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A458Z1.Par.ParLogOff                               :=False;
+	      #A_24_A458Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A458Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A458Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-D1B065 : CONTROL 24VDC LIMIT SWITCHES WAY
+	      #A_24_D1B065.Par.ParObjectNo                             :=830;
+	      #A_24_D1B065.Par.ParMsgType                              :=7154;
+	      #A_24_D1B065.Par.ParHornCode                             :=5;
+	      #A_24_D1B065.Par.ParDelayChange                          :=0;
+	      #A_24_D1B065.Par.ParDelayTrue                            :=10;
+	      #A_24_D1B065.Par.ParDelayFalse                           :=0;
+	      #A_24_D1B065.Par.ParTimeoutTrue                          :=0;
+	      #A_24_D1B065.Par.ParTimeoutFalse                         :=0;
+	      #A_24_D1B065.Par.ParLogOff                               :=False;
+	      #A_24_D1B065.Par.Par2WorkingCond                         :=False;
+	      #A_24_D1B065.Par.ParFaultRetry                           :=False;
+	      #A_24_D1B065.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A408Z1I1 : BUMPER SWITCHED-OFF
+	      #A_24_A408Z1I1.Par.ParObjectNo                             :=831;
+	      #A_24_A408Z1I1.Par.ParMsgType                              :=7171;
+	      #A_24_A408Z1I1.Par.ParHornCode                             :=5;
+	      #A_24_A408Z1I1.Par.ParDelayChange                          :=0;
+	      #A_24_A408Z1I1.Par.ParDelayTrue                            :=10;
+	      #A_24_A408Z1I1.Par.ParDelayFalse                           :=0;
+	      #A_24_A408Z1I1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A408Z1I1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A408Z1I1.Par.ParLogOff                               :=False;
+	      #A_24_A408Z1I1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A408Z1I1.Par.ParFaultRetry                           :=False;
+	      #A_24_A408Z1I1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A408Z1O1 : RESET ALARM
+	      #A_24_A408Z1O1.Par.ParObjectNo                             :=832;
+	      #A_24_A408Z1O1.Par.ParMsgType                              :=7002;
+	      #A_24_A408Z1O1.Par.ParHornCode                             :=5;
+	      #A_24_A408Z1O1.Par.ParOnTime                               :=10;
+	      #A_24_A408Z1O1.Par.ParOffTime                              :=0;
+	      #A_24_A408Z1O1.Par.ParIdlingTime                           :=0;
+	      #A_24_A408Z1O1.Par.ParDelayTime                            :=0;
+	      #A_24_A408Z1O1.Par.ParLogOff                               :=False;
+	      #A_24_A408Z1O1.Par.ParManual                               :=True;
+	      #A_24_A408Z1O1.Par.ParContinuous                           :=True;
+	      #A_24_A408Z1O1.Par.ParPulse                                :=False;
+	      #A_24_A408Z1O1.Par.ParPulsing                              :=False;
+	      #A_24_A408Z1O1.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-24-A700Z1 : POWER CIRCUIT CABLE CHAIN
+	      #A_24_A700Z1.Par.ParObjectNo                             :=833;
+	      #A_24_A700Z1.Par.ParMsgType                              :=7147;
+	      #A_24_A700Z1.Par.ParHornCode                             :=5;
+	      #A_24_A700Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A700Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A700Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A700Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A700Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A700Z1.Par.ParLogOff                               :=False;
+	      #A_24_A700Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A700Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A700Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-24-A800Z1 : POWER CIRCUIT CABLE CHAIN
+	      #A_24_A800Z1.Par.ParObjectNo                             :=834;
+	      #A_24_A800Z1.Par.ParMsgType                              :=7147;
+	      #A_24_A800Z1.Par.ParHornCode                             :=5;
+	      #A_24_A800Z1.Par.ParDelayChange                          :=0;
+	      #A_24_A800Z1.Par.ParDelayTrue                            :=10;
+	      #A_24_A800Z1.Par.ParDelayFalse                           :=0;
+	      #A_24_A800Z1.Par.ParTimeoutTrue                          :=0;
+	      #A_24_A800Z1.Par.ParTimeoutFalse                         :=0;
+	      #A_24_A800Z1.Par.ParLogOff                               :=False;
+	      #A_24_A800Z1.Par.Par2WorkingCond                         :=False;
+	      #A_24_A800Z1.Par.ParFaultRetry                           :=False;
+	      #A_24_A800Z1.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

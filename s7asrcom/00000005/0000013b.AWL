@@ -1,0 +1,1209 @@
+FUNCTION_BLOCK "GCS7_E_AnalogInput"
+TITLE =Analog Input
+//  
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG,  CH-9240 UZWILn  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Analog Input
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB19.1.4      A. Egli             CT3                         08-Mar-2005
+//              Check ParLimitL > ParLimitLL and ParLimitH < ParLimitHH
+//FB19.1.3      A. Egli             CT3                         24-Jan-2005
+//              InDisable
+//FB19.1.2      A. Egli             CT3                         26-Nov-2001
+//              PCDirect Control: Length data is 80 byte not 40 
+//FB19.1.1      A. Egli             CT3                         26-Nov-2001
+//              Transition StL -->StLL ,StH -->StHH
+//FB19.1.0      A. Egli             CT3                         22-Oct-2001
+//              New Version of Anlaog Input
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [AIxxMAN]
+//
+//RESTRICTIONS: Use the CALL command to call the element
+//              e.g. CALL "Element1"
+//
+//-------------------------------------------------------------------------
+//
+//MaxDigits:     Siemens: 27'648/ Wago: 32'767
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//1StLLrange LL
+//2StLrange L
+//3StMidrange Mid
+//4StHrange H
+//5StHHrange HH
+//7fault AI
+//8fault device
+//9fault cancelled
+//11prealarm LL
+//12prealarm LL
+//13prealarm LL
+//14prealarm LL
+//15prealarm HH
+//21fault LL
+//22fault L
+//23fault Mid
+//24fault H
+//25fault HH
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//  1   StLL                      range LL
+//  2   StL                       range L
+//  3   StMiddle                  range middle
+//  4   StH                       range H
+//  5   StHH                      range HH
+//
+// 11   StLL.Warning              range LL Warning
+// 12   StL.Warning               range L  Warning 
+// 13   StMiddle                  range middle Warning
+// 14   StH.Warning               range H  Warning
+// 15   StHH.Warning              range HH Warning
+//
+// 21   StLL.Faulted              range LL Faulted
+// 22   StL.Faulted               range L  Faulted
+// 23   StMiddle.Faulted          range middle Faulted
+// 24   StH.Faulted               range H  Faulted 
+// 25   StHH.Faulted              range HH Faulted
+//
+// 41   StLL.HWStop               range LL HWStop
+// 42   StL.HWStop                range L  HWStop
+// 43   StMiddle.HWStop           range middle HWStop
+// 44   StH..HWStop               range H  HWStop
+// 45   StHH..HWStop              range HH HWStop
+//
+// 51   StLL.DPFault              range LL DPFault
+// 52   StL.DPFault               range L  DPFault
+// 53   StMiddle.DPFault          range middle DPFault
+// 54   StH..DPFault              range H  DPFault
+// 55   StHH..DPFault             range HH DPFault
+//
+//
+// 29   StFaultAI.Dev             fault Device Passiv
+// 30   StFaultAI.Input           fault Input  Passiv
+// 31   StFaultAI.Dev             fault Device Active
+// 32   StFaultAI.Input           fault Input  Active
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : EL_AI2
+VERSION : 1.4
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InMonLL : BOOL ;	//After t1 value must be <>StLL, otherwise it is a process fault
+  InMonL : BOOL ;	//After t2 value must be <>StL, otherwise it is a process fault
+  InMonMid : BOOL ;	//After t3 value must be <>StMid, otherwise it is a process fault
+  InMonH : BOOL ;	//After t4 value must be <>StH, otherwise it is a process fault
+  InMonHH : BOOL ;	//After t5 value must be <>StHH, otherwise it is a process fault
+  spare0205 : BOOL ;	
+  InpFaultAI : BOOL ;	//Digital input:Fault A/D converter WAGO
+  InpFaultDev : BOOL ;	//Digital input Fault device
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InDisable : BOOL ;	//Element is disabled 
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//Local mode
+  spare0305 : BOOL ;	
+  InReport : BOOL ;	//Report all state transitions
+  spare0307 : BOOL ;	
+  OutLL : BOOL ;	//Internal used InValue >= Limit Low Low
+  OutL : BOOL ;	//Internal used InValue >= Limit Low
+  OutH : BOOL ;	//Internal used InValue >= Limit High 
+  OutHH : BOOL ;	//Internal used InValue >= Limit High High
+  OutOverflow : BOOL ;	//InpValue >32767
+  spare0405 : BOOL ;	
+  OutFaultAI : BOOL ;	//Fault analog input signal
+  spare0407 : BOOL ;	
+  StLL : BOOL ;	//InValue < ParLimitLL (with delay time)
+  StL : BOOL ;	//InValue < ParLimitL  (with delay time)
+  StMid : BOOL ;	//ParLimitL < InValue < ParLimitH (with delay time)
+  StH : BOOL ;	//InValue  > ParLimitH (with delay time)
+  StHH : BOOL ;	//InValue  > ParLimitHH (with delay time)
+  StFaultAI : BOOL ;	//Fault of analog input value (InpFaultDev or OutFaultAI)
+  OutWarning : BOOL ;	//Substate StCode Xxxx.Warning
+  OutFaulted : BOOL ;	//Substate StCode Xxxx.Fault    
+  InpValue : INT ;	//Actual value of analog input
+  OutValuePc : INT ;	//Converted InValue in [0.01 %]
+  OutValueUnits : DINT ;	//Converted InValue in units
+  Msg : STRUCT 	//Read by WinCC
+   WarningDoneLL : BOOL ;	
+   WarningDoneL : BOOL ;	
+   WarningDoneMid : BOOL ;	
+   WarningDoneH : BOOL ;	
+   WarningDoneHH : BOOL ;	
+   FaultDoneLL : BOOL ;	
+   FaultDoneL : BOOL ;	
+   FaultDoneMid : BOOL ;	
+   FaultDoneH : BOOL ;	
+   FaultDoneHH : BOOL ;	
+   FaultDoneDev : BOOL ;	
+   FaultDoneAI : BOOL ;	
+  END_STRUCT ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParSpare0401 : BOOL ;	
+   ParValueByUser : BOOL ;	//User writes value direct to OutValueUnits
+   ParLimitsPc : BOOL ;	//Limits in percent not in units.
+   ParWago : BOOL ;	//Format of analog value is WAGO 
+   ParNoHornByWarning : BOOL ;	//No alarm horn by warning
+   ParWarningLL : BOOL ;	//1=Warning / 0=Fault
+   ParWarningL : BOOL ;	//1=Warning / 0=Fault
+   ParWarningMid : BOOL ;	//1=Warning / 0=Fault
+   ParWarningH : BOOL ;	//1=Warning / 0=Fault
+   ParWarningHH : BOOL ;	//1=Warning / 0=Fault
+   ParPreAlarmLL : BOOL ;	//Immediately Alarm (Horn and report), if value out of monitored range (after t0.
+   ParPreAlarmL : BOOL ;	//Immediately Alarm (Horn and report), if value out of monitored range (after t0.
+   ParPreAlarmMid : BOOL ;	//Immediately Alarm (Horn and report), if value out of monitored range (after t0.
+   ParPreAlarmH : BOOL ;	//Immediately Alarm (Horn and report), if value out of monitored range (after t0.
+   ParPreAlarmHH : BOOL ;	//Immediately Alarm (Horn and report), if value out of monitored range (after t0.
+   ParUnitsByZeroDigit : DINT ;	//Zero set point of AD-Converter in units
+   ParUnitsByMaxDigit : DINT ;	//Max set point of AD-Converter in units
+   ParUnitsBy100Pc : DINT ;	//100 Pc set point of precess working range in units
+   ParLimitLL : DINT ;	//LL limit value in units or percent
+   ParLimitL : DINT ;	//L limit value in units or percent
+   ParLimitH : DINT ;	//H limit value in units or percent
+   ParLimitHH : DINT ;	//HH limit value in units or percent
+   ParMonTimeLL : INT ;	//t1: At end of t1 InValue has to be <> StLL, otherwise StFault.
+   ParMonTimeL : INT ;	//t1: At end of t1 InValue has to be <> StL, otherwise StFault.
+   ParMonTimeMid : INT ;	//t2: At end of t2 InValue has to be <> StMid, otherwise StFault.
+   ParMonTimeH : INT ;	//t2: At end of t2 InValue has to be <> StH, otherwise StFault.
+   ParMonTimeHH : INT ;	//t3: At end of t3 InValue has to be <> StHH, otherwise StFault.
+   ParDelayTimeDown : INT  := 20;	//Delay time until element changes to the lower state
+   ParDelayTimeUp : INT  := 20;	//Delay time until element changes to the higher state
+   ParDelayTime : INT ;	//Requested fault delay time (InpFaultAI, InpFaultDev)
+   OutMonTimeLL : INT ;	//Actual time: monitoring
+   OutMonTimeL : INT ;	//Actual time: monitoring
+   OutMonTimeMid : INT ;	//Actual time: monitoring
+   OutMonTimeH : INT ;	//Actual time: monitoring
+   OutMonTimeHH : INT ;	//Actual time: monitoring
+   OutDelayTimeDown : INT ;	//Actual time: delay
+   OutDelayTimeUp : INT ;	//Actual time: delay
+   OutDelayTime : INT ;	//Actual time: DelayTime
+   Spare66 : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpStoreAR2 : DWORD ;	//store the Instance Pointer
+  tmpLenDyn : DINT ;	
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpDConverter : REAL ;	//provisional result: ParUnitsByMaxDigit - ParUnitsByZeroDigit
+  tmpDProcess : REAL ;	//provisional result: ParUnitsBy100Pc - ParUnitsByZeroDigit
+  tmpLimitMinPc : REAL ;	//Limit minimum in percent
+  tmpLimitMaxPc : REAL ;	//Limit maximum in percent
+  tmpInpValue : REAL ;	//store actual value
+  tmpFaultAI : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpHornOn : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Start Global
+
+      L     88; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//--Local ------------
+      U     #InLocal; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      O     #InDisable; //[1.3]
+      =     #tmpLocal; 
+//-----------------
+      SET   ; 
+      R     #tmpHornOn; 
+NETWORK
+TITLE =PC Control
+
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1019; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //PC.Hsk.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // PC.Hsk.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //PC.Hsk.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBD [AR1,P#20.0]; 
+      T     #Par.ParLimitLL; 
+      L     DBD [AR1,P#24.0]; 
+      T     #Par.ParLimitL; 
+      L     DBD [AR1,P#28.0]; 
+      T     #Par.ParLimitH; 
+      L     DBD [AR1,P#32.0]; 
+      T     #Par.ParLimitHH; 
+      L     DBW [AR1,P#36.0]; 
+      T     #Par.ParMonTimeLL; 
+      L     DBW [AR1,P#38.0]; 
+      T     #Par.ParMonTimeL; 
+      L     DBW [AR1,P#40.0]; 
+      T     #Par.ParMonTimeMid; 
+      L     DBW [AR1,P#42.0]; 
+      T     #Par.ParMonTimeH; 
+      L     DBW [AR1,P#44.0]; 
+      T     #Par.ParMonTimeHH; 
+      L     DBW [AR1,P#46.0]; 
+      T     #Par.ParDelayTimeDown; 
+      L     DBW [AR1,P#48.0]; 
+      T     #Par.ParDelayTimeUp; 
+      L     DBW [AR1,P#50.0]; 
+      T     #Par.ParDelayTime; 
+// Write new commands from PC to Interface object
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14]=CmdReportOff
+      R     #InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     "SYS_DirectCtrlDB".GC.InDynAddr; // Address Parameters
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      L     0; // Length parameter
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =Global Value Calculation
+//                   InpValue    
+// OutValueUnits =   -------- * (ParUnitsByMaxDigit- ParUnitsByZeroDigit) 
+//+ParUnitsByZeroDigit
+//                   maxDigits     
+//                     
+// OutValuePc    =   (OutValueUnits / ParUnitsBy100Pc) *10'000
+//                     
+      UN    #Par.ParValueByUser; 
+      SPB   aiJ1; 
+      L     #OutValueUnits; // Value by user software
+      DTR   ; 
+      SPA   aiPc; 
+aiJ1: L     32767; 
+      L     #InpValue; 
+      ==I   ; 
+      UN    #Par.ParWago; 
+      =     #OutOverflow; 
+
+      L     -32767; 
+      <=I   ; 
+      UN    #Par.ParWago; 
+      O     #InpFaultAI; 
+      =     #OutFaultAI; //--> Wireing broken of underflow analog input
+      L     0.000000e+000; 
+      SPB   aiNO; // aip0
+      L     #InpValue; 
+      ITD   ; 
+      DTR   ; 
+      U     #Par.ParWago; 
+      SPB   aiJw; 
+      L     2.764800e+004; // Max number of digits SIEMENS          
+      SPA   aiJc; 
+aiJw: L     3.276700e+004; // Max number of digits WAGO             
+aiJc: /R    ; 
+      T     #tmpInpValue; 
+      L     #Par.ParUnitsByMaxDigit; 
+      L     #Par.ParUnitsByZeroDigit; 
+      -D    ; 
+      DTR   ; 
+      L     #tmpInpValue; 
+      *R    ; 
+      L     #Par.ParUnitsByZeroDigit; 
+      DTR   ; 
+      +R    ; 
+      T     #tmpInpValue; 
+      RND   ; // Real to Integer
+      T     #OutValueUnits; 
+      L     #tmpInpValue; 
+aiPc: L     #Par.ParUnitsBy100Pc; 
+      DTR   ; 
+      /R    ; 
+      L     1.000000e+004; 
+      *R    ; 
+      RND   ; // Real to Integer
+      T     #OutValuePc; 
+aiNO: NOP   0; 
+NETWORK
+TITLE =Test limits
+
+      L     #OutValuePc; 
+      ITD   ; 
+      U     #Par.ParLimitsPc; 
+      SPB   bLL; 
+      L     #OutValueUnits; 
+bLL:  L     #Par.ParLimitLL; 
+      >=D   ; 
+      =     #OutLL; 
+// 
+      L     #OutValuePc; 
+      ITD   ; 
+      U     #Par.ParLimitsPc; 
+      SPB   bL; 
+      L     #OutValueUnits; 
+bL:   L     #Par.ParLimitL; 
+      >=D   ; 
+      U     #OutLL; //[1.4]
+      =     #OutL; 
+// 
+      L     #OutValuePc; 
+      ITD   ; 
+      U     #Par.ParLimitsPc; 
+      SPB   bHH; 
+      L     #OutValueUnits; 
+bHH:  L     #Par.ParLimitHH; 
+      >D    ; 
+      =     #OutHH; 
+// 
+      L     #OutValuePc; 
+      ITD   ; 
+      U     #Par.ParLimitsPc; 
+      SPB   bH; 
+      L     #OutValueUnits; 
+bH:   L     #Par.ParLimitH; 
+      >D    ; 
+      O     #OutHH; //[1.4]
+      =     #OutH; 
+
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+
+NETWORK
+TITLE =Fault delay time: ParDelayTime 
+
+//Test or Running delay time ====================
+//---Condition for Delay Fault
+      U     #InpFaultDev; 
+      O     #OutFaultAI; 
+      UN    #tmpLocal; 
+      SPB   TFF1; 
+      R     #tmpFaultAI; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      SPA   TFF0; 
+TFF1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutDelayTime; 
+      SPB   TFF3; 
+      +     2; 
+TFF3: T     #Par.OutDelayTime; 
+      L     #Par.ParDelayTime; 
+      >=I   ; 
+      =     #tmpFaultAI; 
+      SPBN  TFF0; 
+      T     #Par.OutDelayTime; 
+TFF0: NOP   0; 
+
+NETWORK
+TITLE =Count Delay Timer
+
+      UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      SPB   DTJ0; 
+      L     #Par.OutDelayTimeDown; 
+      +     5; //Increment all 500ms
+      T     #Par.OutDelayTimeDown; 
+      L     #Par.OutDelayTimeUp; 
+      +     5; //Increment all 500ms
+      T     #Par.OutDelayTimeUp; 
+DTJ0: NOP   0; 
+NETWORK
+TITLE =FaultReset
+
+      UN    #CmdFaultReset; //---Condition for StFault
+      UN    "GCS7_Gr_OutFaultReset"; // Gr.OutFaultReset
+      UN    #InLocal; 
+      SPB   FREn; 
+      R     #Msg.WarningDoneLL; 
+      R     #Msg.WarningDoneL; 
+      R     #Msg.WarningDoneMid; 
+      R     #Msg.WarningDoneH; 
+      R     #Msg.WarningDoneHH; 
+      R     #Msg.FaultDoneLL; 
+      R     #Msg.FaultDoneL; 
+      R     #Msg.FaultDoneMid; 
+      R     #Msg.FaultDoneH; 
+      R     #Msg.FaultDoneHH; 
+      R     #Msg.FaultDoneAI; 
+      R     #Msg.FaultDoneDev; 
+//--- Message Fault Cancelled---------------
+      U     #Par.ParLogOff; 
+      ON    #OutFaulted; 
+      R     #OutFaulted; 
+      SPB   FREn; 
+      R     #OutFaulted; 
+      L     B#(3, 9); // MessageClass Operater "fault cancelled"
+      T     #tmpLOGvalue; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1019);
+FREn: NOP   0; 
+
+NETWORK
+TITLE =Init States
+
+      UN    #StLL; 
+      UN    #StL; 
+      UN    #StMid; 
+      UN    #StH; 
+      UN    #StHH; 
+      UN    #StFaultAI; 
+      SPBN  InEn; 
+///=====================================
+//Init after download DB
+///=====================================
+//Condition for StHH
+      U     #OutHH; 
+      SPB   xxHH; 
+//Condition for StH
+      U     #OutH; 
+      SPB   xx_H; 
+//Condition for StMid
+      U     #OutL; 
+      SPB   xxMi; 
+//Condition for StL
+      U     #OutLL; 
+      SPB   xx_L; 
+//Condition for StLL
+      SPA   xxLL; 
+InEn: NOP   0; 
+NETWORK
+TITLE =StLL
+// 
+      UN    #StLL; 
+      SPB   LLEn; 
+      SPA   LL; 
+//===============================================
+//Transition  to StLL
+//===============================================
+xxLL: SET   ; 
+      S     #StLL; //Initialise: goto StLL
+      L     0; 
+      T     #Par.OutDelayTimeUp; 
+      UN    #InReport; 
+      SPB   LLEn; 
+      L     B#(4, 1); // Message ('Low Low' )
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Init
+LL:   UN    #InMonLL; 
+      R     #OutWarning; 
+
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+      U     #OutLL; 
+      SPB   LLJ1; 
+      L     0; 
+      T     #Par.OutDelayTimeUp; 
+//---1. Condition for StFault
+LLJ1: U     #tmpFaultAI; 
+      R     #StLL; 
+      SPB   xxFI; 
+//---Condition for StL
+      L     #Par.ParDelayTimeUp; 
+      L     #Par.OutDelayTimeUp; 
+      <=I   ; 
+      U     #OutLL; //Change with delay
+      O     #OutL; //Immediate change
+      R     #StLL; 
+      SPB   xx_L; 
+LLEn: NOP   0; 
+NETWORK
+TITLE =Monitoring LL
+
+      UN    #OutLL; 
+      U     #InMonLL; 
+      UN    #tmpLocal; 
+      SPB   mLL1; 
+      L     #Par.ParMonTimeLL; 
+      T     #Par.OutMonTimeLL; 
+      SPA   mLL0; 
+mLL1: UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      L     #Par.OutMonTimeLL; 
+      SPB   mLL2; 
+      L     5; 
+      -I    ; // Decrement all 500ms
+      SPP   mLL2; 
+      L     0; 
+mLL2: T     #Par.OutMonTimeLL; 
+//----------------------------------------
+//FaultLL
+//----------------------------------------
+      L     #Par.OutMonTimeLL; 
+      L     0; 
+      <=I   ; 
+      UN    #Par.ParWarningLL; 
+      SPBN  mLLP; 
+      S     #OutFaulted; 
+      UN    #Msg.FaultDoneLL; 
+      S     #Msg.FaultDoneLL; 
+      S     #tmpHornOn; 
+      L     B#(1, 21); // MessageClass Error "fault Low Low"
+      SPB   Log; 
+//----------------------------------------
+//PreAlarm/WarningLL
+//----------------------------------------
+mLLP: L     #Par.OutMonTimeLL; 
+      L     0; 
+      <=I   ; 
+      O     #Par.ParPreAlarmLL; 
+      SPBN  mLL0; 
+      S     #OutWarning; 
+      UN    #Msg.FaultDoneLL; 
+      UN    #Msg.WarningDoneLL; 
+      SPBN  mLL0; 
+      S     #Msg.WarningDoneLL; 
+      UN    #Par.ParNoHornByWarning; 
+      S     #tmpHornOn; 
+      L     B#(1, 11); // MessageClass Error "warning Low Low"
+      SPB   Log; 
+mLL0: NOP   0; 
+NETWORK
+TITLE =StL
+// 
+      UN    #StL; 
+      SPB   _LEn; 
+      SPA   _L; 
+//===============================================
+//Transition  to StL
+//===============================================
+xx_L: SET   ; 
+      S     #StL; 
+      R     #Msg.WarningDoneLL; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+      T     #Par.OutDelayTimeUp; 
+      UN    #InReport; 
+      SPB   _LEn; 
+      L     B#(4, 2); // Message ('Low' )
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Init
+_L:   UN    #InMonL; 
+      R     #OutWarning; 
+
+      UN    #OutLL; 
+      SPB   _LJ1; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+_LJ1: U     #OutL; 
+      SPB   _LJ2; 
+      L     0; 
+      T     #Par.OutDelayTimeUp; 
+//---Condition for StFault
+_LJ2: U     #tmpFaultAI; 
+      R     #StL; 
+      SPB   xxFI; 
+//---Condition for StLL
+      L     #Par.ParDelayTimeDown; 
+      L     #Par.OutDelayTimeDown; 
+      <=I   ; 
+      UN    #OutLL; //Change with delay  [1.1]
+      R     #StL; 
+      SPB   xxLL; 
+//---Condition for StMid
+      L     #Par.ParDelayTimeUp; 
+      L     #Par.OutDelayTimeUp; 
+      <=I   ; 
+      U     #OutL; //Change with delay
+      O     #OutH; //Immediate change
+      R     #StL; 
+      SPB   xxMi; 
+_LEn: NOP   0; 
+
+NETWORK
+TITLE =Monitoring L
+
+      U(    ; 
+      UN    #OutL; 
+      U     #InMonLL; 
+      O     ; 
+      U     #OutLL; 
+      UN    #InMonLL; 
+      )     ; 
+      U     #InMonL; 
+      UN    #tmpLocal; 
+      SPB   m_L1; 
+//==not Monitoring L =================================
+      L     #Par.ParMonTimeL; 
+      T     #Par.OutMonTimeL; 
+      SPA   m_L0; 
+//==Monitoring L =================================
+m_L1: UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      L     #Par.OutMonTimeL; 
+      SPB   m_L2; 
+      L     5; 
+      -I    ; // Decrement all 500ms
+      SPP   m_L2; 
+      L     0; 
+m_L2: T     #Par.OutMonTimeL; 
+//----------------------------------------
+//FaultL
+//----------------------------------------
+      L     #Par.OutMonTimeL; 
+      L     0; 
+      <=I   ; 
+      UN    #Par.ParWarningL; 
+      SPBN  m_LP; 
+      S     #OutFaulted; 
+      UN    #Msg.FaultDoneLL; 
+      UN    #Msg.FaultDoneL; 
+      S     #Msg.FaultDoneL; 
+      S     #tmpHornOn; 
+      L     B#(1, 22); // MessageClass Error "fault Low"
+      SPB   Log; 
+//----------------------------------------
+//PreAlarm/WarningL
+//----------------------------------------
+m_LP: L     #Par.OutMonTimeL; 
+      L     0; 
+      <=I   ; 
+      O     #Par.ParPreAlarmL; 
+      SPBN  m_L0; 
+      S     #OutWarning; 
+      UN    #Msg.FaultDoneL; 
+      UN    #Msg.FaultDoneLL; 
+      UN    #Msg.WarningDoneL; 
+      UN    #Msg.WarningDoneLL; 
+      SPBN  m_L0; 
+      S     #Msg.WarningDoneL; 
+      UN    #Par.ParNoHornByWarning; 
+      S     #tmpHornOn; 
+      L     B#(1, 12); // MessageClass Error "warning Low"
+      SPB   Log; 
+m_L0: NOP   0; 
+NETWORK
+TITLE =StMid
+// 
+      UN    #StMid; 
+      SPB   MiEn; 
+      SPA   Mi; 
+//===============================================
+//Transition  to StMid
+//===============================================
+xxMi: SET   ; 
+      S     #StMid; 
+      R     #Msg.WarningDoneMid; 
+      R     #Msg.WarningDoneL; 
+      R     #Msg.WarningDoneH; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+      T     #Par.OutDelayTimeUp; 
+      UN    #InReport; 
+      SPB   MiEn; 
+      L     B#(4, 3); // Message ('Normal' )
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Init
+Mi:   UN    #InMonMid; 
+      R     #OutWarning; 
+
+      UN    #OutL; 
+      SPB   MiJ1; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+MiJ1: U     #OutH; 
+      SPB   MiJ2; 
+      L     0; 
+      T     #Par.OutDelayTimeUp; 
+//---Condition for StFault
+MiJ2: U     #tmpFaultAI; 
+      R     #StMid; 
+      SPB   xxFI; 
+//---Condition for StL
+      L     #Par.ParDelayTimeDown; 
+      L     #Par.OutDelayTimeDown; 
+      <=I   ; 
+      UN    #OutL; //Change with delay
+      ON    #OutLL; //Immediate change
+      R     #StMid; 
+      SPB   xx_L; 
+//---Condition for StH
+      L     #Par.ParDelayTimeUp; 
+      L     #Par.OutDelayTimeUp; 
+      <=I   ; 
+      U     #OutH; //Change with delay
+      O     #OutHH; //Immediate change
+      R     #StMid; 
+      SPB   xx_H; 
+MiEn: NOP   0; 
+NETWORK
+TITLE =Monitoring Middle
+
+      U(    ; 
+      UN    #OutH; 
+      UN    #InMonHH; 
+      O     ; 
+      U     #OutL; 
+      U     #InMonHH; 
+      )     ; 
+      U     #InMonMid; 
+      UN    #tmpLocal; 
+      SPB   mMi1; 
+//==not Monitoring Middle =================================
+      L     #Par.ParMonTimeMid; 
+      T     #Par.OutMonTimeMid; 
+      SPA   mMi0; 
+//==Monitoring Middle =================================
+mMi1: UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      L     #Par.OutMonTimeMid; 
+      SPB   mMi2; 
+      L     5; 
+      -I    ; // Decrement all 500ms
+      SPP   mMi2; 
+      L     0; 
+mMi2: T     #Par.OutMonTimeMid; 
+//----------------------------------------
+//FaultMid
+//----------------------------------------
+      L     #Par.OutMonTimeMid; 
+      L     0; 
+      <=I   ; 
+      UN    #Par.ParWarningMid; 
+      SPBN  mMiP; 
+      S     #OutFaulted; 
+      UN    #Msg.FaultDoneMid; 
+      S     #Msg.FaultDoneMid; 
+      S     #tmpHornOn; 
+      L     B#(1, 23); // MessageClass Error "fault Mid"
+      SPB   Log; 
+//----------------------------------------
+//PreAlarm / WarningMid
+//----------------------------------------
+mMiP: L     #Par.OutMonTimeMid; 
+      L     0; 
+      <=I   ; 
+      O     #Par.ParPreAlarmMid; 
+      SPBN  mMi0; 
+      S     #OutWarning; 
+      UN    #OutFaulted; 
+      UN    #Msg.WarningDoneMid; 
+      SPBN  mMi0; 
+      S     #Msg.WarningDoneMid; 
+      UN    #Par.ParNoHornByWarning; 
+      S     #tmpHornOn; 
+      L     B#(1, 13); // MessageClass Error "warning mid"
+      SPB   Log; 
+mMi0: NOP   0; 
+NETWORK
+TITLE =StH
+// 
+      UN    #StH; 
+      SPB   _HEn; 
+      SPA   _H; 
+//===============================================
+//Transition  to StH
+//===============================================
+xx_H: SET   ; 
+      S     #StH; 
+      R     #Msg.WarningDoneHH; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+      T     #Par.OutDelayTimeUp; 
+      UN    #InReport; 
+      SPB   _HEn; 
+      L     B#(4, 4); // Message ('High' )
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Init
+_H:   UN    #InMonH; 
+      R     #OutWarning; 
+
+      UN    #OutH; 
+      SPB   _HJ1; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+_HJ1: U     #OutHH; 
+      SPB   _HJ2; 
+      L     0; 
+      T     #Par.OutDelayTimeUp; 
+//---Condition for StFault
+_HJ2: U     #tmpFaultAI; 
+      R     #StH; 
+      SPB   xxFI; 
+//---Condition for StMid
+      L     #Par.ParDelayTimeDown; 
+      L     #Par.OutDelayTimeDown; 
+      <=I   ; 
+      UN    #OutH; //Change with delay
+      ON    #OutL; //Immediate change
+      R     #StH; 
+      SPB   xxMi; 
+//---Condition for StHH
+      L     #Par.ParDelayTimeUp; 
+      L     #Par.OutDelayTimeUp; 
+      <=I   ; 
+      U     #OutHH; //Change with delay [1.1]
+      R     #StH; 
+      SPB   xxHH; 
+_HEn: NOP   0; 
+
+NETWORK
+TITLE =Monitoring H
+
+      U(    ; 
+      UN    #OutHH; //Monitoring < HH
+      UN    #InMonHH; 
+      O     ; 
+      U     #OutH; //Monitoring >H
+      U     #InMonHH; 
+      )     ; 
+      U     #InMonH; 
+      UN    #tmpLocal; 
+      SPB   m_H1; 
+//==not Monitoring H =================================
+      L     #Par.ParMonTimeH; 
+      T     #Par.OutMonTimeH; 
+      SPA   m_H0; 
+//==Monitoring H =================================
+m_H1: UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      L     #Par.OutMonTimeH; 
+      SPB   m_H2; 
+      L     5; 
+      -I    ; // Decrement all 500ms
+      SPP   m_H2; 
+      L     0; 
+m_H2: T     #Par.OutMonTimeH; 
+//----------------------------------------
+//Fault High 
+//----------------------------------------
+      L     #Par.OutMonTimeH; 
+      L     0; 
+      <=I   ; 
+      UN    #Par.ParWarningH; 
+      SPBN  m_HP; 
+      S     #OutFaulted; 
+      UN    #Msg.FaultDoneHH; 
+      UN    #Msg.FaultDoneH; 
+      S     #Msg.FaultDoneH; 
+      S     #tmpHornOn; 
+      L     B#(1, 24); // MessageClass Error "fault high"
+      SPB   Log; 
+//----------------------------------------
+//PreAlarm  / Warning High
+//----------------------------------------
+m_HP: L     #Par.OutMonTimeH; 
+      L     0; 
+      <=I   ; 
+      O     #Par.ParPreAlarmH; 
+      SPBN  m_H0; 
+      S     #OutWarning; 
+      UN    #Msg.FaultDoneH; 
+      UN    #Msg.FaultDoneHH; 
+      UN    #Msg.WarningDoneHH; 
+      UN    #Msg.WarningDoneH; 
+      SPBN  m_H0; 
+      S     #Msg.WarningDoneH; 
+      UN    #Par.ParNoHornByWarning; 
+      S     #tmpHornOn; 
+      L     B#(1, 14); // MessageClass Error "warning high"
+      SPB   Log; 
+m_H0: NOP   0; 
+NETWORK
+TITLE =StHH
+// 
+      UN    #StHH; 
+      SPB   HHEn; 
+      SPA   HH; 
+//===============================================
+//Transition  to StHH
+//===============================================
+xxHH: SET   ; 
+      S     #StHH; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+      UN    #InReport; 
+      SPB   HHEn; 
+      L     B#(4, 5); // Message ('High High' )
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Init
+HH:   UN    #InMonHH; 
+      R     #OutWarning; 
+
+      UN    #OutHH; 
+      SPB   HHJ1; 
+      L     0; 
+      T     #Par.OutDelayTimeDown; 
+HHJ1: L     0; 
+      T     #Par.OutDelayTimeUp; 
+//---Condition for StFault
+      U     #tmpFaultAI; 
+      R     #StHH; 
+      SPB   xxFI; 
+//---Condition for StH
+      L     #Par.ParDelayTimeDown; 
+      L     #Par.OutDelayTimeDown; 
+      <=I   ; 
+      UN    #OutHH; //Change with delay
+      ON    #OutH; //Immediate change
+      R     #StHH; 
+      SPB   xx_H; 
+HHEn: NOP   0; 
+
+NETWORK
+TITLE =Monitoring HH
+
+      U     #OutHH; 
+      U     #InMonHH; 
+      UN    #tmpLocal; 
+      SPB   mHH1; 
+//==not Monitoring HH =================================
+      L     #Par.ParMonTimeHH; 
+      T     #Par.OutMonTimeHH; 
+      SPA   mHH0; 
+//==Monitoring HH =================================
+mHH1: UN    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      L     #Par.OutMonTimeHH; 
+      SPB   mHH4; 
+      L     5; 
+      -I    ; // Decrement all 500ms
+      SPP   mHH4; 
+      L     0; 
+mHH4: T     #Par.OutMonTimeHH; 
+//----------------------------------------
+//Fault High High 
+//----------------------------------------
+      L     #Par.OutMonTimeHH; 
+      L     0; 
+      <=I   ; 
+      UN    #Par.ParWarningHH; 
+      SPBN  HHPa; 
+      S     #OutFaulted; 
+      UN    #Msg.FaultDoneHH; 
+      S     #Msg.FaultDoneHH; 
+      S     #tmpHornOn; 
+      L     B#(1, 25); // MessageClass Error "fault high high"
+      SPB   Log; 
+//----------------------------------------
+//PreAlarm  / Warning High High
+//----------------------------------------
+HHPa: L     #Par.OutMonTimeHH; 
+      L     0; 
+      <=I   ; 
+      O     #Par.ParPreAlarmHH; 
+      SPBN  mHH0; 
+      S     #OutWarning; 
+      UN    #Msg.FaultDoneHH; 
+      UN    #Msg.WarningDoneHH; 
+      SPBN  mHH0; 
+      S     #Msg.WarningDoneHH; 
+      UN    #Par.ParNoHornByWarning; 
+      S     #tmpHornOn; 
+      L     B#(1, 15); // MessageClass Error "warning high high"
+      SPB   Log; 
+mHH0: NOP   0; 
+
+NETWORK
+TITLE = StFaultAI
+// 
+      UN    #StFaultAI; 
+      SPB   FIEn; 
+      SPA   FI; 
+//===============================================
+//Transition  to StHH
+//===============================================
+xxFI: SET   ; 
+      S     #StFaultAI; 
+      U     #InLocal; 
+      SPB   FIEn; 
+      S     #OutFaulted; 
+      S     #tmpHornOn; 
+      L     B#(1, 8); // MessageClass Error "fault device"
+      U     #InpFaultDev; 
+      S     #Msg.FaultDoneDev; 
+      SPB   Log; 
+      L     B#(1, 7); // MessageClass Error "fault AD"
+      S     #Msg.FaultDoneAI; 
+      SPA   Log; 
+//===============================================
+//Logic
+//===============================================
+//Retry message
+FI:   U     #tmpFaultAI; 
+      UN    #InLocal; 
+      UN    #OutFaulted; 
+      SPB   xxFI; 
+//Condition for StFaultAI
+      U     #tmpFaultAI; 
+      SPB   FIEn; 
+      R     #StFaultAI; 
+//Condition for StHH
+      U     #OutHH; 
+      SPB   xxHH; 
+//Condition for StH
+      U     #OutH; 
+      SPB   xx_H; 
+//Condition for StMid
+      U     #OutL; 
+      SPB   xxMi; 
+//Condition for StL
+      U     #OutLL; 
+      SPB   xx_L; 
+//Condition for StLL
+      SPA   xxLL; 
+FIEn: NOP   0; 
+NETWORK
+TITLE =LOG Message
+
+      SPA   LoEn; 
+Log:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   LoEn; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1019);
+LoEn: NOP   0; 
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #CmdFaultReset; 
+//---Group flag ----------------------------
+      U     #OutFaulted; 
+      R     #OutWarning; 
+//---Group flag ----------------------------
+      U     #InpFaultDev; 
+      =     #Msg.FaultDoneAI; 
+      U     #OutFaultAI; 
+      =     #Msg.FaultDoneAI; 
+//---Horn On-----------------------------
+      UN    #tmpHornOn; 
+      SPB   glJ1; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1019,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+glJ1: NOP   0; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+      U     #InDisable; //[1.3]
+      UN    #OutFaulted; //[1.3]
+      L     6; // Code: Disabled
+      SPB   STC; 
+      L     1; // Code: range LL
+      U     #StLL; 
+      SPB   STC1; 
+      L     2; // Code: range L
+      U     #StL; 
+      SPB   STC1; 
+      L     3; // Code: range middle
+      U     #StMid; 
+      SPB   STC1; 
+      L     4; // Code: range H
+      U     #StH; 
+      SPB   STC1; 
+      L     5; // Code: range HH
+      U     #StHH; 
+      SPB   STC1; 
+//--FaultAI.Dev  local
+      U     #InLocal; 
+      U     #InpFaultDev; 
+      L     29; 
+      SPB   STC; 
+//--FaultAI.Value local
+      U     #InLocal; 
+      L     30; 
+      SPB   STC; 
+//--FaultAI.Dev  Active
+      U     #InpFaultDev; 
+      L     31; 
+      SPB   STC; 
+//--FaultAI.Value Active
+      L     32; 
+      SPA   STC; 
+//Add +20 if Faulted
+STC1: UN    #OutFaulted; 
+      SPB   STCH; 
+      +     20; 
+      SPB   STC; 
+//Add +40 if HWStop
+STCH: UN    #InHWStop; 
+      SPB   STCD; 
+      +     40; 
+      SPB   STC; 
+//Add +50 if DPFault
+STCD: UN    #InDPFault; 
+      SPB   STCW; 
+      +     50; 
+      SPB   STC; 
+//Add +10 if warning
+STCW: UN    #OutWarning; 
+      SPB   STC; 
+      +     10; 
+STC:  L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,57 @@
+TYPE "GCS7_M_FB82_Data"
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnable : BOOL ;	//Automatic mode: Enable to run blower
+   InEnableFilling : BOOL ;	//Automatic mode: Filling vessel requested
+   InClearing : BOOL ;	//Automatic mode: Stop Conveying
+   InNoWaitMinP : BOOL ;	//Not waiting for minimum pressure during clearing
+   spare0204 : BOOL ;	
+   spare0205 : BOOL ;	
+   spare0206 : BOOL ;	
+   spare0207 : BOOL ;	
+   CmdOff : BOOL ;	//Manual mode:Pulse to stop all elements immediately
+   CmdConveying : BOOL ;	//Manual mode:Pulse to start conveying
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   CmdFilling : BOOL ;	//Manual mode: Pulse to fill vessel 
+   InSeqStop : BOOL ;	//Sequence stop
+   OutWarning : BOOL ;	//Output: Pressure.OutNoMinP
+   OutLoaded : BOOL ;	//Output: Product is in vessel
+   OutAutostart : BOOL ;	//Autostart automatic mode
+   spare0403 : BOOL ;	
+   spare0404 : BOOL ;	
+   OutConveyingTimeDone : BOOL ;	//ParMinConveyingTime is done
+   OutManFilling : BOOL ;	//Manual mode filling vessel
+   OutManConveying : BOOL ;	//Manual mode conveying
+   StStopped : BOOL ;	
+   StStarting : BOOL ;	
+   StConveying : BOOL ;	
+   StStopping : BOOL ;	
+   StFault : BOOL ;	
+   StClearing : BOOL ;	
+   StWaiting : BOOL ;	
+   StFilling : BOOL ;	
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    ParWithFillingFlap : BOOL ;	//With element
+    spare2_1 : BOOL ;	
+    spare2_2 : BOOL ;	
+    spare2_3 : BOOL ;	
+    spare4 : INT ;	
+    ParMinConveyingTime : INT  := 100;	//[0.1s] Minimum conveying time
+    ParClearingTime : INT  := 100;	//[0.1s] Clearing time in step StClearing
+    spare10 : INT ;	
+    spare12 : INT ;	
+    spare14 : INT ;	
+    spare16 : INT ;	
+    OutConveyingTime : INT ;	
+    OutClearingTime : INT ;	
+    spare : INT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

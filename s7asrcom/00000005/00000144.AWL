@@ -1,0 +1,560 @@
+FUNCTION_BLOCK "GCS7_E_AnalogOutput"
+TITLE =Analog Output
+//  
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Analog Output
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB17.3.1      A. Egli             CT3                         04-Aug-2003
+//              -Read M12.3 "GCS7_Gr_OutFaultReset"   
+//FB17.3.0      A. Egli             CT3                         17-Jun-2002
+//              -New Release with one block 
+//              -OutpFaultReset
+//              -ParFU
+//FB17.2.1      A. Egli             CT3                         18-Mai-2001
+//              Calculation Output, if ParUnitsByZeroDigit >0
+//FB17.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB17.1A       S. Kalberer         AEE61                       16-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [AOxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//
+//MaxDigits:     Siemens: 27'648/ Wago: 32'767
+//
+//=======================================================
+//Log Message: 
+//-------------------------------------------------------
+// 0  off
+// 2  on
+// 9  fault cancelled
+//10  fault device
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault        
+// 1  StOff          
+//41  StOff.HWStop    
+//51  StOff.DPFault   
+//61  StOff.FaultDev   (Passiv)
+// 3  StOn           
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : AO
+VERSION : 3.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InDisable : BOOL ;	//Disable the output, set OutValue to zero.
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  spare0205 : BOOL ;	
+  spare0206 : BOOL ;	
+  InpFaultDev : BOOL ;	//Digital input: 1= overload or fault frequency converter
+  spare0300 : BOOL ;	
+  spare0301 : BOOL ;	
+  spare0302 : BOOL ;	
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//Local mode
+  InManual : BOOL ;	//1= Manual/ 0=Automatic
+  InReport : BOOL ;	//Report all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  spare0402 : BOOL ;	
+  spare0403 : BOOL ;	
+  spare0404 : BOOL ;	
+  OutpFaultReset : BOOL ;	//Reset Alarm
+  OutMin : BOOL ;	//Signal OutValue <= ParLimitMin
+  OutMax : BOOL ;	//Signal OutValue >= ParLimitMax
+  StOff : BOOL ;	//Analog output is disabled
+  spare0501 : BOOL ;	
+  StOn : BOOL ;	//Analog output is on
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Fault device was detected
+  OutpValue : INT ;	//Converted value to set analog output 
+  InOutValuePc : INT ;	//Set value in percent
+  InOutValueUnits : DINT ;	//Set value in units
+  ASW : DINT ;	//Free for user software
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParFU : BOOL ;	//FU, 0% = 0%Digits =ParUnitsByZeroDigit
+   ParValuePc : BOOL ;	//InOutValue specification in percent not in units.
+   ParLimitsPc : BOOL ;	//Limits in percent not in units
+   ParWago : BOOL ;	//Wago analog output module format
+   ParUnitsByZeroDigit : DINT ;	//Value in units by analog signal=0
+   ParUnitsByMaxDigit : DINT ;	//Value in units by maximum analog signal 
+   ParUnitsBy100Pc : DINT ;	//Value in units by 100% of InOutValuePc
+   ParLimitMin : DINT ;	//Minimum limit: value in units or percent
+   ParLimitMax : DINT  := L#10000;	//Maximum limit: value in units or percent
+   ParDelayTime : INT ;	//Requested fault delay time by InpFaultDev
+   OutDelayTime : INT ;	//Actual time: DelayTime
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLenDyn : DINT ;	
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpDConverter : REAL ;	//provisional result: ParUnitsByMaxDigit - ParUnitsByZeroDigit
+  tmpOutValueUnits : REAL ;	//Limited value 
+  tmpFaultDelayDone : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpValueDiff : REAL ;	
+  tmpValueZero : REAL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Start Global
+
+      L     52; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+
+NETWORK
+TITLE =PC Control
+
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1017; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//!!!=== Address definition !!!! =============
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // PC.Hsk.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // PC.Hsk.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // PC.Hsk.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBD [AR1,P#20.0]; 
+      T     #Par.ParLimitMin; 
+      L     DBD [AR1,P#24.0]; 
+      T     #Par.ParLimitMax; 
+      L     DBW [AR1,P#28.0]; 
+      T     #Par.ParDelayTime; 
+// Write new commands from PC to Interface object
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //Cmd1[0]= CmdDisableOn
+      S     #InDisable; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[0]; //Cmd2[0]= CmdDisableOff
+      R     #InDisable; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]= CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]= CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14]= CmdReportOff
+      R     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      O     "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      R     #InManual; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBD [AR1,P#10.0]; 
+      T     #InOutValueUnits; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =Init
+
+
+//Manual Mode
+      U     "GCS7_Gr_OutManualOff"; //GCS7_Gr_OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //GCS7_Gr_InManual
+//Local
+      U     #InLocal; 
+      UN    #InManual; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Calculate InOutValuePc or InOutValueUnits : ParFU=1
+
+      U     #Par.ParFU; 
+      SPB   c1En; 
+//--Calculate the other InOutValue
+      U     #Par.ParValuePc; 
+      SPB   c1PC; 
+//---InOutValuePc
+      L     #InOutValueUnits; 
+      DTR   ; 
+      T     #tmpOutValueUnits; 
+      L     #Par.ParUnitsBy100Pc; 
+      DTR   ; 
+      /R    ; //    InOutValueUnits
+      L     1.000000e+004; // = ----------------  * 10'000
+      *R    ; //    ParUnitsBy100Pc 
+      RND   ; 
+      T     #InOutValuePc; 
+      SPA   c1En; 
+//---InOutValueUnits
+c1PC: L     #InOutValuePc; 
+      ITD   ; 
+      DTR   ; 
+      L     1.000000e+004; 
+      /R    ; 
+      L     #Par.ParUnitsBy100Pc; //   InOutValuePc
+      DTR   ; // = ------------ * ParUnitsBy100Pc       
+      *R    ; //      10'000
+      T     #tmpOutValueUnits; 
+      RND   ; 
+      T     #InOutValueUnits; //-->Digits
+c1En: NOP   0; 
+
+
+
+NETWORK
+TITLE =Calculate InOutValuePc or InOutValueUnits: ParFU=1
+
+      UN    #Par.ParFU; 
+      SPB   fuEn; 
+      L     #Par.ParUnitsBy100Pc; // 
+      DTR   ; //       
+      L     #Par.ParUnitsByZeroDigit; // 
+      DTR   ; //       
+      T     #tmpValueZero; 
+      -R    ; 
+      T     #tmpValueDiff; 
+//--Calculate the other InOutValue
+      U     #Par.ParValuePc; 
+      SPB   fuPC; 
+//---InOutValuePc
+      L     #InOutValueUnits; 
+      DTR   ; 
+      T     #tmpOutValueUnits; 
+      L     #tmpValueZero; 
+      -R    ; 
+      L     #tmpValueDiff; 
+      /R    ; //    InOutValueUnits-ParUnitsByZeroDigit
+      L     1.000000e+004; // = ------------------------------------  * 10'000
+      *R    ; //    ParUnitsBy100Pc-ParUnitsByZeroDigit 
+      RND   ; 
+      T     #InOutValuePc; 
+      SPA   fuEn; 
+//---InOutValueUnits
+fuPC: L     #InOutValuePc; 
+      ITD   ; 
+      DTR   ; 
+      L     1.000000e+004; 
+      /R    ; 
+      L     #tmpValueDiff; //   InOutValuePc
+      *R    ; // = ------------ * (ParUnitsBy100Pc-ParUnitsByZeroDigit) +ParUnitsByZeroDigit     
+      L     #tmpValueZero; //      10'000
+      +R    ; 
+      T     #tmpOutValueUnits; 
+      RND   ; 
+      T     #InOutValueUnits; //-->Digits
+fuEn: NOP   0; 
+
+
+
+NETWORK
+TITLE =Test limits
+//--Test limits---
+      U     #Par.ParLimitsPc; // Limit in percent
+      SPB   LiPc; 
+      L     #InOutValueUnits; 
+      L     #Par.ParLimitMax; // Calculation limit maximum
+      >D    ; 
+      =     #OutMax; 
+      R     #OutMin; 
+      SPB   Lmax; // --> Limit max
+      L     #InOutValueUnits; 
+      L     #Par.ParLimitMin; // Calculation limit minimum
+      <D    ; 
+      =     #OutMin; 
+      SPBN  LiEn; 
+Lmax: DTR   ; 
+      T     #tmpOutValueUnits; 
+      SPA   LiEn; 
+//-- Limits in procent 
+LiPc: L     #InOutValuePc; 
+      ITD   ; 
+      L     #Par.ParLimitMax; // Calculation limit maximum
+      >=D   ; 
+      =     #OutMax; 
+      R     #OutMin; 
+      SPB   L2mx; 
+      TAK   ; 
+      L     #Par.ParLimitMin; // Calculation limit minimum
+      <=D   ; 
+      =     #OutMin; 
+      SPBN  LiEn; 
+L2mx: DTR   ; 
+      L     1.000000e+004; 
+      /R    ; 
+      L     #Par.ParUnitsBy100Pc; //---Calculate provisional result: tmpDProcess
+      DTR   ; 
+      *R    ; 
+      T     #tmpOutValueUnits; 
+LiEn: NOP   0; 
+
+NETWORK
+TITLE =Fault delay time: ParDelayTime 
+
+//Test or Running delay time ====================
+//---Condition for Delay Fault
+      U     #InpFaultDev; 
+      SPB   TFF1; 
+      R     #tmpFaultDelayDone; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      SPA   TFF0; 
+TFF1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutDelayTime; 
+      SPB   TFF3; 
+      +     2; 
+TFF3: T     #Par.OutDelayTime; 
+      L     #Par.ParDelayTime; 
+      >=I   ; 
+      =     #tmpFaultDelayDone; 
+      SPBN  TFF0; 
+      T     #Par.OutDelayTime; 
+TFF0: NOP   0; 
+
+NETWORK
+TITLE =States
+
+      U     #StOn; 
+      SPB   S2; 
+      U     #StOff; 
+      SPB   S0; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StOn; //Initialise: goto StOn
+      SPA   S2; 
+NETWORK
+TITLE =StOff
+// Any transiton to StOff  
+xxS0: SET   ; 
+      S     #StOff; 
+      L     B#(4, 0); // MessageClass Info "Off"
+      SPA   REPO; 
+
+//---- Logic ---
+//Transition to StFault
+S0:   U     #tmpFaultDelayDone; 
+      UN    #tmpLocal; 
+      R     #StOff; 
+      SPB   xxS4; //-->StFault  
+      U     #InDisable; 
+      O     #tmpLocal; 
+      SPB   OUT; 
+//Transition to StOn
+      R     #StOff; 
+      SPA   xxS2; //-->StOn
+NETWORK
+TITLE =StOn
+// Any transiton to StOff  
+xxS2: SET   ; 
+      S     #StOn; 
+      L     B#(4, 2); // MessageClass Info "On"
+      SPA   REPO; 
+
+//---- Logic ---
+//Transition to StFault
+S2:   U     #tmpFaultDelayDone; 
+      UN    #tmpLocal; 
+      R     #StOn; 
+      SPB   xxS4; //---> StFault
+//Transition to StOff
+      U     #InDisable; 
+      O     #tmpLocal; 
+      R     #StOn; 
+      SPB   xxS0; //---> StOff
+      SPA   OUT; 
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1017,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+S4MG: L     B#(1, 10); // MessageClass Error "fault device"
+      SPA   LOG; 
+//==Logic====
+S4:   U     #InLocal; 
+      SPB   S4xx; 
+//-Wait for fault reset
+      UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms //[3.0]
+      ON    #OutpFaultReset; //                   [3.0]
+      SPB   OUT; //                   [3.0]
+      R     #OutpFaultReset; //                   [3.0]
+      U     #InpFaultDev; 
+      UN    #tmpLocal; 
+      SPB   S4MG; //--> Retry Message
+// Transition to StOff;
+S4xx: R     #StFault; 
+      S     #StOff; 
+      L     B#(3, 9); // MessageClass Operater "fault cancelled"
+      SPA   LOG; 
+NETWORK
+TITLE =LOG Message
+
+REPO: UN    #InReport; 
+      UN    "GCS7_Gr_OutReportAll"; //---Gr.OutReportAll
+      SPB   OUT; 
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1017);
+
+NETWORK
+TITLE =Global End
+
+OUT:  NOP   0; 
+      U     "GCS7_Gr_OutFaultReset"; // Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//===Set Output fault reset
+      U     "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms
+      UN    #StFault; 
+      R     #OutpFaultReset; 
+
+//===OutpFaultReset
+      U     "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms
+      U     #CmdFaultReset; 
+      S     #OutpFaultReset; 
+      R     #CmdFaultReset; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE = Calculate analog output
+
+      U     #StOn; 
+      SPB   aoJ1; //--> Set to 0
+      L     #Par.ParUnitsByZeroDigit; //[2.1]
+      DTR   ; 
+      T     #tmpOutValueUnits; 
+aoJ1: L     #Par.ParUnitsByMaxDigit; 
+      L     #Par.ParUnitsByZeroDigit; 
+      -D    ; 
+      DTR   ; 
+      T     #tmpDConverter; 
+      L     #tmpOutValueUnits; 
+      L     #Par.ParUnitsByZeroDigit; 
+      DTR   ; //        (InOutValueUnits    - ParUnitsByZeroDigit)
+      -R    ; // ==  ------------------------------------------ * MaxDigits
+      L     #tmpDConverter; //        (ParUnitsByMaxDigit - ParUnitsByZeroDigit)
+      /R    ; 
+      L     3.276700e+004; //MaxDigits for Wago
+      U     #Par.ParWago; 
+      SPB   aoJ2; 
+      TAK   ; 
+      L     2.764800e+004; //MaxDigits for Siemens
+aoJ2: *R    ; 
+      RND   ; 
+      T     #OutpValue; //--> Analog output value
+//---Limit OutpValue if calculated output value >32'767 or <-32'768 to max. value
+      L     L#32767; 
+      <=D   ; 
+      SPB   aoJ3; 
+      T     #OutpValue; 
+      SPA   aoJ9; 
+aoJ3: TAK   ; 
+      L     L#-32768; 
+      >=D   ; 
+      SPB   aoJ9; 
+      T     #OutpValue; 
+aoJ9: NOP   0; 
+
+NETWORK
+TITLE =State Code
+
+      UN    #StOff; 
+      SPB   STC2; 
+      L     41; //Code: StOff.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StOff.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      U     #InpFaultDev; //Code: StOff.InpFaultDev
+      L     61; 
+      SPB   STC9; 
+      L     1; // Code: stopped
+      SPB   STC9; 
+//--------------------
+STC2: L     3; // Code: on
+      U     #StOn; 
+      SPB   STC9; 
+//--------------------
+      L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+END_FUNCTION_BLOCK
+

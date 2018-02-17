@@ -1,0 +1,592 @@
+	FUNCTION_BLOCK FB 392
+	TITLE =G292M TRAVELLING DRIVE KILN 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        TRAVELLING DRIVE KILN 2
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB392.1.0 K.Renz              CSB41                              08.Okt.2009
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_3211_MXZ41_FU : FB12;   // Motor 
+	     #A_3211_MXZ41MA : FB1031;   // TractionDevice 
+	     #A_3211_TSC41_COM : FB1812;   // FU_Siemens 
+	     #A_3211_TSC41_AC : FB19;   // AnaInp 
+	     #A_3211_TSC41_AF : FB19;   // AnaInp 
+	     #A_3211_TSC41_AP : FB19;   // AnaInp 
+	     #A_3211_TSC41_AT : FB19;   // AnaInp 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[292];
+	      R   GCS7_GrCtrlDB.ParWGR[292];
+	      R   GCS7_GrCtrlDB.ParGGR[292];
+	      R   GCS7_GrCtrlDB.ParFeed[292];
+	      R   GCS7_GrCtrlDB.ParShare[292];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[292];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[292];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[292];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[292];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[292];
+	      R   #GCS7_GrCtrlDB.CmdNext[292];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[292];
+	      O   #GCS7_GrCtrlDB.OutOccupied[292];
+	      R   GCS7_GrCtrlDB.CmdManualOff[292];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[292];
+	      R   GCS7_GrCtrlDB.CmdContinue[292];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[292];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	// NOP 0
+	      CLR;
+	      =     #A_3211_MXZ41_FU.Par.ParManual;
+	      CLR;
+	      =     #A_3211_MXZ41_FU.InManual;
+	// C-Profilschutz
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX32.3;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =Interlocking Start Warning
+	      NOP 0;
+	//- Restart after fault --
+	      U     #Gr.CmdFaultReset;
+	      U     #Gr.VarFault;
+	      S       "SYS_StartWarningDB".Area[10].CmdResetStartWarning;
+	//- Run Timer --
+	      AUF "G292M";
+	      CALL  FB100 , DB100(
+	       InModeHigher :=FALSE,
+	       InArea     :=10,
+	       InEnable   :=#Gr.OutEnableEl,
+	       InLocal    :=#tmpLocal,
+	       InStarted  :=#Gr.VarStarted,
+	       InCmdNext  :=#tmpCmdNext,
+	       OutCmdNext :=#tmpCmdNext,
+	       OutStartwarning:=#Gr.VarStartWarning);
+	//- Store Startwarning done  --
+	//- Reset Autostart --
+	      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL;
+	      FN    #EdgeStartRelease;
+	      U     #Gr.VarFault;
+	      R     #Gr.OutAutostart;
+	NETWORK
+	TITLE ==A-3211-MXZ41_FU : FU TRAVELING DRIVE
+	NOP 0;
+	//-InLocal--- 
+	      U     #tmpLocal; 
+	      =     #A_3211_MXZ41_FU.InLocal; 
+	//
+	//-Interlocking--- 
+	      U     #Gr.OutEnableEl; 
+	      =     #A_3211_MXZ41_FU.InEnableFwd; 
+	// 
+	      U    #tmpCmdNext;
+	      S     #A_3211_MXZ41_FU.CmdNext; 
+	// 
+	      U     #Gr.OutSeqStop; 
+	      =     #A_3211_MXZ41_FU.InSeqStop; 
+	// 
+	//-Read inputs---
+	      U     E 1000.5; 
+	      =     #A_3211_MXZ41_FU.InpRunFwd; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41_FU.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[101];
+	       =       #A_3211_MXZ41_FU.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_MXZ41_FU;
+	// 
+	//-Write outputs---
+	      U     #A_3211_MXZ41_FU.OutpRunFwd; 
+	      =     A 1000.5; 
+	NETWORK
+	TITLE ==A-3211-MXZ41MA : TRAVELING DRIVE
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3211_MXZ41MA.Ma.InLocal; 
+	//
+	//-Interlocking---
+	      O(;
+	      U     #Gr.InManual;
+	      U     #Gr.InOutAutostartMan;
+	      U     #USW14;                      // ILO-cmd run fwd
+	      );
+	      U     #Gr.OutEnableEl;
+	      =     #A_3211_MXZ41MA.Ma.InEnableFwd;
+	      O(;
+	      U     #Gr.InManual;
+	      U     #Gr.InOutAutostartMan;
+	      U     #USW15;                     // ILO-cmd run rev
+	      );
+	      U     #Gr.OutEnableEl;
+	      =     #A_3211_MXZ41MA.Ma.InEnableRev;
+	// 
+	      U     #tmpCmdNext;
+	      S     #A_3211_MXZ41MA.Ma.CmdNext;
+	// 
+	      SET;
+	      =     #A_3211_MXZ41MA.Ma.InInterlocked;
+	// 
+	      =     #A_3211_MXZ41MA.Ma.InPowerOk;
+	// 
+	      U     #A_3211_MXZ41MA.Ma.InPowerOk;
+	//      L     S5T#15S;                     // Zeit zum Initialisierung
+	//      SE    T    392;
+	//      U     T    392;
+	      =     #A_3211_MXZ41MA.Ma.InPowerOkDelayDone;
+	// 
+	      UN    #Gr.InOutAutostartMan;
+	      U     "MAL1S033".ToASW.InfDataReady;
+	      U     "MAL1S033".PCRead.Step.StActive;
+	      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading;
+	//    UN    "MAL1S033Par".Par.FlagFunction_1.LoadEnd;
+	      =     #A_3211_MXZ41MA.Ma.InLoading;
+	// 
+	      R     #A_3211_MXZ41MA.Ma.InAdjusting;
+	// 
+	// Set Lap counter to "0"
+	      U     "MAL1S033".PCRead.Step.StEmptying;
+	      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading;    // Step Unloading
+	      FP    #USW8;
+	      =     #USW9;
+	// 
+	      U     "MAL1S033".PCRead.Step.StActive;
+	      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading;    // Step Loading
+	      FP    #USW10;
+	      =     #USW11;
+	// 
+	      U     "MAL1S033".ToASW.InfDataReady;
+	      U     "MAL1S033".PCRead.Step.StWait;
+	      O     #USW9;
+	      O     #USW11;
+	      S     #A_3211_MXZ41MA.Ma.CmdNewJob;
+	// 
+	// Set Position Counter to "0" 
+	      U(;
+	      U     "MAL1S033".ToASW.InfDataReady;
+	      U     "MAL1S033".PCRead.Step.StActive;
+	      U     "MAL1S033Par".Par.FlagProcess.ProcessActive;    // Process active
+	      U(;
+	      O     "MAL1S033Par".Par.FlagFunction_1.FinishLoading;    // start process kilning
+	//     O     "MAL1S033Par".Par.FlagFunction_1.LoadEnd;
+	      );
+	      );
+	       U     #A_3211_MXZ41MA.A_3211_BZS43.StCtoTrue;    // sensor zero point
+	      O     #USW9;                       // start unloading
+	      O     #USW11;                      // start loading
+	      S     #A_3211_MXZ41MA.Ma.CmdSetZeroPoint;
+	// 
+	      U     "MAL1S033".ToASW.InfDataReady;
+	//       U     "MAL1S033".PCRead.Step.StReady;
+	      U     "MAL1S033Par".Par.FlagProcess.ProcessActive;    // Process active
+	      U     E 1019.0;           // input sensor zero point
+	      R     "MAL1S033Par".Par.FlagMachine.ImpulsNullstellung;
+	// 
+	//=Values and commands of elements===
+	//-=A-3211-TSC42---
+	      L     0;
+	      T     #A_3211_MXZ41MA.A_3211_TSC42.InOutValuePc;
+	//-=A-3211-BZS43---
+	//      CLR
+	//      S     #A_3211_MXZ41MA.A_3211_BZS43.CmdRunTimeOutTime
+	//-=A-3211-BLH13---
+	//      CLR
+	//      S     #A_3211_MXZ41MA.A_3211_BLH13.CmdRunTimeOutTime
+	//-=A-3211-MXZ41_SM---
+	//      CLR
+	//      S     #A_3211_MXZ41MA.A_3211_MXZ41_SM.CmdRunTimeOutTime
+	// 
+	//-Read inputs of elements---
+	      U     #A_3211_MXZ41MA.A_3211_MXZ41.OutpRunRev; 
+	      =     #A_3211_MXZ41MA.A_3211_MXZ41.InpRunRev; 
+	      U     #A_3211_MXZ41MA.A_3211_MXZ41.OutpRunFwd; 
+	      =     #A_3211_MXZ41MA.A_3211_MXZ41.InpRunFwd; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41MA.A_3211_MXZ41.InHWStop;
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41MA.A_3211_TSC42.InHWStop;
+	      U     E 1019.0; 
+	      =     #A_3211_MXZ41MA.A_3211_BZS43.InpTrue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41MA.A_3211_BZS43.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[102];
+	       =       #A_3211_MXZ41MA.A_3211_BZS43.InDPFault;
+	      U     E 1025.1; 
+	      =     #A_3211_MXZ41MA.A_3211_BLH13.InpTrue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41MA.A_3211_BLH13.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[103];
+	       =       #A_3211_MXZ41MA.A_3211_BLH13.InDPFault;
+	      U   DB050.DBX32.4;
+	      =     #A_3211_MXZ41MA.A_3211_MXZ41_SM.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_MXZ41MA;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3211-TSC41_COM : TRAVELING DRIVE FU COMMUNICATION
+	NOP 0;
+	     U   A_3211_MXZ41MA.A_3211_MXZ41.OutpRunFwd;
+	      =     #A_3211_TSC41_COM.InEnableFwd;
+	     U    A_3211_MXZ41MA.A_3211_MXZ41.OutpRunRev;
+	      =     #A_3211_TSC41_COM.InEnableRev;
+	     U     #Gr.CmdFaultReset; 
+	      S     #A_3211_TSC41_COM.CmdFaultReset;
+	//Speed---
+	      L     A_3211_MXZ41MA.Ma.InSpeed;
+	      U    G292M.A_3211_MXZ41MA.A_3211_MXZ41 .OutpRunRev;
+	      SPBN  tsp;
+	      NEGI;
+	tsp:  T     #A_3211_TSC41_COM.Output.SetpointValue01;
+	//
+	// 
+	//-Read inputs---
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_TSC41_COM;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3211-TSC41_AC : ACT. CURRENT TRAVELING DRIVE FU
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3211_TSC41_AC.InLocal; 
+	//
+	//-Monitoring--- 
+	      SET;
+	      =     #A_3211_TSC41_AC.InMonLL;
+	      CLR;
+	      =     #A_3211_TSC41_AC.InMonL;
+	      CLR;
+	      =     #A_3211_TSC41_AC.InMonMid;
+	      CLR;
+	      =     #A_3211_TSC41_AC.InMonH;
+	      CLR;
+	      =     #A_3211_TSC41_AC.InMonHH;
+	// 
+	//-Read inputs---
+	      L     A_3211_TSC41_COM.Output.SetpointValue01;
+	      ITD;
+	      DTR;
+	      ABS;
+	      RND;
+	      T     #A_3211_TSC41_AC.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_TSC41_AC.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_TSC41_AC;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3211-TSC41_AF : ACT. FREQUENCY TRAVELING DRIVE FU
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3211_TSC41_AF.InLocal; 
+	//
+	//-Monitoring--- 
+	      SET;
+	      =     #A_3211_TSC41_AF.InMonLL;
+	      CLR;
+	      =     #A_3211_TSC41_AF.InMonL;
+	      CLR;
+	      =     #A_3211_TSC41_AF.InMonMid;
+	      CLR;
+	      =     #A_3211_TSC41_AF.InMonH;
+	      SET;
+	      =     #A_3211_TSC41_AF.InMonHH;
+	// 
+	//-Read inputs---
+	      L     A_3211_TSC41_COM.Output.SetpointValue01;
+	      ITD;
+	      DTR;
+	      ABS;
+	      RND;
+	      T     #A_3211_TSC41_AF.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_TSC41_AF.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_TSC41_AF;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3211-TSC41_AP : ACT. POWER TRAVELING DRIVE FU
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3211_TSC41_AP.InLocal; 
+	//
+	//-Monitoring--- 
+	      SET;
+	      =     #A_3211_TSC41_AP.InMonLL;
+	      CLR;
+	      =     #A_3211_TSC41_AP.InMonL;
+	      CLR;
+	      =     #A_3211_TSC41_AP.InMonMid;
+	      CLR;
+	      =     #A_3211_TSC41_AP.InMonH;
+	      SET;
+	      =     #A_3211_TSC41_AP.InMonHH;
+	// 
+	//-Read inputs---
+	      L     A_3211_TSC41_COM.Output.SetpointValue01;
+	      ITD;
+	      DTR;
+	      ABS;
+	      RND;
+	      T     #A_3211_TSC41_AP.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_TSC41_AP.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_TSC41_AP;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-3211-TSC41_AT : ACT. TORQUE TRAVELING DRIVE FU
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_3211_TSC41_AT.InLocal; 
+	//
+	//-Monitoring--- 
+	      SET;
+	      =     #A_3211_TSC41_AT.InMonLL;
+	      CLR;
+	      =     #A_3211_TSC41_AT.InMonL;
+	      CLR;
+	      =     #A_3211_TSC41_AT.InMonMid;
+	      CLR;
+	      =     #A_3211_TSC41_AT.InMonH;
+	      SET;
+	      =     #A_3211_TSC41_AT.InMonHH;
+	// 
+	//-Read inputs---
+	      L     A_3211_TSC41_COM.Output.SetpointValue01;
+	      ITD;
+	      DTR;
+	      ABS;
+	      RND;
+	      T     #A_3211_TSC41_AT.InpValue; 
+	      U   DB050.DBX32.4;
+	      =     #A_3211_TSC41_AT.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_3211_TSC41_AT;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_3211_MXZ41_FU.StFault;
+	      O     #A_3211_MXZ41MA.Ma.StFault;
+	      O     #A_3211_TSC41_AC.OutFaulted;
+	      O     #A_3211_TSC41_AF.OutFaulted;
+	      O     #A_3211_TSC41_AP.OutFaulted;
+	      O     #A_3211_TSC41_AT.OutFaulted;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      U     #A_3211_TSC41_AC.OutWarning;
+	      O     #A_3211_TSC41_AF.OutWarning;
+	      O     #A_3211_TSC41_AP.OutWarning;
+	      O     #A_3211_TSC41_AT.OutWarning;
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      U     #A_3211_MXZ41_FU.StStopped; 
+	      U(;
+	      O     #A_3211_MXZ41MA.Ma.StStopped; 
+	      O     #A_3211_MXZ41MA.Ma.StAdjusted; 
+	      );
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U     #A_3211_MXZ41_FU.StStartedFwd; 
+	      U(; 
+	      O     #A_3211_MXZ41MA.Ma.StStartedRev; 
+	      O     #A_3211_MXZ41MA.Ma.StStartedFwd; 
+	      O     #A_3211_MXZ41MA.Ma.StAdjusted; 
+	      ); 
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[292];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[292];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[292];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[292];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[292];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[292];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[292];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[292];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[292];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[292];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

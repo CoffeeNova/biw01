@@ -1,0 +1,242 @@
+FUNCTION "SYS_LOG_EntryQueue" : VOID
+TITLE =Log: Message Entry
+//COPYRIGHT:    (C) 1996 BY  BUEHLER LTD. 
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Entry in QUEUE for GCS90-Upper-Level
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FC46.1.1      A.Egli              CT3                        11-Oct-2001
+//              Program fault auf Version 1.0 corrected
+//FC46.1.0      A.Egli              CT3                        16-Aug-2001
+//              Reduce local data
+//FC46.1A       S. Kalberer         AEE61                       4-Dec-1996
+//              1st Release in S7, converted from FB46.2A
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [CTRxxMAN]
+//              This function entries a print order of 12 DBW (12 WORDS) in
+//              in a waiting queue (WQ).
+//
+//RESTRICTIONS: S7
+//              Only for message administration on PC 
+//
+//INTERRUPT-
+// HANDLING:    LOCKED:   SEQUENCE 1
+//              RELEASE:  SEQUENCE 4, 5 AND 6
+//
+//-------------------------------------------------------------------------
+//
+//        MESSAGE ENTRY               
+//   +------------------------+   
+// ->¦ DBNumber               ¦           LOG-DB
+//   ¦                        ¦       +--------------+
+// ->¦ Header                 ¦ ====> ¦  RINGBUFFER  ¦
+// ->¦ Para1                  ¦       ¦              ¦
+// ->¦ Para2                  ¦       ¦              ¦
+// ->¦ Para3                  ¦       +--------------+
+// ->¦ Para4                  ¦
+// ->¦ Para5                  ¦
+// ->¦ Para6                  ¦
+// ->¦ Para7                  ¦
+// ->¦ Para8                  ¦
+// ->¦ Para9                  ¦
+// ->¦ Para10                 ¦
+// ->¦ Para11                 ¦
+//   +------------------------+
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : MESENTRY
+VERSION : 1.2
+CODE_VERSION1
+
+
+VAR_INPUT
+  DBNumber : INT ;	//Queue DB-Number
+  Header : WORD ;	//Header
+  Para1 : WORD ;	//Parameter1
+  Para2 : WORD ;	//Parameter2
+  Para3 : WORD ;	//Parameter3
+  Para4 : WORD ;	//Parameter4
+  Para5 : WORD ;	//Parameter5
+  Para6 : WORD ;	//Parameter6
+  Para7 : WORD ;	//Parameter7
+  Para8 : WORD ;	//Parameter8
+  Para9 : WORD ;	//Parameter9
+  Para10 : WORD ;	//Parameter10
+  Para11 : WORD ;	//Parameter11
+END_VAR
+VAR_TEMP
+  tmpQueueDB : INT ;	
+  tmpHeader : WORD ;	
+  tmpCnt : WORD ;	//temp loop counter
+  tmpSourceAddress : DWORD ;	//temp Source Address
+  tmpBlockLength : WORD ;	//temp Message BlockLength
+  tmpEndOfQueue : INT ;	
+  tmpOpenDB : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = SAVE INPUT 
+
+//---Save Input Parameter into temp variables
+      L     #DBNumber; 
+      T     #tmpQueueDB; 
+      L     DBNO; 
+      T     #tmpOpenDB; 
+      AUF   DB [#tmpQueueDB]; 
+      L     24; 
+      T     #tmpBlockLength; 
+//-- Init ---
+      L     DBW    8; // VarNrOfMsgInQueue
+      L     0; 
+      <>I   ; 
+      SPB   T0; 
+      L     DBW    2; // ParDWstartQueue
+      T     DBW   10; // -> varDWwrite
+      T     DBW   12; // -> varDWread
+// 
+T0:   L     DBW   10; // varDWwrite
+      L     DBW    2; // ParDWstartQueue
+      >I    ; 
+      SPB   T2; 
+      T     DBW   10; // -> varDWwrite
+T2:   L     DBW   12; // varDWread
+      L     DBW    2; // ParDWstartQueue
+      >I    ; 
+      SPB   T3; 
+      T     DBW   12; // -> varDWread
+T3:   L     DBW    6; // ParMaxNrOfMsg
+      L     #tmpBlockLength; 
+      *I    ; 
+      L     DBW    2; // ParDWstartQueue
+      +I    ; // --> Address end of queue
+      T     #tmpEndOfQueue; 
+      L     DBW    6; // ParMaxNrOfMsg 
+NETWORK
+TITLE = PROLOG
+
+      L     DBW   10; // VarDWWrite 
+      L     #tmpBlockLength; // Block-Length
+      +I    ; 
+      L     #tmpEndOfQueue; 
+      >I    ; 
+      BEB   ; //-->BREAK-OFF
+NETWORK
+TITLE = WAITINGQUEUE FULL
+//IF WAITINGQUEUE IF FULL
+//  THEN
+//     BREAK-OFF
+      L     DBW    6; // ParMaxNrOfMsg
+      L     DBW    8; // VarNrOfMsgInQueue
+      <=I   ; // 
+      BEB   ; // BREAK-OFF
+NETWORK
+TITLE = PUT PRINT ORDER IN QUEUE
+//IF THERE IS ENOUGH PLACE FOR TWO MESSAGES AT LEAST
+//  THEN
+//    PUT PRINTORDER INTO WQ
+      L     DBW    6; //ParMaxNrOfMsg
+      +     -1; 
+      L     DBW    8; //VarNrOfMsgInQueue
+      <=I   ; 
+      SPB   FULL; 
+      L     DBW   10; // VarDWWrite 
+      SLD   3; // 
+      LAR1  ; //--> Write address
+//----Write Message in LOG-queue
+      AUF   DB [#tmpOpenDB]; 
+      L     #Header; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#0.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para1; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#2.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para2; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#4.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para3; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#6.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para4; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#8.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para5; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#10.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para6; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#12.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para7; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#14.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para8; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#16.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para9; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#18.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para10; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#20.0]; 
+      AUF   DB [#tmpOpenDB]; 
+      L     #Para11; 
+      AUF   DB [#tmpQueueDB]; 
+      T     DBW [AR1,P#22.0]; 
+      SPA   NX06; 
+NETWORK
+TITLE = SET "WAITING QUEUE FULL"
+//IF WAITING QUEUE FULL UNLESS ONE PLACE AND NO ERROR SET
+//  THEN
+//    SET INTERNAL MESSAGE
+//    SET ERROR INPUT
+FULL: L     DBW   14; // ParDWMsgFull
+      SLD   3; // 
+      T     #tmpSourceAddress; 
+      L     DBW   10; // VarDWWrite 
+      SLD   3; // 
+      LAR1  ; //--> Write address
+      L     #tmpBlockLength; // SET LOOP-Cnt: BLOCK-Length
+      SRW   2; // /4
+COLP: T     #tmpCnt; //==Blocktransfer: "WQ FULL"
+      L     DBD [#tmpSourceAddress]; //  SOURCE
+      T     DBD [AR1,P#0.0]; 
+      +AR1  P#4.0; // Target address
+      L     #tmpSourceAddress; //---INC Source address
+      +     L#32; // + 32 Bit
+      T     #tmpSourceAddress; 
+      L     #tmpCnt; // LOOP Counter
+      LOOP  COLP; // COPY LOOP 
+NETWORK
+TITLE = EPILOG
+
+NX06: L     DBW   10; // VarDWwrite
+      L     #tmpBlockLength; 
+      +I    ; 
+      T     DBW   10; // --> VarDWWrite
+      L     #tmpEndOfQueue; 
+      <I    ; 
+      SPB   L002; 
+      L     DBW    2; // ParDWStartQueue
+      T     DBW   10; // --> VarDWWrite
+L002: L     DBW    8; // VarNrOfMsgInQueue
+      +     1; 
+      T     DBW    8; //-->VarNrOfMsgInQueue
+END_FUNCTION
+

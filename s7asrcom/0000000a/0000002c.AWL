@@ -1,0 +1,627 @@
+FUNCTION_BLOCK "G295M_Code"
+TITLE =G295M TEMPERATURE MES. KILN 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TEMPERATURE MES. KILN 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB395.2.0 M.Wedler            AEB41                              27.Apr.2010
+//             2nd Release
+//P01_FB395.1.0 K.Renz              CSB41                              08.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3291_BTE01 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3291_BTE05 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3291_BTE07 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3291_BTE08 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3291_BTE10 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3291_BTE06 : "GCS7_E_AnalogInput";	// AnaInp 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[295]; 
+      R     "GCS7_GrCtrlDB".ParWGR[295]; 
+      R     "GCS7_GrCtrlDB".ParGGR[295]; 
+      R     "GCS7_GrCtrlDB".ParFeed[295]; 
+      R     "GCS7_GrCtrlDB".ParShare[295]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[295]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[295]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[295]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[295]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[295]; 
+      R     "GCS7_GrCtrlDB".CmdNext[295]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[295]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[295]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[295]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[295]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[295]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[295]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3291-BTE01 : AIR TEMPERATURE BELOW FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3291_BTE01.InLocal; 
+//
+//-Monitoring--- 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE01.InMonLL; 
+      =     #A_3291_BTE01.InMonL; 
+      CLR   ; 
+      =     #A_3291_BTE01.InMonMid; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE01.InMonH; 
+      =     #A_3291_BTE01.InMonHH; 
+
+      SET   ; 
+      =     #A_3291_BTE01.Par.ParWarningL; 
+      =     #A_3291_BTE01.Par.ParWarningH; 
+      CLR   ; 
+      =     #A_3291_BTE01.Par.ParWarningLL; 
+      =     #A_3291_BTE01.Par.ParPreAlarmLL; 
+      =     #A_3291_BTE01.Par.ParPreAlarmHH; 
+      =     #A_3291_BTE01.Par.ParWarningHH; 
+// 
+//-Read inputs---
+      L     "A_3291_BTE01_AI1"; 
+      L     200; //BRT30062010 ->  +2.0°C korrigiert
+      +I    ; 
+      T     #A_3291_BTE01.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3291_BTE01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3291_BTE01.InDPFault; 
+// 
+//-Set Parameters---
+      SET   ; //BRT20100828 - kein Alarmhorn wenn Warning
+      =     "G295M".A_3291_BTE01.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPB   fui; 
+// Toleranzband -1,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#150; // =1,5°C
+      -D    ; 
+      T     #A_3291_BTE01.Par.ParLimitL; 
+// Toleranzband +1,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#150; // =1,5°C
+      +D    ; 
+      T     #A_3291_BTE01.Par.ParLimitH; 
+      SPA   hui; 
+fui:  NOP   0; 
+      L     L#-10000; // -100,00°C
+      T     #A_3291_BTE01.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3291_BTE01.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3291_BTE01.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3291_BTE01.Par.ParLimitHH; 
+hui:  NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3291_BTE01 ;
+// 
+//-Write outputs---
+// Schaltpunkt zu Oeffnen der Defrosterklappe
+      L     #A_3291_BTE01.OutValuePc; 
+      L     7000; // =70,00°C
+      >=I   ; 
+      =     "MAL1S033Par".Par.FlagProcess2.Schaltp_70; 
+
+NETWORK
+TITLE ==A-3291-BTE05 : AIR TEMPERATURE DIFFUSOR FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3291_BTE05.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3291_BTE05.InMonLL; 
+      CLR   ; 
+      =     #A_3291_BTE05.InMonL; 
+      CLR   ; 
+      =     #A_3291_BTE05.InMonMid; 
+      CLR   ; 
+      =     #A_3291_BTE05.InMonH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE05.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3291_BTE05_AI1"; 
+      T     #A_3291_BTE05.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3291_BTE05.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3291_BTE05.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3291_BTE05.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      ON    "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; 
+      ON    "G302M".A_3261_KCL11_REG_ON.StTrue; 
+      SPB   fui1; 
+
+// Toleranzband -3,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      -D    ; 
+      T     #A_3291_BTE05.Par.ParLimitL; 
+// Toleranzband +3,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      +D    ; 
+      T     #A_3291_BTE05.Par.ParLimitH; 
+      SPA   hui1; 
+fui1: NOP   0; 
+
+
+      L     L#-10000; // -100,00°C
+      T     #A_3291_BTE05.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3291_BTE05.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3291_BTE05.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3291_BTE05.Par.ParLimitHH; 
+hui1: NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3291_BTE05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3291-BTE07 : AIR TEMPERATURE ABOVE FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3291_BTE07.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3291_BTE07.InMonLL; 
+      CLR   ; 
+      =     #A_3291_BTE07.InMonL; 
+      CLR   ; 
+      =     #A_3291_BTE07.InMonMid; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE07.InMonH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_3291_BTE07.OutOverflow; 
+      =     #A_3291_BTE07.Par.ParWarningH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE07.InMonHH; 
+      =     #A_3291_BTE07.Par.ParPreAlarmHH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_3291_BTE07.OutOverflow; 
+      =     #A_3291_BTE07.Par.ParWarningHH; 
+// 
+//-Read inputs---
+      L     "A_3291_BTE07_AI1"; 
+      T     #A_3291_BTE07.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3291_BTE07.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3291_BTE07.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3291_BTE07.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPB   psp; 
+//      L     "MAL1S033Par".RecipeHeader.WarningTempAboveFloor
+      L     L#900; // 90,00°C
+      L     L#10; 
+      *D    ; 
+      T     #A_3291_BTE07.Par.ParLimitH; 
+      L     #A_3291_BTE07.Par.ParLimitH; 
+      L     L#500; 
+      +D    ; 
+      T     #A_3291_BTE07.Par.ParLimitHH; 
+psp:  NOP   0; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPB   npsp; 
+      L     L#-10000; // -100,00°C
+      T     #A_3291_BTE07.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3291_BTE07.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3291_BTE07.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3291_BTE07.Par.ParLimitHH; 
+npsp: NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3291_BTE07 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3291-BTE08 : AIR TEMPERATURE AFTER BURNER 1
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_3291_BTE08.InLocal
+//
+////-Monitoring--- 
+//      CLR   
+//      =     #A_3291_BTE08.InMonLL
+//      CLR   
+//      =     #A_3291_BTE08.InMonL
+//      CLR   
+//      =     #A_3291_BTE08.InMonMid
+//      CLR   
+//      =     #A_3291_BTE08.InMonH
+//      U     "MAL1S033Par".Par.FlagProcess.ProcessActive
+//      =     #A_3291_BTE08.InMonHH
+//// 
+////-Read inputs---
+//      L     "A_3291_BTE08_AI1"
+//      T     #A_3291_BTE08.InpValue
+//      U     "PLC_SystemDB".GlobalFlags.Kilning_2
+//      =     #A_3291_BTE08.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[102]
+//      =     #A_3291_BTE08.InDPFault
+//// 
+////-Set Parameters---
+//      L     L#-10000                    // -100,00°C
+//      T     #A_3291_BTE08.Par.ParLimitLL
+//      L     L#0                         // 0,00°C
+//      T     #A_3291_BTE08.Par.ParLimitL
+//      L     L#9900                      // 99,00°C
+//      T     #A_3291_BTE08.Par.ParLimitH
+//      L     L#10000                     // 100,00°C
+//      T     #A_3291_BTE08.Par.ParLimitHH
+//// 
+////-Call object control---
+//      CALL  #A_3291_BTE08
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-3291-BTE10 : AIR TEMPERATURE BEFORE BURNER 3
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3291_BTE10.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3291_BTE10.InMonLL; 
+      CLR   ; 
+      =     #A_3291_BTE10.InMonL; 
+      CLR   ; 
+      =     #A_3291_BTE10.InMonMid; 
+      CLR   ; 
+      =     #A_3291_BTE10.InMonH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE10.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3291_BTE10_AI1"; 
+      T     #A_3291_BTE10.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3291_BTE10.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3291_BTE10.InDPFault; 
+// 
+//-Set Parameters---
+      L     L#-10000; // -100,00°C
+      T     #A_3291_BTE10.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3291_BTE10.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3291_BTE10.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3291_BTE10.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3291_BTE10 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3291-BTE06 : AIR TEMPERATURE DIFFUSOR FAN 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3291_BTE06.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3291_BTE06.InMonLL; 
+      CLR   ; 
+      =     #A_3291_BTE06.InMonL; 
+      CLR   ; 
+      =     #A_3291_BTE06.InMonMid; 
+      CLR   ; 
+      =     #A_3291_BTE06.InMonH; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3291_BTE06.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3291_BTE06_AI1"; 
+      T     #A_3291_BTE06.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3291_BTE06.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3291_BTE06.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3291_BTE06.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      ON    "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; 
+      ON    "G302M".A_3261_KCL11_REG_ON.StTrue; 
+      SPB   fui2; 
+
+// Toleranzband -3,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      -D    ; 
+      T     #A_3291_BTE06.Par.ParLimitL; 
+// Toleranzband +3,5°C Temperatur unter der Horde
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      +D    ; 
+      T     #A_3291_BTE06.Par.ParLimitH; 
+      SPA   hui2; 
+fui2: NOP   0; 
+
+
+      L     L#-10000; // -100,00°C
+      T     #A_3291_BTE06.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3291_BTE06.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3291_BTE06.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3291_BTE06.Par.ParLimitHH; 
+hui2: NOP   0; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3291_BTE06 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3291_BTE01.OutFaulted; 
+      O     #A_3291_BTE05.OutFaulted; 
+      O     #A_3291_BTE07.OutFaulted; 
+//      O     #A_3291_BTE08.OutFaulted
+      O     #A_3291_BTE10.OutFaulted; 
+      O     #A_3291_BTE06.OutFaulted; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+//      U     #A_3291_BTE01.OutWarning     //BRT20100828 - Warnung nervt
+      O     #A_3291_BTE05.OutWarning; 
+      O     #A_3291_BTE07.OutWarning; 
+//      O     #A_3291_BTE08.OutWarning
+      O     #A_3291_BTE10.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #Gr.ModeIdling; 
+      U     #Gr.OutSeqStop; 
+      O     #Gr.ModePassive; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[295]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[295]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[295]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[295]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[295]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[295]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[295]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[295]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[295]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[295]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

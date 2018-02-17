@@ -1,0 +1,836 @@
+FUNCTION_BLOCK "GCS7_M_Roll8Stand_DP"
+TITLE =Roll stand with 8 
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 46 Machine roll stand with 8 rolls with MDDR/T
+//
+//REVISION:     20
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB46.5.2      A. Egli             CT3                         14-Feb-2008
+//              MDDR/T: Manual Motor interlocke with Status.SxEnableMotors
+//FB46.5.1      A. Egli             CT3                         10-Oct-2007
+//              Condition Stopped if only one motor
+//FB46.5.0      A. Egli             CT3                         06-Apr-2007
+//              New Release R2 
+//FB46.4.2      A. Egli             CT3                         05-Mai-2004
+//              CmdOff in manual mode
+//FB46.4.1      A. Egli             CT3                         23-Sep-2003
+//              InEnable=0 must stop motor when ParManual=1 and InManual=0
+//FB46.4.0      A. Egli             CT3                         18-Oct-2002
+//              New Release with one block 
+//FB46.3.2      A. Egli             CT3                         18-Okt-2002
+//              Condition tmpStarted with ParMa.Par4Rolls=0 
+//FB46.3.1      A. Egli             CT3                         08-Feb-2000
+//              Condition Monitoring HL 
+//FB46.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB46.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB46.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB46.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [SSW-MA-Roll8Stand_MAN_en]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Rolls8
+VERSION : 5.2
+
+
+VAR
+  Ma : "GCS7_M_FB87_Data";	
+  MotorLowSide1 : "GCS7_E_Motor";	//Element
+  MotorLowSide2 : "GCS7_E_Motor";	//Element
+  SM1Side1 : "GCS7_E_DigInput";	//Element
+  SM1Side2 : "GCS7_E_DigInput";	//Element
+  HLInletSide1 : "GCS7_E_DigInput";	//Element
+  HLInletSide2 : "GCS7_E_DigInput";	//Element
+  HLBackupLeftSide1 : "GCS7_E_DigInput";	//Element Only 8 with 8 rolls
+  HLBackupLeftSide2 : "GCS7_E_DigInput";	//Element Only 8 with 8 rolls
+  MotorUpSide1 : "GCS7_E_Motor";	//Element
+  MotorUpSide2 : "GCS7_E_Motor";	//Element
+  SM2Side1 : "GCS7_E_DigInput";	//Element
+  SM2Side2 : "GCS7_E_DigInput";	//Element
+  HLBackupRightSide1 : "GCS7_E_DigInput";	//Element Only 8 with 8 rolls
+  HLBackupRightSide2 : "GCS7_E_DigInput";	//Element Only 8 with 8 rolls
+  HLInletSide1Div : "GCS7_E_DigInput";	//Element Only if side 1 is divided (Side 1 left)
+  HLInletSide2Div : "GCS7_E_DigInput";	//Element Only if side 2 is divided (Side 2 left)
+  MDDx : "GCS7_E_MDDx_DP";	
+  FeedrollSide1 : "GCS7_E_AnalogOutput";	
+  FeedrollSide2 : "GCS7_E_AnalogOutput";	
+  FeedrollSide1Div : "GCS7_E_AnalogOutput";	
+  FeedrollSide2Div : "GCS7_E_AnalogOutput";	
+  HLOutlet1Side1 : "GCS7_E_DigInput";	//Element
+  HLOutlet2Side1 : "GCS7_E_DigInput";	//Element
+  HLOutlet1Side2 : "GCS7_E_DigInput";	//Element
+  HLOutlet2Side2 : "GCS7_E_DigInput";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpSeqStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo    
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2087; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+      SPA   aIni; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //InEnableDosingOn
+      S     #Ma.InEnableDosing; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[10]; //InEnableDosingOff
+      R     #Ma.InEnableDosing; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //CmdEnableSide1
+      R     #Ma.InDisableSide1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //CmdDisableSide1
+      S     #Ma.InDisableSide1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //CmdEnableSide2
+      R     #Ma.InDisableSide2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[2]; //CmdDisableSide2
+      S     #Ma.InDisableSide2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; //CmdOverwriteHLOn
+      S     #Ma.InOverrideHL; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[3]; //CmdOverwriteHLOff
+      R     #Ma.InOverrideHL; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //CmdRestDischargeOn
+      S     #Ma.InRestDischarge; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[4]; //CmdRestDischargeOff
+      R     #Ma.InRestDischarge; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+//-----------------------------------------------------------
+//Audit Log
+aExa: NOP   0; 
+      TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     14; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+//------------------------------------------
+aEnd: NOP   0; 
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+// temporare
+      UN    #Ma.StStarting; 
+      ON    #Ma.InManual; 
+      O     #Ma.CmdOff; //[4.2]
+      R     #Ma.OutStartMan; 
+      O     #Ma.CmdOn; 
+      S     #Ma.OutStartMan; 
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.OutStartMan; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U(    ; 
+      U     #Ma.Par.ParManual; //[4.1]
+      U     #Ma.InManual; 
+      O     #Ma.InEnable; 
+      )     ; 
+      U(    ; 
+      UN    #MDDx.StFault; 
+      ON    #Ma.Par.ParWithMDDx; 
+      )     ; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #tmpSeqStop; 
+//Warning
+      U     #HLInletSide1.StTrue; 
+      O     #HLInletSide2.StTrue; 
+      O     #HLInletSide1Div.StTrue; 
+      O     #HLInletSide2Div.StTrue; 
+      U     #Ma.InOverrideHL; 
+      O     #MDDx.OutWarning; 
+      =     #tmpWarning; 
+      =     #Ma.OutWarning; 
+//--- Fault----
+      U     #MotorLowSide1.StFault; 
+      O     #MotorUpSide1.StFault; 
+      O     #MotorLowSide2.StFault; 
+      O     #MotorUpSide2.StFault; 
+      O     #HLBackupLeftSide1.StFault; 
+      O     #HLBackupLeftSide2.StFault; 
+      O     #HLBackupRightSide1.StFault; 
+      O     #HLBackupRightSide2.StFault; 
+      O     #HLInletSide1.StFault; 
+      O     #HLInletSide2.StFault; 
+      O     #HLInletSide1Div.StFault; 
+      O     #HLInletSide2Div.StFault; 
+      O     #SM1Side1.StFault; 
+      O     #SM1Side2.StFault; 
+      O     #SM2Side1.StFault; 
+      O     #SM2Side2.StFault; 
+      O     #MDDx.StFault; 
+      O     #MDDx.OutFaultRelevant; 
+      O     #FeedrollSide1.StFault; 
+      O     #FeedrollSide2.StFault; 
+      O     #FeedrollSide1Div.StFault; 
+      O     #FeedrollSide2Div.StFault; 
+      O     #HLOutlet1Side1.StFault; 
+      O     #HLOutlet2Side1.StFault; 
+      O     #HLOutlet1Side2.StFault; 
+      O     #HLOutlet2Side2.StFault; 
+      =     #tmpFaultSum; 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+      =     #MotorLowSide1.InLocal; 
+      =     #MotorLowSide2.InLocal; 
+      =     #SM1Side1.InLocal; 
+      =     #SM1Side2.InLocal; 
+      =     #MotorUpSide1.InLocal; 
+      =     #MotorUpSide2.InLocal; 
+      =     #SM2Side1.InLocal; 
+      =     #SM2Side2.InLocal; 
+      =     #MDDx.InLocal; 
+      =     #FeedrollSide1.InLocal; 
+      =     #FeedrollSide2.InLocal; 
+      =     #FeedrollSide1Div.InLocal; 
+      =     #FeedrollSide2Div.InLocal; 
+      U     #Ma.InDisableSide1; 
+      U     #MotorLowSide1.StStopped; 
+      O     #tmpLocal; 
+      =     #HLInletSide1.InLocal; 
+      =     #HLOutlet1Side1.InLocal; 
+      =     #HLOutlet2Side1.InLocal; 
+      =     #HLBackupLeftSide1.InLocal; 
+      =     #HLBackupRightSide1.InLocal; 
+      =     #HLInletSide1Div.InLocal; 
+      U     #Ma.InDisableSide2; 
+      U     #MotorLowSide2.StStopped; 
+      O     #tmpLocal; 
+      =     #HLInletSide2.InLocal; 
+      =     #HLBackupLeftSide2.InLocal; 
+      =     #HLBackupRightSide2.InLocal; 
+      =     #HLOutlet1Side2.InLocal; 
+      =     #HLOutlet2Side2.InLocal; 
+      =     #HLInletSide2Div.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #MotorLowSide1.CmdFaultReset; 
+      S     #MotorLowSide2.CmdFaultReset; 
+      S     #SM1Side1.CmdFaultReset; 
+      S     #SM1Side2.CmdFaultReset; 
+      S     #HLInletSide1.CmdFaultReset; 
+      S     #HLInletSide2.CmdFaultReset; 
+      S     #HLBackupLeftSide1.CmdFaultReset; 
+      S     #HLBackupLeftSide2.CmdFaultReset; 
+      S     #MotorUpSide1.CmdFaultReset; 
+      S     #MotorUpSide2.CmdFaultReset; 
+      S     #SM2Side1.CmdFaultReset; 
+      S     #SM2Side2.CmdFaultReset; 
+      S     #HLBackupRightSide1.CmdFaultReset; 
+      S     #HLBackupRightSide2.CmdFaultReset; 
+      S     #HLInletSide1Div.CmdFaultReset; 
+      S     #HLInletSide2Div.CmdFaultReset; 
+      S     #MDDx.CmdFaultReset; 
+      S     #FeedrollSide1.CmdFaultReset; 
+      S     #FeedrollSide2.CmdFaultReset; 
+      S     #FeedrollSide1Div.CmdFaultReset; 
+      S     #FeedrollSide2Div.CmdFaultReset; 
+      S     #HLOutlet1Side1.CmdFaultReset; 
+      S     #HLOutlet2Side1.CmdFaultReset; 
+      S     #HLOutlet1Side2.CmdFaultReset; 
+      S     #HLOutlet2Side2.CmdFaultReset; 
+//==== Monitoring ================
+//  --HL Backup
+      U     #MDDx.Side1.Out.OutLCAlarm.A064HLBackupLeft; 
+      ON    #Ma.Par.ParWithMDDx; 
+      UN    #Ma.Par.Par4Rolls; 
+      =     #HLBackupLeftSide1.InMonFalse; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A064HLBackupLeft; 
+      ON    #Ma.Par.ParWithMDDx; 
+      UN    #Ma.Par.Par4Rolls; 
+      =     #HLBackupLeftSide2.InMonFalse; 
+      U     #MDDx.Side1.Out.OutLCAlarm.A066HLBackupRight; 
+      ON    #Ma.Par.ParWithMDDx; 
+      UN    #Ma.Par.Par4Rolls; 
+      =     #HLBackupRightSide1.InMonFalse; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A066HLBackupRight; 
+      ON    #Ma.Par.ParWithMDDx; 
+      UN    #Ma.Par.Par4Rolls; 
+      =     #HLBackupRightSide2.InMonFalse; 
+//  --HL Inlet
+      UN    #Ma.InOverrideHL; 
+      =     #HLInletSide1.InMonFalse; 
+      =     #HLInletSide2.InMonFalse; 
+      =     #HLInletSide1Div.InMonFalse; 
+      =     #HLInletSide2Div.InMonFalse; 
+//  --HLOutlet
+      SET   ; 
+      =     #HLOutlet1Side1.InMonFalse; 
+      =     #HLOutlet2Side1.InMonFalse; 
+      =     #HLOutlet1Side2.InMonFalse; 
+      =     #HLOutlet2Side2.InMonFalse; 
+//  --SM Side 1
+      UN    #Ma.Par.ParWithMDDx; 
+      U     #Ma.InpPressureSide1; 
+      O     ; 
+      U     #MDDx.Side1.Out.OutLCAlarm.A053RollLow; 
+      U     #Ma.Par.ParWithMDDx; 
+      =     #SM1Side1.InMonTrue; 
+      U     #MDDx.Side1.Out.OutLCAlarm.A052RollUp; 
+      U     #Ma.Par.ParWithMDDx; 
+      =     #SM2Side1.InMonTrue; 
+//  --SM Side 2
+      UN    #Ma.Par.ParWithMDDx; 
+      U     #Ma.InpPressureSide2; 
+      O     ; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A053RollLow; 
+      U     #Ma.Par.ParWithMDDx; 
+      =     #SM1Side2.InMonTrue; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A052RollUp; 
+      U     #Ma.Par.ParWithMDDx; 
+      =     #SM2Side2.InMonTrue; 
+NETWORK
+TITLE =Interlocking Motors Rolls
+
+      U     #MDDx.Status.S1EnableMotors; 
+      ON    #Ma.Par.ParWithMDDx; 
+      U     #tmpNext; 
+      S     #MotorLowSide1.CmdNext; 
+      S     #MotorUpSide1.CmdNext; 
+
+      U     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; //[5.1]
+      U     #MotorLowSide1.StStartedFwd; 
+      O     #MotorUpSide1.StStartedFwd; 
+      O     #Ma.InDisableSide1; 
+      U(    ; 
+      U     #MDDx.Status.S2EnableMotors; 
+      ON    #Ma.Par.ParWithMDDx; 
+      )     ; 
+      U     #tmpNext; 
+      S     #MotorLowSide2.CmdNext; 
+      S     #MotorUpSide2.CmdNext; 
+//--- Interlocking Motors
+//RollsLowSide1
+      U     #MDDx.Status.S1EnableMotors; 
+      ON    #Ma.Par.ParWithMDDx; 
+      U     #tmpEnable; 
+      U(    ; 
+      U     #HLOutlet1Side1.StFalse; 
+      O     #HLOutlet1Side1.StCtoTrue; 
+      ON    #Ma.Par.ParWithHLOutlet1Side1; 
+      )     ; 
+      U(    ; 
+      U     #HLOutlet2Side1.StFalse; 
+      O     #HLOutlet2Side1.StCtoTrue; 
+      ON    #Ma.Par.ParWithHLOutlet2Side1; 
+      )     ; 
+      UN    #Ma.InDisableSide1; 
+      UN    #HLBackupLeftSide1.StFault; 
+      UN    #HLBackupRightSide1.StFault; 
+      UN    #SM1Side1.StFault; 
+      UN    #SM2Side1.StFault; 
+      UN    #MDDx.StFault; 
+      =     #MotorLowSide1.InEnableFwd; 
+// 
+      U     #MDDx.OutComFault; //[5.2]
+      ON    #MDDx.Status.S1EnableMotors; //[5.2]
+      U     #Ma.Par.ParWithMDDx; //[5.2]
+      U(    ; //[5.2]
+      U     #MotorLowSide1.InManual; //[5.2]
+      O     #MotorUpSide1.InManual; //[5.2]
+      )     ; //[5.2]
+      S     #MotorLowSide1.CmdOff; //[5.2]
+      S     #MotorUpSide1.CmdOff; //[5.2]
+// 
+      U     #tmpSeqStop; 
+      =     #MotorLowSide1.InSeqStop; 
+//RollsUpSide1
+      U     #MotorLowSide1.StStartedFwd; 
+      UN    #Ma.InDisableSide1; 
+      U     #tmpEnable; 
+      =     #MotorUpSide1.InEnableFwd; 
+      U     #tmpSeqStop; 
+      =     #MotorUpSide1.InSeqStop; 
+//RollsLowSide2
+      U     #MDDx.Status.S2EnableMotors; 
+      ON    #Ma.Par.ParWithMDDx; 
+      U     #tmpEnable; 
+      U(    ; 
+      U     #HLOutlet1Side2.StFalse; 
+      O     #HLOutlet1Side2.StCtoTrue; 
+      ON    #Ma.Par.ParWithHLOutlet1Side2; 
+      )     ; 
+      U(    ; 
+      U     #HLOutlet2Side2.StFalse; 
+      O     #HLOutlet2Side2.StCtoTrue; 
+      ON    #Ma.Par.ParWithHLOutlet2Side2; 
+      )     ; 
+      UN    #Ma.InDisableSide2; 
+      UN    #HLBackupLeftSide2.StFault; 
+      UN    #HLBackupRightSide2.StFault; 
+      UN    #SM1Side2.StFault; 
+      UN    #SM2Side2.StFault; 
+      UN    #MDDx.StFault; 
+      =     #MotorLowSide2.InEnableFwd; 
+// 
+      U     #MDDx.OutComFault; //[5.2]
+      ON    #MDDx.Status.S2EnableMotors; //[5.2]
+      U     #Ma.Par.ParWithMDDx; //[5.2]
+      U(    ; //[5.2]
+      U     #MotorLowSide2.InManual; //[5.2]
+      O     #MotorUpSide2.InManual; //[5.2]
+      )     ; //[5.2]
+      S     #MotorLowSide2.CmdOff; //[5.2]
+      S     #MotorUpSide2.CmdOff; //[5.2]
+// 
+      U     #tmpSeqStop; 
+      =     #MotorLowSide2.InSeqStop; 
+//RollsUpSide2
+      U     #MotorLowSide2.StStartedFwd; 
+      UN    #Ma.InDisableSide2; 
+      U     #tmpEnable; 
+      =     #MotorUpSide2.InEnableFwd; 
+
+      U     #tmpSeqStop; 
+      =     #MotorUpSide2.InSeqStop; 
+NETWORK
+TITLE =Interlockig MDDR/R
+
+      U     #MotorUpSide1.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; //[5.1]
+      U     #MotorLowSide1.StStartedFwd; 
+      UN    #Ma.InDisableSide1; 
+      U     #Ma.InEnableDosing; 
+      =     #MDDx.Side1.InEnableDosing; 
+
+      U     #MotorUpSide2.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide2; //[5.1]
+      U     #MotorLowSide2.StStartedFwd; 
+      UN    #Ma.InDisableSide2; 
+      U     #Ma.InEnableDosing; 
+      =     #MDDx.Side2.InEnableDosing; 
+      U     #Ma.InOverrideHL; 
+      =     #MDDx.InOverrideHL; 
+//  RestDischarge
+      U     #Ma.InRestDischarge; 
+      =     #MDDx.Side1.InRestdischarge; 
+      =     #MDDx.Side2.InRestdischarge; 
+NETWORK
+TITLE =Help Signal
+
+      NOP   0; 
+//Startup done
+      U     #MotorLowSide1.StStartedFwd; 
+      O     #MotorLowSide1.StFault; 
+      U(    ; 
+      U     #MotorUpSide1.StStartedFwd; 
+      O     #MotorUpSide1.StFault; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; 
+      )     ; 
+      O     #Ma.InDisableSide1; 
+      U(    ; 
+      O     #MotorLowSide2.StStartedFwd; 
+      O     #MotorLowSide2.StFault; 
+      O     #Ma.InDisableSide2; 
+      )     ; 
+      U(    ; 
+      O     #MotorUpSide2.StStartedFwd; 
+      O     #MotorUpSide2.StFault; 
+      O     #Ma.InDisableSide2; 
+      ON    #Ma.Par.ParWithMotorUpSide2; 
+      O     #Ma.Par.Par4Rolls; 
+      )     ; 
+      =     #Ma.OutStartupDone; 
+//tmpStarted
+      U     #MotorUpSide1.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; 
+      U     #MotorLowSide1.StStartedFwd; 
+      O     #Ma.InDisableSide1; 
+      U(    ; 
+      U     #MotorUpSide2.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; //[3.2]
+      ON    #Ma.Par.ParWithMotorUpSide2; 
+      U     #MotorLowSide2.StStartedFwd; 
+      O     #Ma.InDisableSide2; 
+      )     ; 
+      U(    ; 
+      ON    #Ma.InDisableSide1; 
+      ON    #Ma.InDisableSide2; 
+      )     ; 
+      =     #tmpStarted; 
+NETWORK
+TITLE =Signal and DI from MDDX
+
+      UN    #Ma.Par.ParWithMDDx; 
+      SPB   MDJ1; 
+//--HLInlet---
+      UN    #MDDx.Status.S1HLInlet; 
+      =     #HLInletSide1.InpTrue; 
+      UN    #MDDx.Status.S2HLInlet; 
+      =     #HLInletSide2.InpTrue; 
+      UN    #MDDx.Side1Divide.Out.OutHLInlet; 
+      =     #HLInletSide1Div.InpTrue; 
+      UN    #MDDx.Side1Divide.Out.OutHLInlet; 
+      =     #HLInletSide2Div.InpTrue; 
+//--HLBackup---
+      UN    #MDDx.Side1.Out.OutStatus.OutHLBackupLeft; 
+      =     #HLBackupLeftSide1.InpTrue; 
+      UN    #MDDx.Side2.Out.OutStatus.OutHLBackupLeft; 
+      =     #HLBackupLeftSide2.InpTrue; 
+      UN    #MDDx.Side1.Out.OutStatus.OutHLBackupRight; 
+      =     #HLBackupRightSide1.InpTrue; 
+      UN    #MDDx.Side2.Out.OutStatus.OutHLBackupRight; 
+      =     #HLBackupRightSide2.InpTrue; 
+//--Motor---
+      U     #MDDx.Side1.Out.OutLCAlarm.A055MotLow; 
+      =     #MotorLowSide1.InpFaultDev; 
+      U     #MDDx.Side1.Out.OutLCAlarm.A054MotUp; 
+      =     #MotorUpSide1.InpFaultDev; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A055MotLow; 
+      =     #MotorLowSide2.InpFaultDev; 
+      U     #MDDx.Side2.Out.OutLCAlarm.A054MotUp; 
+      =     #MotorUpSide2.InpFaultDev; 
+//--SM---
+      U     #MotorLowSide1.StStartedFwd; 
+      UN    #MDDx.Side1.Out.OutLCAlarm.A053RollLow; 
+      =     #SM1Side1.InpTrue; 
+      U(    ; 
+      U     #MotorUpSide1.StStartedFwd; 
+      U     #Ma.Par.ParWithMotorUpSide1; 
+      O     ; 
+      U     #MotorLowSide1.StStartedFwd; 
+      UN    #Ma.Par.ParWithMotorUpSide1; 
+      )     ; 
+      UN    #Ma.Par.Par4Rolls; 
+      UN    #MDDx.Side1.Out.OutLCAlarm.A052RollUp; 
+      =     #SM2Side1.InpTrue; 
+      U     #MotorLowSide2.StStartedFwd; 
+      UN    #MDDx.Side2.Out.OutLCAlarm.A053RollLow; 
+      =     #SM1Side2.InpTrue; 
+      U(    ; 
+      U     #MotorUpSide2.StStartedFwd; 
+      U     #Ma.Par.ParWithMotorUpSide2; 
+      O     ; 
+      U     #MotorLowSide2.StStartedFwd; 
+      UN    #Ma.Par.ParWithMotorUpSide2; 
+      )     ; 
+      UN    #Ma.Par.Par4Rolls; 
+      UN    #MDDx.Side2.Out.OutLCAlarm.A052RollUp; 
+      =     #SM2Side2.InpTrue; 
+//--HLOutlet
+      UN    #MDDx.Status.S1HLOutlet1; 
+      =     #HLOutlet1Side1.InpTrue; 
+      UN    #MDDx.Status.S1HLOutlet2; 
+      =     #HLOutlet2Side1.InpTrue; 
+      UN    #MDDx.Status.S2HLOutlet1; 
+      =     #HLOutlet1Side2.InpTrue; 
+      UN    #MDDx.Status.S2HLOutlet2; 
+      =     #HLOutlet2Side2.InpTrue; 
+//--FU---
+      L     #MDDx.Side1.Out.OutFeedRollSpeed; 
+      T     #FeedrollSide1.InOutValueUnits; 
+      L     0; 
+      >D    ; 
+      UN    #MDDx.StFault; 
+      U     #MDDx.Side1.InEnableDosing; 
+      NOT   ; 
+      =     #FeedrollSide1.InDisable; 
+
+      L     #MDDx.Side2.Out.OutFeedRollSpeed; 
+      T     #FeedrollSide2.InOutValueUnits; 
+      L     0; 
+      >D    ; 
+      UN    #MDDx.StFault; 
+      U     #MDDx.Side2.InEnableDosing; 
+      NOT   ; 
+      =     #FeedrollSide2.InDisable; 
+
+      L     #MDDx.Side1Divide.Out.OutFeedRollSpeed; 
+      T     #FeedrollSide1Div.InOutValueUnits; 
+      L     0; 
+      >D    ; 
+      UN    #MDDx.StFault; 
+      U     #MDDx.Side1.InEnableDosing; 
+      NOT   ; 
+      =     #FeedrollSide1Div.InDisable; 
+
+      L     #MDDx.Side2Divide.Out.OutFeedRollSpeed; 
+      T     #FeedrollSide2Div.InOutValueUnits; 
+      L     0; 
+      >D    ; 
+      UN    #MDDx.StFault; 
+      U     #MDDx.Side2.InEnableDosing; 
+      NOT   ; 
+      =     #FeedrollSide2Div.InDisable; 
+MDJ1: NOP   0; 
+NETWORK
+TITLE =Call MotorLow
+
+      CALL #MotorLowSide1 ;
+      CALL #MotorLowSide2 ;
+
+NETWORK
+TITLE =Call Digital Input: SM Side1
+
+      UN    #Ma.Par.ParWithSMSide1; 
+      SPB   elL7; 
+      CALL #SM1Side1 ;
+      U     #Ma.Par.Par4Rolls; 
+      SPB   elL7; 
+      CALL #SM2Side1 ;
+elL7: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: SM1Side2
+
+      UN    #Ma.Par.ParWithSMSide2; 
+      SPB   elR6; 
+      CALL #SM1Side2 ;
+      U     #Ma.Par.Par4Rolls; 
+      SPB   elR6; 
+      CALL #SM2Side2 ;
+elR6: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLInletSide1
+
+      UN    #Ma.Par.ParWithHLInletSide1; 
+      SPB   elL5; 
+      CALL #HLInletSide1 ;
+elL5: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLInletSide2
+
+      UN    #Ma.Par.ParWithHLInletSide2; 
+      SPB   elR5; 
+      CALL #HLInletSide2 ;
+elR5: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLInletSide1Div
+
+      UN    #Ma.Par.ParWithHLInletSide1Div; 
+      SPB   elD1; 
+      CALL #HLInletSide1Div ;
+elD1: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLInletSide1Div
+
+      UN    #Ma.Par.ParWithHLInletSide2Div; 
+      SPB   elD2; 
+      CALL #HLInletSide2Div ;
+elD2: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLBackup
+
+      U     #Ma.Par.Par4Rolls; 
+      SPB   elL4; 
+      CALL #HLBackupLeftSide1 ;
+      CALL #HLBackupRightSide1 ;
+      CALL #HLBackupLeftSide2 ;
+      CALL #HLBackupRightSide2 ;
+elL4: NOP   0; 
+NETWORK
+TITLE =Call MotorUpSide1
+
+      U     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; 
+      SPB   elL3; 
+      CALL #MotorUpSide1 ;
+elL3: NOP   0; 
+NETWORK
+TITLE =Call MotorUpSide2
+
+      U     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide2; 
+      SPB   elR3; 
+      CALL #MotorUpSide2 ;
+elR3: NOP   0; 
+NETWORK
+TITLE =Call MDDR
+
+      UN    #Ma.Par.ParWithMDDx; 
+      SPB   elMD; 
+      CALL #MDDx ;
+elMD: NOP   0; 
+NETWORK
+TITLE =Call Feedroll
+
+      UN    #Ma.Par.ParWithMDDx; 
+      SPB   elF9; 
+      CALL #FeedrollSide1 ;
+      CALL #FeedrollSide2 ;
+      UN    #MDDx.Par.ParSide1Divided; 
+      SPB   elF4; 
+      CALL #FeedrollSide1Div ;
+elF4: UN    #MDDx.Par.ParSide2Divided; 
+      SPB   elF9; 
+      CALL #FeedrollSide2Div ;
+elF9: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: HLOutlet
+
+      UN    #Ma.Par.ParWithHLOutlet1Side1; 
+      SPB   elO1; 
+      CALL #HLOutlet1Side1 ;
+elO1: UN    #Ma.Par.ParWithHLOutlet2Side1; 
+      SPB   elO2; 
+      CALL #HLOutlet2Side1 ;
+elO2: UN    #Ma.Par.ParWithHLOutlet1Side2; 
+      SPB   elO3; 
+      CALL #HLOutlet1Side2 ;
+elO3: UN    #Ma.Par.ParWithHLOutlet2Side2; 
+      SPB   elO4; 
+      CALL #HLOutlet2Side2 ;
+elO4: NOP   0; 
+NETWORK
+TITLE =Actual State
+// StFault
+      U     #tmpFaultSum; 
+      =     #Ma.StFault; 
+// StStopped
+      U     #MotorUpSide1.StStopped; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide1; //[5.1]
+      U(    ; 
+      U     #MotorUpSide2.StStopped; 
+      O     #Ma.Par.Par4Rolls; 
+      ON    #Ma.Par.ParWithMotorUpSide2; //[5.1]
+      )     ; 
+      U     #MotorLowSide1.StStopped; 
+      U     #MotorLowSide2.StStopped; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStopped; 
+// StEngaged
+      U     #MDDx.Side1.StEngaged; 
+      O     #MDDx.Side2.StEngaged; 
+      U     #tmpStarted; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StStopped; 
+      =     #Ma.StEngaged; 
+// StStarted
+      U     #tmpStarted; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StStopped; 
+      UN    #Ma.StEngaged; 
+      =     #Ma.StStarted; 
+// StStopping
+      U     #MotorLowSide1.InSeqStop; 
+      O     #MotorLowSide2.InSeqStop; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopped; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StEngaged; 
+      =     #Ma.StStopping; 
+// StStarting
+      UN    #Ma.StStopped; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopping; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StEngaged; 
+      =     #Ma.StStarting; 
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted   3
+// StEngaged   4 
+// StStopping  7
+      U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StEngaged; 
+      L     4; //Code=StEngaged
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+//----------------------
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+
+END_FUNCTION_BLOCK
+

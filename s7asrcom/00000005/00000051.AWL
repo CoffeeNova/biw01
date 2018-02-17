@@ -1,0 +1,1931 @@
+FUNCTION FC 41 : VOID
+TITLE =CWA SCALE-MAIN
+//
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7 - CWA 32 Bit
+//
+//TITLE:        SCALE CONTROL: MAIN PROGRAM
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FC41.2.2      A.Egli              CT3                         15-Jan-2003
+//              Change to tipping, 
+//                  if rest-weight < switch over weight fast slow
+//FC41.2.1      A.Egli              CT3                         14-Oct-2002
+//              Offline check if Hsk are set
+//FC41.2.0      A.Egli              CT3                         11-Oct-2001
+//              PC Direct Control Interface  
+//FC41.1.11     A.Egli              CT3                         26-Jan-2001
+//              Only reset WtScale if ParPulseXxxCall 
+//FC41.1.10     S. Kalberer         CT3                         31-Oct-2000
+//              Update to S5.2K: At change to interm.Dischar. sta_reconveying
+//FC41.1.9      A. Egli             CT3                         22-Jul-2000
+//              Clear DBD254 if no emptying step
+//FC41.1.8      A. Egli             CT3                         25-Apr-2000
+//              Log message TipPulse with wrong parameter
+//FC41.1H       A. Egli             CT3                         23-Mar-1999
+//              Manual Addition: Accept under weight in state 5120 
+//FC41.1G       A. Egli             CT3                         05-Mar-1999
+//              Clear BinNr by reset and CmdAbortBatch 
+//              Manual Addition: Alarm reset in state 5120 befor CmdManAddReady
+//FC41.1F       A. Egli             CT3                         12-Nov-1998
+//              Update to S5.2I: Abort batch in state Intermediate discharge 
+//FC41.1E       A. Egli             CT3                         02-Nov-1998
+//              Update to S5.2H: Clear counter var_reconveying at refill 
+//FC41.1D       A. Egli             AEE61                       18-Mar-1998
+//              Update to S5.2H 
+//FC41.1C       A. Egli             AEE61                       16-Jan-1998
+//              Update to S5.2G 
+//FC41.1B       A. Egli             AEE61                       15-Aug-1997
+//              Update to S5.2E
+//FC41.1A       A. Egli             AEE61                       25-Apr-1996
+//              1st Release, converted from S5.FB41.1K
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : CWAMAN
+//
+//RESTRICTIONS: USED FLAGS MW180-255
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : CWA
+NAME : CWAMain
+VERSION : 2.2
+
+
+VAR_TEMP
+  tmpStoreAR2 : DINT ;	
+  tmpValue : DINT ;	
+  tmpStopFlag : BOOL ;	
+  tmpWord : INT ;	
+  tmpFlags : WORD ;	
+  tmpSpeed : INT ;	
+  tmpTimer : INT ;	
+  tmpBit : INT ;	
+  tmpFlagShift : INT ;	
+  tmpDBSource : INT ;	
+  tmpDWSource : INT ;	
+  tmpDBDestination : INT ;	
+  tmpDWDestination : INT ;	
+  tmpLenCopy : INT ;	
+  tmpFault : BOOL ;	
+  tmpScaleDB : INT ;	
+  tmpScalePara : BOOL ;	
+  tmpBinPara : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =FC-PARAMETER
+//FC-PARAMETER:
+//-------------
+//  CODE: CODE OF EXECUTING FUNTION
+//        KF +0    : METHODE CONTROL
+//        KF +1    : METHODE DECODER
+//
+//ACTUAL DB BY CALL: SCALE DB
+//
+      L     DBNO; 
+      T     #tmpScaleDB; 
+      TAR2  #tmpStoreAR2; // Store AR2
+
+NETWORK
+TITLE =PC Direct Contrl
+
+      L     DBW   28; //ScaleDB.ParScaleNr
+      L     DB3.DBW   50; // DB3.ObjectNr
+      <>I   ; // 
+      SPB   DCEn; 
+      L     0; //  )
+      L     DB3.DBW   42; //  ) DB3.handshake_PC_GC
+      ==I   ; //  )
+      SPB   DCEn; //  )
+      L     3103; // )  scale_parameter
+      L     DB3.DBW   48; // )  DB3.object_type
+      ==I   ; // )
+      =     #tmpScalePara; 
+      L     3104; // )  bin_parameter
+      ==I   ; // )
+      =     #tmpBinPara; 
+      UN    #tmpScalePara; 
+      UN    #tmpBinPara; 
+      SPB   DCEn; // 
+//Scale Parameter Init =========
+      L     58; 
+      T     #tmpDWSource; 
+//Bin Parameter Init =========
+      UN    #tmpBinPara; 
+      SPB   DCSc; 
+      L     DB3.DBW   58; // )   DB3.bin_number
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      T     DBW  390; // --> Input FB40.VarBinNr
+      L     W#16#408; 
+      UC    FC    40; // CWA.Subroutine Test Bin
+      U     M    199.3; //  )  error
+      L     DBW  246; //  )  CWA.errCodeSW
+      SPB   DCEr; //  )=>bin_not_found
+      L     DBW  394; // Output.VarDWnr
+      T     #tmpDWDestination; 
+      L     DBW  108; // SCDB.ParDBNrBinData
+      T     #tmpDBDestination; 
+      L     DBW  114; // SCDB.ParNrOfBytePerBin
+      T     #tmpLenCopy; 
+      SPA   DCMv; 
+// ====Scale Parameter============
+DCSc: L     #tmpScaleDB; 
+      T     #tmpDBDestination; 
+      L     160; 
+      T     #tmpDWDestination; 
+      L     46; 
+      T     #tmpLenCopy; 
+DCMv: U     DB3.DBX   43.1; // F_DefinePara
+      SPB   DCPa; 
+      U     DB3.DBX   43.0; // F_DefineCmd
+      SPB   DCCd; 
+      SPA   DCEx; 
+// ----- F_Define ---------------
+DCCd: U     #tmpBinPara; 
+      SPB   DCOK; 
+      UN    DB3.DBX   53.0; // Cmd1.cmd_startSingleIngr
+      UN    DB3.DBX   53.1; // Cmd1.cmd_modifyBin
+      SPB   DCc2; 
+// -- Test new Bin --------------
+      L     DB3.DBW   58; // DB3.bin_number
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      T     DBW  390; // --> Input FB40.var_bin_nr
+      L     DB3.DBW   58; // )   DB3.bin_number
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      T     DBW  390; // --> Input FB40.var_bin_nr
+      L     W#16#408; 
+      UC    FC    40; // CWA.Subroutine Test Bin
+      U     M    199.3; // error
+      L     DBW  246; // CWA.errCodeSW
+      SPB   DCEr; // =>bin_not_found
+//-- 
+      UN    DB3.DBX   53.0; // Cmd1.cmd_startSingleIngr
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      SPB   DCMO; 
+      U     DBX  251.0; // sta_SingleIngrReq
+      UN    DBX   78.2; // cmd_SingleIngrReady
+      UN    DBX   78.3; // cmd_ModReady
+      S     DBX   78.2; // cmd_SingleIngrReady
+      SPB   DCCP; 
+      L     46; // err: not ready for next
+      SPA   DCEr; 
+DCMO: S     DBX   78.3; // ->cmd_ModReady
+DCCP: L     DB3.DBW   58; // DB3.Inf_BinPreselected
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      T     DBW   90; // ->BinPreselected
+      L     DB3.DBD   60; // DB3.TargetValue
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      T     DBD   92; // ->TargetValue
+DCc2: L     DB3.DBD   52; // Cmd1/Cmd2
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      L     2#11111111111111001111111111111111; //[1E]
+      UD    ; 
+      L     DBD   58; 
+      OD    ; 
+      T     DBD   58; // --> function[47..32]
+      L     DB3.DBW   56; // CMD3
+      AUF   DB [#tmpScaleDB]; // >>  CALL scale_DB
+      L     DBW   62; 
+      OW    ; 
+      T     DBW   62; // --> function[15..00]
+      SPA   DCOK; 
+      L     43; // err_cfg_binlist
+      SPA   DCEr; 
+// ====Block Move  ================
+DCPa: UN    #tmpBinPara; 
+      SPB   fBIN; 
+      L     #tmpDWSource; 
+      +     4; 
+      T     #tmpDWSource; 
+      L     #tmpDWDestination; 
+      +     4; 
+      T     #tmpDWDestination; 
+      L     #tmpLenCopy; 
+      +     -4; 
+      T     #tmpLenCopy; 
+fBIN: NOP   0; 
+      CALL FC    49 (
+           DBSource                 := 3,
+           ByteSource               := #tmpDWSource,
+           DBDest                   := #tmpDBDestination,
+           ByteDest                 := #tmpDWDestination,
+           NoOfByte                 := #tmpLenCopy,
+           Fault                    := #tmpFault);
+      SPA   DCOK; 
+// ---- F_examine ----------------
+DCEx: NOP   0; 
+      CALL FC    49 (
+           DBSource                 := #tmpDBDestination,
+           ByteSource               := #tmpDWDestination,
+           DBDest                   := 3,
+           ByteDest                 := #tmpDWSource,
+           NoOfByte                 := #tmpLenCopy,
+           Fault                    := #tmpFault);
+DCOK: L     0; // err_code
+DCEr: T     DB3.DBW   46; // ->DB3.error_code
+      L     0; // 
+      T     DB3.DBW   42; // ->DB3.handshake_PC_GC
+      SET   ; // 
+      S     DB3.DBX   41.0; // ->DB3.change-bit
+DCEn: AUF   DB [#tmpScaleDB]; 
+
+NETWORK
+TITLE = READ FLAGS
+//
+//MW 180 : COPY DW 21
+//MW 182 :      DW 27
+//MW 184 :      DW 28
+//MW 186 :      DW 29
+//MW 188 :      DW 39
+//MW 190 :      DW 122
+//MW 192 :      DW 124
+//MW 194 :      DW 125
+//MW 196 :      DW 126
+      L     DBW   42; // CommandsSSWtoUser
+      T     MW   180; 
+      L     DBD   54; // CommandsUserToSSW
+      T     MD   182; 
+      L     DBW   58; // function[47..32]
+      T     MW   186; 
+      L     DBW   78; // Internal flags
+      T     MW   188; 
+      L     DBW  244; // fault [15..00]
+      T     MW   190; 
+      L     DBD  248; // status[47..16]
+      T     MD   192; 
+      L     DBW  252; // status[15..00]
+      T     MW   196; 
+NETWORK
+TITLE = O_SCALE
+
+      L     0; 
+      L     DBW  208; // handshakePCtoPLC
+      ==I   ; 
+      SPB   NX04; // NEXT;
+      S     DBX  207.1; // --> cmd_interface_free
+      L     W#16#F00; // Q_Status...Q_Log_c.done
+      UW    ; 
+      T     #tmpFlags; 
+      L     DBW   44; 
+      OW    ; 
+      T     DBW   44; // --> cmd_xxx_done
+      L     #tmpFlags; 
+      INVI  ; 
+      L     DBW  232; // handshakePLCtoPC
+      UW    ; 
+      T     DBW  232; // --> handshakePLCtoPC
+      L     0; 
+      T     DBW  236; // --> errCodeAnswer
+      UN    DBX  209.0; // F_Define
+      SPB   QUIT; 
+      UN    DBX  211.0; // cmd_startSingleIngr
+      UN    DBX  211.1; // cmd_modifyBin
+      SPB   CMD; 
+      L     DBW  218; // inf_BinPreselected
+      T     DBW  390; // --> VAR_BinPreselected
+      L     W#16#408; 
+      UC    FC    40; // S.Test Bin
+      U     M    199.3; // fault
+      L     30; // err: bin not found
+      SPB   ERRO; 
+      UN    DBX  211.0; // cmd_startSingleIngr
+      SPB   MODI; 
+      U     M    195.0; // sta_SingleIngrReq
+      UN    M    188.2; // cmd_SingleIngrReady
+      UN    M    188.3; // cmd_ModReady
+      S     M    188.2; // cmd_SingleIngrReady
+      SPB   COPY; 
+      L     46; // err: not ready for i.c.
+      SPA   ERRO; 
+MODI: L     DBW  306; // ingr.BinNr
+      L     DBW  216; // inf_deselected_bin
+      <>I   ; 
+      U(    ; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      L     45; // err: bin not active
+      SPB   ERRO; 
+      UN    M    188.2; // cmd_SingleIngrReady
+      UN    M    188.3; // cmd_ModReady
+      S     M    188.3; // --> cmd_ModReady
+      SPB   COPY; 
+      L     47; // err: bin not active
+ERRO: T     DBW  236; // --> errCodeAnswer
+      SPA   CMD; 
+COPY: L     DBW  218; // inf_BinPreselected
+      T     DBW   90; // --> BinPreselected
+      L     DBD  220; // TargetValue
+      T     DBD   92; // --> TargetValue
+CMD:  L     DBW  210; // FC[47..32]
+      L     2#1111111111111100; 
+      UW    ; 
+      L     MW   186; // FC[47..32]
+      OW    ; 
+      T     MW   186; // FC[47..32]
+      L     DBW  212; // FC[31..16]
+      L     DBW   60; // FC[31..16]
+      OW    ; 
+      T     DBW   60; // FC[31..01]
+      L     DBW  214; // FC[15..16]
+      L     DBW   62; // FC[15..00]
+      OW    ; 
+      T     DBW   62; // FC[15..00]
+QUIT: L     0; 
+      T     DBW  208; // handshakePCtoPLC
+NETWORK
+TITLE = COMMANDS ASW
+
+NX04: L     2#11111111; 
+      L     DBW   60; // FC[31..16]
+      UW    ; 
+      INVI  ; 
+      L     MW   196; // status[15..0]
+      UW    ; 
+      T     MW   196; // --> status[15..0]
+      L     2#1111111100000000; 
+      L     DBW   60; // FC[31..16]
+      UW    ; 
+      T     DBW   60; // --> FC[31..16]
+      L     2#1111111111; 
+      L     DBW   62; // FC[15..0]
+      UW    ; 
+      L     MW   196; // status[15..0]
+      OW    ; 
+      T     MW   196; // --> status[15..0]
+      L     2#1111110000000000; 
+      L     DBW   62; // FC[15..0]
+      UW    ; 
+      T     DBW   62; // --> FC[15..0]
+      L     W#16#F00; 
+      L     DBW    8; // par_set_xx
+      UW    ; 
+      L     MW   184; 
+      OW    ; 
+      T     MW   184; // --> ASW.cmd_xx
+      U     M    188.3; // cmd_ModificationReady
+      O     M    188.2; // cmd_SingleIngrReady
+      SPB   NX05; // NEXT;
+      U     M    187.1; // cmd_ModifyBin
+      S     M    188.3; // --> cmd_ModificationReady
+      SPB   CPY; // COPY;
+      UN    M    187.0; // cmd_SingleIngr
+      SPB   NX05; // NEXT;
+      S     M    188.2; // --> cmd_SingleIngrReady
+CPY:  L     DBW   64; // IngrNext.BinNr
+      T     DBW   90; // --> BinPreselected
+      L     DBD   66; // TargetValue
+      T     DBD   92; // --> TargetValue
+NETWORK
+TITLE = OFF-LINE
+//--> 
+NX05: UN    M    183.7; //ToASW.InfOffline
+      SPB   NX06; // 
+      L     2#111100000000; 
+      L     DBW  232; //PCRead.Hsk [2.1]
+      UW    ; 
+      L     DBW   44; //ToASW.CmdXxxDone
+      OW    ; 
+      T     DBW   44; // --> ToASW.CmdXxxDone
+NETWORK
+TITLE = auto tolerance
+
+NX06: UN    M    197.6; // sta_AutoTol
+      SPB   NX07; // NEXT;
+      L     DBW   76; // var_AutoTolCnt
+      L     DBW  188; // par_FaultResetCntMax
+      >=I   ; 
+      SPB   NX07; // NEXT;
+      U     M    191.5; // es_underWt
+      O     M    191.3; // es_TipPulse
+      O     M    191.2; // es_DosingMon
+      S     M    187.7; // cmd_retry
+      SPB   DOXX; 
+      UN    M    191.6; // es_overWt
+      SPB   NX07; // NEXT;
+      L     DBD  360; // par_TolAutoPos
+      T     DBD  392; 
+      SPBN  Y000; 
+      L     W#16#C; 
+      UC    FC    40; // S.Tolerance
+Y000: U     M    199.0; // faultPos
+      O     M    199.1; // faultNeg
+      SPB   NX07; // NEXT;
+      S     M    186.0; // --> cmd_acceptWt
+DOXX: L     DBW   76; // var_AutoTolCnt
+      +     1; 
+      T     DBW   76; // --> var_AutoTolCnt
+NETWORK
+TITLE = ALL STATE
+
+NX07: U     M    191.0; // EsEmpty
+      O     M    191.1; // EsEmptying
+      O     M    191.6; // EsOverWt
+      O     M    191.7; // EsZeroTol
+      U     M    186.0; // Cmd_acceptWt
+      O     M    186.1; // cmd_abortBatch
+      S     M    186.2; // --> cmd_abortIngr
+      S     M    186.0; // --> cmd_acceptWt
+// 
+      U     M    182.5; // inf_closed  
+      O     DBX    7.1; // par_NoDischarging
+      U     M    182.1; // inf_enableDosingSection
+      U     M    182.2; // inf_enableDosingGrp
+      UN    M    197.2; // sta_FeedOff
+      UN    M    190.2; // EsReading
+      UN    M    182.3; // InpRefillReq
+      =     M    189.2; // --> var_enableDosing
+      L     DBD  254; // inf_ScaleWt
+      L     DBD  180; // par_EmptyWt
+      <=D   ; 
+      =     M    180.4; // --> outp_scaleEmpty
+      L     MW   190; // fault[31..00]
+      L     0; 
+      <>I   ; 
+      SPB   J1; 
+      T     DBW  246; // --> errCodeSW
+J1:   L     DBD  312; // Ingr.WtActual
+      L     DBD  308; // Ingr.WtTarget
+      -D    ; 
+      T     DBD  316; // --> Ingr.WtDiff
+      UN    M    189.7; // inf_TaraSet
+      SPB   NX08; // NEXT;
+      L     DBD  254; // inf_ScaleWt
+      L     DBD  324; // Ingr.PartWtTara
+      UN    DBX    7.0; // par_NegWeighing
+      SPB   P1; 
+      TAK   ; 
+P1:   -D    ; 
+      L     DBD   86; // var_partWtByStart
+      +D    ; 
+      T     DBD  312; // --> Ingr.WtActual
+NETWORK
+TITLE = ST_INIT (0000H)
+
+NX08: L     W#16#0; // no state
+      L     DBW  240; 
+      <>I   ; 
+      UN    M    187.6; // cmd_reset
+      SPB   NX09; // NEXT;
+      L     0; 
+      T     MD   192; // --> status[47..16]
+      T     DBD   42; // --> commandsToASW
+      T     MW   180; 
+      T     DBW   46; // )
+      T     DBD   48; // )--> inf_activeBin[48..01]
+      T     DBD   78; // --> internalFlags
+      T     MW   188; 
+      T     DBD   86; // --> var_partWtByStart
+      T     DBW  306; // --> Ingr.Bin           [1G]
+      T     DBD  308; // --> Ingr.WtTarget      [1G]
+      T     DBD  312; // --> Ingr.WtActual      [1G]
+      T     DBD  316; // --> Ingr.WtDiff        [1G]
+      T     DBD  320; // --> Ingr.PartWtTarget  [1G]
+      T     DBD  324; // --> Ingr.PartWtTara    [1G]
+      T     DBW  328; // --> Ingr.DosingTime    [1G]
+
+      L     W#16#1000; // st_passive
+      T     DBW  240; 
+NETWORK
+TITLE = ST_PASSIVE (1000H)
+
+NX09: L     W#16#1000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX10; // NEXT;
+      R     M    181.7; // --> inf_scaleActive
+      R     M    186.2; // --> cmd_abortIngr
+      R     M    186.1; // --> cmd_abortBatch
+      R     M    196.1; // --> sta_ScrapBatch
+      L     MW   190; // Fault
+      L     2#110000000000; 
+      UW    ; 
+      T     MW   190; // Fault
+// 
+      UN    DBX  125.2; // ParPulseInterruptCall [1.11]
+      UN    DBX  125.3; // ParPulseTimeCall  [1.11]
+      ON    DBX    7.1; // par_NoDischarging [**1I**]
+      SPB   INIT; 
+      L     0; 
+      T     DBD  148; // --> var_scale_value_input
+      T     DBD  254; // inf_ScaleWt [**1.9**]
+INIT: U     M    184.0; // cmd_readyForRecipe
+      UN    M    197.3; // sta_hold
+      =     M    181.0; // --> inf_recipeReq
+      U     M    197.0; // sta_SingleIngrMode
+      U     M    184.1; // cmd_readyForSingle(ingr)
+      =     M    195.0; // sta_SingleIngrReq
+      UN    M      9.5; 
+      SPB   JLX; 
+      L     DBW  286; 
+      +     1; 
+      SPO   JLX; 
+      T     DBW  286; // --> inactiveTime
+JLX:  U     M    183.0; // cmd_startRecipe
+      SPB   T2X; // --> st_recipe_test
+      U     M    187.0; // cmd_StartSingleIngr.
+      O     M    188.2; // cmd_SingleIngrReady
+      SPB   T3XX; 
+      SPB   NX10; // == Trans. ==
+T2X:  R     M    184.0; // --> cmd_readyForRecipe
+      R     M    181.0; // --> inf_recipeReq
+      R     M    183.0; // --> cmd_startRecipe
+      S     M    193.0; // --> sta_recipeActive
+      L     W#16#2000; // st_init_recipe
+      SPA   TRAN; 
+T3XX: R     M    181.0; // --> inf_recipeReq
+      L     W#16#3000; // st_wait_for_next
+TRAN: T     DBW  240; // --> st_x
+      S     M    181.7; // --> inf_scaleActive
+      L     0; 
+      T     DBW   76; // --> var_AutoTolCnt
+NETWORK
+TITLE = ST_TEST_RECIPE (2X00H)
+
+NX10: L     W#16#2000; 
+      L     DBW  240; 
+      ==I   ; 
+      SPB   S20X; 
+      L     W#16#2100; // Substate:st_recipe_test.1
+      <>I   ; 
+      SPB   NX11; // == Substate 2100H ==
+      U     M    186.0; // cmd_acceptWt
+      O     M    187.7; // cmd_retry
+      R     M    191.7; // --> es_zeroTol
+      SPB   S20X; // --> test again
+      SPA   NX11; // == State 2000H  ==
+S20X: L     0; 
+      T     DBD  274; // --> TotalWtTarget
+      T     DBD  278; // --> TotalWtActual
+      T     DBW  288; // --> inf_DosingTimeBatch
+      T     DBW  290; // --> inf_WaitingForEmptying
+      T     DBW  292; // --> IngrCnt (actual)
+      L     DBD  254; // inf_ScaleWt
+      T     DBD  282; // --> TaraWtBatch
+      U     M    186.1; // cmd_abortBatch
+      SPB   T300; // --> st_test_ingr
+      U     DBX    7.0; // par_NegWeighing
+      SPB   CEC2; // -- zero tara_test --
+      L     DBD  254; // inf_ScaleWt
+      L     DBD  180; // par_EmptyWt
+      >D    ; 
+      UN    M    186.0; // cmd_acceptWt
+      S     M    191.7; // es_zeroTol
+      L     76; // CODE: zero_tol.
+      SPB   ERXO; // ->Trans. st_recipe_error
+CEC2: L     DBW   70; // inf_recipePlace
+      L     DBW  102; // par_nr_of_recipe
+      >=I   ; 
+      S     M    190.4; // --> err_cfg_fault_SPS
+      L     50; // CODE:inf_recipe_place to big
+      SPB   ERXO; 
+      L     W#16#202; 
+      UC    FC    40; // S.Count ingr
+      L     W#16#102; 
+      UC    FC    40; // S.Init_result_DB
+      L     W#16#401; 
+      UC    FC    40; // S.Test_Bin_DB
+      U     M    190.4; // err_cfg_fault_SPS
+      SPB   T21X; // --> Trans. st_recipe_error
+T300: L     W#16#3000; // st_wait_for_next
+      SPA   TRAX; 
+ERXO: T     DBW  246; // --> errCodeSW
+T21X: L     W#16#2100; // st_recipe_error
+TRAX: T     DBW  240; // --> st_x
+      R     M    183.1; // --> cmd_ReadyForNext
+      R     DBX   44.1; // --> CMD_RESULT_BATCH_DONE
+NETWORK
+TITLE = ST_WAIT_FOR_NEXT (3000H)
+
+NX11: L     W#16#3000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX12; 
+      R     M    180.0; // --> inf_waitForAswResult
+      R     M    193.2; // --> st_SingleIngrAc
+      R     M    193.1; // --> sta_recipeingrAc
+      R     M    189.7; // --> inf_TaraSet
+      R     M    186.2; // --> cmd_abortIngr
+      R     M    193.3; // --> sta_PartIngr
+      S     M    181.1; // --> inf_waitForNext
+      L     0; 
+      T     DBD   46; 
+      T     DBW   50; // --> active_bin[xx..01]
+      T     DBD   86; // --> var_partWtByStart
+      T     DBW  306; // --> Ingr.Bin      [1G]
+      T     DBD  308; // --> Ingr.WtTarget
+      T     DBD  312; // --> Ingr.WtActual
+      T     DBD  316; // --> Ingr.WtDiff
+      T     DBD  320; // --> Ingr.PartWtTarget
+      T     DBD  324; // --> Ingr.PartWtTara
+      T     DBW  328; // --> Ingr.DosingTime
+      U     M    197.0; // sta_SingleIngrMode
+      U     M    184.1; // cmd_readyForSingle(ingr)
+      U     M    183.1; // cmd_ReadyForNext
+      =     M    195.0; // sta_SingleIngrReq
+      UN    M    197.0; // sta_SingleIngrMode
+      UN    M    193.0; // sta_recipeActive
+      SPB   T100; 
+      UN    M    183.1; // cmd_ReadyForNext
+      SPB   NX12; // 
+      U     M    187.2; // cmd_DischargeFinal
+      U     M    197.0; // sta_SingleIngrMode
+      O     M    186.1; // cmd_abortBatch
+      SPB   T4X; 
+      U     M    187.3; // cmd_DischargeInterm
+      SPB   T54X; 
+      UN    DBX  157.7; // inf_ReadyForNext
+      U     DBX  125.4; // par_DosingRemote
+      SPB   NX12; // 
+      U     M    197.5; // sta_step
+      UN    M    187.5; // cmd_NextStep
+      SPB   NX12; // 
+      UN    M    197.0; // sta_SingleIngrMode
+      SPB   RECI; // ==> read recipe ingr
+      U     M    187.0; // cmd_StartSingleIngr
+      SPB   IDC1; 
+      U     M    188.2; // cmd_SingleIngrReady
+      SPB   IDC2; 
+      SPA   NX12; 
+// -- read recipe ingr --
+RECI: S     M    193.1; // sta_recipeingrAc
+      L     DBW  292; // IngrCnt (actual)
+      L     DBW  294; // IngrCntTotal
+      >=I   ; 
+      U     DBX    7.6; // par_DischargeFinal
+      UN    M    187.2; // cmd_DischargeFinal
+      SPB   WAIT; 
+      L     DBW  292; // IngrCnt (actual)
+      +     1; 
+      T     DBW  292; // --> IngrCnt (actual)
+      L     W#16#204; 
+      UC    FC    40; // S.Read Recipe ingr
+      SPA   T4X; 
+// -- read single_ingr--
+WAIT: L     75; 
+      T     DBW  246; 
+      SPA   NX12; // NEXT;
+IDC1: S     M    193.2; // st_SingleIngrAc
+      R     M    187.0; // cmd_StartSingleIngr
+      L     DBW   64; // NextIngr.BinNr
+      T     DBW  306; // --> ingr.BinNr
+      L     DBD   66; // NextIngr.target
+      SPA   TARG; 
+IDC2: S     M    193.2; // st_SingleIngrAc
+      L     DBW   90; // preselected_bin
+      T     DBW  306; // --> ingr.BinNr
+      L     DBD   92; // TargetValue
+TARG: T     DBD  308; // --> ingr_TargetValue
+      SPA   T4X; 
+T100: L     W#16#1000; // st_passive
+      R     M    193.0; // --> sta_recipeActive
+      SPA   TR11; // TR11;
+T54X: L     W#16#5400; // st_DischargeInterm
+      SPA   TR11; // TR11;
+T4X:  L     W#16#4000; // st_TestIngr
+TR11: T     DBW  240; // --> st_x
+      R     M    195.0; // --> sta_SingleIngrReq
+      R     M    183.1; // --> cmd_ReadyForNext
+      R     M    184.2; // --> cmd_ingrOk
+      R     M    183.3; // --> cmd_GotoWaitForNext
+      R     M    188.5; // --> flag1
+      R     M    188.1; // --> cmd_ManualAddReady
+      R     M    188.2; // --> cmd_SingleIngrReady
+      R     M    188.3; // --> cmd_ModReady
+      S     DBX  207.0; // --> CBIT
+      R     M    181.1; // --> inf_waitForNext
+NETWORK
+TITLE = ST_TEST_INGR (4000H)
+
+NX12: L     W#16#4000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX13; 
+      S     M    181.3; // --> inf_TestIngr
+      R     M    183.2; // --> cmd_ReadyForDeselect
+
+      U     M    187.2; // cmd_DischargeFinal
+      U     M    197.0; // sta_SingleIngrMode
+      O     M    186.1; // cmd_abortBatch
+      SPB   T7X; // --> st_DischargeFinal
+      UN    M    190.3; // err_illegel_ingr
+      L     W#16#402; 
+      CC    FC    40; // S.Read_bin_parameter
+      U     M    183.3; // cmd_GotoWaitForNext
+      UN    M    190.3; // err_illegel_ingr
+      O     M    186.2; // cmd_abortIngr
+      SPB   T3X; 
+      UN    M    184.2; // cmd_ingrOk
+      O     M    190.3; // err_illegel_ingr
+      SPB   NX13; 
+      L     0; 
+      L     DBW  306; // ingr.BinNr
+      ==I   ; 
+      SPB   T7XA; // --> st_DischargeFinal
+      L     -1; 
+      L     DBW  306; // ingr.BinNr
+      >I    ; 
+      SPB   T6X; // --> st_working_step
+      L     -1; // DischargeInterm
+      ==I   ; 
+      SPB   T54Y; // --> DischargeInterm
+      SPA   T5X; // == Trans. ===
+T54Y: L     W#16#5400; // st_DischargeInterm
+      SPA   TR12; // TR12;
+T3X:  L     W#16#3000; // st_wait_for_next
+      SPA   TR12; // TR12;
+T6X:  L     W#16#6000; // st_working_step
+      SPA   TR12; // TR12;
+T7XA: L     DBW  292; // IngrCnt
+      +     -1; 
+      T     DBW  292; // IngrCnt
+T7X:  L     W#16#7000; // st_DischargeFinal
+      R     M    193.1; // --> sta_RecipeIngrAc
+      SPA   TR12; // TR12;
+T5X:  L     W#16#5000; // st_ingr_active
+TR12: T     DBW  240; // --> st_x
+      R     M    181.3; // --> inf_TestIngr
+      R     M    183.1; // --> cmd_ReadyForNext
+      R     M    183.3; // --> cmd_workingStepDone
+      R     M    183.6; // --> cmd_GotoWaitForNext
+      R     M    184.2; // --> cmd_ingrOk
+      R     M    190.3; // --> err_illegel_ingr
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_INGR_ACTIVE (5000H)
+
+NX13: L     W#16#5000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX14; // NEXT;
+      R     DBX   81.2; // ->inf_FlagStopValue
+      R     M    192.1; // ->sta_reconveying
+      L     0; 
+      T     DBW  384; // ->var_CntReconveying
+      T     DBW  330; // ->Ingr.SwitchOverTime
+      L     W#16#5120; // st_test_weight
+      T     DBW  240; // ->st_x
+NETWORK
+TITLE = ST_TEST_WEIGHT (5120H)
+
+NX14: L     W#16#5120; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX15; 
+      R     M    192.0; // --> sta_TestWeighment
+      U     M    196.1; // sta_ScrapBatch
+      U     M    186.1; // cmd_abortBatch
+      O     M    186.2; // cmd_abortIngr
+      O     M    188.3; // cmd_ModReady
+      SPB   T56X; // --> st_registrate_ingr
+      U     M    191.5; // es_underWt                [1H]
+      U     M    186.0; // cmd_acceptWt              [1H]
+      U     DBX  337.0; // bin_type.par_manualAdd    [1H]
+      SPB   T56X; // --> st_registrate_ingr
+      U     M    191.6; // es_overWt                 [1G]   
+      O     M    191.5; // es_underWt                [1G]
+      UN    M    187.7; // cmd_retry                 [1G]
+      U     DBX  337.0; // bin_type.par_manualAdd    [1G]
+      SPB   NX15; //***************************[1G]
+      U     DBX  337.0; // bin_type.par_manualAdd
+      UN    M    188.1; // cmd_ManualAddReady
+      SPB   T51X; // --> st_ingr_splitt
+      U     M    187.7; // cmd_retry
+      U     M    191.5; // EsUnderWt
+      R     M    188.1; // --> CmdManualAddReady
+      U     M    187.7; // cmd_retry
+      R     M    191.5; // --> EsUnderWt
+      R     M    191.6; // --> EsOverWt
+      R     M    191.2; // --> EsDosingMon
+      L     W#16#402; 
+      CC    FC    40; // S.Read_bin_parameter
+      U     M    191.3; // es_TipPulse
+      SPB   NX15; // 
+      L     DBW  342; // BIN.par_TolPosWt
+      T     DBW  392; 
+      L     DBW  356; // BIN.par_TolPosPc(%)
+      T     DBW  394; 
+      L     W#16#C; 
+      UC    FC    40; // S.Tolerance
+      U     M    191.2; // es_DosingMon
+      UN    DBX    7.7; // par_NoSuspendMon
+      UN    M    197.7; // sta_MonitoringOff
+      O     M    191.5; // es_underWt
+      O     M    191.6; // es_overWt
+      SPB   NX15; // NEXT;
+      UN    M    199.2; // ingr_done (from FB40)
+T51X: L     W#16#5100; // --> st_ingr_splitt
+      SPB   TR14; // 
+T56X: L     W#16#5600; // --> st_resulting_ingr
+TR14: T     DBW  240; // --> st_x
+      R     M    184.3; // --> cmd_AswResultDone
+      R     M    191.2; // --> es_DosingMon
+      R     M    191.5; // --> es_underWt
+      R     M    191.6; // --> es_overWt
+      R     M    191.3; // --> es_TipPulse
+      R     M    193.3; // --> StaPartIngr
+      R     M    188.1; // --> CmdMaualAdd
+NETWORK
+TITLE = ST_INGR_SPLITT (5100H)
+
+NX15: L     W#16#5100; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX16; 
+      L     DBW  338; // par_SwitchOverWt_f/s
+      L     0; 
+      >I    ; 
+      SPB   N15a; 
+      T     DBW  338; // par_SwitchOverWt_f/s
+N15a: L     0; 
+      T     DBD  320; // --> Ingr.PartWtTarget
+      U     M    193.7; // sta_StartingDelay
+      L     W#16#8; 
+      CC    FC    40; // S.Run Startin Delay
+      U     M    187.3; // cmd_DischargeInterm
+      UN    DBX    7.0; // par_NegWeighing
+      SPB   T54Z; // -->Intermeadiate Disc.
+      U     DBX    7.0; // par_NegWeighing
+      U     M    182.3; // InpRefillReq
+      SPB   T53X; 
+      U     M    193.7; // sta_StartingDelay
+      SPB   NX16; // 
+      UN    M    189.2; // var_enableDosing
+      SPB   T511; // -> suspended
+      L     0; // -- Splitt --
+      L     DBD  316; // Ingr.WtDiff
+      -D    ; 
+      T     #tmpValue; // --> var_diff_value
+      U     DBX    7.0; // par_NegWeighing
+      SPB   NEG; // - positiv weighing--
+      L     DBD   12; // par_ScaleCapacityWt
+      L     DBD  254; // scale_value_absolut
+      -D    ; 
+      T     DBD  392; // --> var_max_ingredient
+      L     #tmpValue; // var_diff_value
+      >=D   ; 
+      SPB   VALU; // --> CASE 1:
+      L     DBD  392; // var_max_ingredient
+      L     DBD   20; // par_ingrWtMin
+      <D    ; 
+      SPB   T54Z; // --> CASE 2: Intermeadiate Disc.
+      SPA   C4; // --> CASE 3/CASE4
+NEG:  U     M    182.3; // inp_refillReq
+      SPB   T53X; // --> refill
+      L     DBD  254; // IF scale_value_absolut
+      L     DBD  180; // par_EmptyWt
+      -D    ; 
+      T     DBD  392; // --> var_max_ingredient
+      L     #tmpValue; // var_diff_value
+      >=D   ; 
+      SPB   VALU; // --> CASE 1: = ingr.diff_value
+      U     M    196.0; // sta_RestDischarge
+      SPB   VALU; // --> CASE 2: = ingr.diff_value
+      L     DBD  392; // var_max_ingredient
+      L     DBD   20; // par_ingrWtMin
+      <D    ; 
+      SPB   T53X; // --> CASE 3: refill
+C4:   L     #tmpValue; // var_diff_value_ingr
+      L     DBD  392; // var_max_ingredient
+      -D    ; 
+      L     DBD   20; // par_ingrWtMin
+      >=D   ; 
+      SPB   P3; // --> CASE 4 (3): max_ingredient
+      L     #tmpValue; // var_value_ingr
+      L     DBD   20; // par_ingrWtMin
+      -D    ; // --> CASE 5 (4):
+      SPA   VALU; 
+P3:   L     DBD  392; // var_max_ingredient
+VALU: T     DBD  320; // --> Ingr.PartWtTarget
+      L     DBD  254; // scale_value_absolut
+      T     DBD  324; // --> Ingr.PartWtTara
+      L     DBD  312; // Ingr.WtActual
+      T     DBD   86; // --> var_partWtByStart
+      L     DBD  320; // Ingr.PartWtTarget
+      +D    ; 
+      L     DBD  308; // Ingr.WtTarget
+      <D    ; 
+      =     M    193.3; // --> sta_PartIngr
+      U     DBX  125.4; // par_DosingRemote
+      SPB   T52X; 
+      SPA   T55X; // == Trans. ===
+T53X: L     W#16#5300; // st_refill
+      R     M    189.7; // --> inf_TaraSet
+      SPA   TR15; // TR15;
+T55X: L     W#16#5500; // st_dos_SPS
+      S     M    189.7; // --> inf_TaraSet
+      SPA   TR15; // TR15;
+T52X: L     W#16#5200; // st_dos_remote
+      S     M    189.7; // --> inf_TaraSet
+      SPA   TR15; // TR15;
+T54Z: L     0; 
+      T     DBW  384; // --> var_CntReconveying
+      L     W#16#5400; // st_DischargeInterm
+      R     M    189.7; // --> inf_TaraSet
+      S     M    193.3; // --> sta_PartIngr
+      R     M    192.1; //[1.10:S5.2K] ->sta_reconveying
+      SPA   TR15; // TR15;
+T511: L     W#16#5110; // st_suspend
+TR15: T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_SUSPENDED (5110H)
+
+NX16: L     W#16#5110; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX17; 
+      UN    DBX    7.0; // par_NegWeighing
+      ON    M    182.3; // InpRefillReq
+      UN    M    189.2; // var_enableDosing
+      UN    M    187.3; // cmd_DischargeInterm
+      UN    M    186.2; // cmd_abortIngr
+      SPB   NX17; 
+      L     0; 
+      T     DBW  384; // --> var_CntReconveying
+      L     W#16#5120; // st_test_weight
+      T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_DOSING_REMOTE (5200H)
+
+NX17: L     W#16#5200; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX18; // NEXT;
+      U     M    188.5; // flag1
+      SPB   JL1; // [- Init State --
+      S     M    188.5; 
+      R     DBX   81.2; // inf_FlagStopValue
+      R     DBX  157.6; // ME.cmd_done
+JL1:  U     M    189.2; // var_enableDosing
+      =     M    180.7; // --> outp_dosing
+      U     DBX  157.0; // ME.st_stoppend
+      UN    M    180.7; // outp_dosing
+      O     DBX  157.6; // ME.cmd_done
+      SPB   T512; 
+      SPA   NX18; // NEXT;
+T512: L     W#16#5120; // st_test_weight
+      T     DBW  240; // --> st_x
+      R     M    180.7; // --> outp_dosing
+      R     M    188.5; // --> flag1
+      L     W#16#404; 
+      UC    FC    40; // S.Save_bin_parameter
+NETWORK
+TITLE = ST_REFILL (5300H)
+
+NX18: L     W#16#5300; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX19; // NEXT;
+      U     M    188.5; // flag1
+      SPB   IN18; // -- Init State --
+      S     M    188.5; 
+      S     M    195.4; // --> sta_RefillReq
+      R     M    188.6; // --> flag2_state
+IN18: U     M    188.6; // flag2_state
+      SPB   JL2; 
+      L     DBD  254; // inf_ScaleWt
+      L     DBD   12; // par_ScaleCapacityWt
+      <=D   ; 
+      UN    M    182.4; // inp_full
+      UN    M    186.0; // cmd_acceptWt
+      SPB   NX19; // NEXT;
+      R     M    195.4; // --> sta_RefillReq
+      S     M    188.6; // --> flag2_state
+      S     M    193.4; // --> sta_SettlingTime
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+JL2:  L     W#16#2; 
+      UC    FC    40; // S.Run Settling time
+      UN    M    193.4; // sta_SettlingTime
+      SPB   TR18; // 
+      SPA   NX19; // 
+TR18: L     W#16#5100; // st_ingr_active
+      T     DBW  240; // --> st_x
+      L     0; //[1E:S5.2H]
+      T     DBW  384; //[1E:S5.2H] --> var_CntReconveying
+      R     M    192.1; //[1E:S5.2H] ->sta_reconveying
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_DOSING_PLC (5500H)
+
+NX19: L     W#16#5500; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX20; // NEXT;
+      R     M    189.5; // --> cmd_NoCorrCutoffWt
+      L     DBW  384; // var_CntReconveying
+      +     1; 
+      T     DBW  384; // --> var_CntReconveying
+      U     DBX  337.0; // bin_type.par_manualAdd
+      SPB   T551; // --> GOTO st_maunal_add.
+//[2.2]--> 
+      L     DBW  338; // par_SwitchOverWt_f/s
+      ITD   ; 
+      L     DBD  320; // Ingr.PartWtTarget
+      <D    ; 
+      U(    ; 
+      L     DBW  340; // par_CutoffWt
+      ITD   ; 
+      L     DBD  320; // Ingr.PartWtTarget
+      <D    ; 
+      )     ; 
+      R     DBX   81.2; // ->inf_FlagStopValue
+//<---[2.2] 
+      L     DBW  340; // par_CutoffWt
+      ITD   ; 
+      L     DBD  320; // Ingr.PartWtTarget
+      >=D   ; 
+      O     M    192.1; // sta_reconveying
+      O(    ; 
+      L     DBW  384; // var_CntReconveying
+      L     30; ///[2.2]
+      >I    ; 
+      )     ; 
+      O     DBX   81.2; // inf_FlagStopValue  [2.2]
+      SPB   TX40; // --> st_reconveying
+      L     0; 
+      L     DBD  338; // var_cutoff_value/var_switch_over
+      <>D   ; 
+      SPB   X2; // [- Test weighment -
+      L     DBD   20; // par_ingrWtMin
+      L     DBD  320; // Ingr.PartWtTarget
+      SSD   1; // div 2
+      >D    ; 
+      SPB   X2; 
+      T     DBD  320; // --> Ingr.PartWtTarget
+      S     M    193.3; // sta_PartIngr
+      S     M    192.0; // sta_TestWeighment --]
+X2:   UN    DBX  336.7; // bin_type.par_ModeFineDosWt
+      SPB   X3; 
+      L     DBW  340; // par_CutoffWt
+      L     DBW  368; // par_FineDosWt
+      +I    ; 
+      T     DBW  338; // par_SwitchOverWt_f/s
+X3:   L     DBD  320; // Ingr.PartWtTarget
+      L     DBW  338; // par_SwitchOverWt_f/s
+      ITD   ; 
+      <D    ; 
+      =     M    189.5; // --> cmd_NoCorrCutoffWt
+      U     DBX  337.1; // bin_type.par_1_speed
+      SPB   TX30; // --> st_slow_dos
+      U     M    189.5; // cmd_NoCorrCutoffWt
+      U     DBX  337.2; // bin_type.par_2_speed
+      SPB   TX30; // --> st_slow_dos
+      U     M    189.5; // cmd_NoCorrCutoffWt
+      U     DBX  337.3; // bin_type.par_frequency_convert
+      SPB   TX21; // --> st_switch_over_f/s
+      L     W#16#5520; // st_fast_dos
+      SPA   TR19; // TR19;
+T551: L     W#16#5510; // st_manualAdd
+      SPA   TR19; // TR19;
+TX21: L     W#16#5521; // st_switch_over_f/s
+      SPA   TR19; // TR19;
+TX30: L     W#16#5530; // st_slow_dos
+      SPA   TR19; // TR19
+TX40: S     M    189.5; // --> cmd_NoCorrCutoffWt
+      L     W#16#5540; // st_reconveying
+TR19: T     DBW  240; // --> st_x
+      S     M    189.3; // --> inf_DelayMon
+      L     0; 
+      T     DBW   96; // --> var_startingTime
+      T     DBW  376; // --> var_ActualTimeStep
+      T     DBW  330; // --> Ingr.SwitchOverTime
+// 
+      L     DBD  324; // Ingr.PartWtTara
+      L     DBD  320; // Ingr.PartWtTarget
+      UN    DBX    7.0; // par_NegWeighing
+      SPB   POS1; 
+      -D    ; 
+      L     DBW  340; // par_CutoffWt
+      ITD   ; // (Convert 16-Bit to 32 Bit)
+      +D    ; 
+      SPB   DD70; 
+POS1: +D    ; 
+      L     DBW  340; // par_CutoffWt
+      ITD   ; // (Convert 16-Bit to 32 Bit)
+      -D    ; 
+DD70: T     DBD  140; // --> ME.var_cutoff_point
+// 
+      L     DBD  324; // Ingr.PartWtTara
+      L     DBD  320; // Ingr.PartWtTarget
+      UN    DBX    7.0; // par_NegWeighing
+      SPB   POS2; 
+      -D    ; 
+      L     DBW  338; // par_SwitchOverWt_F/S
+      ITD   ; // (Convert 16-Bit to 32 Bit)
+      +D    ; 
+      SPA   DD72; 
+POS2: +D    ; 
+      L     DBW  338; // par_SwitchOverWt_F/S
+      ITD   ; // (Convert 16-Bit to 32 Bit)
+      -D    ; 
+DD72: T     DBD  144; // --> ME.var_switch_over_value
+NETWORK
+TITLE = ST_MANUAL_ADDITION (5510H)
+
+NX20: L     W#16#5510; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX21; // NEXT;
+      U     M    187.4; // cmd_ManualAddReady
+      S     M    188.1; // --> cmd_ManualAddReady
+      UN    M    188.1; // --> cmd_ManualAddReady
+      UN    M    187.3; // --> CmdDischarge
+      =     M    195.1; // --> sta_ManualAddReq
+      SPB   NX21; // NEXT;
+      L     W#16#5550; // ST_SETTLING
+      T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_DOSING_FAST (5520H)
+
+NX21: L     W#16#5520; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX22; // NEXT;
+      UN    M    191.2; // es_DosingMon
+      O     DBX    7.7; // par_NoSuspendMon
+      O     M    197.7; // sta_MonitoringOff
+      =     M    180.6; // --> outp_dosingFast
+      =     M    180.7; // --> outp_dosing
+      L     DBW  364; // par_DosingSpeedFast
+      T     DBW  296; // --> DosingSpeed
+      U     M    188.5; // flag1
+      SPB   JL21; // [- Init State --
+      S     M    188.5; 
+      R     DBX   81.2; // inf_FlagStopValue
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+      L     0; 
+      T     DBW  378; // --> varMonTime  --]
+      L     S5T#20S; // 200 ms
+      UN    M      9.0; 
+      SI    T [DBW 24]; // --> Set timer
+JL21: UN    M    189.2; // var_enableDosing
+      O     M    188.3; // cmd_ModReady
+      O     M    187.3; // cmd_DischargeInterm
+      O     M    186.2; // cmd_abortIngr
+      SPB   T555; // --> settling
+      UN    T [DBW 24]; // par_timer
+      SPB   SEC; 
+      L     200; // 200 ms
+      L     T [DBW 24]; // par_timer
+      -I    ; 
+      SPA   T1; 
+SEC:  UN    M      9.5; 
+      O     M    191.2; // es_DosingMon
+      SPB   JM21; // JM21;
+      L     DBW  376; // var_ActualTimeStep
+      +     10; 
+T1:   T     DBW  376; // --> var_ActualTimeStep
+JM21: U(    ; 
+      L     DBD  144; // ME.var_switch_over_value
+      L     DBD  254; // inf_ScaleWt
+      <=D   ; 
+      UN    DBX    7.0; // par_NegWeighing
+      )     ; 
+      O(    ; 
+      >=D   ; 
+      U     DBX    7.0; // par_NegWeighing
+      )     ; 
+      O     DBX   81.2; // inf_FlagStopValue
+      =     #tmpStopFlag; // --> var_switch_over_point
+      U     #tmpStopFlag; // var_switch_over_point
+      U     DBX  337.3; // bin_type.par_with_frequency_conv
+      SPB   TY21; // --> GOTO st_switch_over_f/s
+      U     #tmpStopFlag; // var_switch_over_point
+      SPB   TX22; // --> GOTO st_pause_f/s
+      U     M    189.3; // inf_DelayMon
+      L     W#16#1; 
+      CC    FC    40; // S.Run DelayMon
+      L     W#16#4; 
+      UC    FC    40; // S.DosingMon
+      SPA   NX22; // == Trans. ==
+TX22: L     W#16#5522; // ST_PauseFastSlow
+      SPA   TR21; // TR21;
+TY21: L     W#16#5521; // ST_SWITCH_OVER_F/S
+      SPA   TR21; // TR21;
+      S     M    189.5; // --> cmd_NoCorrCutoffWt-
+T555: L     W#16#5550; // ST_SETTLING
+TR21: T     DBW  240; // --> st_x
+      R     M    180.6; // --> outp_dosingFast
+      R     M    180.7; // --> outp_dosing
+      R     M    189.3; // --> inf_DelayMon
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_SWITCH_OVER_F/S (5521H)
+
+NX22: L     W#16#5521; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX23; // NEXT;
+      R     M    180.6; // --> outp_dosingFast
+      S     M    180.7; // --> outp_dosing
+      U     M    188.5; // flag1
+      SPB   N22A; // [- Init State --
+      S     M    188.5; 
+      R     DBX   81.2; // inf_FlagStopValue
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+      L     DBD  320; // Ingr.PartWtTarget
+      L     DBW  338; // par_SwitchOverWt_F/S
+      ITD   ; 
+      >=D   ; 
+      SPB   X1; // -- Ingr.SwitchOverTime ---
+      L     DBW  340; // par_CutoffWt
+      ITD   ; 
+      -D    ; 
+      DTR   ; 
+      L     DBD  320; // Ingr.PartWtTarget
+      DTR   ; 
+      TAK   ; 
+      /R    ; 
+      L     DBW  350; // par_SwitchOverTime_f/s
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+      +     L#10; // start_delay  [***]
+      SPA   N27B; 
+X1:   L     DBW  350; // par_SwitchOverTime_f/s
+N27B: ITB   ; 
+      L     W#16#1000; // time_base 1/10s
+      OW    ; 
+      UN    M      9.0; 
+      SI    T [DBW 24]; // --> Set Timer
+//-- End Init
+N22A: UN    M    189.2; // var_enableDosing
+      SPB   T55B; // --> settling
+      L     DBW  350; // par_SwitchOverTime_f/s
+      L     T [DBW 24]; 
+      T     #tmpTimer; // --> timer_value
+      -I    ; 
+      T     DBW  330; // --> Ingr.SwitchOverTime
+      ON    T [DBW 24]; // switch over time
+      O     DBX   81.2; // inf_FlagStopValue
+      SPB   TY30; // --> GOTO st_slow_dos
+      L     DBW  364; // par_DosingSpeedFast
+      L     DBW  366; // par_DosingSpeedSlow
+      -I    ; 
+      T     #tmpSpeed; // --> delta_speed
+      L     #tmpTimer; // timer_value
+      DTR   ; 
+      L     DBW  350; // par_SwitchOverTime_f/s
+      DTR   ; 
+      /R    ; 
+      L     #tmpSpeed; // delta_speed
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+      L     DBW  366; // par_slow_speed
+      +I    ; 
+      T     DBW  296; // --> DosingSpeed
+      L     DBW  364; // par_DosingSpeedFast  [***
+      <=I   ; 
+      SPB   NX23; // NEXT;
+      T     DBW  296; // --> DosingSpeed            ]
+      SPA   NX23; // == Trans. ==
+TY30: L     W#16#5530; // ST_SLOW_dos
+      SPA   TR22; // TR22;
+T55B: S     M    189.5; // --> cmd_NoCorrCutoffWt-
+      L     W#16#5550; // ST_SETTLING
+TR22: T     DBW  240; // --> st_x
+      R     M    180.7; // --> outp_dosing
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_PAUSE_F/S (5522H)
+
+NX23: L     W#16#5522; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX24; // NEXT;
+      U     M    188.5; // flag1
+      SPB   JL23; //[- Init State --
+      S     M    188.5; 
+      R     DBX   81.2; // --> inf_FlagStopValue
+      S     M    193.6; // -->-sta_PauseFastSlow
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+      L     DBW  350; // par_SwitchOverTime_f/s
+      ITB   ; 
+      L     W#16#1000; // time_base 1/10s
+      OW    ; 
+      UN    M      9.0; 
+      SI    T [DBW 24]; // --> Start Timer
+JL23: L     DBW  350; // par_SwitchOverTime_f/s
+      L     T [DBW 24]; // timer value
+      -I    ; 
+      T     DBW  330; // --> Ingr.SwitchOverTime
+      ON    T [DBW 24]; // switch over time
+      ON    M    189.2; // var_enableDosing
+      SPB   TR23; // --> settling
+      SPA   NX24; // == Trans. ===
+TR23: L     W#16#5530; // ST_SLOW_dos
+      T     DBW  240; // --> st_x
+      R     M    188.5; // --> flag1
+      R     M    193.6; // --> sta_PauseFastSlow
+NETWORK
+TITLE = ST_SLOW_DOSING (5530H)
+
+NX24: L     W#16#5530; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX25; // NEXT;
+      R     M    180.6; // --> outp_dosingFast
+      UN    M    191.2; // es_DosingMon
+      O     DBX    7.7; // par_NoSuspendMon
+      O     M    197.7; // sta_MonitoringOff
+      =     M    180.7; // --> outp_dosing
+      L     DBW  366; // par_DosingSpeedSlow
+      T     DBW  296; // --> DosingSpeed
+      U     M    188.5; // flag1
+      SPB   JL24; // [- Init State --
+      S     M    188.5; 
+      R     DBX   81.2; // inf_FlagStopValue
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+      L     0; 
+      T     DBW  378; // --> var_MonTime  --]
+      L     S5T#20S; // 200 ms
+      UN    M      9.0; 
+      SI    T [DBW 24]; // --> Set timer
+JL24: UN    M    189.2; // var_enableDosing
+      O     M    188.3; // cmd_ModReady
+      O     M    187.3; // cmd_DischargeInterm
+      O     M    186.2; // cmd_abortIngr
+      SPB   SETT; // --> settling
+      UN    T [DBW 24]; // --> timer stopped
+      SPB   SEK; // SEK;
+      L     200; // 200 ms
+      L     T [DBW 24]; 
+      -I    ; 
+      L     DBW  350; // par_SwitchOverTime_f/s
+      +I    ; 
+      SPA   T24; // T24;
+SEK:  UN    M      9.5; 
+      O     M    191.2; // es_DosingMon
+      SPB   JM24; // JM24;
+      L     DBW  330; // Ingr.SwitchOverTime
+      +     10; 
+T24:  T     DBW  330; // --> Ingr.SwitchOverTime
+JM24: U     DBX   81.2; // inf_FlagStopValue
+      SPB   SETT; // --> GOTO st_setling
+      U     M    189.3; // inf_DelayMon
+      L     W#16#1; 
+      CC    FC    40; // S.Run Delay Mon
+      L     W#16#4; 
+      UC    FC    40; // S.Run Dosing Mon
+      SPA   NX25; // == Trans. ==
+SETT: L     W#16#5550; // ST_SETTLING
+      T     DBW  240; // --> st_x
+      R     M    180.7; // --> outp_dosing
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_RECONVEYING (5540H)
+
+NX25: L     W#16#5540; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX26; 
+      R     M    180.6; // --> outp_dosingFast
+      L     DBW  366; // par_DosingSpeedSlow
+      T     DBW  296; // --> DosingSpeed
+      U     M    188.5; // flag1
+      SPB   JL25; // [- Init State --
+      S     M    188.5; 
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+      L     0; 
+      T     DBW  378; // --> var_MonTime  --]
+      U     M    192.1; // sta_reconveying
+      SPB   JL25; 
+      S     M    192.1; // --> sta_reconveying
+      L     1; 
+      T     DBW  384; // --> var_CntReconveying
+JL25: L     DBW  384; // var_CntReconveying
+      L     DBW  190; // par_TipPulseCntMax
+      >I    ; 
+      S     M    191.3; // --> es_TipPulse
+      SPB   TR25; // --> settling
+      UN    M    189.2; // var_enableDosing
+      SPB   TR25; // --> settling
+      UN    M      9.5; 
+      SPB   T_ON; // T_ON;
+      L     DBW  376; // var_ActualTimeStep
+      +     1; 
+      T     DBW  376; // --> var_ActualTimeStep
+T_ON: L     DBW  352; // par_TipPulseLen
+      ITB   ; 
+      L     W#16#1000; // Time base 1/10s
+      OW    ; 
+      SE    T [DBW 24]; // --> Start Timer
+      O     T [DBW 24]; // IF actual value timer
+      SPB   TR25; // TR25;
+      S     M    180.7; // --> outp_dosing
+      SPA   NX26; // == Trans. ===
+TR25: L     W#16#5550; // ST_SETTLING
+      T     DBW  240; // --> st_x
+      R     M    180.7; // --> outp_dosing
+      R     M    188.5; // --> flag1
+NETWORK
+TITLE = ST_SETTLING_TIME (5530H)
+
+NX26: L     W#16#5550; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX27; // NEXT;
+      U     M    188.5; // flag1
+      SPB   JL26; // [- Init State --
+      S     M    188.5; 
+      S     M    193.4; // --> sta_SettlingTime
+      UN    M    189.2; // var_enableDosing
+      O     M    188.3; // cmd_ModReady
+      O     M    187.3; // cmd_DischargeInterm
+      O     M    186.2; // cmd_abortIngr
+      S     M    189.5; // --> cmd_NoCorrCutoffWt-
+      L     S5T#0MS; 
+      CLR   ; 
+      SE    T [DBW 24]; // --> Reset Timer
+JL26: U     M    193.4; // sta_SettlingTime
+      L     W#16#2; 
+      CC    FC    40; // S.Run Settling Time
+      U     M    193.4; // sta_SettlingTime
+      SPB   NX27; // == cor. cutoff value ==
+      U     M    192.1; // sta_reconveying
+      SPB   TR26; 
+      L     W#16#B; 
+      UC    FC    40; // S.Corr.CuttoffWt
+      L     0; 
+      L     DBD  338; // var_cutoffWt/var_switchOverWt
+      <>D   ; 
+      SPB   SAVE; // -- Test weighment ---
+      L     1; // minumum 1 value must be <> 0
+      T     DBW  338; // --> var_switchOverWt
+SAVE: L     W#16#404; 
+      UC    FC    40; // S.SaveBinParameter
+TR26: SET   ; 
+      R     M    188.5; // --> flag1
+      R     M    189.3; // --> inf_DelayMon
+      L     W#16#5120; // st_test_weight
+      T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_RESULTING_INGR (5600H)
+
+NX27: L     W#16#5600; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX28; // NEXT;
+      UN    M    184.3; // --> cmd_AswResultDone
+      =     M    180.0; // --> inf_waitForAswResult
+      SPB   NX28; // NEXT;
+      U     M    188.5; // flag1
+      SPB   JL27; // JL27;
+      S     M    188.5; 
+      R     DBX   44.2; // --> CMD_RESULT_ingr_DONE
+      U     M    197.1; // sta_LogOn
+      S     M    189.4; // --> cmd_IngrLog
+      U     DBX    9.0; // par_ResultPerIngrr
+      S     DBX  232.2; // --> F_RESULT_ingr
+      S     DBX  207.2; // --> CBIT
+      L     W#16#104; 
+      UC    FC    40; // S.RegistrateIngr
+JL27: U     DBX   44.2; // CMD_RESULT_ingr_DONE
+      ON    DBX    9.0; // par_ResultPerIngr
+      UN    M    189.4; // cmd_IngrLog
+      SPB   T57X; 
+      SPA   NX28; 
+// == Transition
+T57X: L     W#16#5700; // st_deslect
+      T     DBW  240; // --> st_x
+      R     M    188.5; // --> flag1
+      R     M    184.3; // --> cmd_AswResultDone
+      R     DBX   44.2; // --> CMD_RESULT_ingr_DONE
+      R     M    183.2; // --> cmd_ReadyForDeselect
+NETWORK
+TITLE = ST_DESELECT (5700H)
+
+NX28: L     W#16#5700; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX29; // NEXT;
+      S     M    181.2; // inf_deselect
+      UN    M    183.2; // cmd_ReadyForDeselect
+      SPB   NX29; // NEXT;
+      U     M    188.3; // cmd_ModReady
+      SPB   T58X; 
+      L     W#16#3000; // --> st_wait_for_next
+      SPA   TR28; 
+//Transition
+T58X: L     W#16#5800; // st_modify_ingr
+TR28: T     DBW  240; // --> st_x
+      R     M    181.2; // inf_deselect
+      R     M    183.1; // --> cmd_ReadyForNext
+NETWORK
+TITLE = ST_MODIFY_INGR (5800H)
+
+NX29: L     W#16#5800; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX30; // NEXT;
+      R     M    188.3; // cmd_ModReady
+      R     M    189.7; // inf_TaraSet  [**1H**]
+      L     DBD  308; // Ingr.WtTarget
+      L     DBD  312; // Ingr.WtActual
+      -D    ; 
+      T     DBD  308; // --> Ingr.WtTarget
+      L     W#16#208; 
+      UC    FC    40; // S.StModifyRecipe
+      L     0; 
+      T     DBD  312; // --> Ingr.WtActual
+      T     DBD  320; // --> Ingr.PartWtTarget
+      T     DBD  324; // --> Ingr.PartWtTara
+      L     DBW   90; // var_preselected_bin
+      T     DBW  306; // --> ingr.BinNr
+      SET   ; 
+      R     M    184.2; // --> cmd_ingrOk
+      R     M    183.3; // --> cmd_GotoWaitForNext
+      R     M    190.3; // --> err_illegel_ingr
+      L     W#16#4000; // st_TestIngr
+      T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_WORKING_STEP (6000H)
+
+NX30: L     W#16#6000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX31; // NEXT;
+      UN    M    183.6; // cmd_workingStepDone
+      =     M    181.6; // --> inf_workingStep
+      SPB   NX31; // NEXT;
+      L     W#16#3000; // ST_WAIT_FOR_NEXT
+      T     DBW  240; // --> st_x
+NETWORK
+TITLE = ST_XXXX_DISCHARGE (XXXXH)
+//Segment for State:
+//==================
+//  7000H Main State 'st_final_discharge'
+//  7010H Substate   'st_final_discharge.closing_delay'
+//  7020H Substate   'st_final_discharge.start_delay'
+//
+//  5400H Main State 'st_intermediate_discharge'
+//  5410H Substate   'st_intermediate_discharge.closing_delay'
+//  5420H Substate   'st_intermediate_discharge.start_delay'
+//
+//
+//
+NX31: L     W#16#70; // st_final_xxx
+      L     DBB  240; 
+      <>I   ; 
+      SPB   D2; 
+      S     M    195.2; // --> sta_DischargeFinal
+
+      UN    DBX   44.1; // CMD_RESULT_BATCH_DONE
+      UN    DBX  232.1; // F_RESULT_BATCH
+      U     M    184.3; // cmd_AswResultDone
+      S     DBX  232.1; // --> F_RESULT_BATCH
+      S     DBX  207.2; // --> CBIT
+      SPA   ALL; 
+D2:   L     W#16#54; // st_DischargeInterm
+      <>I   ; 
+      SPB   NX80; // NEXT;
+      S     M    195.3; // --> sta_DischargeInterm
+ALL:  SET   ; // == CONTROL EMPTYING ==
+      S     M    180.5; // --> outp_readyForDischarge
+      UN    M    182.5; // inp_closed
+      S     M    188.4; // --> inf_FlagDischarge
+      U     DBX    7.1; // par_NoDischarging
+      SPB   T80X; 
+      U     DBX  241.4; // Substate Closing (XX10H)
+      SPB   SXX1; // --> Substate Closing
+      U     DBX  241.5; // Substate Start_Delay (XX20H)
+      SPB   SXX2; // --> Substate Start_delay
+      UN    M    191.1; // es_EmptyingTime
+      ON    M    187.7; // cmd_retry
+      U     M    188.5; // flag1
+      SPB   X31; // X31;
+      S     M    188.5; 
+      R     M    191.1; // es_EmptyingTime
+      L     0; 
+      T     DBD  376; // --> var_emptingTime/monit.time
+X31:  U     M    180.4; // outp_scaleEmpty
+      O     DBX    7.0; // par_NegWeighing
+      U     M    182.6; // inp_open
+      O     ; 
+      U     M    191.1; // es_EmptyingTime
+      U     M    186.0; // cmd_acceptWt
+      SPB   TXX1; // --> Goto Substate Closing (XX10H)
+      UN    M    182.6; // inp_open
+      ON    M      9.5; 
+      SPB   J31; 
+      L     DBW  290; 
+      +     1; 
+      T     DBW  290; // --> wait_for_EmptyingTime
+J31:  U     M    182.6; // inp_open
+      L     W#16#5; 
+      CC    FC    40; // S.MonitoringEmpyting
+      SPA   NX80; // ==Substate Closing (XX10H) ==
+SXX1: L     W#16#A; 
+      UC    FC    40; // S.Run ClosingDelay
+      UN    M    193.5; // sta_ClosingDelay
+      R     M    180.5; // --> outp_readyForDischarge
+      UN    M    193.5; // sta_ClosingDelay
+      U     M    182.5; // inp_closed
+      SPB   TXX2; // --> Goto Start Delay      (XX20H)
+      SPA   NX80; // ==Substate Start_Delay(XX20H)==
+SXX2: R     M    180.5; // --> outp_readyForDischarge
+      UN    M    182.5; // inp_closed
+      SPB   NX80; // NEXT;
+      U     M    193.7; // sta_StartingDelay
+      L     W#16#8; 
+      CC    FC    40; // S.Run StartingDelay
+      U     M    193.7; // sta_StartingDelay
+      SPB   NX80; // NEXT;
+      L     -1; // DischargeInterm
+      L     DBW  306; // ingr.BinNr
+      ==I   ; 
+      U     M    195.3; // sta_DischargeInterm [1F:S5.2I]
+      O     ; 
+      UN    M    193.2; // st_SingleIngrAc
+      UN    M    193.1; // sta_recipeingrAc
+      U     M    195.3; // sta_DischargeInterm
+      L     W#16#3000; // ST_WAIT_FOR_NEXT
+      SPB   TR31; // --> st_ingr_active
+      U     M    195.3; // sta_DischargeInterm
+      L     W#16#5100; // ST_ingr_ACTIVE
+      SPB   TR31; // --> st_ingr_active
+      U     M    195.2; // sta_DischargeFinal
+      SPA   T80X; // --> st_resulting_batch
+TXX1: L     W#16#10; // Substate Closing     (XX10H)
+      UN    M    195.3; // sta_DischargeInterm
+      ON    DBX    7.2; // par_NoClosingDelay
+      S     M    193.5; // --> sta_Closing_delay
+      SPA   SUBS; 
+TXX2: L     W#16#20; // Substate Start_Delay (XX20H)
+      S     M    193.7; // --> sta_StartingDelay
+SUBS: T     DBB  241; // --> st_x.substate
+      L     S5T#0MS; 
+      U     M      9.0; 
+      SE    T [DBW 24]; // --> Reset Timer
+      SPA   NX80; // NEXT;
+T80X: L     W#16#8000; // ST_RESULTING_BATCH
+TR31: T     DBW  240; // --> st_x
+      SET   ; 
+      R     M    180.5; // --> outp_readyForDischarge
+      R     M    195.2; // --> sta_DischargeFinal
+      R     M    195.3; // --> sta_DischargeInterm
+      R     M    188.5; // --> flag1
+      R     M    187.3; // --> cmd_DischargeInterm
+      R     M    191.1; // --> es_EmptyingTime
+      R     M    188.4; // --> inf_FlagDischarge
+NETWORK
+TITLE = ST_RESULTING_BATCH (8000H)
+
+NX80: L     W#16#8000; 
+      L     DBW  240; 
+      <>I   ; 
+      SPB   NX33; // 
+      U     M    184.3; // cmd_AswResultDone
+      UN    DBX   44.1; // CMD_RESULT_BATCH_DONE
+      UN    DBX  232.1; // F_RESULT_BATCH
+      S     DBX  232.1; // --> F_RESULT_BATCH
+      S     DBX  207.2; // --> CBIT
+      U     DBX   44.1; // CMD_RESULT_BATCH_DONE
+      ON    M    193.0; // sta_recipeActive
+      ON    DBX    9.1; // par_ResultPerBatch
+      SPB   T1XX; 
+      SPA   NX33; // NEXT;
+T1XX: L     W#16#1000; // st_passive
+      T     DBW  240; // --> st_x
+      R     M    193.0; // --> sta_recipeActive
+      R     M    184.3; // --> cmd_AswResultDone
+      R     DBX  232.1; // --> F_RESULT_BATCH
+      L     0; 
+      T     DBW  286; // --> inactiveTime
+NETWORK
+TITLE = Dosing Time
+
+NX33: UN    M    193.1; // sta_RecipeIngrAc
+      UN    M    193.2; // sta_SingleIngrAc
+      O     M    195.3; // sta_DischargeInterm
+      O     M    181.4; // inf_fault
+      ON    M    189.2; // var_enableDosing
+      ON    M      9.5; // es_DosingMon
+      SPB   NX34; // NEXT;
+      L     DBW  288; // var_dosTime_batch
+      +     1; 
+      T     DBW  288; // --> var_dosTime_batch
+      L     DBW  328; // var_Ingr.DosingTime
+      +     1; 
+      T     DBW  328; // --> var_Ingr.DosingTime
+NETWORK
+TITLE = Outputs
+
+NX34: UN    M    187.7; // cmd_retry
+      SPB   N34A; 
+      UN    M    191.5; // es_underWt
+      UN    M    191.3; // es_TipPulse
+      SPB   F2; 
+      R     M    192.1; // --> sta_reconveying
+      L     0; 
+      T     DBW  384; // --> var_CntReconveying
+F2:   L     MW   190; // fault[31..00]
+      L     2#11000000; 
+      UW    ; 
+      T     MW   190; 
+N34A: L     MW   190; // fault[15..00]
+      L     0; 
+      <>I   ; 
+      =     M    181.4; // --> inf_fault
+      U     M    180.7; // --> outp_dosing
+      SPB   NX35; 
+      L     0; 
+      T     DBW  296; // --> DosingSpeed
+NETWORK
+TITLE = RESET COMMANDS
+
+NX35: U     M    187.7; // cmd_retry
+      S     DBX  156.2; // --> ME.cmd_retry
+      U     M    186.0; // cmd_retry
+      S     DBX  156.3; // --> ME.cmd_acceptWt
+      U     M    186.2; // cmd_retry
+      S     DBX  156.4; // --> ME.cmd_AbortIngr
+      L     2#1111111000001000; 
+      L     MW   186; // FC[47..32]
+      UW    ; 
+      T     MW   186; // --> FC[47..32]
+NETWORK
+TITLE = PC_STATE
+
+      L     DBW  238; // StatePC
+      T     #tmpValue; 
+      UN    M    193.0; // sta_recipeActive
+      UN    M    193.2; // sta_SingleIngrAc
+      SPB   N36A; // N36A;
+      U     M    195.3; // sta_DischargeInterm
+      SPB   T8; 
+      U     M    195.2; // sta_DischargeFinal
+      UN    M    188.4; // inf_FlagDischarge
+      SPB   T20; 
+      U     M    195.2; // sta_DischargeFinal
+      SPB   T40; 
+      L     W#16#8000; // st_resulting
+      L     DBW  240; 
+      ==I   ; 
+      SPB   T80; 
+      U     M    181.1; // inf_waitForNext
+      O     M    191.7; // es_zeroTol
+      SPB   T2; 
+      UN    M    189.2; // var_enableDosing
+      L     W#16#10; // suspend
+      SPB   STAT; 
+      L     4; // dos
+      SPA   STAT; 
+N36A: L     1; // passive
+      SPA   STAT; 
+T2:   L     2; // waiting
+      SPA   STAT; 
+T8:   L     8; // i.disch.
+      SPA   STAT; 
+T20:  L     W#16#20; // complett
+      SPA   STAT; 
+T40:  L     W#16#40; // disch.
+      SPA   STAT; 
+T80:  L     W#16#80; // resulting
+      SPA   STAT; 
+STAT: T     DBW  238; 
+      U     M    181.4; // st_fault
+      =     DBX  238.7; 
+      UN    M    181.4; // st_fault
+      =     DBX  238.6; // --> ST_OK
+      L     DBW  238; 
+      L     #tmpValue; 
+      <>I   ; 
+      S     DBX  207.0; // --> CBIT
+NETWORK
+TITLE = Store Flags
+
+      U     DBX   81.2; // inf_FlagStopValue
+      UN    M    192.1; // sta_reconveying
+      R     M    180.6; // ->outp_dosingFast
+      R     M    180.7; // ->outp_dosing
+      L     MW   180; 
+      T     DBW   42; 
+      L     MD   182; 
+      T     DBD   54; 
+      L     MW   186; 
+      T     DBW   58; 
+      L     MW   188; 
+      T     DBW   78; 
+      L     MW   190; 
+      T     DBW  244; 
+      L     MD   192; 
+      T     DBD  248; 
+      L     MW   196; 
+      T     DBW  252; 
+NETWORK
+TITLE = Alarm
+
+      U     M    189.4; // --> cmd_IngrLog
+      U     DBX    9.7; // par_LogDirectToPC
+      SPB   PC; 
+      U     M    189.4; // cmd_IngrLog
+      R     DBX   79.4; 
+      SPB   PROT; 
+      L     DBW  244; // fault[15..00]
+      L     DBW   84; // flag_fault[15..00]
+      UW    ; 
+      T     DBW   84; // --> flag_fault[15..00]
+      ==I   ; 
+      SPB   NX39; 
+      INVI  ; 
+      UW    ; 
+      SPZ   NX39; 
+      T     #tmpFlags; // --> new falgs
+      L     0; 
+      T     #tmpBit; // format_nr
+LOOP: L     #tmpFlags; // --> new falgs
+      SRW   1; 
+      SPN   DO; 
+      T     #tmpFlags; // --> new falgs
+      L     #tmpBit; 
+      INC   1; 
+      T     #tmpBit; 
+      SPA   LOOP; 
+DO:   UN    M      9.0; 
+      S     DBX   43.5; // --> cmd_horn_on
+      S     DBX  207.0; // --> CBIT
+      L     #tmpBit; 
+      L     1; 
+      SLW   ; 
+      T     #tmpFlagShift; 
+      L     DBW   84; // flag_fault[15..00]
+      OW    ; 
+      T     DBW   84; // --> flag_fault[15..00]
+      L     #tmpBit; 
+      +     16; // first msg_nr
+      +     32; // class =error
+      T     DBB  391; // --> format_nr
+      L     #tmpFlagShift; 
+      L     2#10000010; // es_zeroTol or es_EmptyingTime [1.8]
+      UW    ; 
+      SPZ   P2; 
+      L     DBD  254; // scale_value
+      T     MD   190; 
+      L     DBD  180; // par_EmptyWt
+      T     DBD  394; 
+      SPA   LOG; 
+PROT: L     159; // class=info,format=31
+      T     DBB  391; // --> format_nr
+P2:   L     DBD  312; // WtActual
+      T     MD   190; 
+      L     DBD  308; // WtTarget
+      T     DBD  394; 
+LOG:  L     DBB  267; // inf_line_nr
+      T     DBB  393; 
+      L     DBB   29; // par_scale_nr
+      T     DBB  392; 
+      L     DBB   31; // par_nr_of_dec_point
+      T     DBB  390; 
+      L     DBW  262; // recipeNr
+      T     MW   194; 
+      L     0; 
+      T     MW   196; // not used
+      CALL FC    46 (// MESSAGE-ENTRY
+           DBNumber                 := 5,
+           Header                   := DBW  390,// par_nr_of_dec_point ¦ format_nr
+           Para1                    := DBW  392,// par_scale_Nr        ¦ inf_line_nr
+           Para2                    := DBW  258,// JobNumber
+           Para3                    := DBW  260,// JobNumberAdd
+           Para4                    := DBW  264,// BatchNr
+           Para5                    := DBW  306,// Ingredient.Bin
+           Para6                    := DBW  394,// WtTarget ¦ par_EmptyWt
+           Para7                    := DBW  396,//    "
+           Para8                    := MW   190,// WtActual / WtScale
+           Para9                    := MW   192,//    "
+           Para10                   := MW   194,// RecipeNr
+           Para11                   := MW   196);
+      SPA   NX39; // 
+PC:   U     DBX   44.3; 
+      R     DBX   44.3; // --> cmdLogIngrDone
+      R     DBX   79.4; // --> cmd_IngrLog
+      SPB   NX39; // 
+      UN    DBX  232.3; // --> F_LogIngr
+      S     DBX  232.3; // --> F_LogIngr
+      S     DBX  207.0; // --> CBIT
+NETWORK
+TITLE = END
+
+NX39: LAR2  #tmpStoreAR2; // Restore AR2
+      BE    ; 
+END_FUNCTION
+

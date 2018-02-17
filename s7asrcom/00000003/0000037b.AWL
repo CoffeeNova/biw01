@@ -1,0 +1,171 @@
+	DATA_BLOCK DB 4
+	TITLE =Horn DB
+	//COPYRIGHT:    (C) 2009 BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//                           
+	//PRODUCT:      Horn DB
+	//              Horn DB
+	//
+	//TITLE:        Horn Modul
+	//              
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P01_DB004.1.0 K.Renz              CSB41                       13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : GCS7
+	NAME    : HornDB
+	VERSION : 2.0
+	  STRUCT 	
+	          All     : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	            Spare3       : BOOL;	
+	            Spare4       : BOOL;	
+	            Spare5       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_FLASHER      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          Spare2: WORD;
+	          Spare3: WORD;
+	          Spare4: WORD;
+	          Spare5: WORD;
+	          Spare6: WORD;
+	          Spare7: WORD;
+	          Spare8: WORD;
+	          Spare9: WORD;
+	          Spare10: WORD;
+	          Spare11: WORD;
+	          Spare12: WORD;
+	          Spare13: WORD;
+	          G_ALARM_HORN_13      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_14      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_15      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          Spare17: WORD;
+	          G_ALARM_HORN_GERM1      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM2      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM3      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM4      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM5      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM6      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM7      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_GERM8      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          Spare26: WORD;
+	          Spare27: WORD;
+	          Spare28: WORD;
+	          G_ALARM_HORN_KILN1      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_KILN2      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_STEEPS      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	          G_ALARM_HORN_UNL_KILN      : STRUCT 	
+	            CmdHornOff   : BOOL;	
+	            CmdHornOn    : BOOL;	
+	            StartWarning : BOOL;	
+	            Spare1       : BOOL;	
+	            Spare2       : BOOL;	
+	          END_STRUCT ;	
+	   OutAlarm : STRUCT    //Object Data of last Alarm
+	    OutObjectDB : INT ; 
+	    OutObjectNo : INT ; 
+	    OutObjectType : INT ;   
+	   END_STRUCT ; 
+	   OutStartwarning : STRUCT     //Object Data of last Startwarning
+	    OutObjectDB : INT ; 
+	    OutArea : INT ; 
+	   END_STRUCT ; 
+	  END_STRUCT ;	
+	BEGIN
+	END_DATA_BLOCK

@@ -1,0 +1,41 @@
+	DATA_BLOCK DB2030
+	TITLE =Event DB : STEEPING ROW 1 (ST1-8)
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Event DB : STEEPING ROW 1 (ST1-8)
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB900.1.0 K.Renz              CSB41                       30.Sep.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	  
+	VERSION : 0.0
+	"SSA_MH_EventsToPIC"
+	BEGIN
+	END_DATA_BLOCK

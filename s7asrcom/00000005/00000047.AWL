@@ -1,0 +1,96 @@
+FUNCTION FC 49 : VOID
+TITLE =DB Copy 
+//
+//COPYRIGHT:         (C) 1989 BY  BUEHLER BROTHERS LTD.
+//                                CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:          GCS7
+//
+//TITLE:            DB COPY 
+//
+//--------------------------------------------------------------------------
+//
+//IDENT:            BLOTRA.1A    A.EGLI  AEE61                   16-Jun-96
+//                    First release 
+//--------------------------------------------------------------------------
+//
+//PURPOSE   : 
+//
+//RESTRICTIONS :    S7
+//
+//---------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : BLOCKTRA
+VERSION : 0.0
+CODE_VERSION1
+
+
+VAR_INPUT
+  DBSource : INT ;	//DB number source DB
+  ByteSource : INT ;	//Byte Nr first to copy byte
+  DBDest : INT ;	//DB number destination DB
+  ByteDest : INT ;	//Byte of first byte in destination DB
+  NoOfByte : INT ;	//Number of byte to copy
+END_VAR
+VAR_OUTPUT
+  Fault : BOOL ;	//1=Fault; not posible to copy
+END_VAR
+VAR_TEMP
+  Src : ANY ;	
+  Dest : ANY ;	
+  error : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//                  "DBSource"                              "DBDestination"
+//                +-----------+                             +-----------+
+//                !           !DBB0                         !           !
+//                !           !DBB1          "ByteDest"-->( ! --------- !
+//                !           !DBB3                       ( !     !     !
+//                !           !                           ( !     !     !
+//                !           !           +------------>  ( !     !     !
+//"ByteSource"--> ! --------- ! )         !               ( !     !     !
+//                !     !     ! )         !               ( !-----------!     
+//                !     !     ! )  -------+                 !           !
+//                ! "NoOfByte"! )                           !           !
+//                !     !     ! )                           !           !
+//                !-----------!                             !           !
+//                !           !   
+
+
+NETWORK
+TITLE =
+
+      L     W#16#1002; //S7 word
+      T     LW     0; //->Src.type
+      T     LW    10; //->Dest.type
+      L     #NoOfByte; 
+      T     LW     2; //->Src.factor
+      T     LW    12; //->Dest.factorr
+      L     #DBSource; 
+      T     LW     4; //->Src.DB
+      L     #DBDest; 
+      T     LW    14; //->Dest.DB
+      L     #ByteSource; 
+      SLD   3; 
+      L     DW#16#84000000; 
+      OD    ; 
+      T     LD     6; //->Src.BitAddress 
+      L     #ByteDest; 
+      SLD   3; //->Dest.BitAddress
+      L     DW#16#84000000; 
+      OD    ; 
+      T     LD    16; 
+      CALL SFC   20 (
+           SRCBLK                   := #Src,
+           RET_VAL                  := #error,
+           DSTBLK                   := #Dest);
+      L     #error; 
+      L     0; 
+      <>I   ; 
+      =     #Fault; 
+END_FUNCTION
+

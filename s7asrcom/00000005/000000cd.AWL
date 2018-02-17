@@ -1,0 +1,490 @@
+FUNCTION_BLOCK "GCS7_M_PelletCooler"
+TITLE =Pellet Cooler
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 47 Machine Control:Pellet Coller 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB47.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB47.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB47.2C       K. Tischer          MU664                       06-Mrz-1999
+//              Transition to StEmptying only if tmpEnable
+//FB47.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB47.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB47.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.PTCxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : PelletCo
+VERSION : 4.0
+
+
+VAR
+  Ma : "GCS7_M_FB47_Data";	
+  Slide : "GCS7_E_ValveControl4Pos";	//Element 
+  Motor : "GCS7_E_Motor";	//Element 
+  Level : "GCS7_E_DigInput";	//Element 
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpEnableOpen : BOOL ;	
+  tmpEmpty : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     16; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //"SYS_PCControl".ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2047; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //"SYS_PCControl".ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParEmptyingTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdMiddle1
+      S     #Ma.InMiddle1; 
+      R     #Ma.InMiddle2; 
+      R     #Ma.InFullOpen; 
+      R     #Ma.InEmptying; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //Cmd1[2]=CmdMiddle2
+      R     #Ma.InMiddle1; 
+      S     #Ma.InMiddle2; 
+      R     #Ma.InFullOpen; 
+      R     #Ma.InEmptying; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; //Cmd1[3]=CmdFullOpen
+      R     #Ma.InMiddle1; 
+      R     #Ma.InMiddle2; 
+      S     #Ma.InFullOpen; 
+      R     #Ma.InEmptying; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]=CmdEmptying
+      S     #Ma.InEmptying; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[5]; //Cmd1[5]=CmdRestDischarge
+      S     #Ma.CmdRestdischarge; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->"SYS_PCControl".GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+//--- Fault----
+      U     #Slide.StFault; 
+      O     #Level.StFault; 
+      O     #Motor.StFault; 
+      =     #tmpFaultSum; 
+//--- Next
+      U     #Ma.InManual; 
+      UN    #Slide.StLN; 
+      O     #tmpNext; 
+      S     #Motor.CmdNext; 
+
+//--- Interlocking Motor
+      UN    #Slide.StLN; 
+      UN    #Slide.StFault; 
+      U     #tmpEnable; 
+      =     #Motor.InEnableFwd; 
+
+//--- Interlocking Slide
+//    Close
+      U     #Level.StFalse; 
+      U     #Ma.Par.ParWithLevel; 
+      UN    #Ma.InManual; 
+      UN    #Ma.InEmptying; 
+      UN    #Ma.StEmptying; 
+      O     #Ma.StEmptied; 
+      ON    #tmpEnable; 
+      O     #Ma.StStopping; 
+      =     #Slide.InLN; 
+
+//    Opening
+      UN    #Ma.Par.ParWithLevel; 
+      O     #Level.StTrue; //Covered
+      O     #Ma.InManual; 
+      O     #Ma.StEmptying; 
+      U     #tmpNext; 
+      UN    #Slide.InLN; 
+      =     #tmpEnableOpen; 
+//    Full Open
+      U     #Ma.Par.ParAutoRestDischarge; 
+      O     #Ma.CmdRestdischarge; 
+      S     #Ma.OutRestDischarge; 
+      UN    #Ma.StEmptying; 
+      ON    #Ma.OutEmptyingTimeDone; 
+      R     #Ma.OutRestDischarge; 
+
+      U     #Ma.OutRestDischarge; 
+      O     #Ma.InFullOpen; 
+      U     #tmpEnableOpen; 
+      S     #Slide.CmdHN; 
+//    Middle 1
+      U     #tmpEnableOpen; 
+      UN    #Slide.CmdHN; 
+      U     #Ma.InMiddle1; 
+      S     #Slide.CmdMiddle1; 
+//    Middle 2
+      U     #tmpEnableOpen; 
+      UN    #Slide.CmdHN; 
+      U     #Ma.InMiddle2; 
+      S     #Slide.CmdMiddle2; 
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Slide.InLocal; 
+      =     #Level.InLocal; 
+      =     #Motor.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Slide.CmdFaultReset; 
+      S     #Level.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+
+// 
+//--- Monitoring Level
+
+NETWORK
+TITLE =Call Slide
+
+      CALL #Slide ;
+
+NETWORK
+TITLE =Call Digital Input: Level
+
+      UN    #Ma.Par.ParWithLevel; 
+      SPB   el4; 
+      CALL #Level ;
+
+NETWORK
+TITLE =Call Motor
+
+el4:  CALL #Motor ;
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+      U     #Ma.StEmptying; 
+      SPB   S5; // ===> State
+      U     #Ma.StEmptied; 
+      SPB   S6; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      U     #tmpNext; 
+      U     #tmpEnable; 
+      ON    #Motor.StStopped; 
+      ON    #Slide.StLN; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StEmptying
+      U     #Ma.InEmptying; 
+      U     #tmpEnable; //[Rel 2C]
+      R     #Ma.StStarting; 
+      SPB   xxS5; //--> StEmptying
+// Condition for StStarted
+      U     #Motor.StStartedFwd; 
+      UN    #Slide.StLN; 
+      O     ; 
+      U     #Ma.Par.ParWithLevel; 
+      UN    #Level.StTrue; //Covered
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #tmpEnable; 
+      UN    #Motor.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StEmptying
+      U     #Ma.InEmptying; 
+      U     #tmpEnable; //[Rel 2C]
+      R     #Ma.StStarted; 
+      SPB   xxS5; //--> StEmptying
+// Condition for StStopping
+      UN    #tmpEnable; 
+      UN    #Motor.StStartedFwd; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Motor.StStopped; 
+      U     #Slide.StLN; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      U     #Motor.StStartedFwd; 
+      UN    #Slide.StLN; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS0; //-->StStopping 
+
+
+NETWORK
+TITLE =StEmptying
+//any Transition 
+xxS5: S     #Ma.StEmptying; 
+      L     #Ma.Par.ParEmptyingTime; 
+      T     #Ma.Par.OutEmptyingTime; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StEmptying; 
+      R     #Ma.OutEmptyingTimeDone; 
+      SPB   xxS4; //--> StFault
+// Condition for StEmptied
+      L     #Ma.Par.OutEmptyingTime; 
+      ON    #Motor.StStartedFwd; 
+      ON    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      O     ; 
+      U     #Level.StTrue; 
+      U     #Ma.Par.ParWithLevel; 
+      O     #Ma.OutEmptyingTimeDone; 
+      SPB   S5J1; 
+      +     -5; 
+      T     #Ma.Par.OutEmptyingTime; 
+S5J1: L     0; 
+      <=I   ; 
+      =     #Ma.OutEmptyingTimeDone; 
+      U     #Slide.StHN; 
+      UN    #Slide.Par.OutPulseIsOn; 
+      U     #Ma.OutEmptyingTimeDone; 
+      R     #Ma.OutEmptyingTimeDone; 
+      R     #Ma.StEmptying; 
+      SPB   xxS6; //-->StEmptied
+
+// Condition for StStopping
+      UN    #Ma.InEmptying; 
+      ON    #tmpEnable; 
+      R     #Ma.OutEmptyingTimeDone; 
+      R     #Ma.StEmptying; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =StEmptied
+//any Transition 
+xxS6: S     #Ma.StEmptied; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StEmptied; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #Ma.InEmptying; 
+      R     #Ma.StEmptied; 
+      SPB   xxS1; //-->StStopping
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted.Wait   3
+// StStarted.Feeding4
+// StEmptying    5
+// StEmptied    6
+// StStopping  7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      U     #Slide.StLN; 
+      L     3; //Code=StWaiting
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     4; //Code=StFeeding
+      SPB   Code; 
+      U     #Ma.StEmptying; 
+      L     5; //Code=StEmptying
+      SPB   Code; 
+      U     #Ma.StEmptied; 
+      L     6; //Code=StEmptied
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdRestdischarge; 
+
+END_FUNCTION_BLOCK
+

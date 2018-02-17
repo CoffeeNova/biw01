@@ -1,0 +1,916 @@
+FUNCTION_BLOCK "GCS7_AddWayPattern"
+TITLE =Add way pattern 
+//  
+//COPYRIGHT:    (C) 1998  BUHLER AG , CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 90 Add Way Pattern 
+//              (GCPROVB Revision 4)
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB70.4.1      A.Egli              CT3                        20-Jan-2005
+//              Reset OutOldWayOK as long old pattern is 0 (reload software)
+//FB70.4.0      A.Egli              CT3                        19-Nov-2004
+//              InBKT : Close slide gate in shorter way as soon
+//                      new way is open 
+//FB70.3.1      A.Egli              CT3                         1-Apr-2002
+//              Deselect old flaps
+//FB70.3.0      A.Egli              CT3                        23-Okt-2002
+//              Redesign
+//FB70.2.2      Ph. Engler          MU664                      28-Dec-2000
+//              Type Asp-Flaps (No ParBlowline) corrected
+//              In case of a new receiver change during the
+//              old and new pattern was active the new flap
+//              has been closed.
+//FB70.2.1      A.Egli              CT3                        17-Mai-2000
+//              ParBlowLine
+//FB70.2A       E.Hanselmann        AEMU664                    01-Feb-2000
+//              Sequenz adjusting
+//FB70.1A       A.Egli              CT3                        22-Jan-1998
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.WAYxxMAN]
+//
+//RESTRICTIONS: S7
+//-------------------------------------------------------------------------
+//
+//
+//Input:
+// 
+//   InPointerPattern : Must pointer to Struct
+//
+//   Way : STRUCT 
+//    InAdjusted: STRUCT //Is set by ASW
+//      LN: UDT21210; //32 Bit
+//      HN: UDT21210; //32 Bit 
+//    END_STRUCT ;
+//    InEnable: STRUCT // Target Pattern for BKT
+//      LN: UDT21210; //32 Bit
+//      HN: UDT21210; //32 Bit
+//    END_STRUCT ;
+//    OutEnable: STRUCT //Active way pattern 
+//      LN: UDT21210; //32 Bit
+//      HN: UDT21210; //32 Bit
+//    END_STRUCT ;
+//    InIsFlap   : UDT21210; //Changing immediately //16 Bit
+//  END_STRUCT ;
+//
+//
+// ------------------------------------------------------------
+// Sequence Way change:
+// ------------------------------------------------------------
+// 1. Flaps of new way are adusted
+// 2. Slide are opening
+// 3. Add time is running
+// 4. Slide are closing
+//  
+// 
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : AddWay
+VERSION : 4.1
+
+
+VAR_INPUT
+  InRcvCode : INT ;	//Gr.InCode
+  InPointerPattern : ANY ;	
+  InModePassive : BOOL ;	//Gr.ModePassive
+  InVarFault : BOOL ;	//Gr.VarFault
+  InHoldOldWay : BOOL ;	//Do not activate the new pattern
+  InAddTime : INT ;	
+  InAdjustTime : INT ;	
+  InBlowLine : BOOL ;	
+  InBKT : BOOL ;	
+END_VAR
+VAR
+  InStopAddTime : BOOL ;	
+  CmdImmediatelyChange : BOOL ;	//Change without adding time
+  InElse : BOOL ;	//Active receiver is next group (only for BKT)
+  Spare3 : BOOL ;	
+  Spare4 : BOOL ;	
+  Spare5 : BOOL ;	
+  Spare6 : BOOL ;	
+  Spare7 : BOOL ;	
+  CmdNewWay : BOOL ;	//Output: Pattern has changed
+  OutAdjusted : BOOL ;	//All selected element are in the target position
+  OutSlideAdjusted : BOOL ;	//All selected Slide gate adjusted
+  OutFlapsAdjusted : BOOL ;	//All Selected Flaps are adjusted
+  OutOldWayOK : BOOL ;	//During way change the old way is still ok
+  OutNewWayOK : BOOL ;	//During way change the new way is still ok
+  Spare216 : BOOL ;	
+  OutEnablePrev : BOOL ;	//Enable previous element
+  OutConfigFault : BOOL ;	//Configuration fault pointer
+  OutNewWayIsLonger : BOOL ;	//New Way Is Longer (command is only one scan high)
+  OutNewWayIsShorter : BOOL ;	//New Way Is shorter (command is only one scan high)
+  OutAdjustTimeRunning : BOOL ;	//Way adjust time running
+  Spare224 : BOOL ;	
+  Spare225 : BOOL ;	
+  Spare226 : BOOL ;	
+  OutWayChangeActive : BOOL ;	//Old and new way pattern are added
+  Internal : STRUCT 	
+   OutModePassive : BOOL ;	//Is used for negative edge of ModePassive
+   OutAddTimeRunning : BOOL ;	//old and new way pattern are active
+   FlagElse : BOOL ;	//Positive edge of InElse
+   Spare1 : BOOL ;	
+   Spare2 : BOOL ;	
+  END_STRUCT ;	
+  PatternOld : STRUCT 	
+   InRcvCode : INT ;	
+   Position : INT ;	//Position Way Pattern
+   EnableLN : DWORD ;	
+   EnableHN : DWORD ;	
+  END_STRUCT ;	
+  PatternNew : STRUCT 	//Is used to  detect change if the InEnableXxx
+   InRcvCode : INT ;	
+   Position : INT ;	//Position Way Pattern
+   EnableLN : DWORD ;	
+   EnableHN : DWORD ;	
+  END_STRUCT ;	
+  OutAddTime : INT ;	
+  OutAdjustTime : INT ;	
+  OutClosing : DWORD ;	//Slide gate must close
+END_VAR
+VAR_TEMP
+  tmpWay_InAdjustedLN : DWORD ;	//Way.InAdjustedLN  Must be ar LD0 !!
+  tmpWay_InAdjustedHN : DWORD ;	//Way.InAdjustedHN  Must be ar LD4 !!
+  tmpWay_IsWayFlap : DWORD ;	//Way.InIsWayFlap   Must be at LD8 !!
+  tmpEnableLN : DWORD ;	//Way.InAdjustedLN  Must be ar LD12 !!
+  tmpEnableHN : DWORD ;	//Way.InAdjustedLN  Must be ar LD16 !!
+  tmpWay_InEnableLN : DWORD ;	//Way.InEnableLN    Must be ar LD20 !!
+  tmpWay_InEnableHN : DWORD ;	//Way.InEnableHN    Must be ar LD24 !! 
+  TmpOldSelectedWay : DWORD ;	
+  TmpNewSelectedWay : DWORD ;	
+  TmpReleaseChangeWay : DWORD ;	
+  TmpOldAndNewSelectedWay : DWORD ;	
+  tmp2ndLoop : BOOL ;	
+  tmpPatternArrayLen : INT ;	
+  tmpPatternArrayDB : INT ;	
+  tmpPatternArrayAddr : DWORD ;	
+  tmpPatternArrayEnd : DWORD ;	//End Address
+  tmpAddrRead : DWORD ;	
+  tmpWay_OutEnableLN : DWORD ;	//Way.OutEnableLN
+  tmpWay_OutEnableHN : DWORD ;	//Way.OutEnableHN
+  tmpValue1 : DWORD ;	
+  tmpEnableFlaps : DWORD ;	
+  tmpEnableSlides : DWORD ;	
+  tmpSlideGates : DWORD ;	
+  tmpCnt : INT ;	
+  tmpAdjustedTempWay : BOOL ;	//Temporary way is adjusted
+  tmpFlapsAdjusted : BOOL ;	//Flaps of temporary way is adjusted
+  tmpFlapsOK : BOOL ;	
+  tmpSlidesOK : BOOL ;	
+  tmpSlideAdjustedHN : BOOL ;	//Slide of temporary way is adjusted (Aspiration flaps)
+  tmpStoreEnableHN : DWORD ;	
+  tmpEmptyPattern : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate address of PatternArray
+
+      L     P##InPointerPattern; 
+      L     W#16#FFFF; 
+      UD    ; 
+      LAR1  AR2; 
+      +AR1  ; //--> Pointer to InPointerPattern
+      L     DIW [AR1,P#0.0]; 
+      L     DIW [AR1,P#4.0]; 
+      T     #tmpPatternArrayDB; 
+      L     DID [AR1,P#6.0]; 
+      T     #tmpPatternArrayAddr; 
+      L     DIW [AR1,P#2.0]; 
+      L     26; 
+      <I    ; 
+      =     #OutConfigFault; 
+      R     #OutAdjusted; 
+      BEB   ; 
+NETWORK
+TITLE =Load Pattern InAdjusted
+
+      LAR1  #tmpPatternArrayAddr; 
+      L     DID [AR1,P#0.0]; // InAdjusted.LN
+      T     #tmpWay_InAdjustedLN; 
+      L     DID [AR1,P#4.0]; // InAdjusted.HN
+      T     #tmpWay_InAdjustedHN; 
+NETWORK
+TITLE =Load Pattern InEnable
+
+      +AR1  P#8.0; 
+      L     DID [AR1,P#0.0]; // InEnable.LN
+      T     #tmpWay_InEnableLN; 
+      L     DID [AR1,P#4.0]; // InEnable.HN
+      T     #tmpWay_InEnableHN; 
+      L     #tmpWay_InEnableLN; //[4.1]
+      L     #tmpWay_InEnableHN; //[4.1]
+      OD    ; //[4.1]
+      L     0; //[4.1]
+      ==D   ; //[4.1]
+      =     #tmpEmptyPattern; //[4.1]   
+NETWORK
+TITLE =Load Pattern OutEnable
+
+      +AR1  P#8.0; 
+      L     DID [AR1,P#0.0]; // OutEnable.LN
+      T     #tmpWay_OutEnableLN; 
+      L     DID [AR1,P#4.0]; // OutEnable.HN
+      T     #tmpWay_OutEnableHN; 
+      T     #tmpStoreEnableHN; 
+NETWORK
+TITLE =Load Pattern InIsWayFlap
+
+      +AR1  P#8.0; 
+      L     DID [AR1,P#0.0]; // InIsWayFlap
+      T     #tmpWay_IsWayFlap; 
+      INVD  ; 
+      T     #tmpSlideGates; 
+NETWORK
+TITLE =Init Flag Part 1:
+
+      CLR   ; 
+      =     #OutNewWayIsLonger; 
+      =     #OutNewWayIsShorter; 
+
+NETWORK
+TITLE =Hold Old Pattern, if inCode is not ok
+
+      U     #InElse; 
+      FP    #Internal.FlagElse; 
+      O     #InHoldOldWay; 
+      SPBN  HOJ0; 
+      L     #PatternNew.EnableLN; 
+      T     #tmpWay_InEnableLN; 
+      L     #PatternNew.EnableHN; 
+      T     #tmpWay_InEnableHN; 
+HOJ0: NOP   0; 
+NETWORK
+TITLE =Test if target position has changed
+
+      U(    ; 
+      L     #PatternNew.EnableLN; 
+      L     #tmpWay_InEnableLN; 
+      <>D   ; 
+      )     ; 
+      O(    ; 
+      L     #PatternNew.EnableHN; 
+      L     #tmpWay_InEnableHN; 
+      <>D   ; 
+      )     ; 
+      =     #CmdNewWay; 
+      U     #CmdNewWay; 
+      SPBN  AD10; 
+//-->Store new Pattern in PatternNew
+      L     #InRcvCode; 
+      T     #PatternNew.InRcvCode; 
+      L     #tmpWay_InEnableLN; 
+      T     #PatternNew.EnableLN; 
+      L     #tmpWay_InEnableHN; 
+      T     #PatternNew.EnableHN; 
+      L     #InAddTime; 
+      T     #OutAddTime; 
+//====================================
+//Calculate position
+//-------------------
+//Search last bit in PatternNew.EnableHN
+//For flaps use LN or HN
+      U     #InElse; 
+      L     33; 
+      SPB   AD9; 
+      L     #tmpWay_InEnableLN; 
+      L     #tmpWay_InEnableHN; 
+      OD    ; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+//For Slides use only HN
+      L     #tmpWay_InEnableHN; 
+      OD    ; 
+      TAD   ; 
+      T     #tmpValue1; 
+      L     32; 
+ADLO: T     #PatternNew.Position; 
+      L     #tmpValue1; 
+      SRD   1; 
+      SPP   AD10; 
+      T     #tmpValue1; 
+      L     #PatternNew.Position; 
+      LOOP  ADLO; 
+      L     0; 
+AD9:  T     #PatternNew.Position; 
+AD10: NOP   0; 
+NETWORK
+TITLE =Test is way is long
+
+      L     #PatternNew.Position; 
+      L     #PatternOld.Position; 
+      >I    ; 
+      O     #InElse; 
+      =     #OutNewWayIsLonger; 
+      <I    ; 
+      UN    #InElse; 
+      =     #OutNewWayIsShorter; 
+NETWORK
+TITLE =Compare InEnableXxx with OutEnableXxx
+
+      L     #tmpWay_InEnableLN; 
+      L     #tmpWay_OutEnableLN; 
+      <>D   ; 
+      O(    ; 
+      L     #tmpWay_InEnableHN; 
+      L     #tmpWay_OutEnableHN; 
+      <>D   ; 
+      )     ; 
+      =     #OutWayChangeActive; 
+
+NETWORK
+TITLE =Add Old way and way of new selected elements
+////------------------------------------------------------------------------
+////CASE: Add only new selected element, hold way of old selected elements    
+////------------------------------------------------------------------------
+      UN    #OutWayChangeActive; 
+      O     #CmdNewWay; 
+      SPB   ADN0; 
+//Select new element
+      L     #tmpWay_OutEnableLN; 
+      L     #tmpWay_OutEnableHN; 
+      OD    ; 
+      T     #TmpOldSelectedWay; 
+      L     #PatternNew.EnableLN; 
+      L     #PatternNew.EnableHN; 
+      OD    ; 
+      T     #TmpNewSelectedWay; 
+      L     #TmpOldSelectedWay; 
+      L     #TmpNewSelectedWay; 
+      UD    ; 
+      T     #TmpOldAndNewSelectedWay; 
+      L     #tmpWay_OutEnableLN; 
+      L     #PatternNew.EnableLN; 
+      XOD   ; 
+      L     #TmpOldAndNewSelectedWay; 
+      UD    ; 
+      INVD  ; 
+      T     #TmpReleaseChangeWay; //<<--- OLD+NEW+CHANGE 
+//--> Set Bits in  tmpWay_OutEnableHN 
+      L     #PatternNew.EnableHN; 
+      L     #TmpReleaseChangeWay; 
+      UD    ; 
+      L     #tmpWay_OutEnableHN; 
+      OD    ; 
+      T     #tmpWay_OutEnableHN; 
+//--> Reset Bits in  tmpWay_OutEnableLN 
+      INVD  ; 
+      L     #tmpWay_OutEnableLN; 
+      UD    ; 
+      T     #tmpWay_OutEnableLN; 
+//--> Set Bits in  tmpWay_OutEnableLN 
+      L     #PatternNew.EnableLN; 
+      L     #TmpReleaseChangeWay; 
+      UD    ; 
+      L     #tmpWay_OutEnableLN; 
+      OD    ; 
+      T     #tmpWay_OutEnableLN; 
+//--> Reset Bits in  tmpWay_OutEnableHN
+      INVD  ; 
+      L     #tmpWay_OutEnableHN; 
+      UD    ; 
+      T     #tmpWay_OutEnableHN; 
+ADN0: NOP   0; 
+NETWORK
+TITLE =Test Flaps Adjusted
+
+      UN    #OutWayChangeActive; 
+      SPB   AJF1; 
+      U(    ; 
+      L     #tmpWay_OutEnableLN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     #tmpWay_OutEnableHN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      )     ; 
+AJF1: U     #OutWayChangeActive; 
+      =     #tmpFlapsAdjusted; 
+
+NETWORK
+TITLE =Add EnableHN of Slide Gate of old and new way 
+
+      UN    #tmpFlapsAdjusted; 
+      UN    #InBlowLine; 
+      ON    #OutWayChangeActive; 
+      O     #CmdNewWay; 
+      SPB   ADJ0; 
+//--> Set Bits in  tmpWay_OutEnableHN 
+      UN    #OutNewWayOK; 
+      O     #Internal.OutAddTimeRunning; 
+      SPB   ADJ1; 
+//Old flap not langer in st HN            //[3.1 -->
+      L     #PatternOld.EnableHN; 
+      L     #PatternNew.EnableHN; 
+      INVD  ; 
+      UD    ; 
+      L     #tmpSlideGates; 
+      UD    ; //Not used in new pattern
+      L     #tmpWay_InAdjustedHN; 
+      INVD  ; 
+      UD    ; // flap has change from StHN --> StLN
+      INVD  ; 
+      L     #tmpWay_OutEnableHN; 
+      UD    ; 
+      T     #tmpWay_OutEnableHN; //<-- 3.1]
+ADJ1: L     #PatternNew.EnableHN; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      L     #tmpWay_OutEnableHN; 
+      OD    ; 
+      T     #tmpWay_OutEnableHN; 
+//--> Reset Bits in  tmpWay_OutEnableLN 
+      INVD  ; 
+      L     #tmpWay_OutEnableLN; 
+      UD    ; 
+      T     #tmpWay_OutEnableLN; 
+ADJ0: NOP   0; 
+NETWORK
+TITLE =Run Add Time
+
+      UN    #OutWayChangeActive; 
+      SPB   TAJ0; 
+//delay time
+      U     "GCS7_Gr_OutTick200ms"; 
+      UN    #InStopAddTime; 
+      U(    ; 
+      L     #OutAddTime; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      SPBN  TAJ1; 
+      L     #OutAddTime; 
+      +     -2; 
+      T     #OutAddTime; 
+TAJ1: L     #OutAddTime; 
+      L     0; 
+      >I    ; 
+TAJ0: U     #OutWayChangeActive; 
+      =     #Internal.OutAddTimeRunning; 
+NETWORK
+TITLE =Test added way is adjusted
+//All elements of the actual pattern are in adjusted
+      UN    #OutWayChangeActive; 
+      SPB   TAO1; 
+      L     #tmpWay_InAdjustedLN; 
+      L     #tmpWay_OutEnableLN; 
+      UD    ; 
+      L     #tmpWay_OutEnableLN; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_InAdjustedHN; 
+      L     #tmpWay_OutEnableHN; 
+      UD    ; 
+      L     #tmpWay_OutEnableHN; 
+      ==D   ; 
+      )     ; 
+TAO1: U     #OutWayChangeActive; 
+      =     #tmpAdjustedTempWay; 
+NETWORK
+TITLE =Change Old Way Flap of Blow Line
+//The old way flaps are changed if the aspiration flaps and the new way elements 
+//are adjusted
+      UN    #OutWayChangeActive; 
+      SPB   OFJ0; 
+      UN    #InBlowLine; 
+      ON    #tmpAdjustedTempWay; 
+      O     #CmdNewWay; 
+      SPB   OFJ0; 
+//--> Set Bits in  tmpWay_OutEnableHN 
+      L     #PatternNew.EnableHN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      L     #tmpWay_OutEnableHN; 
+      OD    ; 
+      T     #tmpWay_OutEnableHN; 
+//--> Reset Bits in  tmpWay_OutEnableLN 
+      INVD  ; 
+      L     #tmpWay_OutEnableLN; 
+      UD    ; 
+      T     #tmpWay_OutEnableLN; 
+//--> Set Bits in  tmpWay_OutEnableLN 
+      L     #PatternNew.EnableLN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      L     #tmpWay_OutEnableLN; 
+      OD    ; 
+      T     #tmpWay_OutEnableLN; 
+//--> Reset Bits in  tmpWay_OutEnableHN
+      INVD  ; 
+      L     #tmpWay_OutEnableHN; 
+      UD    ; 
+      T     #tmpWay_OutEnableHN; 
+OFJ0: NOP   0; 
+NETWORK
+TITLE =CmdNewWay (Case 2)
+
+      LAR1  #tmpPatternArrayAddr; 
+      +AR1  P#16.0; 
+      L     #tmpWay_OutEnableLN; 
+      L     DID [AR1,P#0.0]; //Way.OutEnable.LN
+      <>D   ; 
+      O(    ; 
+      L     #tmpWay_OutEnableHN; 
+      L     DID [AR1,P#4.0]; //Way.OutEnable.HN
+      <>D   ; 
+      )     ; 
+      S     #CmdNewWay; 
+
+NETWORK
+TITLE =Activate new way pattern
+
+//=======================
+//ModePassive or Transition ModePassive--> ModeActive
+      U     #InModePassive; 
+      FN    #Internal.OutModePassive; 
+      O     #InModePassive; 
+      SPB   AWN1; 
+//=======================
+      UN    #Internal.OutAddTimeRunning; 
+      O     #CmdImmediatelyChange; 
+      UN    #CmdNewWay; 
+      U(    ; 
+      O     #tmpAdjustedTempWay; 
+      O     #OutAdjusted; 
+      O     ; 
+      U     #InVarFault; 
+      U     #CmdImmediatelyChange; 
+      )     ; 
+      SPBN  AWN0; 
+//=======================
+//Copy Pattern
+AWN1: L     #PatternNew.EnableLN; 
+      T     #tmpWay_OutEnableLN; //Way.OutEnable.LN
+      L     #PatternNew.EnableHN; 
+      T     #tmpWay_OutEnableHN; //Way.OutEnable.HN
+//Copy new pattern to old pattern
+      UN    #OutAdjusted; 
+      SPB   AWN0; 
+      L     #PatternNew.InRcvCode; 
+      T     #PatternOld.InRcvCode; 
+      L     #PatternNew.EnableLN; 
+      T     #PatternOld.EnableLN; 
+      L     #PatternNew.EnableHN; 
+      T     #PatternOld.EnableHN; 
+      L     #PatternNew.Position; 
+      T     #PatternOld.Position; 
+      R     #OutWayChangeActive; 
+AWN0: NOP   0; 
+
+NETWORK
+TITLE =Test Adjusted =  OutAdjusted
+
+      L     #tmpWay_InAdjustedLN; 
+      L     #tmpWay_InEnableLN; 
+      UD    ; 
+      L     #tmpWay_InEnableLN; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_InAdjustedHN; 
+      L     #tmpWay_InEnableHN; 
+      UD    ; 
+      L     #tmpWay_InEnableHN; 
+      ==D   ; 
+      )     ; 
+      UN    #InHoldOldWay; 
+      UN    #tmpEmptyPattern; //[4.1] 
+      =     #OutAdjusted; 
+NETWORK
+TITLE =Run OutAdjustTime
+
+      UN    #CmdNewWay; 
+      SPB   ATJ2; 
+//==================================
+//Start Adjust Time
+      L     #InAdjustTime; 
+      T     #OutAdjustTime; 
+//=================================
+//Run Adjust Time
+ATJ2: U     "GCS7_Gr_OutTick200ms"; 
+      U(    ; 
+      L     #OutAdjustTime; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      SPBN  ATJ3; 
+      L     #OutAdjustTime; 
+      +     -2; 
+      T     #OutAdjustTime; 
+ATJ3: L     #OutAdjustTime; 
+      L     0; 
+      >I    ; 
+      =     #OutAdjustTimeRunning; 
+
+NETWORK
+TITLE =Test Flaps Adjusted
+//Is used during way change to test if still a way is ok
+      U     #OutAdjusted; 
+      SPB   AFJ0; 
+      L     #tmpWay_OutEnableLN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_OutEnableHN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      )     ; 
+AFJ0: =     #OutFlapsAdjusted; 
+
+NETWORK
+TITLE =Test Slide Adjusted
+//Is used during way change to test if still a way is ok
+      U     #OutAdjusted; 
+      SPB   ASJ0; 
+      L     #tmpWay_OutEnableLN; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_OutEnableHN; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      )     ; 
+ASJ0: =     #OutSlideAdjusted; 
+
+NETWORK
+TITLE =Test Old Way still ok
+//Condition:
+// 1. All Slides are in target postion
+// 2. All Flaps of the old way are in target position
+//
+//Thsi function works because the flaps are always first ajusted 
+      U     #OutAdjusted; 
+      R     #OutOldWayOK; 
+      SPB   WOJ0; 
+//=======================================================
+//CASE1: IF all Slides are adjusted check only the flaps
+//=======================================================
+      UN    #OutSlideAdjusted; 
+      SPB   WOSL; 
+//Test Flaps adjusted 
+      L     #PatternOld.EnableLN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      U(    ; 
+      L     #PatternOld.EnableHN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      )     ; 
+      U     #OutSlideAdjusted; 
+      =     #OutOldWayOK; 
+      SPA   WOJ0; 
+//=======================================================
+//CASE: All flaps are adjusted: New Slides not relevant for closed
+//=======================================================
+WOSL: L     #PatternOld.EnableLN; 
+      L     #tmpWay_InEnableHN; //--> New Slides not relevant for closed
+      INVD  ; 
+      UD    ; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      U(    ; 
+      L     #PatternOld.EnableHN; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      )     ; 
+      =     #tmpSlidesOK; 
+      U     #tmpSlidesOK; 
+      U     #OutFlapsAdjusted; 
+      =     #OutOldWayOK; 
+WOJ0: NOP   0; 
+      L     #PatternOld.EnableLN; //[4.1]
+      L     #PatternOld.EnableHN; //[4.1]
+      OD    ; //[4.1]
+      L     0; //[4.1]
+      ==D   ; //[4.1]
+      R     #OutOldWayOK; //[4.1]
+NETWORK
+TITLE =Test New Way ok
+//Condition:
+// 1. All Slides are in target postion
+// 2. All Flaps of the new way are in target position
+//
+//Thsi function works because the flaps are always first ajusted 
+      U     #OutAdjusted; 
+      S     #OutNewWayOK; 
+      SPB   WNJ0; 
+//Detect closing command
+      L     #tmpStoreEnableHN; 
+      L     #tmpWay_OutEnableLN; 
+      UD    ; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      L     #OutClosing; 
+      OD    ; 
+      L     #tmpWay_OutEnableHN; 
+      INVD  ; 
+      UD    ; 
+      L     #tmpWay_InAdjustedLN; 
+      INVD  ; 
+      UD    ; 
+      T     #OutClosing; 
+//=======================================================
+//CASE1: IF all Slides are adjusted check only the flaps
+//=======================================================
+      UN    #OutSlideAdjusted; 
+      SPB   WNSL; 
+      L     #tmpWay_InEnableLN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedLN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_InEnableHN; 
+      L     #tmpWay_IsWayFlap; 
+      UD    ; 
+      T     #tmpEnableFlaps; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableFlaps; 
+      ==D   ; 
+      )     ; 
+      U     #OutSlideAdjusted; 
+      UN    #tmpEmptyPattern; //[4.1] 
+      =     #OutNewWayOK; 
+      SPA   WNJ0; 
+//=======================================================
+//CASE: All flaps are adjusted: Old Slides not relevant for close
+//=======================================================
+WNSL: L     #tmpWay_InEnableLN; 
+      L     #PatternOld.EnableHN; //--> New Slide not relevant for closed
+      INVD  ; 
+      UD    ; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpEnableSlides; 
+      L     #OutClosing; //[2.0] Closing slide are not relevant for closed
+      UD    ; 
+      L     #tmpWay_InAdjustedLN; 
+      OD    ; 
+      L     #tmpEnableSlides; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      U(    ; 
+      L     #tmpWay_InEnableHN; 
+      L     #tmpSlideGates; 
+      UD    ; 
+      T     #tmpEnableSlides; 
+      L     #tmpWay_InAdjustedHN; 
+      UD    ; 
+      L     #tmpEnableSlides; 
+      ==D   ; 
+      )     ; 
+      UN    #OutSlideAdjusted; 
+      =     #tmpSlidesOK; 
+      U     #tmpSlidesOK; 
+      U     #OutFlapsAdjusted; 
+      UN    #tmpEmptyPattern; //[4.1] 
+      =     #OutNewWayOK; 
+WNJ0: NOP   0; 
+NETWORK
+TITLE =
+
+      UN    #OutEnablePrev; 
+      O     #OutAdjusted; 
+      O     #InVarFault; 
+      SPBN  CLOS; 
+      L     0; 
+      T     #OutClosing; 
+CLOS: NOP   0; 
+NETWORK
+TITLE =BKT:  [4.0]
+//Problem: 
+//When changing 3 time, then during add time perhaps 3 slide gates are open.
+// Longer way --> shorter way --> position between 
+//Solution:
+//  Reset OutEnableHN of slide gate in shorter way then the new way
+      UN    #InBKT; 
+      SPB   BKJ0; 
+      UN    #OutNewWayOK; 
+      O     #OutAdjusted; 
+      ON    #OutFlapsAdjusted; 
+      SPB   BKJ0; 
+      L     #PatternNew.Position; 
+      L     #PatternOld.Position; 
+      >I    ; 
+      SPB   BKJ0; 
+//==================================================
+//Test new Slide gates are open
+//--------------------------------------------------
+      U(    ; 
+      L     #tmpWay_InAdjustedHN; 
+      L     #tmpWay_InEnableHN; 
+      UD    ; 
+      L     #tmpWay_InEnableHN; 
+      ==D   ; 
+      )     ; 
+      UN    #InHoldOldWay; 
+      SPBN  BKJ0; 
+//==================================================
+//Calculate Pattern for shorter way then the new way
+//--------------------------------------------------
+      L     33; 
+      L     #PatternNew.Position; 
+      -D    ; 
+      T     #tmpCnt; 
+      L     DW#16#FFFFFFFF; 
+      SLD   ; 
+      INVD  ; 
+      L     #tmpWay_IsWayFlap; //Not used for flap
+      TAD   ; 
+      OD    ; 
+//==================================================
+//Reset OutEnableHN of slide gate in shorter way 
+//==================================================
+      L     #tmpWay_OutEnableHN; 
+      TAD   ; 
+      UD    ; 
+      TAD   ; 
+      T     #tmpWay_OutEnableHN; 
+BKJ0: NOP   0; 
+NETWORK
+TITLE =OutEnableNext
+
+      U     #OutAdjustTimeRunning; 
+      U     #OutEnablePrev; 
+      O     #OutOldWayOK; 
+      O     #OutNewWayOK; 
+      O     #OutAdjusted; 
+//      UN    #InHoldOldWay
+      =     #OutEnablePrev; 
+NETWORK
+TITLE =Store Output Data: 
+
+      LAR1  #tmpPatternArrayAddr; 
+      +AR1  P#16.0; 
+      L     #tmpWay_OutEnableLN; 
+      T     DID [AR1,P#0.0]; //Way.OutEnable.LN
+      L     #tmpWay_OutEnableHN; 
+      T     DID [AR1,P#4.0]; //Way.OutEnable.HN
+//Init Flag
+      SET   ; 
+      R     #CmdImmediatelyChange; 
+END_FUNCTION_BLOCK
+

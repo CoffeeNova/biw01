@@ -1,0 +1,9 @@
+	DATA_BLOCK DB75
+	TITLE =DP-Diagnosis Master 1
+	AUTHOR : SIEMENS
+	FAMILY : DP
+	VERSION : 0.0
+	
+	"SYS_DP-Diagnosis"
+	BEGIN
+	END_DATA_BLOCK

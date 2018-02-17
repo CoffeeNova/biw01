@@ -1,0 +1,542 @@
+	FUNCTION FC 831  : VOID
+	TITLE =MAL1S031 Section control: LINE 1 SEC 31 KILN 0 (VORH.)
+	//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        LINE 1 SEC 31 KILN 0 (VORH.)
+	//                 Section control
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P01_FC831.1.0 K.Renz              CSB41                              09.Feb.2010
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//REFERENCES : GCSOSMAN
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	//0000 to 0999: Main Functions
+	//              0 =Main Function Cylic
+	//              1 =Main Function Coldstart/Newstart
+	//              2 =Main Function Warm Start
+	
+	VAR_INPUT
+	  InCode : INT ;	
+	END_VAR
+	
+	VAR_TEMP
+	tmpStartNext : BOOL ;	//Condition to Start next element
+	tmpFlagFault : BOOL ;	//Flag mechanical fault
+	tmpEnableFeed : BOOL ;	
+	tmpStartScale : BOOL ;	
+	tmpStartLiqScale : BOOL ; //Enable to Start Lipquid Scale	
+	tmpSndBin: Int ;	
+	tmpRcvBin: Int ;	
+	tmpBool : BOOL ;	
+	tmpByte : BYTE ;	
+	tmpWord : WORD ;	
+	tmpDWord : DWORD ;	
+	tmpInt : INT ;	
+	tmpRET : INT ;	
+	tmpDInt : DINT ;	
+	tmpCyclusTime : DINT ;
+	tmpWetSteep : BOOL ;
+	END_VAR
+	
+	BEGIN
+	
+	NETWORK
+	TITLE = 
+	//=================================================
+	//=================================================
+	//S T A R T   M A I N   F U N C T I O N
+	//=================================================
+	//=================================================
+	      L InCode;
+	      L 0;
+	      <>I;
+	      BEB; 
+	      
+	NETWORK
+	TITLE =Main0_Command: Commands user to section
+	      NOP   0; 
+	//-Tick 1 second---
+		U     M 9.5; 
+		=     MAL1S031.ToSSW.InfPulseTimer;
+	//-Hardware stop---
+		U     DB050.DBX31.0 ; 
+		=     MAL1S031.PCRead.Status.StaHWStop;
+		U   MAL1S031.PCRead.Status.StaHWStop;
+		U   MAL1S031.ToASW.InfDataReady;
+		S     MAL1S031.ToSSW.Func.CmdImmediateStop;
+	//-Online---
+		U     M 009.1 ; 
+		=     MAL1S031.PCRead.Status.StaOnline;
+	NETWORK
+	TITLE =ASW_UC: User commands to section
+	NOP 0;
+	//-Additional user commands---
+	//-GP standard commands---
+	      AUF   "MAL1S031" ;
+	      L     L#0 ;                           // Enter the differenz of the target weight and prestop weight
+	      T    "MAL1S031".VarTemp.InOutValue3;  // Prestop weight
+	      CALL FC   120 (
+	           InCode                   := 2001);// Section function: Standard section commands
+	 
+	//-Condition CmdSequenzStop---
+	      U     MAL1S031.ToSSW.Func.CmdSequenzStop; 
+	//      S     "MAL1S031".ToSSW.Func.CmdSequenzStop
+	      R     MAL1S031.ToSSW.Func.CmdSequenzStop; 
+	//-Extended section commands---
+	      AUF   "MAL1S031"; 
+	      CALL "STD_LineSecStdSub" (
+	           InCode                   := 2002);// Section function: Extended section commands
+	//-Status from pulse commands---
+	      CLR;
+	      =     DB831.DBX  157.0;
+	      =     DB831.DBX  157.1;
+	      =     DB831.DBX  157.2;
+	      =     DB831.DBX  157.3;
+	      =     DB831.DBX  157.4;
+	      =     DB831.DBX  157.5;
+	      =     DB831.DBX  157.6;
+	      =     DB831.DBX  157.7;
+	//
+	NETWORK
+	TITLE =Main0_Dest: Destination
+	NETWORK
+	TITLE =Main0_Next: Ready for next batch
+	
+		ON    MAL1S031.ToASW.InfDataReady;
+		=     MAL1S031.ToSSW.InfReadyForNewBatch;
+	NETWORK
+	TITLE =Main0_Control: Control section
+	      NOP   0; 
+	//-Process commands from PCS---
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode O_Section
+		CODE                     := 7);
+	//-Process commands from user---
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode Control
+		CODE                     := 0);
+	//-Process section step---
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode Step_execute
+		CODE                     := 2);
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode Step_transition
+		CODE                     := 3);
+	//-Process section state---
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode State
+		CODE                     := 4);
+	
+	NETWORK
+	TITLE =Main0_Init: Init
+		UN    MAL1S031.ToASW.Transition.ToWait;
+		UN    MAL1S031.ToASW.CmdNewBatch;
+		SPB   in00; 
+	//-User initialization---
+		AUF   "MAL1S031" ;
+	// 
+	//-Section function: Init ---
+		AUF   "MAL1S031" ;
+	      CALL FC   120 (
+	           InCode                   := 2003);// Section function: Init
+	// 
+	//-Group interface---
+	// 
+	//-Initialise bin objects---
+	// 
+	//-Emptying job---
+	      U    MAL1S031.JobAc.StaBatch.StaEmptyingBatch; 
+	      S     MAL1S031.PCRead.Status.StaLoaded; 
+	// 
+	//-Error Batch---
+	// 
+	in00:	NOP   0;
+	
+	NETWORK
+	TITLE =ASW_VB: Various functions before bin control
+	      NOP   0; 
+	// 
+	//-Update staSameSndRcv in sender binlist---
+	NETWORK
+	TITLE =Main0_GrNRS: Not Relevant for started / Fault
+		NOP 0;
+	NETWORK
+	TITLE =Main0_GrSelection: Group selection
+	// List of the used objects in the section
+	// ==========================
+	// 
+	      NOP   0; 
+//-Condition for preselection---
+		U     MAL1S031.ToASW.InfDataReady;
+		SPB   GS01;
+//-Deselect groups ---
+		CALL FB     9 , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Deselect
+		     Code  := 3,
+		     Sec   := "MAL1S031".Gr);
+		SPA   GS02; 
+//-Select groups ---
+	GS01:	NOP 0;
+	//-Prepare for preselection ---
+		CALL FB     9 , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Init Preselection
+		     Code  := 1,
+		     Sec   := "MAL1S031".Gr);
+	// 
+	// 
+	//-Prestart used groups --
+		U     M     50.0; 
+		=     M     50.0; 
+		
+	//-Preselect used groups --
+		U     M     50.0; 
+		=     M     50.0; 
+	      L     1; 
+	      L     "MAL1S031Par".StepAct.StepNumber;
+	      UW;
+	      ==I;  // step wetsteep
+	      =    "MAL1S031Par".Par.FlagGen.WetStep;
+	
+	// 
+	//-Set CmdNewJob ---
+	// 
+	// 
+	//-Test preselected groups ---
+		CALL FB     9 , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode Select
+		     Code  := 2,
+		     Sec   := "MAL1S031".Gr);
+	// 
+	//-Way conflict if not available---
+		CLR; 
+		S     MAL1S031.Gr.All.OutGrConflict; 
+	// 
+	//-Test occupied real and virtual groups--- 
+	GS02:   NOP 0;
+		U     MAL1S031.Gr.All.OutSelectionValid; 
+		UN    MAL1S031.Gr.All.OutGrIsLocked;
+		=     MAL1S031.Gr.All.InOutASWSelectionOK; 
+	// 
+	// 
+	//----- Send data to selected groups =====
+	GS3:	NOP 0;
+	NETWORK
+	TITLE =Main0_GrCmd: CMD section to Groups
+		
+		NOP   0; 
+//-Way Adjust Time---
+		O     MAL1S031.Gr.All.CmdNewSelection;
+		O     MAL1S031.ToASW.CmdModify;
+		S     MAL1S031.ToSSW.CmdNewWay;
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode Adjust Time
+		CODE                     := 13);
+//-Continue---
+		U     MAL1S031.ToASW.Func.CmdStart;
+		O     MAL1S031.ToASW.Func.CmdNextStep;
+		S     MAL1S031.Gr.All.CmdContinue;
+//-Fault reset---
+		U     MAL1S031.ToASW.Func.CmdFaultReset;
+		S     MAL1S031.Gr.All.CmdFaultReset;
+//-Manual mode---
+		U     MAL1S031.ToASW.Func.CmdAutomatic;
+		S     MAL1S031.Gr.All.CmdManualOff;
+		UN     MAL1S031.PCRead.Status.StaHand;
+		S     MAL1S031.Gr.All.CmdManualOffRel;
+//-Clear idling---
+		U     MAL1S031.PCRead.Status.StaImmediateStopASW;
+		S     MAL1S031.Gr.All.CmdClearIdling;
+//-Start next---
+		UN    MAL1S031.PCRead.Status.StaStep;
+		O     MAL1S031.ToASW.Func.CmdNextStep;
+		U(;
+		L       MAL1S031.PCRead.OutWayAdjustTime;
+		L     2;
+		>I;
+		O     MAL1S031.ToASW.InfWayAdjustTimeEnd;
+		);
+		UN    MAL1S031.Gr.All.CmdNewSelection;
+		UN    MAL1S031.PCRead.Step.StWait;
+		=     #tmpStartNext; //-->VarStartNext
+//-Start next feed---
+		U     MAL1S031.Gr.Wgr.OutStartedRel;
+		ON    MAL1S031.ToASW.InfWayAdjustTimeEnd;
+		UN    MAL1S031.PCRead.Status.StaFeedOffASW;
+		UN    MAL1S031.PCRead.Status.StaImmediateStopASW;
+		U     MAL1S031.Gr.Mgr.OutStartedRel;
+		U     MAL1S031.PCRead.Step.StActive;
+		=     MAL1S031.Gr.Feed.InEnable;
+		=     #tmpEnableFeed;
+		U     #tmpStartNext;
+		U     MAL1S031.Gr.Wgr.OutStartedRel;
+		U     MAL1S031.Gr.All.OutAutoStartOk;
+		U     MAL1S031.PCRead.Status.StaAutostartSec;
+		=     MAL1S031.Gr.Feed.CmdNext;
+//-Start next machine group---
+		UN    MAL1S031.PCRead.Status.StaImmediateStopASW;
+		=     MAL1S031.Gr.Mgr.InEnable;
+		U     #tmpStartNext;
+		=     MAL1S031.Gr.Mgr.CmdNext;
+//-Start next way group---
+		UN    MAL1S031.PCRead.Status.StaImmediateStopASW;
+		=     MAL1S031.Gr.Wgr.InEnable;
+		UN    MAL1S031.PCRead.Status.StaStep;
+		O     MAL1S031.ToASW.Func.CmdNextStep;
+		=     MAL1S031.Gr.Wgr.CmdNext;
+//-Start next general group---
+		UN    MAL1S031.PCRead.Status.StaImmediateStopASW;
+		=     MAL1S031.Gr.Ggr.InEnable;
+		U     #tmpStartNext;
+		=     MAL1S031.Gr.Ggr.CmdNext;
+//-Update command state---
+		CALL FB     9 , "GCS7_GrCtrlDBTmp" (// GrCtr.Methode UpdateCmdSt
+		     Code  := 4,
+		     Sec   := "MAL1S031".Gr);
+	
+	NETWORK
+	TITLE =Main0_Status: Fault/Status
+		
+		NOP   0; 
+//- Autostart Section---
+		UN    MAL1S031.ToASW.Func.CmdStart;
+		O     MAL1S031.Gr.All.OutAutoStartOk;
+		=     MAL1S031.TimeoutAutostart.EN;
+		CALL FC18 (
+		   IN                       := MAL1S031.TimeoutAutostart.EN,
+		   PT                       := 10,
+		   Q                        := MAL1S031.TimeoutAutostart.Q,
+		ET                       := MAL1S031.TimeoutAutostart.ET);
+		U     MAL1S031.TimeoutAutostart.Q;
+		UN     MAL1S031.Gr.All.OutAutoStartOk;
+		R     MAL1S031.PCRead.Status.StaAutostartSec;
+		U     MAL1S031.ToASW.Func.CmdStart;
+		ON    MAL1S031.ToASW.InfDataReady;
+		S     MAL1S031.PCRead.Status.StaAutostartSec;
+//-Stopped---
+		UN    MAL1S031.Gr.Mgr.InEnable;
+		U     MAL1S031.Gr.All.OutStoppedRel;
+		O     MAL1S031.Gr.All.OutStoppedAll;
+		UN    MAL1S031.PCRead.Status.StaStep;
+		O;
+		U     MAL1S031.Gr.Mgr.OutStoppedRel;
+		U     MAL1S031.PCRead.Status.StaStep;
+		=     MAL1S031.ToSSW.InfStopped;
+//-Started---
+		U     MAL1S031.Gr.Mgr.OutStartedRel;
+		=     MAL1S031.ToSSW.InfStarted;
+//-Feeding---
+		U     MAL1S031.Gr.Feed.InEnable; //Section without Feed groups
+		ON    MAL1S031.Gr.Feed.OutStoppedAll;
+		U     MAL1S031.Gr.Feed.OutStartedRel;
+		=     MAL1S031.ToSSW.InfFeeding;
+//-Autostart---
+		U     MAL1S031.Gr.All.OutAutostartOkAll;
+		U     MAL1S031.PCRead.Status.StaAutostartSec;
+		=     MAL1S031.PCRead.Status.StaAutostart;
+//-DPFault---
+		U     MAL1S031.Gr.All.OutDPFault;
+		=     MAL1S031.PCRead.Status.StaDPFault;
+		S       MAL1S031.ToSSW.Func.CmdFeedOff;
+//-Startwarning---
+		U     MAL1S031.Gr.All.OutStartWarning;
+		=     MAL1S031.PCRead.Status.StaStartwarning;
+//-Way conflict---
+		U     MAL1S031.Gr.All.OutGrConflict;
+		=     MAL1S031.PCRead.Fault.EsWayConflict;
+//-Warning---
+		U     MAL1S031.Gr.All.OutWarning;
+		=     MAL1S031.PCRead.Fault.EsWarning;
+//-Fault---
+		U     MAL1S031.Gr.All.OutFaultRel;
+		FP      MAL1S031.PCRead.Fault.EsMech;
+		S       MAL1S031.ToSSW.Func.CmdFeedOff;
+//-Sender empty---
+		CLR;
+		=     MAL1S031.PCRead.Fault.EsEmpty; //-->Sec.EsEmpty
+//-Receiver full---
+		CLR;
+		=     MAL1S031.PCRead.Fault.EsFull;
+	
+	NETWORK
+	TITLE =Main0_StatusASW: Status from ASW
+		NOP   0; 
+//-Transfer off with automatic restart---
+		O     MAL1S031.PCRead.Fault.EsFull;
+		O     MAL1S031.PCRead.Fault.EsEmpty;
+		O     MAL1S031.PCRead.Fault.EsMech;
+		O     MAL1S031.PCRead.Fault.EsWayConflict;
+		O     MAL1S031.Gr.All.OutDPFault;
+		O     MAL1S031.PCRead.Status.StaTransferOff;
+		=     MAL1S031.PCRead.Status.StaTransferOffASW; 
+//-Feed off with automatic restart---
+		U     MAL1S031.PCRead.Status.StaTransferOffASW; 
+		O     MAL1S031.PCRead.Status.StaEndOfJob; //
+		O     MAL1S031.PCRead.Status.StaFeedOff;
+		=     MAL1S031.PCRead.Status.StaFeedOffASW; 
+//-Immediate stop with automatic restart---
+		U     MAL1S031.PCRead.Status.StaImmediateStop;
+		=     MAL1S031.PCRead.Status.StaImmediateStopASW; 
+//-Emptying time--- 
+	      UN   MAL1S031.ToSSW.InfFeeding;
+	      U     MAL1S031.Gr.Feed.OutStoppedRel;
+	      U     MAL1S031.ToSSW.InfStarted;
+	      UN  MAL1S031.PCRead.Step.StPassive;
+	      UN  MAL1S031.PCRead.Step.StIdling;
+		U     "MAL1S031Par".Par.FlagFunction_1.FinishCleaning;
+		=     MAL1S031.ToSSW.InfReleaseEmptyingTime;
+	NETWORK
+	TITLE =Main0_Transition: Condition for Transition
+	
+		NOP 0;
+		NOP 0;
+	//-Active---
+		U   MAL1S031.Gr.All.InOutASWSelectionOK;
+	        U    MAL1S031.PCRead.Step.StWait; 
+		=     MAL1S031.ToSSW.CmdGotoActive;
+	//-Ready---
+	        U    MAL1S031.PCRead.Step.StActive; 
+		UN   MAL1S031.ToASW.InfSameBatchPrevSec;
+		U     "MAL1S031Par".Par.FlagFunction_1.FinishLoading;
+		=     MAL1S031.ToSSW.CmdGotoReady;
+	//-Emptying---
+	        U    MAL1S031.PCRead.Step.StReady; 
+		UN   MAL1S031.ToASW.InfSameBatchPrevSec;
+		U     "MAL1S031Par".Par.FlagProcess.ProcessEnd;
+		UN    "MAL1S031Par".Par.FlagProcess.ProcessActive;
+		=     MAL1S031.ToSSW.CmdGotoEmptying;
+	//-Emptied---
+	        U    MAL1S031.PCRead.Step.StEmptying; 
+		UN    MAL1S031.PCRead.Status.StaLoaded;
+		U     "MAL1S031Par".Par.FlagFunction_1.FinishCleaning;
+		=     MAL1S031.ToSSW.CmdGotoEmptied;
+	//-Result section---
+	//-Idling---
+		U     MAL1S031.PCRead.Step.StEmptied;
+		=     MAL1S031.ToSSW.CmdGotoIdling;
+	//-Passive---
+		U     MAL1S031.PCRead.Step.StIdling;
+		U     MAL1S031.ToSSW.InfStopped;
+		=     MAL1S031.ToSSW.CmdGotoPassive;
+	NETWORK
+	TITLE =Main0_Move: Move to next section
+		NOP 0;
+	//->Move batch to section PLC1BIW01_02
+		AUF   "MAL1S031" ;
+		CALL FC    60 (// Methode Move Data
+		  CODE                     := 5);
+		UN  MAL1S031.ToASW.CmdDataMoved;
+		SPB Move;
+	Move:	NOP 0;
+	NETWORK
+	TITLE =ASW_AH:Alarm horns
+	      UN    MAL1S031.ToASW.Func.CmdHornOn; 
+	      SPB   AHJ1; 
+	      CALL "SYS_Horn_Code" (
+	           FcCode                   := 1, //Set Alarm
+	           ParObjectType            := 4000,
+	           ParObjectNo              := 0,
+	           ParHornCode              := 98);
+	AHJ1: UN    MAL1S031.ToASW.Func.CmdHornOff; 
+	      SPB   AH00; 
+	AH00: NOP   0; 
+	NETWORK
+	TITLE =ASW_FT: Feeding Time
+		AUF   "MAL1S031" ;
+	      CALL FC   120 (
+	           InCode                 := 2004);// Section function: Feeding time
+	
+	NETWORK
+	TITLE =ASW_OL: Override low level
+	// 
+		AUF   "MAL1S031" ;
+	// 
+	OL00: NOP   0; 
+	NETWORK
+	TITLE =ASW_VA: VA Various functions after section control
+	// 
+		AUF   "MAL1S031" ;
+	// Copy bin number to section DB
+	        L   MAL1S031.JobAc.BatchSndBin;
+		L   MAL1S031.MAL1S001SND33.Ingr[1].Bin;
+	        T   MAL1S031.JobAc.BatchSndBin;
+		<>I;
+		S   MAL1S031.ChangeBit.CBit1;
+		// 
+	        L   MAL1S031.JobAc.BatchRcvBin;
+		L   MAL1S031.MAL1S001RCV34.Ingr[1].Bin;
+	        T   MAL1S031.JobAc.BatchRcvBin;
+		<>I;
+		S   MAL1S031.ChangeBit.CBit1;
+		// 
+	        L   MAL1S031.JobAc.BatchRcvBin;
+		L   MAL1S031.MAl1S034RCV36.Ingr[1].Bin;
+	        T   MAL1S031.JobAc.BatchRcvBin;
+		<>I;
+		S   MAL1S031.ChangeBit.CBit1;
+		// 
+	
+	NETWORK
+	TITLE =ASW_EJ End of job
+	NOP 0;
+	// 
+	//-Fluidlift monitoring---
+	NETWORK
+	TITLE =ASW_VE: VE New value event
+	// 
+	//-Group interface---
+	
+	
+	NETWORK
+	TITLE =ASW_NV: New value data
+	NETWORK
+	TITLE =ASW_WJ: Weight job
+	// 
+	      U     MAL1S031.PCRead.Step.StActive; 
+	      O     MAL1S031.PCRead.Step.StReady; 
+	      O     MAL1S031.PCRead.Step.StEmptying; 
+	      O     MAL1S031.PCRead.Step.StEmptied; 
+	      SPBN   WJ08; 
+	// 
+	      L     MAL1S031.JobNom.JobWeight; //Target/Actual registration if no scale
+	      T     MAL1S031.JobAc.JobWeight;
+	// 
+	WJ08: NOP 0;
+	//-------------------------------------------- 
+	//PW Prestop weight
+	//-------------------------------------------- 
+	WJ00: NOP   0; 
+	NETWORK
+	TITLE =ASW_SC: Section status text and colour
+	// 
+		AUF   "MAL1S031" ;
+	      CALL FC   120 (
+	           InCode                   := 2055);// Section function: WinCoS.SectionInfoCode
+	// 
+	
+	NETWORK
+	TITLE =Main0_End: Init flag
+		SET;
+		R     MAL1S031.Gr.All.CmdNewSelection;
+		R     MAL1S031.ToASW.CmdNewBatch;
+		R     MAL1S031.ToASW.CmdModify;
+	
+	NETWORK
+	TITLE =End of block
+	
+	      BE    ; 
+	
+	END_FUNCTION

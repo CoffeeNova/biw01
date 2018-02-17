@@ -1,0 +1,21 @@
+	  TYPE UDT8000	
+	    TITLE =UDTMAL1LineCmd  MALTING LINE
+	    STRUCT 	 //UDTMAL1LineCmd
+	     Cmd08 : BOOL ;	//Not used
+	     Cmd09 : BOOL ;	//Not used
+	     Cmd10 : BOOL ;	//Not used
+	     Cmd11 : BOOL ;	//Not used
+	     Cmd12 : BOOL ;	//Not used
+	     Cmd13 : BOOL ;	//Not used
+	     Cmd14 : BOOL ;	//Not used
+	     Cmd15 : BOOL ;	//Not used
+	     CmdPulse00 : BOOL ;	//Not used
+	     CmdPulse01 : BOOL ;	//Not used
+	     CmdPulse02 : BOOL ;	//Not used
+	     CmdPulse03 : BOOL ;	//Not used
+	     CmdPulse04 : BOOL ;	//Not used
+	     CmdPulse05 : BOOL ;	//Not used
+	     CmdPulse06 : BOOL ;	//Not used
+	     CmdPulse07 : BOOL ;	//Not used
+	    END_STRUCT ;	
+	  END_TYPE

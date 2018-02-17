@@ -1,0 +1,234 @@
+FUNCTION_BLOCK "PLC_BinList"
+TITLE =BinList
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        Central Bin List
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB000.1.0 K.Renz              CSB41                              29.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 0.0
+
+
+VAR
+  Para : STRUCT 	
+   Spare0 : INT ;	//Reserved for InCode
+   Spare2 : INT ;	
+   Spare4 : INT ;	
+   Spare6 : INT ;	
+   ParByteFirstBin : INT  := 60;	
+   ParNoOfBytePerBin : INT  := 30;	
+   ParNoOfBin : INT  := 11;	
+   Spare14 : INT ;	
+   Spare16 : INT ;	
+  END_STRUCT ;	
+  ChangeBit : STRUCT 	
+   spare : BYTE ;	
+   CBit1 : BOOL ;	
+   CBit2 : BOOL ;	
+   CBit3 : BOOL ;	
+   CBit4 : BOOL ;	
+  END_STRUCT ;	
+  tmpBin : "GCS7_Bin";	// spare bin
+  Spare50 : INT ;	
+  Spare52 : INT ;	
+  Spare54 : INT ;	
+  Spare56 : INT ;	
+  Spare58 : INT ;	
+  BIN9001 : "GCS7_Bin";	// Malting Plant OAO Belsolod Ivanonvo Weissrussland 
+  BIN101 : "GCS7_Bin";	// Steeping_1 
+  BIN9005 : "GCS7_Bin";	// KILNED MALT SILO 
+  MAL1S34_SND : "GCS7_Bin";	// KILNED MALT SILO 
+  BIN102 : "GCS7_Bin";	// Steeping_2 
+  BIN103 : "GCS7_Bin";	// Steeping_3 
+  BIN104 : "GCS7_Bin";	// Steeping_4 
+  BIN105 : "GCS7_Bin";	// Steeping_5 
+  BIN106 : "GCS7_Bin";	// Steeping_6 
+  BIN107 : "GCS7_Bin";	// Steeping_7 
+  BIN108 : "GCS7_Bin";	// Steeping_8 
+END_VAR
+BEGIN
+NETWORK
+TITLE =BIN101
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN101.InLowLevel; 
+      =     #BIN101.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN101.InHighLevel; 
+      =     #BIN101.InFeedOffHL; 
+//Function
+
+      CALL #BIN101 ;
+NETWORK
+TITLE =BIN102
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN102.InLowLevel; 
+      =     #BIN102.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN102.InHighLevel; 
+      =     #BIN102.InFeedOffHL; 
+//Function
+
+      CALL #BIN102 ;
+NETWORK
+TITLE =BIN103
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN103.InLowLevel; 
+      =     #BIN103.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN103.InHighLevel; 
+      =     #BIN103.InFeedOffHL; 
+//Function
+
+      CALL #BIN103 ;
+NETWORK
+TITLE =BIN104
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN104.InLowLevel; 
+      =     #BIN104.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN104.InHighLevel; 
+      =     #BIN104.InFeedOffHL; 
+//Function
+
+      CALL #BIN104 ;
+NETWORK
+TITLE =BIN105
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN105.InLowLevel; 
+      =     #BIN105.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN105.InHighLevel; 
+      =     #BIN105.InFeedOffHL; 
+//Function
+
+      CALL #BIN105 ;
+NETWORK
+TITLE =BIN106
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN106.InLowLevel; 
+      =     #BIN106.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN106.InHighLevel; 
+      =     #BIN106.InFeedOffHL; 
+//Function
+
+      CALL #BIN106 ;
+NETWORK
+TITLE =BIN107
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN107.InLowLevel; 
+      =     #BIN107.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN107.InHighLevel; 
+      =     #BIN107.InFeedOffHL; 
+//Function
+
+      CALL #BIN107 ;
+NETWORK
+TITLE =BIN108
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN108.InLowLevel; 
+      =     #BIN108.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN108.InHighLevel; 
+      =     #BIN108.InFeedOffHL; 
+//Function
+
+      CALL #BIN108 ;
+NETWORK
+TITLE =BIN9001
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN9001.InLowLevel; 
+      =     #BIN9001.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN9001.InHighLevel; 
+      =     #BIN9001.InFeedOffHL; 
+//Function
+
+      CALL #BIN9001 ;
+NETWORK
+TITLE =MAL1S34_SND
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #MAL1S34_SND.InLowLevel; 
+      =     #MAL1S34_SND.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #MAL1S34_SND.InHighLevel; 
+      =     #MAL1S34_SND.InFeedOffHL; 
+//Function
+
+      CALL #MAL1S34_SND ;
+NETWORK
+TITLE =BIN9005
+
+      NOP   0; 
+//Low Level
+      CLR   ; 
+      =     #BIN9005.InLowLevel; 
+      =     #BIN9005.InFeedOffLL; 
+//High Level
+      CLR   ; 
+      =     #BIN9005.InHighLevel; 
+      =     #BIN9005.InFeedOffHL; 
+//Function
+
+      CALL #BIN9005 ;
+END_FUNCTION_BLOCK
+

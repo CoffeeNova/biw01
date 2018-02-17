@@ -1,0 +1,3402 @@
+
+FUNCTION_BLOCK "G014G_Code"
+TITLE =G014G GENERAL ELEMENTS GERM 8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        GENERAL ELEMENTS GERM 8
+//                General group control
+//                Allgemeine Gruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB114.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_1999_SHE01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1999_SHE02 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_A040Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_A097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_K091Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_S_H097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2801_SHE20 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2801_SHE21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2801_SHE22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2801_SHE23 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE02 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE03 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE04 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE05 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE06 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE08 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE20 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2899_SHE21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A040Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A098Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_K091Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_K738R1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_K838R1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_Q390Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_Q445Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_S_H097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A458Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_D1B065 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A408Z1I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A408Z1O1 : "GCS7_E_DigOutput";	// DigOut
+  A_28_A700Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_28_A800Z1 : "GCS7_E_DigInput";	// DigInpCont 
+     #A_28_A106Z1 : FB14;   // DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      R     "GCS7_GrCtrlDB".ParMGR[14]; 
+      R     "GCS7_GrCtrlDB".ParWGR[14]; 
+      S     "GCS7_GrCtrlDB".ParGGR[14]; 
+      R     "GCS7_GrCtrlDB".ParFeed[14]; 
+      S     "GCS7_GrCtrlDB".ParShare[14]; 
+      R     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      S     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[14]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[14]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[14]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[14]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[14]; 
+      R     "GCS7_GrCtrlDB".CmdNext[14]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[14]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[14]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[14]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[14]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[14]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[14]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-1999-SHE01 : EMERGENCY-OFF CONVEYOR GREEN MALT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1999_SHE01.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_1999_SHE01.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_1999_SHE01.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1999_SHE01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_1999_SHE01_I1"; 
+      =     #A_1999_SHE01.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1999_SHE01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1999-SHE02 : EMERGENCY-OFF CONVEYOR GREEN MALT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1999_SHE02.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_1999_SHE02.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_1999_SHE02.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1999_SHE02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_1999_SHE02_I1"; 
+      =     #A_1999_SHE02.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1999_SHE02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-19-A040Z1 : POWER SUPPLY FAILURE +C19
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_19_A040Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_19_A040Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_19_A040Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_19_A040Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_19_A040Z1_I1"; 
+      =     #A_19_A040Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_19_A040Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-19-A097Z1_ : EMERGENCY-STOP +C19
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_19_A097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_19_A097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_19_A097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_19_A097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_19_A097Z1_I1"; 
+      =     #A_19_A097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_19_A097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-19-K091Z1 : FUSE SWITCH OFF +C19
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_19_K091Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_19_K091Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_19_K091Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_19_K091Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_19_K091Z1_I1"; 
+      =     #A_19_K091Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_19_K091Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-19-S/H097Z1 : OPERATING ON +C19
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_19_S_H097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_19_S_H097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_19_S_H097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_19_S_H097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_19_S_H097Z1_I1"; 
+      =     #A_19_S_H097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_19_S_H097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2801-SHE20 : CABLE PULL SWITCH RIGHT 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2801_SHE20.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2801_SHE20.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2801_SHE20.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2801_SHE20.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2801_SHE20_I1"; 
+      =     #A_2801_SHE20.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2801_SHE20 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2801-SHE21 : CABLE PULL SWITCH RIGHT 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2801_SHE21.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2801_SHE21.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2801_SHE21.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2801_SHE21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2801_SHE21_I1"; 
+      =     #A_2801_SHE21.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2801_SHE21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2801-SHE22 : CABLE PULL SWITCH LEFT 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2801_SHE22.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2801_SHE22.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2801_SHE22.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2801_SHE22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2801_SHE22_I1"; 
+      =     #A_2801_SHE22.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2801_SHE22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2801-SHE23 : CABLE PULL SWITCH LEFT 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2801_SHE23.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2801_SHE23.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2801_SHE23.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2801_SHE23.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2801_SHE23_I1"; 
+      =     #A_2801_SHE23.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2801_SHE23 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE01 : EMERGENCY OFF CUSTOMER
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE01.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE01.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE01.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE01_I1"; 
+      =     #A_2899_SHE01.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE02 : EMERGENCY OFF CUSTOMER
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE02.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE02.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE02.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE02_I1"; 
+      =     #A_2899_SHE02.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE03 : EMERGENCY STOP 1 BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE03.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE03.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE03.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE03.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE03_I1"; 
+      =     #A_2899_SHE03.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE03 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE04 : EMERGENCY STOP 1 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE04.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE04.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE04.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE04.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE04_I1"; 
+      =     #A_2899_SHE04.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE04 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE05 : EMERGENCY STOP 2 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE05.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE05.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE05.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE05.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE05_I1"; 
+      =     #A_2899_SHE05.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE06 : EMERGENCY STOP 2 BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE06.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE06.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE06.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE06.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE06_I1"; 
+      =     #A_2899_SHE06.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE06 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE08 : EMERGENCY STOP 3 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE08.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE08.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE08.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE08.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE08_I1"; 
+      =     #A_2899_SHE08.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE08 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE20 : CABLE PULL SWITCH RIGHT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE20.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE20.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE20.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE20.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE20_I1"; 
+      =     #A_2899_SHE20.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE20 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2899-SHE21 : CABLE PULL SWITCH LEFT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2899_SHE21.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2899_SHE21.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2899_SHE21.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2899_SHE21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_2899_SHE21_I1"; 
+      =     #A_2899_SHE21.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2899_SHE21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A040Z1 : POWER SUPPLY FAILURE +C28
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A040Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A040Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A040Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A040Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_A040Z1_I1"; 
+      =     #A_28_A040Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A040Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A097Z1 : EMERGENCY STOP +C28
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_A097Z1_I1"; 
+      =     #A_28_A097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A098Z1 : EMERGENCY STOP +M281 M282
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A098Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A098Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A098Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A098Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_A098Z1_I1"; 
+      =     #A_28_A098Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A098Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-K091Z1 : FUSE SWITCH OFF +C28
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_K091Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_K091Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_K091Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_K091Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_K091Z1_I1"; 
+      =     #A_28_K091Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_K091Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-K738R1 : FUSE SWITCH OFF +M281
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_K738R1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_K738R1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_K738R1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_K738R1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_K738R1_I1"; 
+      =     #A_28_K738R1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_K738R1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-K838R1 : FUSE SWITCH OFF +M282
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_K838R1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_K838R1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_K838R1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_K838R1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_K838R1_I1"; 
+      =     #A_28_K838R1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_K838R1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-Q390Z1 : POWER SUPPLY MACHINE BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_Q390Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_Q390Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_Q390Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_Q390Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_Q390Z1_I1"; 
+      =     #A_28_Q390Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_Q390Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-Q445Z1 : POWER SUPPLY MACHINE DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_Q445Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_Q445Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_Q445Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_Q445Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_Q445Z1_I1"; 
+      =     #A_28_Q445Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_Q445Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-S/H097Z1 : OPERATING ON +C28
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_S_H097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_S_H097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_S_H097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_S_H097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_28_S_H097Z1_I1"; 
+      =     #A_28_S_H097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_S_H097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A458Z1 : CLEANING FLAP 1/2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A458Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A458Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A458Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A458Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_28_A458Z1_I1"; 
+      =     #A_28_A458Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A458Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-D1B065 : CONTROL 24VDC LIMIT SWITCHES WAY
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_D1B065.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_D1B065.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_D1B065.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_D1B065.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_28_D1B065_I1"; 
+      =     #A_28_D1B065.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_D1B065 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A408Z1I1 : BUMPER SWITCHED-OFF
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A408Z1I1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A408Z1I1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A408Z1I1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A408Z1I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1 Eing. gedreht, damit ich Transport zum/vom Keimkasten 1-8 starten kann,noch nicht getestet !!!!!!
+      UN    "A_28_A408Z1_I1"; 
+      =     #A_28_A408Z1I1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A408Z1I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A408Z1O1 : RESET ALARM
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_28_A408Z1O1.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_28_A408Z1O1.InEnable; 
+//
+      U     #tmpCmdNext; 
+      S     #A_28_A408Z1O1.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_28_A408Z1O1.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #A_28_A408Z1O1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[84]; 
+      =     #A_28_A408Z1O1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A408Z1O1 ;
+// 
+//-Write outputs---
+      U     #A_28_A408Z1O1.OutpRun; 
+      =     "A_28_A408Z1_O1"; 
+NETWORK
+TITLE ==A-28-A700Z1 : POWER CIRCUIT CABLE CHAIN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A700Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A700Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A700Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A700Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_28_A700Z1_I1"; 
+      =     #A_28_A700Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A700Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A800Z1 : POWER CIRCUIT CABLE CHAIN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A800Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_28_A800Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_28_A800Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A800Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_28_A800Z1_I1"; 
+      =     #A_28_A800Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_28_A800Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-28-A106Z1 : EMERGENCY STOP FROM +C27
+NOP 0;
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_28_A106Z1.InLocal; 
+// 
+//-Monitoring---
+      SET;
+      =      #A_28_A106Z1.InMonTrue; 
+// 
+//-PreAlarm---
+    //  CLR
+    //  =      #A_28_A106Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_28_A106Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     E 801.5; 
+      =     #A_28_A106Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL  #A_28_A106Z1;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_1999_SHE01.StFault; 
+      O     #A_1999_SHE02.StFault; 
+      O     #A_19_A040Z1.StFault; 
+      O     #A_19_A097Z1.StFault; 
+      O     #A_19_K091Z1.StFault; 
+      O     #A_19_S_H097Z1.StFault; 
+      O     #A_2801_SHE20.StFault; 
+      O     #A_2801_SHE21.StFault; 
+      O     #A_2801_SHE22.StFault; 
+      O     #A_2801_SHE23.StFault; 
+      O     #A_2899_SHE01.StFault; 
+      O     #A_2899_SHE02.StFault; 
+      O     #A_2899_SHE03.StFault; 
+      O     #A_2899_SHE04.StFault; 
+      O     #A_2899_SHE05.StFault; 
+      O     #A_2899_SHE06.StFault; 
+      O     #A_2899_SHE08.StFault; 
+      O     #A_2899_SHE20.StFault; 
+      O     #A_2899_SHE21.StFault; 
+      O     #A_28_A040Z1.StFault; 
+      O     #A_28_A097Z1.StFault; 
+      O     #A_28_A098Z1.StFault; 
+      O     #A_28_K091Z1.StFault; 
+      O     #A_28_K738R1.StFault; 
+      O     #A_28_K838R1.StFault; 
+      O     #A_28_Q390Z1.StFault; 
+      O     #A_28_Q445Z1.StFault; 
+      O     #A_28_S_H097Z1.StFault; 
+      O     #A_28_A458Z1.StFault; 
+      O     #A_28_D1B065.StFault; 
+      O     #A_28_A408Z1I1.StFault; 
+      O     #A_28_A408Z1O1.StFault; 
+      O     #A_28_A700Z1.StFault; 
+      O     #A_28_A800Z1.StFault; 
+      O     #A_28_A106Z1.StFault;
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_1999_SHE01.StFalse; 
+      O     #A_1999_SHE02.StFalse; 
+      O     #A_19_A040Z1.StFalse; 
+      O     #A_19_A097Z1.StFalse; 
+      O     #A_19_K091Z1.StFalse; 
+      O     #A_19_S_H097Z1.StFalse; 
+      O     #A_2801_SHE20.StFalse; 
+      O     #A_2801_SHE21.StFalse; 
+      O     #A_2801_SHE22.StFalse; 
+      O     #A_2801_SHE23.StFalse; 
+      O     #A_2899_SHE01.StFalse; 
+      O     #A_2899_SHE02.StFalse; 
+      O     #A_2899_SHE03.StFalse; 
+      O     #A_2899_SHE04.StFalse; 
+      O     #A_2899_SHE05.StFalse; 
+      O     #A_2899_SHE06.StFalse; 
+      O     #A_2899_SHE08.StFalse; 
+      O     #A_2899_SHE20.StFalse; 
+      O     #A_2899_SHE21.StFalse; 
+      O     #A_28_A040Z1.StFalse; 
+      O     #A_28_A097Z1.StFalse; 
+      O     #A_28_A098Z1.StFalse; 
+      O     #A_28_K091Z1.StFalse; 
+      O     #A_28_K738R1.StFalse; 
+      O     #A_28_K838R1.StFalse; 
+      O     #A_28_Q390Z1.StFalse; 
+      O     #A_28_Q445Z1.StFalse; 
+      O     #A_28_S_H097Z1.StFalse; 
+      O     #A_28_A458Z1.StFalse; 
+      O     #A_28_D1B065.StFalse; 
+      O     #A_28_A408Z1I1.StFalse; 
+      O     #A_28_A408Z1O1.OutWarning; 
+      O     #A_28_A700Z1.StFalse; 
+      O     #A_28_A800Z1.StFalse; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_28_A408Z1O1.StStopped; 
+      SET   ; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U(    ; 
+      O     #A_1999_SHE01.StTrue; 
+      O     #A_1999_SHE01.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_1999_SHE02.StTrue; 
+      O     #A_1999_SHE02.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_19_A040Z1.StTrue; 
+      O     #A_19_A040Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_19_A097Z1.StTrue; 
+      O     #A_19_A097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_19_K091Z1.StTrue; 
+      O     #A_19_K091Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_19_S_H097Z1.StTrue; 
+      O     #A_19_S_H097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2801_SHE20.StTrue; 
+      O     #A_2801_SHE20.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2801_SHE21.StTrue; 
+      O     #A_2801_SHE21.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2801_SHE22.StTrue; 
+      O     #A_2801_SHE22.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2801_SHE23.StTrue; 
+      O     #A_2801_SHE23.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE01.StTrue; 
+      O     #A_2899_SHE01.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE02.StTrue; 
+      O     #A_2899_SHE02.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE03.StTrue; 
+      O     #A_2899_SHE03.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE04.StTrue; 
+      O     #A_2899_SHE04.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE05.StTrue; 
+      O     #A_2899_SHE05.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE06.StTrue; 
+      O     #A_2899_SHE06.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE08.StTrue; 
+      O     #A_2899_SHE08.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE20.StTrue; 
+      O     #A_2899_SHE20.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2899_SHE21.StTrue; 
+      O     #A_2899_SHE21.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A040Z1.StTrue; 
+      O     #A_28_A040Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A097Z1.StTrue; 
+      O     #A_28_A097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A098Z1.StTrue; 
+      O     #A_28_A098Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_K091Z1.StTrue; 
+      O     #A_28_K091Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_K738R1.StTrue; 
+      O     #A_28_K738R1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_K838R1.StTrue; 
+      O     #A_28_K838R1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_Q390Z1.StTrue; 
+      O     #A_28_Q390Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_Q445Z1.StTrue; 
+      O     #A_28_Q445Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_S_H097Z1.StTrue; 
+      O     #A_28_S_H097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A458Z1.StTrue; 
+      O     #A_28_A458Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_D1B065.StTrue; 
+      O     #A_28_D1B065.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A408Z1I1.StTrue; 
+      O     #A_28_A408Z1I1.StCtoFalse; 
+      )     ; 
+      U     #A_28_A408Z1O1.StStarted; 
+      U(    ; 
+      O     #A_28_A700Z1.StTrue; 
+      O     #A_28_A700Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_28_A800Z1.StTrue; 
+      O     #A_28_A800Z1.StCtoFalse; 
+      )     ; 
+      U(;
+      O     #A_28_A106Z1.StTrue; 
+      O     #A_28_A106Z1.StCtoFalse; 
+      );
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[14]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[14]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[14]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[14]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[14]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[14]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[14]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[14]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[14]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[14]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+
+
+DATA_BLOCK "G014G"
+TITLE =DBG014G  GENERAL ELEMENTS GERM 8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        GENERAL ELEMENTS GERM 8
+//                General group DB
+//                Allgemeine Gruppen-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//P01_DB114.1.0 K.Renz              CSB41             13.Jan.2010
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+NAME : DBG014G
+VERSION : 0.0
+
+"G014G_Code"
+BEGIN
+   Gr.FcCode := 0; 
+   Gr.Spare2 := 0; 
+   Gr.Spare4 := 0; 
+   Gr.Spare6 := 0; 
+   Gr.OutEmptyingTime := 0; 
+   Gr.ChangeBit.spare := B#16#0; 
+   Gr.ChangeBit.CBit1 := FALSE; 
+   Gr.ChangeBit.CBit2 := FALSE; 
+   Gr.ChangeBit.CBit3 := FALSE; 
+   Gr.ChangeBit.CBit4 := FALSE; 
+   Gr.StCode := 0; 
+   Gr.InEnableGr := FALSE; 
+   Gr.CmdContinue := FALSE; 
+   Gr.CmdRestartIdling := FALSE; 
+   Gr.InReleaseEmptyingTime := FALSE; 
+   Gr.InFeeding := FALSE; 
+   Gr.InOutAutostartMan := FALSE; 
+   Gr.InPreStart := FALSE; 
+   Gr.CmdManualOff := FALSE; 
+   Gr.CmdOff := FALSE; 
+   Gr.CmdOn := FALSE; 
+   Gr.CmdNext := FALSE; 
+   Gr.CmdFaultReset := FALSE; 
+   Gr.InOccupied := FALSE; 
+   Gr.InManual := FALSE; 
+   Gr.InLoadedSec := FALSE; 
+   Gr.InSeqStop := FALSE; 
+   Gr.ModePassive := FALSE; 
+   Gr.ModeActive := FALSE; 
+   Gr.ModeIdling := FALSE; 
+   Gr.spare163 := FALSE; 
+   Gr.spare164 := FALSE; 
+   Gr.spare165 := FALSE; 
+   Gr.spare166 := FALSE; 
+   Gr.spare167 := FALSE; 
+   Gr.StStopped := FALSE; 
+   Gr.StStarting := FALSE; 
+   Gr.StStarted := FALSE; 
+   Gr.StStopping := FALSE; 
+   Gr.StFault := FALSE; 
+   Gr.OutLoaded := FALSE; 
+   Gr.OutWarning := FALSE; 
+   Gr.OutFeeding := FALSE; 
+   Gr.OutEnableEl := FALSE; 
+   Gr.OutEnable1 := FALSE; 
+   Gr.OutHWStop := FALSE; 
+   Gr.OutDPFault := FALSE; 
+   Gr.OutAutostart := FALSE; 
+   Gr.OutManual := FALSE; 
+   Gr.OutHornOn := FALSE; 
+   Gr.OutEnablePrevGr := FALSE; 
+   Gr.VarStopped := FALSE; 
+   Gr.VarStarted := FALSE; 
+   Gr.VarFault := FALSE; 
+   Gr.VarStartwarning := FALSE; 
+   Gr.VarFlag1s := FALSE; 
+   Gr.OutEmptyingTimeDone := FALSE; 
+   Gr.OutNewWay := FALSE; 
+   Gr.OutSeqStop := FALSE; 
+   Gr.OutIdlingTime := 0; 
+   Gr.InCodePreselect := 0; 
+   Gr.InLine := 0; 
+   Gr.InCode := 0; 
+   Gr.OutCode := 0; 
+   Gr.Par.ParObjectNo := 1400; 
+   Gr.Par.ParMgr := FALSE; 
+   Gr.Par.ParWgr := FALSE; 
+   Gr.Par.ParGgr := TRUE; 
+   Gr.Par.ParHornCode := 9; 
+   Gr.Par.ParIdling := 0; 
+   Gr.Par.ParEmptyingTime := 0; 
+   Gr.Par.Para1_0 := FALSE; 
+   Gr.Par.Para1_1 := FALSE; 
+   Gr.Par.Para1_2 := FALSE; 
+   Gr.Par.Para1_3 := FALSE; 
+   Gr.Par.Para1_4 := FALSE; 
+   Gr.Par.Para1_5 := FALSE; 
+   Gr.Par.Para1_6 := FALSE; 
+   Gr.Par.Para1_7 := FALSE; 
+   Gr.Par.Para1_8 := FALSE; 
+   Gr.Par.Para1_9 := FALSE; 
+   Gr.Par.Para1_10 := FALSE; 
+   Gr.Par.Para1_11 := FALSE; 
+   Gr.Par.Para1_12 := FALSE; 
+   Gr.Par.Para1_13 := FALSE; 
+   Gr.Par.Para1_14 := FALSE; 
+   Gr.Par.Para1_15 := FALSE; 
+   Gr.Par.Para2 := 0; 
+   Gr.Par.Para3 := 0; 
+   Gr.Par.Para4 := 0; 
+   Gr.Par.Para5 := 0; 
+   InOutValue1 := L#0; 
+   InOutValue2 := L#0; 
+   OutWayConflict := FALSE; 
+   OutSelectionOk := FALSE; 
+   CmdNewValue := FALSE; 
+   CmdNewJob := FALSE; 
+   OutCodeOK := FALSE; 
+   InEndOfJob := FALSE; 
+   staWayOk := FALSE; 
+   EdgeStartRelease := FALSE; 
+   USW8 := FALSE; 
+   USW9 := FALSE; 
+   USW10 := FALSE; 
+   USW11 := FALSE; 
+   USW12 := FALSE; 
+   USW13 := FALSE; 
+   USW14 := FALSE; 
+   USW15 := FALSE; 
+   A_1999_SHE01.StCode := 0; 
+   A_1999_SHE01.InMonTrue := FALSE; 
+   A_1999_SHE01.InMonFalse := FALSE; 
+   A_1999_SHE01.InPreAlarmTrue := FALSE; 
+   A_1999_SHE01.InPreAlarmFalse := FALSE; 
+   A_1999_SHE01.InStopTrueTime := FALSE; 
+   A_1999_SHE01.InStopFalseTime := FALSE; 
+   A_1999_SHE01.InpTrue := FALSE; 
+   A_1999_SHE01.InpFaultDev := FALSE; 
+   A_1999_SHE01.CmdRstTrueTime := FALSE; 
+   A_1999_SHE01.CmdRstFalseTime := FALSE; 
+   A_1999_SHE01.CmdRunTimeoutTime := FALSE; 
+   A_1999_SHE01.CmdFaultReset := FALSE; 
+   A_1999_SHE01.InLocal := FALSE; 
+   A_1999_SHE01.spare0305 := FALSE; 
+   A_1999_SHE01.InReport := FALSE; 
+   A_1999_SHE01.OutTimeoutTime := FALSE; 
+   A_1999_SHE01.InHWStop := FALSE; 
+   A_1999_SHE01.InDPFault := FALSE; 
+   A_1999_SHE01.OutPreAlarmTrue := FALSE; 
+   A_1999_SHE01.OutPreAlarmFalse := FALSE; 
+   A_1999_SHE01.OutFlagPos := FALSE; 
+   A_1999_SHE01.OutFlagNeg := FALSE; 
+   A_1999_SHE01.OutpFaultReset := FALSE; 
+   A_1999_SHE01.OutTrue := FALSE; 
+   A_1999_SHE01.StFalse := FALSE; 
+   A_1999_SHE01.StCtoTrue := FALSE; 
+   A_1999_SHE01.StTrue := FALSE; 
+   A_1999_SHE01.StCtoFalse := FALSE; 
+   A_1999_SHE01.StFault := FALSE; 
+   A_1999_SHE01.OutAlarmNrLog := 0; 
+   A_1999_SHE01.Par.ParObjectNo := 1401; 
+   A_1999_SHE01.Par.ParMsgType := 7171; 
+   A_1999_SHE01.Par.ParHornCode := 2; 
+   A_1999_SHE01.Par.ParLogOff := FALSE; 
+   A_1999_SHE01.Par.spare0401 := FALSE; 
+   A_1999_SHE01.Par.Par2WorkingCond := FALSE; 
+   A_1999_SHE01.Par.ParFaultRetry := FALSE; 
+   A_1999_SHE01.Par.ParBinLevel := FALSE; 
+   A_1999_SHE01.Par.ParDelayChange := 0; 
+   A_1999_SHE01.Par.ParDelayTrue := 10; 
+   A_1999_SHE01.Par.ParDelayFalse := 0; 
+   A_1999_SHE01.Par.ParTimeoutTrue := 0; 
+   A_1999_SHE01.Par.ParTimeoutFalse := 0; 
+   A_1999_SHE01.Par.OutMonTime := 0; 
+   A_1999_SHE01.Par.OutTransitionTime := 0; 
+   A_1999_SHE01.Par.OutMonTrue := FALSE; 
+   A_1999_SHE01.Par.OutMonFalse := FALSE; 
+   A_1999_SHE01.Par.OutFlagFaultDev := FALSE; 
+   A_1999_SHE01.Par.OutDelayTime := 0; 
+   A_1999_SHE02.StCode := 0; 
+   A_1999_SHE02.InMonTrue := FALSE; 
+   A_1999_SHE02.InMonFalse := FALSE; 
+   A_1999_SHE02.InPreAlarmTrue := FALSE; 
+   A_1999_SHE02.InPreAlarmFalse := FALSE; 
+   A_1999_SHE02.InStopTrueTime := FALSE; 
+   A_1999_SHE02.InStopFalseTime := FALSE; 
+   A_1999_SHE02.InpTrue := FALSE; 
+   A_1999_SHE02.InpFaultDev := FALSE; 
+   A_1999_SHE02.CmdRstTrueTime := FALSE; 
+   A_1999_SHE02.CmdRstFalseTime := FALSE; 
+   A_1999_SHE02.CmdRunTimeoutTime := FALSE; 
+   A_1999_SHE02.CmdFaultReset := FALSE; 
+   A_1999_SHE02.InLocal := FALSE; 
+   A_1999_SHE02.spare0305 := FALSE; 
+   A_1999_SHE02.InReport := FALSE; 
+   A_1999_SHE02.OutTimeoutTime := FALSE; 
+   A_1999_SHE02.InHWStop := FALSE; 
+   A_1999_SHE02.InDPFault := FALSE; 
+   A_1999_SHE02.OutPreAlarmTrue := FALSE; 
+   A_1999_SHE02.OutPreAlarmFalse := FALSE; 
+   A_1999_SHE02.OutFlagPos := FALSE; 
+   A_1999_SHE02.OutFlagNeg := FALSE; 
+   A_1999_SHE02.OutpFaultReset := FALSE; 
+   A_1999_SHE02.OutTrue := FALSE; 
+   A_1999_SHE02.StFalse := FALSE; 
+   A_1999_SHE02.StCtoTrue := FALSE; 
+   A_1999_SHE02.StTrue := FALSE; 
+   A_1999_SHE02.StCtoFalse := FALSE; 
+   A_1999_SHE02.StFault := FALSE; 
+   A_1999_SHE02.OutAlarmNrLog := 0; 
+   A_1999_SHE02.Par.ParObjectNo := 1402; 
+   A_1999_SHE02.Par.ParMsgType := 7171; 
+   A_1999_SHE02.Par.ParHornCode := 2; 
+   A_1999_SHE02.Par.ParLogOff := FALSE; 
+   A_1999_SHE02.Par.spare0401 := FALSE; 
+   A_1999_SHE02.Par.Par2WorkingCond := FALSE; 
+   A_1999_SHE02.Par.ParFaultRetry := FALSE; 
+   A_1999_SHE02.Par.ParBinLevel := FALSE; 
+   A_1999_SHE02.Par.ParDelayChange := 0; 
+   A_1999_SHE02.Par.ParDelayTrue := 10; 
+   A_1999_SHE02.Par.ParDelayFalse := 0; 
+   A_1999_SHE02.Par.ParTimeoutTrue := 0; 
+   A_1999_SHE02.Par.ParTimeoutFalse := 0; 
+   A_1999_SHE02.Par.OutMonTime := 0; 
+   A_1999_SHE02.Par.OutTransitionTime := 0; 
+   A_1999_SHE02.Par.OutMonTrue := FALSE; 
+   A_1999_SHE02.Par.OutMonFalse := FALSE; 
+   A_1999_SHE02.Par.OutFlagFaultDev := FALSE; 
+   A_1999_SHE02.Par.OutDelayTime := 0; 
+   A_19_A040Z1.StCode := 0; 
+   A_19_A040Z1.InMonTrue := FALSE; 
+   A_19_A040Z1.InMonFalse := FALSE; 
+   A_19_A040Z1.InPreAlarmTrue := FALSE; 
+   A_19_A040Z1.InPreAlarmFalse := FALSE; 
+   A_19_A040Z1.InStopTrueTime := FALSE; 
+   A_19_A040Z1.InStopFalseTime := FALSE; 
+   A_19_A040Z1.InpTrue := FALSE; 
+   A_19_A040Z1.InpFaultDev := FALSE; 
+   A_19_A040Z1.CmdRstTrueTime := FALSE; 
+   A_19_A040Z1.CmdRstFalseTime := FALSE; 
+   A_19_A040Z1.CmdRunTimeoutTime := FALSE; 
+   A_19_A040Z1.CmdFaultReset := FALSE; 
+   A_19_A040Z1.InLocal := FALSE; 
+   A_19_A040Z1.spare0305 := FALSE; 
+   A_19_A040Z1.InReport := FALSE; 
+   A_19_A040Z1.OutTimeoutTime := FALSE; 
+   A_19_A040Z1.InHWStop := FALSE; 
+   A_19_A040Z1.InDPFault := FALSE; 
+   A_19_A040Z1.OutPreAlarmTrue := FALSE; 
+   A_19_A040Z1.OutPreAlarmFalse := FALSE; 
+   A_19_A040Z1.OutFlagPos := FALSE; 
+   A_19_A040Z1.OutFlagNeg := FALSE; 
+   A_19_A040Z1.OutpFaultReset := FALSE; 
+   A_19_A040Z1.OutTrue := FALSE; 
+   A_19_A040Z1.StFalse := FALSE; 
+   A_19_A040Z1.StCtoTrue := FALSE; 
+   A_19_A040Z1.StTrue := FALSE; 
+   A_19_A040Z1.StCtoFalse := FALSE; 
+   A_19_A040Z1.StFault := FALSE; 
+   A_19_A040Z1.OutAlarmNrLog := 0; 
+   A_19_A040Z1.Par.ParObjectNo := 1403; 
+   A_19_A040Z1.Par.ParMsgType := 7135; 
+   A_19_A040Z1.Par.ParHornCode := 2; 
+   A_19_A040Z1.Par.ParLogOff := FALSE; 
+   A_19_A040Z1.Par.spare0401 := FALSE; 
+   A_19_A040Z1.Par.Par2WorkingCond := FALSE; 
+   A_19_A040Z1.Par.ParFaultRetry := FALSE; 
+   A_19_A040Z1.Par.ParBinLevel := FALSE; 
+   A_19_A040Z1.Par.ParDelayChange := 0; 
+   A_19_A040Z1.Par.ParDelayTrue := 10; 
+   A_19_A040Z1.Par.ParDelayFalse := 0; 
+   A_19_A040Z1.Par.ParTimeoutTrue := 0; 
+   A_19_A040Z1.Par.ParTimeoutFalse := 0; 
+   A_19_A040Z1.Par.OutMonTime := 0; 
+   A_19_A040Z1.Par.OutTransitionTime := 0; 
+   A_19_A040Z1.Par.OutMonTrue := FALSE; 
+   A_19_A040Z1.Par.OutMonFalse := FALSE; 
+   A_19_A040Z1.Par.OutFlagFaultDev := FALSE; 
+   A_19_A040Z1.Par.OutDelayTime := 0; 
+   A_19_A097Z1.StCode := 0; 
+   A_19_A097Z1.InMonTrue := FALSE; 
+   A_19_A097Z1.InMonFalse := FALSE; 
+   A_19_A097Z1.InPreAlarmTrue := FALSE; 
+   A_19_A097Z1.InPreAlarmFalse := FALSE; 
+   A_19_A097Z1.InStopTrueTime := FALSE; 
+   A_19_A097Z1.InStopFalseTime := FALSE; 
+   A_19_A097Z1.InpTrue := FALSE; 
+   A_19_A097Z1.InpFaultDev := FALSE; 
+   A_19_A097Z1.CmdRstTrueTime := FALSE; 
+   A_19_A097Z1.CmdRstFalseTime := FALSE; 
+   A_19_A097Z1.CmdRunTimeoutTime := FALSE; 
+   A_19_A097Z1.CmdFaultReset := FALSE; 
+   A_19_A097Z1.InLocal := FALSE; 
+   A_19_A097Z1.spare0305 := FALSE; 
+   A_19_A097Z1.InReport := FALSE; 
+   A_19_A097Z1.OutTimeoutTime := FALSE; 
+   A_19_A097Z1.InHWStop := FALSE; 
+   A_19_A097Z1.InDPFault := FALSE; 
+   A_19_A097Z1.OutPreAlarmTrue := FALSE; 
+   A_19_A097Z1.OutPreAlarmFalse := FALSE; 
+   A_19_A097Z1.OutFlagPos := FALSE; 
+   A_19_A097Z1.OutFlagNeg := FALSE; 
+   A_19_A097Z1.OutpFaultReset := FALSE; 
+   A_19_A097Z1.OutTrue := FALSE; 
+   A_19_A097Z1.StFalse := FALSE; 
+   A_19_A097Z1.StCtoTrue := FALSE; 
+   A_19_A097Z1.StTrue := FALSE; 
+   A_19_A097Z1.StCtoFalse := FALSE; 
+   A_19_A097Z1.StFault := FALSE; 
+   A_19_A097Z1.OutAlarmNrLog := 0; 
+   A_19_A097Z1.Par.ParObjectNo := 1404; 
+   A_19_A097Z1.Par.ParMsgType := 7171; 
+   A_19_A097Z1.Par.ParHornCode := 2; 
+   A_19_A097Z1.Par.ParLogOff := FALSE; 
+   A_19_A097Z1.Par.spare0401 := FALSE; 
+   A_19_A097Z1.Par.Par2WorkingCond := FALSE; 
+   A_19_A097Z1.Par.ParFaultRetry := FALSE; 
+   A_19_A097Z1.Par.ParBinLevel := FALSE; 
+   A_19_A097Z1.Par.ParDelayChange := 0; 
+   A_19_A097Z1.Par.ParDelayTrue := 10; 
+   A_19_A097Z1.Par.ParDelayFalse := 0; 
+   A_19_A097Z1.Par.ParTimeoutTrue := 0; 
+   A_19_A097Z1.Par.ParTimeoutFalse := 0; 
+   A_19_A097Z1.Par.OutMonTime := 0; 
+   A_19_A097Z1.Par.OutTransitionTime := 0; 
+   A_19_A097Z1.Par.OutMonTrue := FALSE; 
+   A_19_A097Z1.Par.OutMonFalse := FALSE; 
+   A_19_A097Z1.Par.OutFlagFaultDev := FALSE; 
+   A_19_A097Z1.Par.OutDelayTime := 0; 
+   A_19_K091Z1.StCode := 0; 
+   A_19_K091Z1.InMonTrue := FALSE; 
+   A_19_K091Z1.InMonFalse := FALSE; 
+   A_19_K091Z1.InPreAlarmTrue := FALSE; 
+   A_19_K091Z1.InPreAlarmFalse := FALSE; 
+   A_19_K091Z1.InStopTrueTime := FALSE; 
+   A_19_K091Z1.InStopFalseTime := FALSE; 
+   A_19_K091Z1.InpTrue := FALSE; 
+   A_19_K091Z1.InpFaultDev := FALSE; 
+   A_19_K091Z1.CmdRstTrueTime := FALSE; 
+   A_19_K091Z1.CmdRstFalseTime := FALSE; 
+   A_19_K091Z1.CmdRunTimeoutTime := FALSE; 
+   A_19_K091Z1.CmdFaultReset := FALSE; 
+   A_19_K091Z1.InLocal := FALSE; 
+   A_19_K091Z1.spare0305 := FALSE; 
+   A_19_K091Z1.InReport := FALSE; 
+   A_19_K091Z1.OutTimeoutTime := FALSE; 
+   A_19_K091Z1.InHWStop := FALSE; 
+   A_19_K091Z1.InDPFault := FALSE; 
+   A_19_K091Z1.OutPreAlarmTrue := FALSE; 
+   A_19_K091Z1.OutPreAlarmFalse := FALSE; 
+   A_19_K091Z1.OutFlagPos := FALSE; 
+   A_19_K091Z1.OutFlagNeg := FALSE; 
+   A_19_K091Z1.OutpFaultReset := FALSE; 
+   A_19_K091Z1.OutTrue := FALSE; 
+   A_19_K091Z1.StFalse := FALSE; 
+   A_19_K091Z1.StCtoTrue := FALSE; 
+   A_19_K091Z1.StTrue := FALSE; 
+   A_19_K091Z1.StCtoFalse := FALSE; 
+   A_19_K091Z1.StFault := FALSE; 
+   A_19_K091Z1.OutAlarmNrLog := 0; 
+   A_19_K091Z1.Par.ParObjectNo := 1405; 
+   A_19_K091Z1.Par.ParMsgType := 7135; 
+   A_19_K091Z1.Par.ParHornCode := 2; 
+   A_19_K091Z1.Par.ParLogOff := FALSE; 
+   A_19_K091Z1.Par.spare0401 := FALSE; 
+   A_19_K091Z1.Par.Par2WorkingCond := FALSE; 
+   A_19_K091Z1.Par.ParFaultRetry := FALSE; 
+   A_19_K091Z1.Par.ParBinLevel := FALSE; 
+   A_19_K091Z1.Par.ParDelayChange := 0; 
+   A_19_K091Z1.Par.ParDelayTrue := 10; 
+   A_19_K091Z1.Par.ParDelayFalse := 0; 
+   A_19_K091Z1.Par.ParTimeoutTrue := 0; 
+   A_19_K091Z1.Par.ParTimeoutFalse := 0; 
+   A_19_K091Z1.Par.OutMonTime := 0; 
+   A_19_K091Z1.Par.OutTransitionTime := 0; 
+   A_19_K091Z1.Par.OutMonTrue := FALSE; 
+   A_19_K091Z1.Par.OutMonFalse := FALSE; 
+   A_19_K091Z1.Par.OutFlagFaultDev := FALSE; 
+   A_19_K091Z1.Par.OutDelayTime := 0; 
+   A_19_S_H097Z1.StCode := 0; 
+   A_19_S_H097Z1.InMonTrue := FALSE; 
+   A_19_S_H097Z1.InMonFalse := FALSE; 
+   A_19_S_H097Z1.InPreAlarmTrue := FALSE; 
+   A_19_S_H097Z1.InPreAlarmFalse := FALSE; 
+   A_19_S_H097Z1.InStopTrueTime := FALSE; 
+   A_19_S_H097Z1.InStopFalseTime := FALSE; 
+   A_19_S_H097Z1.InpTrue := FALSE; 
+   A_19_S_H097Z1.InpFaultDev := FALSE; 
+   A_19_S_H097Z1.CmdRstTrueTime := FALSE; 
+   A_19_S_H097Z1.CmdRstFalseTime := FALSE; 
+   A_19_S_H097Z1.CmdRunTimeoutTime := FALSE; 
+   A_19_S_H097Z1.CmdFaultReset := FALSE; 
+   A_19_S_H097Z1.InLocal := FALSE; 
+   A_19_S_H097Z1.spare0305 := FALSE; 
+   A_19_S_H097Z1.InReport := FALSE; 
+   A_19_S_H097Z1.OutTimeoutTime := FALSE; 
+   A_19_S_H097Z1.InHWStop := FALSE; 
+   A_19_S_H097Z1.InDPFault := FALSE; 
+   A_19_S_H097Z1.OutPreAlarmTrue := FALSE; 
+   A_19_S_H097Z1.OutPreAlarmFalse := FALSE; 
+   A_19_S_H097Z1.OutFlagPos := FALSE; 
+   A_19_S_H097Z1.OutFlagNeg := FALSE; 
+   A_19_S_H097Z1.OutpFaultReset := FALSE; 
+   A_19_S_H097Z1.OutTrue := FALSE; 
+   A_19_S_H097Z1.StFalse := FALSE; 
+   A_19_S_H097Z1.StCtoTrue := FALSE; 
+   A_19_S_H097Z1.StTrue := FALSE; 
+   A_19_S_H097Z1.StCtoFalse := FALSE; 
+   A_19_S_H097Z1.StFault := FALSE; 
+   A_19_S_H097Z1.OutAlarmNrLog := 0; 
+   A_19_S_H097Z1.Par.ParObjectNo := 1406; 
+   A_19_S_H097Z1.Par.ParMsgType := 7154; 
+   A_19_S_H097Z1.Par.ParHornCode := 2; 
+   A_19_S_H097Z1.Par.ParLogOff := FALSE; 
+   A_19_S_H097Z1.Par.spare0401 := FALSE; 
+   A_19_S_H097Z1.Par.Par2WorkingCond := FALSE; 
+   A_19_S_H097Z1.Par.ParFaultRetry := FALSE; 
+   A_19_S_H097Z1.Par.ParBinLevel := FALSE; 
+   A_19_S_H097Z1.Par.ParDelayChange := 0; 
+   A_19_S_H097Z1.Par.ParDelayTrue := 10; 
+   A_19_S_H097Z1.Par.ParDelayFalse := 0; 
+   A_19_S_H097Z1.Par.ParTimeoutTrue := 0; 
+   A_19_S_H097Z1.Par.ParTimeoutFalse := 0; 
+   A_19_S_H097Z1.Par.OutMonTime := 0; 
+   A_19_S_H097Z1.Par.OutTransitionTime := 0; 
+   A_19_S_H097Z1.Par.OutMonTrue := FALSE; 
+   A_19_S_H097Z1.Par.OutMonFalse := FALSE; 
+   A_19_S_H097Z1.Par.OutFlagFaultDev := FALSE; 
+   A_19_S_H097Z1.Par.OutDelayTime := 0; 
+   A_2801_SHE20.StCode := 0; 
+   A_2801_SHE20.InMonTrue := FALSE; 
+   A_2801_SHE20.InMonFalse := FALSE; 
+   A_2801_SHE20.InPreAlarmTrue := FALSE; 
+   A_2801_SHE20.InPreAlarmFalse := FALSE; 
+   A_2801_SHE20.InStopTrueTime := FALSE; 
+   A_2801_SHE20.InStopFalseTime := FALSE; 
+   A_2801_SHE20.InpTrue := FALSE; 
+   A_2801_SHE20.InpFaultDev := FALSE; 
+   A_2801_SHE20.CmdRstTrueTime := FALSE; 
+   A_2801_SHE20.CmdRstFalseTime := FALSE; 
+   A_2801_SHE20.CmdRunTimeoutTime := FALSE; 
+   A_2801_SHE20.CmdFaultReset := FALSE; 
+   A_2801_SHE20.InLocal := FALSE; 
+   A_2801_SHE20.spare0305 := FALSE; 
+   A_2801_SHE20.InReport := FALSE; 
+   A_2801_SHE20.OutTimeoutTime := FALSE; 
+   A_2801_SHE20.InHWStop := FALSE; 
+   A_2801_SHE20.InDPFault := FALSE; 
+   A_2801_SHE20.OutPreAlarmTrue := FALSE; 
+   A_2801_SHE20.OutPreAlarmFalse := FALSE; 
+   A_2801_SHE20.OutFlagPos := FALSE; 
+   A_2801_SHE20.OutFlagNeg := FALSE; 
+   A_2801_SHE20.OutpFaultReset := FALSE; 
+   A_2801_SHE20.OutTrue := FALSE; 
+   A_2801_SHE20.StFalse := FALSE; 
+   A_2801_SHE20.StCtoTrue := FALSE; 
+   A_2801_SHE20.StTrue := FALSE; 
+   A_2801_SHE20.StCtoFalse := FALSE; 
+   A_2801_SHE20.StFault := FALSE; 
+   A_2801_SHE20.OutAlarmNrLog := 0; 
+   A_2801_SHE20.Par.ParObjectNo := 1407; 
+   A_2801_SHE20.Par.ParMsgType := 7171; 
+   A_2801_SHE20.Par.ParHornCode := 9; 
+   A_2801_SHE20.Par.ParLogOff := FALSE; 
+   A_2801_SHE20.Par.spare0401 := FALSE; 
+   A_2801_SHE20.Par.Par2WorkingCond := FALSE; 
+   A_2801_SHE20.Par.ParFaultRetry := FALSE; 
+   A_2801_SHE20.Par.ParBinLevel := FALSE; 
+   A_2801_SHE20.Par.ParDelayChange := 0; 
+   A_2801_SHE20.Par.ParDelayTrue := 10; 
+   A_2801_SHE20.Par.ParDelayFalse := 0; 
+   A_2801_SHE20.Par.ParTimeoutTrue := 0; 
+   A_2801_SHE20.Par.ParTimeoutFalse := 0; 
+   A_2801_SHE20.Par.OutMonTime := 0; 
+   A_2801_SHE20.Par.OutTransitionTime := 0; 
+   A_2801_SHE20.Par.OutMonTrue := FALSE; 
+   A_2801_SHE20.Par.OutMonFalse := FALSE; 
+   A_2801_SHE20.Par.OutFlagFaultDev := FALSE; 
+   A_2801_SHE20.Par.OutDelayTime := 0; 
+   A_2801_SHE21.StCode := 0; 
+   A_2801_SHE21.InMonTrue := FALSE; 
+   A_2801_SHE21.InMonFalse := FALSE; 
+   A_2801_SHE21.InPreAlarmTrue := FALSE; 
+   A_2801_SHE21.InPreAlarmFalse := FALSE; 
+   A_2801_SHE21.InStopTrueTime := FALSE; 
+   A_2801_SHE21.InStopFalseTime := FALSE; 
+   A_2801_SHE21.InpTrue := FALSE; 
+   A_2801_SHE21.InpFaultDev := FALSE; 
+   A_2801_SHE21.CmdRstTrueTime := FALSE; 
+   A_2801_SHE21.CmdRstFalseTime := FALSE; 
+   A_2801_SHE21.CmdRunTimeoutTime := FALSE; 
+   A_2801_SHE21.CmdFaultReset := FALSE; 
+   A_2801_SHE21.InLocal := FALSE; 
+   A_2801_SHE21.spare0305 := FALSE; 
+   A_2801_SHE21.InReport := FALSE; 
+   A_2801_SHE21.OutTimeoutTime := FALSE; 
+   A_2801_SHE21.InHWStop := FALSE; 
+   A_2801_SHE21.InDPFault := FALSE; 
+   A_2801_SHE21.OutPreAlarmTrue := FALSE; 
+   A_2801_SHE21.OutPreAlarmFalse := FALSE; 
+   A_2801_SHE21.OutFlagPos := FALSE; 
+   A_2801_SHE21.OutFlagNeg := FALSE; 
+   A_2801_SHE21.OutpFaultReset := FALSE; 
+   A_2801_SHE21.OutTrue := FALSE; 
+   A_2801_SHE21.StFalse := FALSE; 
+   A_2801_SHE21.StCtoTrue := FALSE; 
+   A_2801_SHE21.StTrue := FALSE; 
+   A_2801_SHE21.StCtoFalse := FALSE; 
+   A_2801_SHE21.StFault := FALSE; 
+   A_2801_SHE21.OutAlarmNrLog := 0; 
+   A_2801_SHE21.Par.ParObjectNo := 1408; 
+   A_2801_SHE21.Par.ParMsgType := 7171; 
+   A_2801_SHE21.Par.ParHornCode := 9; 
+   A_2801_SHE21.Par.ParLogOff := FALSE; 
+   A_2801_SHE21.Par.spare0401 := FALSE; 
+   A_2801_SHE21.Par.Par2WorkingCond := FALSE; 
+   A_2801_SHE21.Par.ParFaultRetry := FALSE; 
+   A_2801_SHE21.Par.ParBinLevel := FALSE; 
+   A_2801_SHE21.Par.ParDelayChange := 0; 
+   A_2801_SHE21.Par.ParDelayTrue := 10; 
+   A_2801_SHE21.Par.ParDelayFalse := 0; 
+   A_2801_SHE21.Par.ParTimeoutTrue := 0; 
+   A_2801_SHE21.Par.ParTimeoutFalse := 0; 
+   A_2801_SHE21.Par.OutMonTime := 0; 
+   A_2801_SHE21.Par.OutTransitionTime := 0; 
+   A_2801_SHE21.Par.OutMonTrue := FALSE; 
+   A_2801_SHE21.Par.OutMonFalse := FALSE; 
+   A_2801_SHE21.Par.OutFlagFaultDev := FALSE; 
+   A_2801_SHE21.Par.OutDelayTime := 0; 
+   A_2801_SHE22.StCode := 0; 
+   A_2801_SHE22.InMonTrue := FALSE; 
+   A_2801_SHE22.InMonFalse := FALSE; 
+   A_2801_SHE22.InPreAlarmTrue := FALSE; 
+   A_2801_SHE22.InPreAlarmFalse := FALSE; 
+   A_2801_SHE22.InStopTrueTime := FALSE; 
+   A_2801_SHE22.InStopFalseTime := FALSE; 
+   A_2801_SHE22.InpTrue := FALSE; 
+   A_2801_SHE22.InpFaultDev := FALSE; 
+   A_2801_SHE22.CmdRstTrueTime := FALSE; 
+   A_2801_SHE22.CmdRstFalseTime := FALSE; 
+   A_2801_SHE22.CmdRunTimeoutTime := FALSE; 
+   A_2801_SHE22.CmdFaultReset := FALSE; 
+   A_2801_SHE22.InLocal := FALSE; 
+   A_2801_SHE22.spare0305 := FALSE; 
+   A_2801_SHE22.InReport := FALSE; 
+   A_2801_SHE22.OutTimeoutTime := FALSE; 
+   A_2801_SHE22.InHWStop := FALSE; 
+   A_2801_SHE22.InDPFault := FALSE; 
+   A_2801_SHE22.OutPreAlarmTrue := FALSE; 
+   A_2801_SHE22.OutPreAlarmFalse := FALSE; 
+   A_2801_SHE22.OutFlagPos := FALSE; 
+   A_2801_SHE22.OutFlagNeg := FALSE; 
+   A_2801_SHE22.OutpFaultReset := FALSE; 
+   A_2801_SHE22.OutTrue := FALSE; 
+   A_2801_SHE22.StFalse := FALSE; 
+   A_2801_SHE22.StCtoTrue := FALSE; 
+   A_2801_SHE22.StTrue := FALSE; 
+   A_2801_SHE22.StCtoFalse := FALSE; 
+   A_2801_SHE22.StFault := FALSE; 
+   A_2801_SHE22.OutAlarmNrLog := 0; 
+   A_2801_SHE22.Par.ParObjectNo := 1409; 
+   A_2801_SHE22.Par.ParMsgType := 7171; 
+   A_2801_SHE22.Par.ParHornCode := 9; 
+   A_2801_SHE22.Par.ParLogOff := FALSE; 
+   A_2801_SHE22.Par.spare0401 := FALSE; 
+   A_2801_SHE22.Par.Par2WorkingCond := FALSE; 
+   A_2801_SHE22.Par.ParFaultRetry := FALSE; 
+   A_2801_SHE22.Par.ParBinLevel := FALSE; 
+   A_2801_SHE22.Par.ParDelayChange := 0; 
+   A_2801_SHE22.Par.ParDelayTrue := 10; 
+   A_2801_SHE22.Par.ParDelayFalse := 0; 
+   A_2801_SHE22.Par.ParTimeoutTrue := 0; 
+   A_2801_SHE22.Par.ParTimeoutFalse := 0; 
+   A_2801_SHE22.Par.OutMonTime := 0; 
+   A_2801_SHE22.Par.OutTransitionTime := 0; 
+   A_2801_SHE22.Par.OutMonTrue := FALSE; 
+   A_2801_SHE22.Par.OutMonFalse := FALSE; 
+   A_2801_SHE22.Par.OutFlagFaultDev := FALSE; 
+   A_2801_SHE22.Par.OutDelayTime := 0; 
+   A_2801_SHE23.StCode := 0; 
+   A_2801_SHE23.InMonTrue := FALSE; 
+   A_2801_SHE23.InMonFalse := FALSE; 
+   A_2801_SHE23.InPreAlarmTrue := FALSE; 
+   A_2801_SHE23.InPreAlarmFalse := FALSE; 
+   A_2801_SHE23.InStopTrueTime := FALSE; 
+   A_2801_SHE23.InStopFalseTime := FALSE; 
+   A_2801_SHE23.InpTrue := FALSE; 
+   A_2801_SHE23.InpFaultDev := FALSE; 
+   A_2801_SHE23.CmdRstTrueTime := FALSE; 
+   A_2801_SHE23.CmdRstFalseTime := FALSE; 
+   A_2801_SHE23.CmdRunTimeoutTime := FALSE; 
+   A_2801_SHE23.CmdFaultReset := FALSE; 
+   A_2801_SHE23.InLocal := FALSE; 
+   A_2801_SHE23.spare0305 := FALSE; 
+   A_2801_SHE23.InReport := FALSE; 
+   A_2801_SHE23.OutTimeoutTime := FALSE; 
+   A_2801_SHE23.InHWStop := FALSE; 
+   A_2801_SHE23.InDPFault := FALSE; 
+   A_2801_SHE23.OutPreAlarmTrue := FALSE; 
+   A_2801_SHE23.OutPreAlarmFalse := FALSE; 
+   A_2801_SHE23.OutFlagPos := FALSE; 
+   A_2801_SHE23.OutFlagNeg := FALSE; 
+   A_2801_SHE23.OutpFaultReset := FALSE; 
+   A_2801_SHE23.OutTrue := FALSE; 
+   A_2801_SHE23.StFalse := FALSE; 
+   A_2801_SHE23.StCtoTrue := FALSE; 
+   A_2801_SHE23.StTrue := FALSE; 
+   A_2801_SHE23.StCtoFalse := FALSE; 
+   A_2801_SHE23.StFault := FALSE; 
+   A_2801_SHE23.OutAlarmNrLog := 0; 
+   A_2801_SHE23.Par.ParObjectNo := 1410; 
+   A_2801_SHE23.Par.ParMsgType := 7171; 
+   A_2801_SHE23.Par.ParHornCode := 9; 
+   A_2801_SHE23.Par.ParLogOff := FALSE; 
+   A_2801_SHE23.Par.spare0401 := FALSE; 
+   A_2801_SHE23.Par.Par2WorkingCond := FALSE; 
+   A_2801_SHE23.Par.ParFaultRetry := FALSE; 
+   A_2801_SHE23.Par.ParBinLevel := FALSE; 
+   A_2801_SHE23.Par.ParDelayChange := 0; 
+   A_2801_SHE23.Par.ParDelayTrue := 10; 
+   A_2801_SHE23.Par.ParDelayFalse := 0; 
+   A_2801_SHE23.Par.ParTimeoutTrue := 0; 
+   A_2801_SHE23.Par.ParTimeoutFalse := 0; 
+   A_2801_SHE23.Par.OutMonTime := 0; 
+   A_2801_SHE23.Par.OutTransitionTime := 0; 
+   A_2801_SHE23.Par.OutMonTrue := FALSE; 
+   A_2801_SHE23.Par.OutMonFalse := FALSE; 
+   A_2801_SHE23.Par.OutFlagFaultDev := FALSE; 
+   A_2801_SHE23.Par.OutDelayTime := 0; 
+   A_2899_SHE01.StCode := 0; 
+   A_2899_SHE01.InMonTrue := FALSE; 
+   A_2899_SHE01.InMonFalse := FALSE; 
+   A_2899_SHE01.InPreAlarmTrue := FALSE; 
+   A_2899_SHE01.InPreAlarmFalse := FALSE; 
+   A_2899_SHE01.InStopTrueTime := FALSE; 
+   A_2899_SHE01.InStopFalseTime := FALSE; 
+   A_2899_SHE01.InpTrue := FALSE; 
+   A_2899_SHE01.InpFaultDev := FALSE; 
+   A_2899_SHE01.CmdRstTrueTime := FALSE; 
+   A_2899_SHE01.CmdRstFalseTime := FALSE; 
+   A_2899_SHE01.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE01.CmdFaultReset := FALSE; 
+   A_2899_SHE01.InLocal := FALSE; 
+   A_2899_SHE01.spare0305 := FALSE; 
+   A_2899_SHE01.InReport := FALSE; 
+   A_2899_SHE01.OutTimeoutTime := FALSE; 
+   A_2899_SHE01.InHWStop := FALSE; 
+   A_2899_SHE01.InDPFault := FALSE; 
+   A_2899_SHE01.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE01.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE01.OutFlagPos := FALSE; 
+   A_2899_SHE01.OutFlagNeg := FALSE; 
+   A_2899_SHE01.OutpFaultReset := FALSE; 
+   A_2899_SHE01.OutTrue := FALSE; 
+   A_2899_SHE01.StFalse := FALSE; 
+   A_2899_SHE01.StCtoTrue := FALSE; 
+   A_2899_SHE01.StTrue := FALSE; 
+   A_2899_SHE01.StCtoFalse := FALSE; 
+   A_2899_SHE01.StFault := FALSE; 
+   A_2899_SHE01.OutAlarmNrLog := 0; 
+   A_2899_SHE01.Par.ParObjectNo := 1411; 
+   A_2899_SHE01.Par.ParMsgType := 7171; 
+   A_2899_SHE01.Par.ParHornCode := 9; 
+   A_2899_SHE01.Par.ParLogOff := FALSE; 
+   A_2899_SHE01.Par.spare0401 := FALSE; 
+   A_2899_SHE01.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE01.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE01.Par.ParBinLevel := FALSE; 
+   A_2899_SHE01.Par.ParDelayChange := 0; 
+   A_2899_SHE01.Par.ParDelayTrue := 10; 
+   A_2899_SHE01.Par.ParDelayFalse := 0; 
+   A_2899_SHE01.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE01.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE01.Par.OutMonTime := 0; 
+   A_2899_SHE01.Par.OutTransitionTime := 0; 
+   A_2899_SHE01.Par.OutMonTrue := FALSE; 
+   A_2899_SHE01.Par.OutMonFalse := FALSE; 
+   A_2899_SHE01.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE01.Par.OutDelayTime := 0; 
+   A_2899_SHE02.StCode := 0; 
+   A_2899_SHE02.InMonTrue := FALSE; 
+   A_2899_SHE02.InMonFalse := FALSE; 
+   A_2899_SHE02.InPreAlarmTrue := FALSE; 
+   A_2899_SHE02.InPreAlarmFalse := FALSE; 
+   A_2899_SHE02.InStopTrueTime := FALSE; 
+   A_2899_SHE02.InStopFalseTime := FALSE; 
+   A_2899_SHE02.InpTrue := FALSE; 
+   A_2899_SHE02.InpFaultDev := FALSE; 
+   A_2899_SHE02.CmdRstTrueTime := FALSE; 
+   A_2899_SHE02.CmdRstFalseTime := FALSE; 
+   A_2899_SHE02.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE02.CmdFaultReset := FALSE; 
+   A_2899_SHE02.InLocal := FALSE; 
+   A_2899_SHE02.spare0305 := FALSE; 
+   A_2899_SHE02.InReport := FALSE; 
+   A_2899_SHE02.OutTimeoutTime := FALSE; 
+   A_2899_SHE02.InHWStop := FALSE; 
+   A_2899_SHE02.InDPFault := FALSE; 
+   A_2899_SHE02.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE02.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE02.OutFlagPos := FALSE; 
+   A_2899_SHE02.OutFlagNeg := FALSE; 
+   A_2899_SHE02.OutpFaultReset := FALSE; 
+   A_2899_SHE02.OutTrue := FALSE; 
+   A_2899_SHE02.StFalse := FALSE; 
+   A_2899_SHE02.StCtoTrue := FALSE; 
+   A_2899_SHE02.StTrue := FALSE; 
+   A_2899_SHE02.StCtoFalse := FALSE; 
+   A_2899_SHE02.StFault := FALSE; 
+   A_2899_SHE02.OutAlarmNrLog := 0; 
+   A_2899_SHE02.Par.ParObjectNo := 1412; 
+   A_2899_SHE02.Par.ParMsgType := 7171; 
+   A_2899_SHE02.Par.ParHornCode := 9; 
+   A_2899_SHE02.Par.ParLogOff := FALSE; 
+   A_2899_SHE02.Par.spare0401 := FALSE; 
+   A_2899_SHE02.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE02.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE02.Par.ParBinLevel := FALSE; 
+   A_2899_SHE02.Par.ParDelayChange := 0; 
+   A_2899_SHE02.Par.ParDelayTrue := 10; 
+   A_2899_SHE02.Par.ParDelayFalse := 0; 
+   A_2899_SHE02.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE02.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE02.Par.OutMonTime := 0; 
+   A_2899_SHE02.Par.OutTransitionTime := 0; 
+   A_2899_SHE02.Par.OutMonTrue := FALSE; 
+   A_2899_SHE02.Par.OutMonFalse := FALSE; 
+   A_2899_SHE02.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE02.Par.OutDelayTime := 0; 
+   A_2899_SHE03.StCode := 0; 
+   A_2899_SHE03.InMonTrue := FALSE; 
+   A_2899_SHE03.InMonFalse := FALSE; 
+   A_2899_SHE03.InPreAlarmTrue := FALSE; 
+   A_2899_SHE03.InPreAlarmFalse := FALSE; 
+   A_2899_SHE03.InStopTrueTime := FALSE; 
+   A_2899_SHE03.InStopFalseTime := FALSE; 
+   A_2899_SHE03.InpTrue := FALSE; 
+   A_2899_SHE03.InpFaultDev := FALSE; 
+   A_2899_SHE03.CmdRstTrueTime := FALSE; 
+   A_2899_SHE03.CmdRstFalseTime := FALSE; 
+   A_2899_SHE03.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE03.CmdFaultReset := FALSE; 
+   A_2899_SHE03.InLocal := FALSE; 
+   A_2899_SHE03.spare0305 := FALSE; 
+   A_2899_SHE03.InReport := FALSE; 
+   A_2899_SHE03.OutTimeoutTime := FALSE; 
+   A_2899_SHE03.InHWStop := FALSE; 
+   A_2899_SHE03.InDPFault := FALSE; 
+   A_2899_SHE03.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE03.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE03.OutFlagPos := FALSE; 
+   A_2899_SHE03.OutFlagNeg := FALSE; 
+   A_2899_SHE03.OutpFaultReset := FALSE; 
+   A_2899_SHE03.OutTrue := FALSE; 
+   A_2899_SHE03.StFalse := FALSE; 
+   A_2899_SHE03.StCtoTrue := FALSE; 
+   A_2899_SHE03.StTrue := FALSE; 
+   A_2899_SHE03.StCtoFalse := FALSE; 
+   A_2899_SHE03.StFault := FALSE; 
+   A_2899_SHE03.OutAlarmNrLog := 0; 
+   A_2899_SHE03.Par.ParObjectNo := 1413; 
+   A_2899_SHE03.Par.ParMsgType := 7171; 
+   A_2899_SHE03.Par.ParHornCode := 9; 
+   A_2899_SHE03.Par.ParLogOff := FALSE; 
+   A_2899_SHE03.Par.spare0401 := FALSE; 
+   A_2899_SHE03.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE03.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE03.Par.ParBinLevel := FALSE; 
+   A_2899_SHE03.Par.ParDelayChange := 0; 
+   A_2899_SHE03.Par.ParDelayTrue := 10; 
+   A_2899_SHE03.Par.ParDelayFalse := 0; 
+   A_2899_SHE03.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE03.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE03.Par.OutMonTime := 0; 
+   A_2899_SHE03.Par.OutTransitionTime := 0; 
+   A_2899_SHE03.Par.OutMonTrue := FALSE; 
+   A_2899_SHE03.Par.OutMonFalse := FALSE; 
+   A_2899_SHE03.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE03.Par.OutDelayTime := 0; 
+   A_2899_SHE04.StCode := 0; 
+   A_2899_SHE04.InMonTrue := FALSE; 
+   A_2899_SHE04.InMonFalse := FALSE; 
+   A_2899_SHE04.InPreAlarmTrue := FALSE; 
+   A_2899_SHE04.InPreAlarmFalse := FALSE; 
+   A_2899_SHE04.InStopTrueTime := FALSE; 
+   A_2899_SHE04.InStopFalseTime := FALSE; 
+   A_2899_SHE04.InpTrue := FALSE; 
+   A_2899_SHE04.InpFaultDev := FALSE; 
+   A_2899_SHE04.CmdRstTrueTime := FALSE; 
+   A_2899_SHE04.CmdRstFalseTime := FALSE; 
+   A_2899_SHE04.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE04.CmdFaultReset := FALSE; 
+   A_2899_SHE04.InLocal := FALSE; 
+   A_2899_SHE04.spare0305 := FALSE; 
+   A_2899_SHE04.InReport := FALSE; 
+   A_2899_SHE04.OutTimeoutTime := FALSE; 
+   A_2899_SHE04.InHWStop := FALSE; 
+   A_2899_SHE04.InDPFault := FALSE; 
+   A_2899_SHE04.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE04.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE04.OutFlagPos := FALSE; 
+   A_2899_SHE04.OutFlagNeg := FALSE; 
+   A_2899_SHE04.OutpFaultReset := FALSE; 
+   A_2899_SHE04.OutTrue := FALSE; 
+   A_2899_SHE04.StFalse := FALSE; 
+   A_2899_SHE04.StCtoTrue := FALSE; 
+   A_2899_SHE04.StTrue := FALSE; 
+   A_2899_SHE04.StCtoFalse := FALSE; 
+   A_2899_SHE04.StFault := FALSE; 
+   A_2899_SHE04.OutAlarmNrLog := 0; 
+   A_2899_SHE04.Par.ParObjectNo := 1414; 
+   A_2899_SHE04.Par.ParMsgType := 7171; 
+   A_2899_SHE04.Par.ParHornCode := 9; 
+   A_2899_SHE04.Par.ParLogOff := FALSE; 
+   A_2899_SHE04.Par.spare0401 := FALSE; 
+   A_2899_SHE04.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE04.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE04.Par.ParBinLevel := FALSE; 
+   A_2899_SHE04.Par.ParDelayChange := 0; 
+   A_2899_SHE04.Par.ParDelayTrue := 10; 
+   A_2899_SHE04.Par.ParDelayFalse := 0; 
+   A_2899_SHE04.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE04.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE04.Par.OutMonTime := 0; 
+   A_2899_SHE04.Par.OutTransitionTime := 0; 
+   A_2899_SHE04.Par.OutMonTrue := FALSE; 
+   A_2899_SHE04.Par.OutMonFalse := FALSE; 
+   A_2899_SHE04.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE04.Par.OutDelayTime := 0; 
+   A_2899_SHE05.StCode := 0; 
+   A_2899_SHE05.InMonTrue := FALSE; 
+   A_2899_SHE05.InMonFalse := FALSE; 
+   A_2899_SHE05.InPreAlarmTrue := FALSE; 
+   A_2899_SHE05.InPreAlarmFalse := FALSE; 
+   A_2899_SHE05.InStopTrueTime := FALSE; 
+   A_2899_SHE05.InStopFalseTime := FALSE; 
+   A_2899_SHE05.InpTrue := FALSE; 
+   A_2899_SHE05.InpFaultDev := FALSE; 
+   A_2899_SHE05.CmdRstTrueTime := FALSE; 
+   A_2899_SHE05.CmdRstFalseTime := FALSE; 
+   A_2899_SHE05.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE05.CmdFaultReset := FALSE; 
+   A_2899_SHE05.InLocal := FALSE; 
+   A_2899_SHE05.spare0305 := FALSE; 
+   A_2899_SHE05.InReport := FALSE; 
+   A_2899_SHE05.OutTimeoutTime := FALSE; 
+   A_2899_SHE05.InHWStop := FALSE; 
+   A_2899_SHE05.InDPFault := FALSE; 
+   A_2899_SHE05.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE05.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE05.OutFlagPos := FALSE; 
+   A_2899_SHE05.OutFlagNeg := FALSE; 
+   A_2899_SHE05.OutpFaultReset := FALSE; 
+   A_2899_SHE05.OutTrue := FALSE; 
+   A_2899_SHE05.StFalse := FALSE; 
+   A_2899_SHE05.StCtoTrue := FALSE; 
+   A_2899_SHE05.StTrue := FALSE; 
+   A_2899_SHE05.StCtoFalse := FALSE; 
+   A_2899_SHE05.StFault := FALSE; 
+   A_2899_SHE05.OutAlarmNrLog := 0; 
+   A_2899_SHE05.Par.ParObjectNo := 1415; 
+   A_2899_SHE05.Par.ParMsgType := 7171; 
+   A_2899_SHE05.Par.ParHornCode := 9; 
+   A_2899_SHE05.Par.ParLogOff := FALSE; 
+   A_2899_SHE05.Par.spare0401 := FALSE; 
+   A_2899_SHE05.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE05.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE05.Par.ParBinLevel := FALSE; 
+   A_2899_SHE05.Par.ParDelayChange := 0; 
+   A_2899_SHE05.Par.ParDelayTrue := 10; 
+   A_2899_SHE05.Par.ParDelayFalse := 0; 
+   A_2899_SHE05.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE05.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE05.Par.OutMonTime := 0; 
+   A_2899_SHE05.Par.OutTransitionTime := 0; 
+   A_2899_SHE05.Par.OutMonTrue := FALSE; 
+   A_2899_SHE05.Par.OutMonFalse := FALSE; 
+   A_2899_SHE05.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE05.Par.OutDelayTime := 0; 
+   A_2899_SHE06.StCode := 0; 
+   A_2899_SHE06.InMonTrue := FALSE; 
+   A_2899_SHE06.InMonFalse := FALSE; 
+   A_2899_SHE06.InPreAlarmTrue := FALSE; 
+   A_2899_SHE06.InPreAlarmFalse := FALSE; 
+   A_2899_SHE06.InStopTrueTime := FALSE; 
+   A_2899_SHE06.InStopFalseTime := FALSE; 
+   A_2899_SHE06.InpTrue := FALSE; 
+   A_2899_SHE06.InpFaultDev := FALSE; 
+   A_2899_SHE06.CmdRstTrueTime := FALSE; 
+   A_2899_SHE06.CmdRstFalseTime := FALSE; 
+   A_2899_SHE06.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE06.CmdFaultReset := FALSE; 
+   A_2899_SHE06.InLocal := FALSE; 
+   A_2899_SHE06.spare0305 := FALSE; 
+   A_2899_SHE06.InReport := FALSE; 
+   A_2899_SHE06.OutTimeoutTime := FALSE; 
+   A_2899_SHE06.InHWStop := FALSE; 
+   A_2899_SHE06.InDPFault := FALSE; 
+   A_2899_SHE06.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE06.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE06.OutFlagPos := FALSE; 
+   A_2899_SHE06.OutFlagNeg := FALSE; 
+   A_2899_SHE06.OutpFaultReset := FALSE; 
+   A_2899_SHE06.OutTrue := FALSE; 
+   A_2899_SHE06.StFalse := FALSE; 
+   A_2899_SHE06.StCtoTrue := FALSE; 
+   A_2899_SHE06.StTrue := FALSE; 
+   A_2899_SHE06.StCtoFalse := FALSE; 
+   A_2899_SHE06.StFault := FALSE; 
+   A_2899_SHE06.OutAlarmNrLog := 0; 
+   A_2899_SHE06.Par.ParObjectNo := 1416; 
+   A_2899_SHE06.Par.ParMsgType := 7171; 
+   A_2899_SHE06.Par.ParHornCode := 9; 
+   A_2899_SHE06.Par.ParLogOff := FALSE; 
+   A_2899_SHE06.Par.spare0401 := FALSE; 
+   A_2899_SHE06.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE06.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE06.Par.ParBinLevel := FALSE; 
+   A_2899_SHE06.Par.ParDelayChange := 0; 
+   A_2899_SHE06.Par.ParDelayTrue := 10; 
+   A_2899_SHE06.Par.ParDelayFalse := 0; 
+   A_2899_SHE06.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE06.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE06.Par.OutMonTime := 0; 
+   A_2899_SHE06.Par.OutTransitionTime := 0; 
+   A_2899_SHE06.Par.OutMonTrue := FALSE; 
+   A_2899_SHE06.Par.OutMonFalse := FALSE; 
+   A_2899_SHE06.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE06.Par.OutDelayTime := 0; 
+   A_2899_SHE08.StCode := 0; 
+   A_2899_SHE08.InMonTrue := FALSE; 
+   A_2899_SHE08.InMonFalse := FALSE; 
+   A_2899_SHE08.InPreAlarmTrue := FALSE; 
+   A_2899_SHE08.InPreAlarmFalse := FALSE; 
+   A_2899_SHE08.InStopTrueTime := FALSE; 
+   A_2899_SHE08.InStopFalseTime := FALSE; 
+   A_2899_SHE08.InpTrue := FALSE; 
+   A_2899_SHE08.InpFaultDev := FALSE; 
+   A_2899_SHE08.CmdRstTrueTime := FALSE; 
+   A_2899_SHE08.CmdRstFalseTime := FALSE; 
+   A_2899_SHE08.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE08.CmdFaultReset := FALSE; 
+   A_2899_SHE08.InLocal := FALSE; 
+   A_2899_SHE08.spare0305 := FALSE; 
+   A_2899_SHE08.InReport := FALSE; 
+   A_2899_SHE08.OutTimeoutTime := FALSE; 
+   A_2899_SHE08.InHWStop := FALSE; 
+   A_2899_SHE08.InDPFault := FALSE; 
+   A_2899_SHE08.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE08.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE08.OutFlagPos := FALSE; 
+   A_2899_SHE08.OutFlagNeg := FALSE; 
+   A_2899_SHE08.OutpFaultReset := FALSE; 
+   A_2899_SHE08.OutTrue := FALSE; 
+   A_2899_SHE08.StFalse := FALSE; 
+   A_2899_SHE08.StCtoTrue := FALSE; 
+   A_2899_SHE08.StTrue := FALSE; 
+   A_2899_SHE08.StCtoFalse := FALSE; 
+   A_2899_SHE08.StFault := FALSE; 
+   A_2899_SHE08.OutAlarmNrLog := 0; 
+   A_2899_SHE08.Par.ParObjectNo := 1417; 
+   A_2899_SHE08.Par.ParMsgType := 7171; 
+   A_2899_SHE08.Par.ParHornCode := 9; 
+   A_2899_SHE08.Par.ParLogOff := FALSE; 
+   A_2899_SHE08.Par.spare0401 := FALSE; 
+   A_2899_SHE08.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE08.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE08.Par.ParBinLevel := FALSE; 
+   A_2899_SHE08.Par.ParDelayChange := 0; 
+   A_2899_SHE08.Par.ParDelayTrue := 10; 
+   A_2899_SHE08.Par.ParDelayFalse := 0; 
+   A_2899_SHE08.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE08.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE08.Par.OutMonTime := 0; 
+   A_2899_SHE08.Par.OutTransitionTime := 0; 
+   A_2899_SHE08.Par.OutMonTrue := FALSE; 
+   A_2899_SHE08.Par.OutMonFalse := FALSE; 
+   A_2899_SHE08.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE08.Par.OutDelayTime := 0; 
+   A_2899_SHE20.StCode := 0; 
+   A_2899_SHE20.InMonTrue := FALSE; 
+   A_2899_SHE20.InMonFalse := FALSE; 
+   A_2899_SHE20.InPreAlarmTrue := FALSE; 
+   A_2899_SHE20.InPreAlarmFalse := FALSE; 
+   A_2899_SHE20.InStopTrueTime := FALSE; 
+   A_2899_SHE20.InStopFalseTime := FALSE; 
+   A_2899_SHE20.InpTrue := FALSE; 
+   A_2899_SHE20.InpFaultDev := FALSE; 
+   A_2899_SHE20.CmdRstTrueTime := FALSE; 
+   A_2899_SHE20.CmdRstFalseTime := FALSE; 
+   A_2899_SHE20.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE20.CmdFaultReset := FALSE; 
+   A_2899_SHE20.InLocal := FALSE; 
+   A_2899_SHE20.spare0305 := FALSE; 
+   A_2899_SHE20.InReport := FALSE; 
+   A_2899_SHE20.OutTimeoutTime := FALSE; 
+   A_2899_SHE20.InHWStop := FALSE; 
+   A_2899_SHE20.InDPFault := FALSE; 
+   A_2899_SHE20.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE20.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE20.OutFlagPos := FALSE; 
+   A_2899_SHE20.OutFlagNeg := FALSE; 
+   A_2899_SHE20.OutpFaultReset := FALSE; 
+   A_2899_SHE20.OutTrue := FALSE; 
+   A_2899_SHE20.StFalse := FALSE; 
+   A_2899_SHE20.StCtoTrue := FALSE; 
+   A_2899_SHE20.StTrue := FALSE; 
+   A_2899_SHE20.StCtoFalse := FALSE; 
+   A_2899_SHE20.StFault := FALSE; 
+   A_2899_SHE20.OutAlarmNrLog := 0; 
+   A_2899_SHE20.Par.ParObjectNo := 1418; 
+   A_2899_SHE20.Par.ParMsgType := 7171; 
+   A_2899_SHE20.Par.ParHornCode := 9; 
+   A_2899_SHE20.Par.ParLogOff := FALSE; 
+   A_2899_SHE20.Par.spare0401 := FALSE; 
+   A_2899_SHE20.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE20.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE20.Par.ParBinLevel := FALSE; 
+   A_2899_SHE20.Par.ParDelayChange := 0; 
+   A_2899_SHE20.Par.ParDelayTrue := 10; 
+   A_2899_SHE20.Par.ParDelayFalse := 0; 
+   A_2899_SHE20.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE20.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE20.Par.OutMonTime := 0; 
+   A_2899_SHE20.Par.OutTransitionTime := 0; 
+   A_2899_SHE20.Par.OutMonTrue := FALSE; 
+   A_2899_SHE20.Par.OutMonFalse := FALSE; 
+   A_2899_SHE20.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE20.Par.OutDelayTime := 0; 
+   A_2899_SHE21.StCode := 0; 
+   A_2899_SHE21.InMonTrue := FALSE; 
+   A_2899_SHE21.InMonFalse := FALSE; 
+   A_2899_SHE21.InPreAlarmTrue := FALSE; 
+   A_2899_SHE21.InPreAlarmFalse := FALSE; 
+   A_2899_SHE21.InStopTrueTime := FALSE; 
+   A_2899_SHE21.InStopFalseTime := FALSE; 
+   A_2899_SHE21.InpTrue := FALSE; 
+   A_2899_SHE21.InpFaultDev := FALSE; 
+   A_2899_SHE21.CmdRstTrueTime := FALSE; 
+   A_2899_SHE21.CmdRstFalseTime := FALSE; 
+   A_2899_SHE21.CmdRunTimeoutTime := FALSE; 
+   A_2899_SHE21.CmdFaultReset := FALSE; 
+   A_2899_SHE21.InLocal := FALSE; 
+   A_2899_SHE21.spare0305 := FALSE; 
+   A_2899_SHE21.InReport := FALSE; 
+   A_2899_SHE21.OutTimeoutTime := FALSE; 
+   A_2899_SHE21.InHWStop := FALSE; 
+   A_2899_SHE21.InDPFault := FALSE; 
+   A_2899_SHE21.OutPreAlarmTrue := FALSE; 
+   A_2899_SHE21.OutPreAlarmFalse := FALSE; 
+   A_2899_SHE21.OutFlagPos := FALSE; 
+   A_2899_SHE21.OutFlagNeg := FALSE; 
+   A_2899_SHE21.OutpFaultReset := FALSE; 
+   A_2899_SHE21.OutTrue := FALSE; 
+   A_2899_SHE21.StFalse := FALSE; 
+   A_2899_SHE21.StCtoTrue := FALSE; 
+   A_2899_SHE21.StTrue := FALSE; 
+   A_2899_SHE21.StCtoFalse := FALSE; 
+   A_2899_SHE21.StFault := FALSE; 
+   A_2899_SHE21.OutAlarmNrLog := 0; 
+   A_2899_SHE21.Par.ParObjectNo := 1419; 
+   A_2899_SHE21.Par.ParMsgType := 7171; 
+   A_2899_SHE21.Par.ParHornCode := 9; 
+   A_2899_SHE21.Par.ParLogOff := FALSE; 
+   A_2899_SHE21.Par.spare0401 := FALSE; 
+   A_2899_SHE21.Par.Par2WorkingCond := FALSE; 
+   A_2899_SHE21.Par.ParFaultRetry := FALSE; 
+   A_2899_SHE21.Par.ParBinLevel := FALSE; 
+   A_2899_SHE21.Par.ParDelayChange := 0; 
+   A_2899_SHE21.Par.ParDelayTrue := 10; 
+   A_2899_SHE21.Par.ParDelayFalse := 0; 
+   A_2899_SHE21.Par.ParTimeoutTrue := 0; 
+   A_2899_SHE21.Par.ParTimeoutFalse := 0; 
+   A_2899_SHE21.Par.OutMonTime := 0; 
+   A_2899_SHE21.Par.OutTransitionTime := 0; 
+   A_2899_SHE21.Par.OutMonTrue := FALSE; 
+   A_2899_SHE21.Par.OutMonFalse := FALSE; 
+   A_2899_SHE21.Par.OutFlagFaultDev := FALSE; 
+   A_2899_SHE21.Par.OutDelayTime := 0; 
+   A_28_A040Z1.StCode := 0; 
+   A_28_A040Z1.InMonTrue := FALSE; 
+   A_28_A040Z1.InMonFalse := FALSE; 
+   A_28_A040Z1.InPreAlarmTrue := FALSE; 
+   A_28_A040Z1.InPreAlarmFalse := FALSE; 
+   A_28_A040Z1.InStopTrueTime := FALSE; 
+   A_28_A040Z1.InStopFalseTime := FALSE; 
+   A_28_A040Z1.InpTrue := FALSE; 
+   A_28_A040Z1.InpFaultDev := FALSE; 
+   A_28_A040Z1.CmdRstTrueTime := FALSE; 
+   A_28_A040Z1.CmdRstFalseTime := FALSE; 
+   A_28_A040Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A040Z1.CmdFaultReset := FALSE; 
+   A_28_A040Z1.InLocal := FALSE; 
+   A_28_A040Z1.spare0305 := FALSE; 
+   A_28_A040Z1.InReport := FALSE; 
+   A_28_A040Z1.OutTimeoutTime := FALSE; 
+   A_28_A040Z1.InHWStop := FALSE; 
+   A_28_A040Z1.InDPFault := FALSE; 
+   A_28_A040Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A040Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A040Z1.OutFlagPos := FALSE; 
+   A_28_A040Z1.OutFlagNeg := FALSE; 
+   A_28_A040Z1.OutpFaultReset := FALSE; 
+   A_28_A040Z1.OutTrue := FALSE; 
+   A_28_A040Z1.StFalse := FALSE; 
+   A_28_A040Z1.StCtoTrue := FALSE; 
+   A_28_A040Z1.StTrue := FALSE; 
+   A_28_A040Z1.StCtoFalse := FALSE; 
+   A_28_A040Z1.StFault := FALSE; 
+   A_28_A040Z1.OutAlarmNrLog := 0; 
+   A_28_A040Z1.Par.ParObjectNo := 1420; 
+   A_28_A040Z1.Par.ParMsgType := 7135; 
+   A_28_A040Z1.Par.ParHornCode := 9; 
+   A_28_A040Z1.Par.ParLogOff := FALSE; 
+   A_28_A040Z1.Par.spare0401 := FALSE; 
+   A_28_A040Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A040Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A040Z1.Par.ParBinLevel := FALSE; 
+   A_28_A040Z1.Par.ParDelayChange := 0; 
+   A_28_A040Z1.Par.ParDelayTrue := 10; 
+   A_28_A040Z1.Par.ParDelayFalse := 0; 
+   A_28_A040Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A040Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A040Z1.Par.OutMonTime := 0; 
+   A_28_A040Z1.Par.OutTransitionTime := 0; 
+   A_28_A040Z1.Par.OutMonTrue := FALSE; 
+   A_28_A040Z1.Par.OutMonFalse := FALSE; 
+   A_28_A040Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A040Z1.Par.OutDelayTime := 0; 
+   A_28_A097Z1.StCode := 0; 
+   A_28_A097Z1.InMonTrue := FALSE; 
+   A_28_A097Z1.InMonFalse := FALSE; 
+   A_28_A097Z1.InPreAlarmTrue := FALSE; 
+   A_28_A097Z1.InPreAlarmFalse := FALSE; 
+   A_28_A097Z1.InStopTrueTime := FALSE; 
+   A_28_A097Z1.InStopFalseTime := FALSE; 
+   A_28_A097Z1.InpTrue := FALSE; 
+   A_28_A097Z1.InpFaultDev := FALSE; 
+   A_28_A097Z1.CmdRstTrueTime := FALSE; 
+   A_28_A097Z1.CmdRstFalseTime := FALSE; 
+   A_28_A097Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A097Z1.CmdFaultReset := FALSE; 
+   A_28_A097Z1.InLocal := FALSE; 
+   A_28_A097Z1.spare0305 := FALSE; 
+   A_28_A097Z1.InReport := FALSE; 
+   A_28_A097Z1.OutTimeoutTime := FALSE; 
+   A_28_A097Z1.InHWStop := FALSE; 
+   A_28_A097Z1.InDPFault := FALSE; 
+   A_28_A097Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A097Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A097Z1.OutFlagPos := FALSE; 
+   A_28_A097Z1.OutFlagNeg := FALSE; 
+   A_28_A097Z1.OutpFaultReset := FALSE; 
+   A_28_A097Z1.OutTrue := FALSE; 
+   A_28_A097Z1.StFalse := FALSE; 
+   A_28_A097Z1.StCtoTrue := FALSE; 
+   A_28_A097Z1.StTrue := FALSE; 
+   A_28_A097Z1.StCtoFalse := FALSE; 
+   A_28_A097Z1.StFault := FALSE; 
+   A_28_A097Z1.OutAlarmNrLog := 0; 
+   A_28_A097Z1.Par.ParObjectNo := 1421; 
+   A_28_A097Z1.Par.ParMsgType := 7171; 
+   A_28_A097Z1.Par.ParHornCode := 9; 
+   A_28_A097Z1.Par.ParLogOff := FALSE; 
+   A_28_A097Z1.Par.spare0401 := FALSE; 
+   A_28_A097Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A097Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A097Z1.Par.ParBinLevel := FALSE; 
+   A_28_A097Z1.Par.ParDelayChange := 0; 
+   A_28_A097Z1.Par.ParDelayTrue := 10; 
+   A_28_A097Z1.Par.ParDelayFalse := 0; 
+   A_28_A097Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A097Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A097Z1.Par.OutMonTime := 0; 
+   A_28_A097Z1.Par.OutTransitionTime := 0; 
+   A_28_A097Z1.Par.OutMonTrue := FALSE; 
+   A_28_A097Z1.Par.OutMonFalse := FALSE; 
+   A_28_A097Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A097Z1.Par.OutDelayTime := 0; 
+   A_28_A098Z1.StCode := 0; 
+   A_28_A098Z1.InMonTrue := FALSE; 
+   A_28_A098Z1.InMonFalse := FALSE; 
+   A_28_A098Z1.InPreAlarmTrue := FALSE; 
+   A_28_A098Z1.InPreAlarmFalse := FALSE; 
+   A_28_A098Z1.InStopTrueTime := FALSE; 
+   A_28_A098Z1.InStopFalseTime := FALSE; 
+   A_28_A098Z1.InpTrue := FALSE; 
+   A_28_A098Z1.InpFaultDev := FALSE; 
+   A_28_A098Z1.CmdRstTrueTime := FALSE; 
+   A_28_A098Z1.CmdRstFalseTime := FALSE; 
+   A_28_A098Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A098Z1.CmdFaultReset := FALSE; 
+   A_28_A098Z1.InLocal := FALSE; 
+   A_28_A098Z1.spare0305 := FALSE; 
+   A_28_A098Z1.InReport := FALSE; 
+   A_28_A098Z1.OutTimeoutTime := FALSE; 
+   A_28_A098Z1.InHWStop := FALSE; 
+   A_28_A098Z1.InDPFault := FALSE; 
+   A_28_A098Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A098Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A098Z1.OutFlagPos := FALSE; 
+   A_28_A098Z1.OutFlagNeg := FALSE; 
+   A_28_A098Z1.OutpFaultReset := FALSE; 
+   A_28_A098Z1.OutTrue := FALSE; 
+   A_28_A098Z1.StFalse := FALSE; 
+   A_28_A098Z1.StCtoTrue := FALSE; 
+   A_28_A098Z1.StTrue := FALSE; 
+   A_28_A098Z1.StCtoFalse := FALSE; 
+   A_28_A098Z1.StFault := FALSE; 
+   A_28_A098Z1.OutAlarmNrLog := 0; 
+   A_28_A098Z1.Par.ParObjectNo := 1422; 
+   A_28_A098Z1.Par.ParMsgType := 7171; 
+   A_28_A098Z1.Par.ParHornCode := 9; 
+   A_28_A098Z1.Par.ParLogOff := FALSE; 
+   A_28_A098Z1.Par.spare0401 := FALSE; 
+   A_28_A098Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A098Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A098Z1.Par.ParBinLevel := FALSE; 
+   A_28_A098Z1.Par.ParDelayChange := 0; 
+   A_28_A098Z1.Par.ParDelayTrue := 10; 
+   A_28_A098Z1.Par.ParDelayFalse := 0; 
+   A_28_A098Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A098Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A098Z1.Par.OutMonTime := 0; 
+   A_28_A098Z1.Par.OutTransitionTime := 0; 
+   A_28_A098Z1.Par.OutMonTrue := FALSE; 
+   A_28_A098Z1.Par.OutMonFalse := FALSE; 
+   A_28_A098Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A098Z1.Par.OutDelayTime := 0; 
+   A_28_K091Z1.StCode := 0; 
+   A_28_K091Z1.InMonTrue := FALSE; 
+   A_28_K091Z1.InMonFalse := FALSE; 
+   A_28_K091Z1.InPreAlarmTrue := FALSE; 
+   A_28_K091Z1.InPreAlarmFalse := FALSE; 
+   A_28_K091Z1.InStopTrueTime := FALSE; 
+   A_28_K091Z1.InStopFalseTime := FALSE; 
+   A_28_K091Z1.InpTrue := FALSE; 
+   A_28_K091Z1.InpFaultDev := FALSE; 
+   A_28_K091Z1.CmdRstTrueTime := FALSE; 
+   A_28_K091Z1.CmdRstFalseTime := FALSE; 
+   A_28_K091Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_K091Z1.CmdFaultReset := FALSE; 
+   A_28_K091Z1.InLocal := FALSE; 
+   A_28_K091Z1.spare0305 := FALSE; 
+   A_28_K091Z1.InReport := FALSE; 
+   A_28_K091Z1.OutTimeoutTime := FALSE; 
+   A_28_K091Z1.InHWStop := FALSE; 
+   A_28_K091Z1.InDPFault := FALSE; 
+   A_28_K091Z1.OutPreAlarmTrue := FALSE; 
+   A_28_K091Z1.OutPreAlarmFalse := FALSE; 
+   A_28_K091Z1.OutFlagPos := FALSE; 
+   A_28_K091Z1.OutFlagNeg := FALSE; 
+   A_28_K091Z1.OutpFaultReset := FALSE; 
+   A_28_K091Z1.OutTrue := FALSE; 
+   A_28_K091Z1.StFalse := FALSE; 
+   A_28_K091Z1.StCtoTrue := FALSE; 
+   A_28_K091Z1.StTrue := FALSE; 
+   A_28_K091Z1.StCtoFalse := FALSE; 
+   A_28_K091Z1.StFault := FALSE; 
+   A_28_K091Z1.OutAlarmNrLog := 0; 
+   A_28_K091Z1.Par.ParObjectNo := 1423; 
+   A_28_K091Z1.Par.ParMsgType := 7135; 
+   A_28_K091Z1.Par.ParHornCode := 9; 
+   A_28_K091Z1.Par.ParLogOff := FALSE; 
+   A_28_K091Z1.Par.spare0401 := FALSE; 
+   A_28_K091Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_K091Z1.Par.ParFaultRetry := FALSE; 
+   A_28_K091Z1.Par.ParBinLevel := FALSE; 
+   A_28_K091Z1.Par.ParDelayChange := 0; 
+   A_28_K091Z1.Par.ParDelayTrue := 10; 
+   A_28_K091Z1.Par.ParDelayFalse := 0; 
+   A_28_K091Z1.Par.ParTimeoutTrue := 0; 
+   A_28_K091Z1.Par.ParTimeoutFalse := 0; 
+   A_28_K091Z1.Par.OutMonTime := 0; 
+   A_28_K091Z1.Par.OutTransitionTime := 0; 
+   A_28_K091Z1.Par.OutMonTrue := FALSE; 
+   A_28_K091Z1.Par.OutMonFalse := FALSE; 
+   A_28_K091Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_K091Z1.Par.OutDelayTime := 0; 
+   A_28_K738R1.StCode := 0; 
+   A_28_K738R1.InMonTrue := FALSE; 
+   A_28_K738R1.InMonFalse := FALSE; 
+   A_28_K738R1.InPreAlarmTrue := FALSE; 
+   A_28_K738R1.InPreAlarmFalse := FALSE; 
+   A_28_K738R1.InStopTrueTime := FALSE; 
+   A_28_K738R1.InStopFalseTime := FALSE; 
+   A_28_K738R1.InpTrue := FALSE; 
+   A_28_K738R1.InpFaultDev := FALSE; 
+   A_28_K738R1.CmdRstTrueTime := FALSE; 
+   A_28_K738R1.CmdRstFalseTime := FALSE; 
+   A_28_K738R1.CmdRunTimeoutTime := FALSE; 
+   A_28_K738R1.CmdFaultReset := FALSE; 
+   A_28_K738R1.InLocal := FALSE; 
+   A_28_K738R1.spare0305 := FALSE; 
+   A_28_K738R1.InReport := FALSE; 
+   A_28_K738R1.OutTimeoutTime := FALSE; 
+   A_28_K738R1.InHWStop := FALSE; 
+   A_28_K738R1.InDPFault := FALSE; 
+   A_28_K738R1.OutPreAlarmTrue := FALSE; 
+   A_28_K738R1.OutPreAlarmFalse := FALSE; 
+   A_28_K738R1.OutFlagPos := FALSE; 
+   A_28_K738R1.OutFlagNeg := FALSE; 
+   A_28_K738R1.OutpFaultReset := FALSE; 
+   A_28_K738R1.OutTrue := FALSE; 
+   A_28_K738R1.StFalse := FALSE; 
+   A_28_K738R1.StCtoTrue := FALSE; 
+   A_28_K738R1.StTrue := FALSE; 
+   A_28_K738R1.StCtoFalse := FALSE; 
+   A_28_K738R1.StFault := FALSE; 
+   A_28_K738R1.OutAlarmNrLog := 0; 
+   A_28_K738R1.Par.ParObjectNo := 1424; 
+   A_28_K738R1.Par.ParMsgType := 7135; 
+   A_28_K738R1.Par.ParHornCode := 9; 
+   A_28_K738R1.Par.ParLogOff := FALSE; 
+   A_28_K738R1.Par.spare0401 := FALSE; 
+   A_28_K738R1.Par.Par2WorkingCond := FALSE; 
+   A_28_K738R1.Par.ParFaultRetry := FALSE; 
+   A_28_K738R1.Par.ParBinLevel := FALSE; 
+   A_28_K738R1.Par.ParDelayChange := 0; 
+   A_28_K738R1.Par.ParDelayTrue := 10; 
+   A_28_K738R1.Par.ParDelayFalse := 0; 
+   A_28_K738R1.Par.ParTimeoutTrue := 0; 
+   A_28_K738R1.Par.ParTimeoutFalse := 0; 
+   A_28_K738R1.Par.OutMonTime := 0; 
+   A_28_K738R1.Par.OutTransitionTime := 0; 
+   A_28_K738R1.Par.OutMonTrue := FALSE; 
+   A_28_K738R1.Par.OutMonFalse := FALSE; 
+   A_28_K738R1.Par.OutFlagFaultDev := FALSE; 
+   A_28_K738R1.Par.OutDelayTime := 0; 
+   A_28_K838R1.StCode := 0; 
+   A_28_K838R1.InMonTrue := FALSE; 
+   A_28_K838R1.InMonFalse := FALSE; 
+   A_28_K838R1.InPreAlarmTrue := FALSE; 
+   A_28_K838R1.InPreAlarmFalse := FALSE; 
+   A_28_K838R1.InStopTrueTime := FALSE; 
+   A_28_K838R1.InStopFalseTime := FALSE; 
+   A_28_K838R1.InpTrue := FALSE; 
+   A_28_K838R1.InpFaultDev := FALSE; 
+   A_28_K838R1.CmdRstTrueTime := FALSE; 
+   A_28_K838R1.CmdRstFalseTime := FALSE; 
+   A_28_K838R1.CmdRunTimeoutTime := FALSE; 
+   A_28_K838R1.CmdFaultReset := FALSE; 
+   A_28_K838R1.InLocal := FALSE; 
+   A_28_K838R1.spare0305 := FALSE; 
+   A_28_K838R1.InReport := FALSE; 
+   A_28_K838R1.OutTimeoutTime := FALSE; 
+   A_28_K838R1.InHWStop := FALSE; 
+   A_28_K838R1.InDPFault := FALSE; 
+   A_28_K838R1.OutPreAlarmTrue := FALSE; 
+   A_28_K838R1.OutPreAlarmFalse := FALSE; 
+   A_28_K838R1.OutFlagPos := FALSE; 
+   A_28_K838R1.OutFlagNeg := FALSE; 
+   A_28_K838R1.OutpFaultReset := FALSE; 
+   A_28_K838R1.OutTrue := FALSE; 
+   A_28_K838R1.StFalse := FALSE; 
+   A_28_K838R1.StCtoTrue := FALSE; 
+   A_28_K838R1.StTrue := FALSE; 
+   A_28_K838R1.StCtoFalse := FALSE; 
+   A_28_K838R1.StFault := FALSE; 
+   A_28_K838R1.OutAlarmNrLog := 0; 
+   A_28_K838R1.Par.ParObjectNo := 1425; 
+   A_28_K838R1.Par.ParMsgType := 7135; 
+   A_28_K838R1.Par.ParHornCode := 9; 
+   A_28_K838R1.Par.ParLogOff := FALSE; 
+   A_28_K838R1.Par.spare0401 := FALSE; 
+   A_28_K838R1.Par.Par2WorkingCond := FALSE; 
+   A_28_K838R1.Par.ParFaultRetry := FALSE; 
+   A_28_K838R1.Par.ParBinLevel := FALSE; 
+   A_28_K838R1.Par.ParDelayChange := 0; 
+   A_28_K838R1.Par.ParDelayTrue := 10; 
+   A_28_K838R1.Par.ParDelayFalse := 0; 
+   A_28_K838R1.Par.ParTimeoutTrue := 0; 
+   A_28_K838R1.Par.ParTimeoutFalse := 0; 
+   A_28_K838R1.Par.OutMonTime := 0; 
+   A_28_K838R1.Par.OutTransitionTime := 0; 
+   A_28_K838R1.Par.OutMonTrue := FALSE; 
+   A_28_K838R1.Par.OutMonFalse := FALSE; 
+   A_28_K838R1.Par.OutFlagFaultDev := FALSE; 
+   A_28_K838R1.Par.OutDelayTime := 0; 
+   A_28_Q390Z1.StCode := 0; 
+   A_28_Q390Z1.InMonTrue := FALSE; 
+   A_28_Q390Z1.InMonFalse := FALSE; 
+   A_28_Q390Z1.InPreAlarmTrue := FALSE; 
+   A_28_Q390Z1.InPreAlarmFalse := FALSE; 
+   A_28_Q390Z1.InStopTrueTime := FALSE; 
+   A_28_Q390Z1.InStopFalseTime := FALSE; 
+   A_28_Q390Z1.InpTrue := FALSE; 
+   A_28_Q390Z1.InpFaultDev := FALSE; 
+   A_28_Q390Z1.CmdRstTrueTime := FALSE; 
+   A_28_Q390Z1.CmdRstFalseTime := FALSE; 
+   A_28_Q390Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_Q390Z1.CmdFaultReset := FALSE; 
+   A_28_Q390Z1.InLocal := FALSE; 
+   A_28_Q390Z1.spare0305 := FALSE; 
+   A_28_Q390Z1.InReport := FALSE; 
+   A_28_Q390Z1.OutTimeoutTime := FALSE; 
+   A_28_Q390Z1.InHWStop := FALSE; 
+   A_28_Q390Z1.InDPFault := FALSE; 
+   A_28_Q390Z1.OutPreAlarmTrue := FALSE; 
+   A_28_Q390Z1.OutPreAlarmFalse := FALSE; 
+   A_28_Q390Z1.OutFlagPos := FALSE; 
+   A_28_Q390Z1.OutFlagNeg := FALSE; 
+   A_28_Q390Z1.OutpFaultReset := FALSE; 
+   A_28_Q390Z1.OutTrue := FALSE; 
+   A_28_Q390Z1.StFalse := FALSE; 
+   A_28_Q390Z1.StCtoTrue := FALSE; 
+   A_28_Q390Z1.StTrue := FALSE; 
+   A_28_Q390Z1.StCtoFalse := FALSE; 
+   A_28_Q390Z1.StFault := FALSE; 
+   A_28_Q390Z1.OutAlarmNrLog := 0; 
+   A_28_Q390Z1.Par.ParObjectNo := 1426; 
+   A_28_Q390Z1.Par.ParMsgType := 7135; 
+   A_28_Q390Z1.Par.ParHornCode := 9; 
+   A_28_Q390Z1.Par.ParLogOff := FALSE; 
+   A_28_Q390Z1.Par.spare0401 := FALSE; 
+   A_28_Q390Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_Q390Z1.Par.ParFaultRetry := FALSE; 
+   A_28_Q390Z1.Par.ParBinLevel := FALSE; 
+   A_28_Q390Z1.Par.ParDelayChange := 0; 
+   A_28_Q390Z1.Par.ParDelayTrue := 10; 
+   A_28_Q390Z1.Par.ParDelayFalse := 0; 
+   A_28_Q390Z1.Par.ParTimeoutTrue := 0; 
+   A_28_Q390Z1.Par.ParTimeoutFalse := 0; 
+   A_28_Q390Z1.Par.OutMonTime := 0; 
+   A_28_Q390Z1.Par.OutTransitionTime := 0; 
+   A_28_Q390Z1.Par.OutMonTrue := FALSE; 
+   A_28_Q390Z1.Par.OutMonFalse := FALSE; 
+   A_28_Q390Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_Q390Z1.Par.OutDelayTime := 0; 
+   A_28_Q445Z1.StCode := 0; 
+   A_28_Q445Z1.InMonTrue := FALSE; 
+   A_28_Q445Z1.InMonFalse := FALSE; 
+   A_28_Q445Z1.InPreAlarmTrue := FALSE; 
+   A_28_Q445Z1.InPreAlarmFalse := FALSE; 
+   A_28_Q445Z1.InStopTrueTime := FALSE; 
+   A_28_Q445Z1.InStopFalseTime := FALSE; 
+   A_28_Q445Z1.InpTrue := FALSE; 
+   A_28_Q445Z1.InpFaultDev := FALSE; 
+   A_28_Q445Z1.CmdRstTrueTime := FALSE; 
+   A_28_Q445Z1.CmdRstFalseTime := FALSE; 
+   A_28_Q445Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_Q445Z1.CmdFaultReset := FALSE; 
+   A_28_Q445Z1.InLocal := FALSE; 
+   A_28_Q445Z1.spare0305 := FALSE; 
+   A_28_Q445Z1.InReport := FALSE; 
+   A_28_Q445Z1.OutTimeoutTime := FALSE; 
+   A_28_Q445Z1.InHWStop := FALSE; 
+   A_28_Q445Z1.InDPFault := FALSE; 
+   A_28_Q445Z1.OutPreAlarmTrue := FALSE; 
+   A_28_Q445Z1.OutPreAlarmFalse := FALSE; 
+   A_28_Q445Z1.OutFlagPos := FALSE; 
+   A_28_Q445Z1.OutFlagNeg := FALSE; 
+   A_28_Q445Z1.OutpFaultReset := FALSE; 
+   A_28_Q445Z1.OutTrue := FALSE; 
+   A_28_Q445Z1.StFalse := FALSE; 
+   A_28_Q445Z1.StCtoTrue := FALSE; 
+   A_28_Q445Z1.StTrue := FALSE; 
+   A_28_Q445Z1.StCtoFalse := FALSE; 
+   A_28_Q445Z1.StFault := FALSE; 
+   A_28_Q445Z1.OutAlarmNrLog := 0; 
+   A_28_Q445Z1.Par.ParObjectNo := 1427; 
+   A_28_Q445Z1.Par.ParMsgType := 7135; 
+   A_28_Q445Z1.Par.ParHornCode := 9; 
+   A_28_Q445Z1.Par.ParLogOff := FALSE; 
+   A_28_Q445Z1.Par.spare0401 := FALSE; 
+   A_28_Q445Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_Q445Z1.Par.ParFaultRetry := FALSE; 
+   A_28_Q445Z1.Par.ParBinLevel := FALSE; 
+   A_28_Q445Z1.Par.ParDelayChange := 0; 
+   A_28_Q445Z1.Par.ParDelayTrue := 10; 
+   A_28_Q445Z1.Par.ParDelayFalse := 0; 
+   A_28_Q445Z1.Par.ParTimeoutTrue := 0; 
+   A_28_Q445Z1.Par.ParTimeoutFalse := 0; 
+   A_28_Q445Z1.Par.OutMonTime := 0; 
+   A_28_Q445Z1.Par.OutTransitionTime := 0; 
+   A_28_Q445Z1.Par.OutMonTrue := FALSE; 
+   A_28_Q445Z1.Par.OutMonFalse := FALSE; 
+   A_28_Q445Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_Q445Z1.Par.OutDelayTime := 0; 
+   A_28_S_H097Z1.StCode := 0; 
+   A_28_S_H097Z1.InMonTrue := FALSE; 
+   A_28_S_H097Z1.InMonFalse := FALSE; 
+   A_28_S_H097Z1.InPreAlarmTrue := FALSE; 
+   A_28_S_H097Z1.InPreAlarmFalse := FALSE; 
+   A_28_S_H097Z1.InStopTrueTime := FALSE; 
+   A_28_S_H097Z1.InStopFalseTime := FALSE; 
+   A_28_S_H097Z1.InpTrue := FALSE; 
+   A_28_S_H097Z1.InpFaultDev := FALSE; 
+   A_28_S_H097Z1.CmdRstTrueTime := FALSE; 
+   A_28_S_H097Z1.CmdRstFalseTime := FALSE; 
+   A_28_S_H097Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_S_H097Z1.CmdFaultReset := FALSE; 
+   A_28_S_H097Z1.InLocal := FALSE; 
+   A_28_S_H097Z1.spare0305 := FALSE; 
+   A_28_S_H097Z1.InReport := FALSE; 
+   A_28_S_H097Z1.OutTimeoutTime := FALSE; 
+   A_28_S_H097Z1.InHWStop := FALSE; 
+   A_28_S_H097Z1.InDPFault := FALSE; 
+   A_28_S_H097Z1.OutPreAlarmTrue := FALSE; 
+   A_28_S_H097Z1.OutPreAlarmFalse := FALSE; 
+   A_28_S_H097Z1.OutFlagPos := FALSE; 
+   A_28_S_H097Z1.OutFlagNeg := FALSE; 
+   A_28_S_H097Z1.OutpFaultReset := FALSE; 
+   A_28_S_H097Z1.OutTrue := FALSE; 
+   A_28_S_H097Z1.StFalse := FALSE; 
+   A_28_S_H097Z1.StCtoTrue := FALSE; 
+   A_28_S_H097Z1.StTrue := FALSE; 
+   A_28_S_H097Z1.StCtoFalse := FALSE; 
+   A_28_S_H097Z1.StFault := FALSE; 
+   A_28_S_H097Z1.OutAlarmNrLog := 0; 
+   A_28_S_H097Z1.Par.ParObjectNo := 1428; 
+   A_28_S_H097Z1.Par.ParMsgType := 7154; 
+   A_28_S_H097Z1.Par.ParHornCode := 9; 
+   A_28_S_H097Z1.Par.ParLogOff := FALSE; 
+   A_28_S_H097Z1.Par.spare0401 := FALSE; 
+   A_28_S_H097Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_S_H097Z1.Par.ParFaultRetry := FALSE; 
+   A_28_S_H097Z1.Par.ParBinLevel := FALSE; 
+   A_28_S_H097Z1.Par.ParDelayChange := 0; 
+   A_28_S_H097Z1.Par.ParDelayTrue := 10; 
+   A_28_S_H097Z1.Par.ParDelayFalse := 0; 
+   A_28_S_H097Z1.Par.ParTimeoutTrue := 0; 
+   A_28_S_H097Z1.Par.ParTimeoutFalse := 0; 
+   A_28_S_H097Z1.Par.OutMonTime := 0; 
+   A_28_S_H097Z1.Par.OutTransitionTime := 0; 
+   A_28_S_H097Z1.Par.OutMonTrue := FALSE; 
+   A_28_S_H097Z1.Par.OutMonFalse := FALSE; 
+   A_28_S_H097Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_S_H097Z1.Par.OutDelayTime := 0; 
+   A_28_A458Z1.StCode := 0; 
+   A_28_A458Z1.InMonTrue := FALSE; 
+   A_28_A458Z1.InMonFalse := FALSE; 
+   A_28_A458Z1.InPreAlarmTrue := FALSE; 
+   A_28_A458Z1.InPreAlarmFalse := FALSE; 
+   A_28_A458Z1.InStopTrueTime := FALSE; 
+   A_28_A458Z1.InStopFalseTime := FALSE; 
+   A_28_A458Z1.InpTrue := FALSE; 
+   A_28_A458Z1.InpFaultDev := FALSE; 
+   A_28_A458Z1.CmdRstTrueTime := FALSE; 
+   A_28_A458Z1.CmdRstFalseTime := FALSE; 
+   A_28_A458Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A458Z1.CmdFaultReset := FALSE; 
+   A_28_A458Z1.InLocal := FALSE; 
+   A_28_A458Z1.spare0305 := FALSE; 
+   A_28_A458Z1.InReport := FALSE; 
+   A_28_A458Z1.OutTimeoutTime := FALSE; 
+   A_28_A458Z1.InHWStop := FALSE; 
+   A_28_A458Z1.InDPFault := FALSE; 
+   A_28_A458Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A458Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A458Z1.OutFlagPos := FALSE; 
+   A_28_A458Z1.OutFlagNeg := FALSE; 
+   A_28_A458Z1.OutpFaultReset := FALSE; 
+   A_28_A458Z1.OutTrue := FALSE; 
+   A_28_A458Z1.StFalse := FALSE; 
+   A_28_A458Z1.StCtoTrue := FALSE; 
+   A_28_A458Z1.StTrue := FALSE; 
+   A_28_A458Z1.StCtoFalse := FALSE; 
+   A_28_A458Z1.StFault := FALSE; 
+   A_28_A458Z1.OutAlarmNrLog := 0; 
+   A_28_A458Z1.Par.ParObjectNo := 1429; 
+   A_28_A458Z1.Par.ParMsgType := 7154; 
+   A_28_A458Z1.Par.ParHornCode := 9; 
+   A_28_A458Z1.Par.ParLogOff := FALSE; 
+   A_28_A458Z1.Par.spare0401 := FALSE; 
+   A_28_A458Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A458Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A458Z1.Par.ParBinLevel := FALSE; 
+   A_28_A458Z1.Par.ParDelayChange := 0; 
+   A_28_A458Z1.Par.ParDelayTrue := 10; 
+   A_28_A458Z1.Par.ParDelayFalse := 0; 
+   A_28_A458Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A458Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A458Z1.Par.OutMonTime := 0; 
+   A_28_A458Z1.Par.OutTransitionTime := 0; 
+   A_28_A458Z1.Par.OutMonTrue := FALSE; 
+   A_28_A458Z1.Par.OutMonFalse := FALSE; 
+   A_28_A458Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A458Z1.Par.OutDelayTime := 0; 
+   A_28_D1B065.StCode := 0; 
+   A_28_D1B065.InMonTrue := FALSE; 
+   A_28_D1B065.InMonFalse := FALSE; 
+   A_28_D1B065.InPreAlarmTrue := FALSE; 
+   A_28_D1B065.InPreAlarmFalse := FALSE; 
+   A_28_D1B065.InStopTrueTime := FALSE; 
+   A_28_D1B065.InStopFalseTime := FALSE; 
+   A_28_D1B065.InpTrue := FALSE; 
+   A_28_D1B065.InpFaultDev := FALSE; 
+   A_28_D1B065.CmdRstTrueTime := FALSE; 
+   A_28_D1B065.CmdRstFalseTime := FALSE; 
+   A_28_D1B065.CmdRunTimeoutTime := FALSE; 
+   A_28_D1B065.CmdFaultReset := FALSE; 
+   A_28_D1B065.InLocal := FALSE; 
+   A_28_D1B065.spare0305 := FALSE; 
+   A_28_D1B065.InReport := FALSE; 
+   A_28_D1B065.OutTimeoutTime := FALSE; 
+   A_28_D1B065.InHWStop := FALSE; 
+   A_28_D1B065.InDPFault := FALSE; 
+   A_28_D1B065.OutPreAlarmTrue := FALSE; 
+   A_28_D1B065.OutPreAlarmFalse := FALSE; 
+   A_28_D1B065.OutFlagPos := FALSE; 
+   A_28_D1B065.OutFlagNeg := FALSE; 
+   A_28_D1B065.OutpFaultReset := FALSE; 
+   A_28_D1B065.OutTrue := FALSE; 
+   A_28_D1B065.StFalse := FALSE; 
+   A_28_D1B065.StCtoTrue := FALSE; 
+   A_28_D1B065.StTrue := FALSE; 
+   A_28_D1B065.StCtoFalse := FALSE; 
+   A_28_D1B065.StFault := FALSE; 
+   A_28_D1B065.OutAlarmNrLog := 0; 
+   A_28_D1B065.Par.ParObjectNo := 1430; 
+   A_28_D1B065.Par.ParMsgType := 7154; 
+   A_28_D1B065.Par.ParHornCode := 9; 
+   A_28_D1B065.Par.ParLogOff := FALSE; 
+   A_28_D1B065.Par.spare0401 := FALSE; 
+   A_28_D1B065.Par.Par2WorkingCond := FALSE; 
+   A_28_D1B065.Par.ParFaultRetry := FALSE; 
+   A_28_D1B065.Par.ParBinLevel := FALSE; 
+   A_28_D1B065.Par.ParDelayChange := 0; 
+   A_28_D1B065.Par.ParDelayTrue := 10; 
+   A_28_D1B065.Par.ParDelayFalse := 0; 
+   A_28_D1B065.Par.ParTimeoutTrue := 0; 
+   A_28_D1B065.Par.ParTimeoutFalse := 0; 
+   A_28_D1B065.Par.OutMonTime := 0; 
+   A_28_D1B065.Par.OutTransitionTime := 0; 
+   A_28_D1B065.Par.OutMonTrue := FALSE; 
+   A_28_D1B065.Par.OutMonFalse := FALSE; 
+   A_28_D1B065.Par.OutFlagFaultDev := FALSE; 
+   A_28_D1B065.Par.OutDelayTime := 0; 
+   A_28_A408Z1I1.StCode := 0; 
+   A_28_A408Z1I1.InMonTrue := FALSE; 
+   A_28_A408Z1I1.InMonFalse := FALSE; 
+   A_28_A408Z1I1.InPreAlarmTrue := FALSE; 
+   A_28_A408Z1I1.InPreAlarmFalse := FALSE; 
+   A_28_A408Z1I1.InStopTrueTime := FALSE; 
+   A_28_A408Z1I1.InStopFalseTime := FALSE; 
+   A_28_A408Z1I1.InpTrue := FALSE; 
+   A_28_A408Z1I1.InpFaultDev := FALSE; 
+   A_28_A408Z1I1.CmdRstTrueTime := FALSE; 
+   A_28_A408Z1I1.CmdRstFalseTime := FALSE; 
+   A_28_A408Z1I1.CmdRunTimeoutTime := FALSE; 
+   A_28_A408Z1I1.CmdFaultReset := FALSE; 
+   A_28_A408Z1I1.InLocal := FALSE; 
+   A_28_A408Z1I1.spare0305 := FALSE; 
+   A_28_A408Z1I1.InReport := FALSE; 
+   A_28_A408Z1I1.OutTimeoutTime := FALSE; 
+   A_28_A408Z1I1.InHWStop := FALSE; 
+   A_28_A408Z1I1.InDPFault := FALSE; 
+   A_28_A408Z1I1.OutPreAlarmTrue := FALSE; 
+   A_28_A408Z1I1.OutPreAlarmFalse := FALSE; 
+   A_28_A408Z1I1.OutFlagPos := FALSE; 
+   A_28_A408Z1I1.OutFlagNeg := FALSE; 
+   A_28_A408Z1I1.OutpFaultReset := FALSE; 
+   A_28_A408Z1I1.OutTrue := FALSE; 
+   A_28_A408Z1I1.StFalse := FALSE; 
+   A_28_A408Z1I1.StCtoTrue := FALSE; 
+   A_28_A408Z1I1.StTrue := FALSE; 
+   A_28_A408Z1I1.StCtoFalse := FALSE; 
+   A_28_A408Z1I1.StFault := FALSE; 
+   A_28_A408Z1I1.OutAlarmNrLog := 0; 
+   A_28_A408Z1I1.Par.ParObjectNo := 1431; 
+   A_28_A408Z1I1.Par.ParMsgType := 7171; 
+   A_28_A408Z1I1.Par.ParHornCode := 9; 
+   A_28_A408Z1I1.Par.ParLogOff := FALSE; 
+   A_28_A408Z1I1.Par.spare0401 := FALSE; 
+   A_28_A408Z1I1.Par.Par2WorkingCond := FALSE; 
+   A_28_A408Z1I1.Par.ParFaultRetry := FALSE; 
+   A_28_A408Z1I1.Par.ParBinLevel := FALSE; 
+   A_28_A408Z1I1.Par.ParDelayChange := 0; 
+   A_28_A408Z1I1.Par.ParDelayTrue := 10; 
+   A_28_A408Z1I1.Par.ParDelayFalse := 0; 
+   A_28_A408Z1I1.Par.ParTimeoutTrue := 0; 
+   A_28_A408Z1I1.Par.ParTimeoutFalse := 0; 
+   A_28_A408Z1I1.Par.OutMonTime := 0; 
+   A_28_A408Z1I1.Par.OutTransitionTime := 0; 
+   A_28_A408Z1I1.Par.OutMonTrue := FALSE; 
+   A_28_A408Z1I1.Par.OutMonFalse := FALSE; 
+   A_28_A408Z1I1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A408Z1I1.Par.OutDelayTime := 0; 
+   A_28_A408Z1O1.StCode := 0; 
+   A_28_A408Z1O1.InEnable := FALSE; 
+   A_28_A408Z1O1.spare0201 := FALSE; 
+   A_28_A408Z1O1.InContinuous := FALSE; 
+   A_28_A408Z1O1.spare0203 := FALSE; 
+   A_28_A408Z1O1.spare0204 := FALSE; 
+   A_28_A408Z1O1.spare0205 := FALSE; 
+   A_28_A408Z1O1.InpRun := FALSE; 
+   A_28_A408Z1O1.InpFaultDev := FALSE; 
+   A_28_A408Z1O1.CmdOff := FALSE; 
+   A_28_A408Z1O1.CmdOn := FALSE; 
+   A_28_A408Z1O1.CmdNext := FALSE; 
+   A_28_A408Z1O1.CmdFaultReset := FALSE; 
+   A_28_A408Z1O1.InLocal := FALSE; 
+   A_28_A408Z1O1.InManual := FALSE; 
+   A_28_A408Z1O1.InReport := FALSE; 
+   A_28_A408Z1O1.InSeqStop := FALSE; 
+   A_28_A408Z1O1.InHWStop := FALSE; 
+   A_28_A408Z1O1.InDPFault := FALSE; 
+   A_28_A408Z1O1.OutIdling := FALSE; 
+   A_28_A408Z1O1.OutWarning := FALSE; 
+   A_28_A408Z1O1.spare0404 := FALSE; 
+   A_28_A408Z1O1.spare0405 := FALSE; 
+   A_28_A408Z1O1.OutpFaultReset := FALSE; 
+   A_28_A408Z1O1.OutpRun := FALSE; 
+   A_28_A408Z1O1.StStopped := FALSE; 
+   A_28_A408Z1O1.StStarting := FALSE; 
+   A_28_A408Z1O1.StStarted := FALSE; 
+   A_28_A408Z1O1.spare0503 := FALSE; 
+   A_28_A408Z1O1.StFault := FALSE; 
+   A_28_A408Z1O1.StFalse := FALSE; 
+   A_28_A408Z1O1.spare0506 := FALSE; 
+   A_28_A408Z1O1.OutPausing := FALSE; 
+   A_28_A408Z1O1.OutAlarmNrLog := 0; 
+   A_28_A408Z1O1.Par.ParObjectNo := 1432; 
+   A_28_A408Z1O1.Par.ParMsgType := 7002; 
+   A_28_A408Z1O1.Par.ParHornCode := 9; 
+   A_28_A408Z1O1.Par.ParLogOff := FALSE; 
+   A_28_A408Z1O1.Par.ParManual := TRUE; 
+   A_28_A408Z1O1.Par.ParContinuous := TRUE; 
+   A_28_A408Z1O1.Par.ParPulse := FALSE; 
+   A_28_A408Z1O1.Par.ParPulsing := FALSE; 
+   A_28_A408Z1O1.Par.ParFilter := FALSE; 
+   A_28_A408Z1O1.Par.ParOnTime := 10; 
+   A_28_A408Z1O1.Par.ParOffTime := 0; 
+   A_28_A408Z1O1.Par.ParIdlingTime := 0; 
+   A_28_A408Z1O1.Par.ParDelayTime := 0; 
+   A_28_A408Z1O1.Par.OutTime := 0; 
+   A_28_A408Z1O1.Par.OutDelayTime := 0; 
+   A_28_A408Z1O1.Par.spare26 := 0; 
+   A_28_A408Z1O1.Par.spare28 := 0; 
+   A_28_A408Z1O1.Par.InOutManPulseLen := 0; 
+   A_28_A700Z1.StCode := 0; 
+   A_28_A700Z1.InMonTrue := FALSE; 
+   A_28_A700Z1.InMonFalse := FALSE; 
+   A_28_A700Z1.InPreAlarmTrue := FALSE; 
+   A_28_A700Z1.InPreAlarmFalse := FALSE; 
+   A_28_A700Z1.InStopTrueTime := FALSE; 
+   A_28_A700Z1.InStopFalseTime := FALSE; 
+   A_28_A700Z1.InpTrue := FALSE; 
+   A_28_A700Z1.InpFaultDev := FALSE; 
+   A_28_A700Z1.CmdRstTrueTime := FALSE; 
+   A_28_A700Z1.CmdRstFalseTime := FALSE; 
+   A_28_A700Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A700Z1.CmdFaultReset := FALSE; 
+   A_28_A700Z1.InLocal := FALSE; 
+   A_28_A700Z1.spare0305 := FALSE; 
+   A_28_A700Z1.InReport := FALSE; 
+   A_28_A700Z1.OutTimeoutTime := FALSE; 
+   A_28_A700Z1.InHWStop := FALSE; 
+   A_28_A700Z1.InDPFault := FALSE; 
+   A_28_A700Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A700Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A700Z1.OutFlagPos := FALSE; 
+   A_28_A700Z1.OutFlagNeg := FALSE; 
+   A_28_A700Z1.OutpFaultReset := FALSE; 
+   A_28_A700Z1.OutTrue := FALSE; 
+   A_28_A700Z1.StFalse := FALSE; 
+   A_28_A700Z1.StCtoTrue := FALSE; 
+   A_28_A700Z1.StTrue := FALSE; 
+   A_28_A700Z1.StCtoFalse := FALSE; 
+   A_28_A700Z1.StFault := FALSE; 
+   A_28_A700Z1.OutAlarmNrLog := 0; 
+   A_28_A700Z1.Par.ParObjectNo := 1433; 
+   A_28_A700Z1.Par.ParMsgType := 7147; 
+   A_28_A700Z1.Par.ParHornCode := 9; 
+   A_28_A700Z1.Par.ParLogOff := FALSE; 
+   A_28_A700Z1.Par.spare0401 := FALSE; 
+   A_28_A700Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A700Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A700Z1.Par.ParBinLevel := FALSE; 
+   A_28_A700Z1.Par.ParDelayChange := 0; 
+   A_28_A700Z1.Par.ParDelayTrue := 10; 
+   A_28_A700Z1.Par.ParDelayFalse := 0; 
+   A_28_A700Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A700Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A700Z1.Par.OutMonTime := 0; 
+   A_28_A700Z1.Par.OutTransitionTime := 0; 
+   A_28_A700Z1.Par.OutMonTrue := FALSE; 
+   A_28_A700Z1.Par.OutMonFalse := FALSE; 
+   A_28_A700Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A700Z1.Par.OutDelayTime := 0; 
+   A_28_A800Z1.StCode := 0; 
+   A_28_A800Z1.InMonTrue := FALSE; 
+   A_28_A800Z1.InMonFalse := FALSE; 
+   A_28_A800Z1.InPreAlarmTrue := FALSE; 
+   A_28_A800Z1.InPreAlarmFalse := FALSE; 
+   A_28_A800Z1.InStopTrueTime := FALSE; 
+   A_28_A800Z1.InStopFalseTime := FALSE; 
+   A_28_A800Z1.InpTrue := FALSE; 
+   A_28_A800Z1.InpFaultDev := FALSE; 
+   A_28_A800Z1.CmdRstTrueTime := FALSE; 
+   A_28_A800Z1.CmdRstFalseTime := FALSE; 
+   A_28_A800Z1.CmdRunTimeoutTime := FALSE; 
+   A_28_A800Z1.CmdFaultReset := FALSE; 
+   A_28_A800Z1.InLocal := FALSE; 
+   A_28_A800Z1.spare0305 := FALSE; 
+   A_28_A800Z1.InReport := FALSE; 
+   A_28_A800Z1.OutTimeoutTime := FALSE; 
+   A_28_A800Z1.InHWStop := FALSE; 
+   A_28_A800Z1.InDPFault := FALSE; 
+   A_28_A800Z1.OutPreAlarmTrue := FALSE; 
+   A_28_A800Z1.OutPreAlarmFalse := FALSE; 
+   A_28_A800Z1.OutFlagPos := FALSE; 
+   A_28_A800Z1.OutFlagNeg := FALSE; 
+   A_28_A800Z1.OutpFaultReset := FALSE; 
+   A_28_A800Z1.OutTrue := FALSE; 
+   A_28_A800Z1.StFalse := FALSE; 
+   A_28_A800Z1.StCtoTrue := FALSE; 
+   A_28_A800Z1.StTrue := FALSE; 
+   A_28_A800Z1.StCtoFalse := FALSE; 
+   A_28_A800Z1.StFault := FALSE; 
+   A_28_A800Z1.OutAlarmNrLog := 0; 
+   A_28_A800Z1.Par.ParObjectNo := 1434; 
+   A_28_A800Z1.Par.ParMsgType := 7147; 
+   A_28_A800Z1.Par.ParHornCode := 9; 
+   A_28_A800Z1.Par.ParLogOff := FALSE; 
+   A_28_A800Z1.Par.spare0401 := FALSE; 
+   A_28_A800Z1.Par.Par2WorkingCond := FALSE; 
+   A_28_A800Z1.Par.ParFaultRetry := FALSE; 
+   A_28_A800Z1.Par.ParBinLevel := FALSE; 
+   A_28_A800Z1.Par.ParDelayChange := 0; 
+   A_28_A800Z1.Par.ParDelayTrue := 10; 
+   A_28_A800Z1.Par.ParDelayFalse := 0; 
+   A_28_A800Z1.Par.ParTimeoutTrue := 0; 
+   A_28_A800Z1.Par.ParTimeoutFalse := 0; 
+   A_28_A800Z1.Par.OutMonTime := 0; 
+   A_28_A800Z1.Par.OutTransitionTime := 0; 
+   A_28_A800Z1.Par.OutMonTrue := FALSE; 
+   A_28_A800Z1.Par.OutMonFalse := FALSE; 
+   A_28_A800Z1.Par.OutFlagFaultDev := FALSE; 
+   A_28_A800Z1.Par.OutDelayTime := 0; 
+//Parameter =A-28-A106Z1 : EMERGENCY STOP FROM +C27
+      #A_28_A106Z1.Par.ParObjectNo                             :=1435;
+      #A_28_A106Z1.Par.ParMsgType                              :=7171;
+      #A_28_A106Z1.Par.ParHornCode                             :=2;
+      #A_28_A106Z1.Par.ParDelayChange                          :=0;
+      #A_28_A106Z1.Par.ParDelayTrue                            :=10;
+      #A_28_A106Z1.Par.ParDelayFalse                           :=0;
+      #A_28_A106Z1.Par.ParTimeoutTrue                          :=0;
+      #A_28_A106Z1.Par.ParTimeoutFalse                         :=0;
+      #A_28_A106Z1.Par.ParLogOff                               :=False;
+      #A_28_A106Z1.Par.Par2WorkingCond                         :=False;
+      #A_28_A106Z1.Par.ParFaultRetry                           :=False;
+      #A_28_A106Z1.Par.ParBinLevel                             :=False;
+//
+//
+END_DATA_BLOCK
+

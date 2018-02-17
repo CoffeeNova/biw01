@@ -1,0 +1,651 @@
+FUNCTION "SYS_Horn_Code" : VOID
+TITLE =Horn Code
+//COPYRIGHT:    (C) 2009 BUHLER AG, CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        HornCode: Switch on horn 
+//              
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//P01_FC004.1.0 K.Renz              CSB41                              14.Mrz.2010
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//REFERENCES: GCSOSMAN
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+//FcCode:
+//------
+//InCode=0 =Check StartWarning/ Alarm Reset
+//InCode=1 =Switch horn on
+//InCode=2 =Switch horn off
+AUTHOR : KR
+FAMILY : USW
+VERSION : 0.0
+
+
+VAR_INPUT
+  FcCode : INT ;	//Function Code:0=Check StartWarning, 1=Switch horn on ,2=Switch horn off
+  ParObjectType : INT ;	//Object Type of the calling Object
+  ParObjectNo : INT ;	//Object number of the calling Object
+  ParHornCode : INT ;	//HornCode of the calling object
+END_VAR
+VAR_TEMP
+  tmpFlag : BOOL ;	
+  tmpHornCode : INT ;	
+  tmpHornOn : BOOL ;	
+  tmpHornOff : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Object data of last alarm
+
+      NOP   0; 
+//=========================================
+// Store Object Data of last Alarm
+      L     #FcCode; 
+      L     1; 
+      <>I   ; 
+      SPB   IFJ1; 
+      L     DINO; 
+      T     "SYS_HornDB".OutAlarm.OutObjectDB; 
+      L     #ParObjectNo; 
+      T     "SYS_HornDB".OutAlarm.OutObjectNo; 
+      L     #ParObjectType; 
+      T     "SYS_HornDB".OutAlarm.OutObjectType; 
+IFJ1: NOP   0; 
+//=========================================
+// Read Object Data of last Alarm
+      L     "SYS_HornDB".OutAlarm.OutObjectDB; 
+      L     "SYS_HornDB".OutAlarm.OutObjectNo; 
+      L     "SYS_HornDB".OutAlarm.OutObjectType; 
+//=========================================
+// Store Object Data of last Startwarning
+      L     "SYS_StartWarningDB".OutWarningObjectDB; 
+      T     "SYS_HornDB".OutStartwarning.OutObjectDB; 
+      L     "SYS_StartWarningDB".OutWarningArea; 
+      T     "SYS_HornDB".OutStartwarning.OutArea; 
+NETWORK
+TITLE =StartWarning / Alarm Reset
+
+      L     #FcCode; 
+      L     0; 
+      <>I   ; 
+      SPB   ALJ0; 
+//===============================
+//G_ALARM_FLASHER : Alarm flasher
+//===============================
+      CLR   ; 
+      =     "SYS_HornDB".G_ALARM_FLASHER.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_FLASHER.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_15 : Alarm horn 15
+//===============================
+      U     "SYS_StartWarningDB".Area[1].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[2].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[3].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[4].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[5].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[6].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[7].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[8].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[9].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[10].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[11].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[12].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_15.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_15.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_C19 : Alarm horn Transport +C19
+//===============================
+//BRT140310 - komplett überarbeitet!
+//      U     "SYS_StartWarningDB".Area[1].OutStartwarningRunning
+      U(    ; 
+      O     "MAL1S017Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S019Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S020Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S021Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S022Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S023Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      )     ; 
+      U(    ; 
+      O     "SYS_StartWarningDB".Area[2].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[3].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[4].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[5].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[6].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[7].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[8].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[9].OutStartwarningRunning; 
+      )     ; 
+//      O     "SYS_StartWarningDB".Area[10].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[11].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[12].OutStartwarningRunning
+      =     "SYS_HornDB".G_ALARM_HORN_C19.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_C19.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_C29 : Alarm Horn Transport +C29
+//===============================
+//BRT140310 - komplett überarbeitet!
+//      U     "SYS_StartWarningDB".Area[1].OutStartwarningRunning
+      U(    ; 
+      U(    ; 
+      O     "MAL1S017Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S019Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S020Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S022Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S023Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S024Par".Par.FlagFunction_1.StepUnloading; 
+      )     ; 
+      U(    ; 
+      O     "SYS_StartWarningDB".Area[2].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[3].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[4].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[5].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[6].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[7].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[8].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[9].OutStartwarningRunning; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U(    ; 
+      O     "MAL1S032Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      )     ; 
+      U(    ; 
+      O     "SYS_StartWarningDB".Area[10].OutStartwarningRunning; 
+      O     "SYS_StartWarningDB".Area[11].OutStartwarningRunning; 
+      )     ; 
+      )     ; 
+//      O     "SYS_StartWarningDB".Area[12].OutStartwarningRunning
+      =     "SYS_HornDB".G_ALARM_HORN_C29.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_C29.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM1 : Alarm horn GERM 1
+//===============================
+      U     "SYS_StartWarningDB".Area[2].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM1.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM2 : Alarm horn GERM 2
+//===============================
+      U     "SYS_StartWarningDB".Area[3].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM2.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM3 : Alarm horn GERM 3
+//===============================
+      U     "SYS_StartWarningDB".Area[4].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM3.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM4 : Alarm horn GERM 4
+//===============================
+      U     "SYS_StartWarningDB".Area[5].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM4.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM5 : Alarm horn GERM 5
+//===============================
+      U     "SYS_StartWarningDB".Area[6].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM5.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM6 : Alarm horn GERM 6
+//===============================
+      U     "SYS_StartWarningDB".Area[7].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM6.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM7 : Alarm horn GERM 7
+//===============================
+      U     "SYS_StartWarningDB".Area[8].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM7.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_GERM8 : Alarm horn GERM 8
+//===============================
+      U     "SYS_StartWarningDB".Area[9].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_GERM8.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_KILN1 : Alarm horn KILN 1
+//===============================
+//BRT140310 - komplett überarbeitet!
+//      U     "SYS_StartWarningDB".Area[1].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[2].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[3].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[4].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[5].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[6].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[7].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[8].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[9].OutStartwarningRunning
+      O     "SYS_StartWarningDB".Area[10].OutStartwarningRunning; 
+//      O     "SYS_StartWarningDB".Area[11].OutStartwarningRunning
+//      O     "SYS_StartWarningDB".Area[12].OutStartwarningRunning
+      =     "SYS_HornDB".G_ALARM_HORN_KILN1.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_KILN2 : Alarm horn KILN 2
+//===============================
+      U     "SYS_StartWarningDB".Area[11].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_KILN2.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_STEEPS : Alarm horn STEEPS
+//===============================
+      U     "SYS_StartWarningDB".Area[1].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_STEEPS.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOff; 
+//===============================
+//G_ALARM_HORN_UNL_KILN : Alarm horn UNL KILN
+//===============================
+      U     "SYS_StartWarningDB".Area[12].OutStartwarningRunning; 
+      =     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.StartWarning; 
+
+      U     "SYS_HornDB".All.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOff; 
+//===============================
+//Init Flag
+//===============================
+      U     "SYS_HornDB".All.CmdHornOff; 
+      R     "SYS_HornDB".All.CmdHornOff; 
+      BEA   ; 
+ALJ0: NOP   0; 
+NETWORK
+TITLE =Prepare Flag
+
+      L     #FcCode; 
+      L     1; //Set Alarm
+      ==I   ; 
+      =     #tmpHornOn; 
+
+      L     #FcCode; 
+      L     2; //Reset Alarm
+      ==I   ; 
+      =     #tmpHornOff; 
+NETWORK
+TITLE =Read default code from group DB
+
+      L     #ParHornCode; 
+      T     #tmpHornCode; 
+      L     0; 
+      <>I   ; 
+      SPB   ALJ1; 
+      L     "Gr_ParHornCode"; 
+      T     #tmpHornCode; 
+ALJ1: NOP   0; 
+NETWORK
+TITLE = HornCode = 1 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     1; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     1; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 2 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     2; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     2; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 3 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     3; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     3; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 4 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     4; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     4; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 5 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     5; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     5; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 6 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     6; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     6; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 7 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     7; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     7; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 8 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     8; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     8; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 9 = 
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     9; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     9; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 10 ¦ Kiln1
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     10; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     10; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 11 ¦ Kiln2
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     11; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     11; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOff; 
+NETWORK
+TITLE = HornCode = 12 ¦ Unload Kiln
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     12; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOn; 
+      NOP   0; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     12; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOff; 
+NETWORK
+TITLE = All Code 98
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     98; 
+      ==I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOn; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     98; 
+      ==I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOff; 
+NETWORK
+TITLE = Allways
+
+      NOP   0; 
+//--------------------
+//Switch horn on
+//--------------------
+      L     #tmpHornCode; 
+      L     99; 
+      <>I   ; 
+      U     #tmpHornOn; 
+      S     "SYS_HornDB".G_ALARM_FLASHER.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_15.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_C19.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_C29.CmdHornOn; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOn; 
+//--------------------
+//Switch horn off
+//--------------------
+      L     #tmpHornCode; 
+      L     99; 
+      <>I   ; 
+      U     #tmpHornOff; 
+      S     "SYS_HornDB".G_ALARM_FLASHER.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_15.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_C19.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_C29.CmdHornOff; 
+      S     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOff; 
+
+NETWORK
+TITLE =End of Block
+
+
+
+END_FUNCTION
+

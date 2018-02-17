@@ -1,0 +1,236 @@
+FUNCTION_BLOCK "GCS7_ULQueue"
+TITLE =ULBatchQueue
+//
+//COPYRIGHT:    (C) 2003  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Batch Queue 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB77.2.0      A. Egli             CT3                         14-Nov-2003
+//               Multi-Instanz
+//FB77.1.0      A. Egli             CT3                         20-Mar-2003
+//               1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [xxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : ULQueue
+VERSION : 2.0
+
+
+VAR_INPUT
+  InCode : INT ;	
+  InSourceDB : BLOCK_DB ;	
+  InPriority : INT ;	
+  InObjectNr : INT ;	
+  InValue : DINT ;	
+END_VAR
+VAR_OUTPUT
+  OutDone : BOOL ;	
+  OutEmpty : BOOL ;	
+END_VAR
+VAR
+  ParSectionDB : INT ;	
+  Queue : ARRAY  [0 .. 20 ] OF STRUCT 	
+   SourceDB : INT ;	
+   Priority : INT ;	
+   ObjectNr : INT ;	
+   Value : DINT ;	//ASW
+  END_STRUCT ;	
+  EndOfData : STRUCT 	
+   Spare0 : INT ;	
+   Spare1 : INT ;	
+   Spare2 : INT ;	
+   Spare3 : INT ;	
+   Spare4 : INT ;	
+   Spare5 : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrNewPosition : DINT ;	
+  tmpSoureDB : INT ;	
+  tmpEndData : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Init
+
+      CLR   ; 
+      =     #OutDone; 
+//Read Source DBNr
+      AUF   #InSourceDB; 
+      L     DBNO; 
+      T     #tmpSoureDB; 
+//Empty
+      L     #Queue[0].SourceDB; 
+      L     0; 
+      ==I   ; 
+      =     #OutEmpty; 
+      LAR1  P##EndOfData; 
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      +AR1  ; 
+      TAR1  #tmpEndData; 
+NETWORK
+TITLE =Code 1: Add Batch
+
+      L     #InCode; 
+      L     1; 
+      <>I   ; 
+      SPB   C1En; 
+      LAR1  P##Queue; 
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      +AR1  ; 
+//===========================================
+//Search new position
+//===========================================
+C1L1: L     0; 
+      L     DIW [AR1,P#0.0]; 
+      ==I   ; 
+      SPB   C1Ad; 
+      L     #tmpSoureDB; 
+      ==I   ; 
+      SPB   C1Er; 
+      L     DIW [AR1,P#2.0]; 
+      L     #InPriority; 
+      <I    ; 
+      SPB   C1Ad; 
+      +AR1  P#10.0; //-->Next Batch
+      SPA   C1L1; 
+//===========================================
+//Spread data
+//===========================================
+C1Ad: TAR1  #tmpAddrNewPosition; 
+      L     #tmpEndData; 
+      L     P#10.0; //-->Last Batch
+      -D    ; 
+      LAR1  ; 
+C1L2: TAR1  ; 
+      L     P#10.0; //-->Previouse Batch
+      -D    ; 
+      LAR1  ; 
+      L     #tmpAddrNewPosition; 
+      <D    ; 
+      SPB   C1In; 
+//Copy Data
+      L     DID [AR1,P#0.0]; 
+      T     DID [AR1,P#10.0]; 
+      L     DID [AR1,P#4.0]; 
+      T     DID [AR1,P#14.0]; 
+      L     DID [AR1,P#6.0]; 
+      T     DID [AR1,P#16.0]; 
+      SPA   C1L2; //Next
+//===========================================
+//Insert new job
+//===========================================
+C1In: LAR1  #tmpAddrNewPosition; 
+      L     #tmpSoureDB; 
+      T     DIW [AR1,P#0.0]; 
+      L     #InPriority; 
+      T     DIW [AR1,P#2.0]; 
+      L     #InObjectNr; 
+      T     DIW [AR1,P#4.0]; 
+      L     #InValue; 
+      T     DID [AR1,P#6.0]; 
+      SET   ; 
+      S     #OutDone; 
+      R     #OutEmpty; 
+      BEA   ; 
+C1Er: BEA   ; //Error: Already in Queue  
+C1En: NOP   0; 
+NETWORK
+TITLE =Code 3: Start Next Batch
+
+      L     #InCode; 
+      L     3; 
+      <>I   ; 
+      SPB   C3En; 
+      U     #OutEmpty; 
+      BEB   ; 
+      L     #Queue[0].SourceDB; 
+      T     #tmpSoureDB; 
+      AUF   DB [#tmpSoureDB]; 
+// If job not exitsing then delete batch
+      UN    DBX   45.7; //"Section".ToASW.InfDataReady
+      SPB   C200; //-->Remove Batch
+// Move data
+      L     #ParSectionDB; 
+      T     DBW   20; // "Section".VarTemp.InOutValue1
+      CALL "GCS7_SecCtrlMain" (// Methode Move Data
+           CODE                     := 35);
+// If data are move then delete batch
+      U     DBX   44.2; //"Section".ToASW.CmdDataMoved
+      S     #OutDone; 
+      SPB   C200; //-->Remove Batch
+      BEA   ; 
+C3En: NOP   0; 
+NETWORK
+TITLE =Code 2: Remove
+
+      L     #InCode; 
+      L     2; 
+      <>I   ; 
+      SPB   C2En; 
+//===========================================
+//Search position
+//===========================================
+C200: LAR1  P##Queue; 
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      +AR1  ; 
+C2L1: L     #tmpSoureDB; 
+      L     DIW [AR1,P#0.0]; 
+      ==I   ; 
+      SPB   C2L2; //--Remove
+      L     0; 
+      ==I   ; 
+      SPB   C2Er; // End of queue
+      +AR1  P#10.0; //-->Next Batch
+      SPA   C2L1; 
+//===========================================
+//Remove
+//===========================================
+C2L2: L     DIW [AR1,P#0.0]; 
+      L     0; 
+      ==I   ; 
+      SPB   C2Dn; //--> Done
+      L     DID [AR1,P#10.0]; 
+      T     DID [AR1,P#0.0]; 
+      L     DID [AR1,P#14.0]; 
+      T     DID [AR1,P#4.0]; 
+      L     DID [AR1,P#16.0]; 
+      T     DID [AR1,P#6.0]; 
+      +AR1  P#10.0; //-->Next Batch
+      SPA   C2L2; 
+//===========================================
+//Done
+//===========================================
+C2Dn: SET   ; 
+      S     #OutDone; 
+C2Er: L     #Queue[0].SourceDB; 
+      L     0; 
+      ==I   ; 
+      =     #OutEmpty; 
+      BEA   ; 
+C2En: NOP   0; 
+NETWORK
+TITLE =
+
+
+
+END_FUNCTION_BLOCK
+

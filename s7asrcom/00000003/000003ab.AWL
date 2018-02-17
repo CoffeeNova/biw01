@@ -1,0 +1,40 @@
+	DATA_BLOCK DB2023
+	TITLE =Section Log Step Values DB : LINE 1 SEC 23 GERM 7
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section Log Step Values : LINE 1 SEC 23 GERM 7
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB913.1.0 K.Renz              CSB41                       13.Jan.2010
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	VERSION : 0.0
+	"SSA_MH_Step_Values"
+	BEGIN
+	END_DATA_BLOCK

@@ -1,0 +1,243 @@
+FUNCTION_BLOCK "SSA_SIEMENS_MICROMASTER"
+TITLE =SIEMENS MICROMASTER
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        SIEMENS MICROMASTER Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1813.2.0     M.Wedler            AEB41                            25-Okt-2007
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//Statuswort MICROMASTER
+    DREHZAHL_ABWEICHUNG_OK : BOOL ;	//0=Nicht im Toleranzband             1=Soll-Ist-Überwachung im Toleranzband
+    FUEHRUNG : BOOL ;	//0=Fuehrung Lokal                    1=Fuehrung SPS
+    VERGLEICHSWERT : BOOL ;	//0=Vergleichswert nicht erreicht     1=Vergleichswert erreicht/ueberschritten
+    GRENZE_ERREICHT : BOOL ;	//0=I-, M- oder P-Grenze erreicht     1=I-, M- oder P-Grenze nicht erreicht
+    HALTEBREMSE : BOOL ;	//0=Motor Haltebremse                 1=Steuern Haltebremse
+    WARN_UEBERTEMP_MOTOR : BOOL ;	//0=Warnung nicht wirksam             1=Warnung Übertemperatur Motor wirksam
+    DREH_RECHTS : BOOL ;	//0=Linkslauf                         1=Rechtslauf
+    WARNUNG_UEBERTEMP_FU : BOOL ;	//0=Warnung thermische Überlast Umrichter 1=Keine Warnung wirksam
+    EINSCHALTBEREIT : BOOL ;	//0=Nicht einschaltbereit             1=Einschaltbereit
+    BETRIEBSBEREIT : BOOL ;	//0=Nicht betriebsbereit              1=Betriebsbereit                        
+    BETRIEB_FREIGEGEBEN : BOOL ;	//0=Betrieb gesperrt   1=Betrieb freigegeben->Hochlauf auf anliegendem Sollwert
+    STOERUNG : BOOL ;	//0=Keine Störung wirksam             1=Störung wirksam
+    AUS_2 : BOOL ;	//0=Austrudeln aktiv (AUS2)           1=Kein AUS2 aktiv
+    AUS_3 : BOOL ;	//0=Schnellhalt aktiv (AUS3)          1=Kein AUS3 aktiv
+    EINSCHALTSPERRE : BOOL ;	//1=Einschaltsperre -> Wiedereinschalten durch AUS1 und anschließendes EIN
+    WARNUNG : BOOL ;	//0=Keine Warnung wirksam             1=Warnung wirksam, Motor weiter im Betrieb 
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//Hauptistwert / Prozessdaten PD2
+   ActualValue02 : INT ;	//Prozessdaten PD3
+   ActualValue03 : INT ;	//Prozessdaten PD4
+   ActualValue04 : INT ;	//Prozessdaten PD5
+   ActualValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Steuerwort MICROMASTER
+    TIPPEN_RECHTS : BOOL ;	//1=Tippen rechts
+    TIPPEN_LINKS : BOOL ;	//1=Tippen links
+    PZD_GUELTIG : BOOL ;	//0=Sollwerte ungueltig              1=Sollwerte gueltig
+    DREHRICHTUNGSUMKEHR : BOOL ;	//Drehrichtungsumkehr: 0=Rechtsdrehfeld / 1=Linksdrehfeld
+    CONTROL_WORD_BIT_12 : BOOL ;	//reserviert
+    MOTOR_POTI_HIGH : BOOL ;	//1=Motorpotentiometer höher
+    MOTOR_POTI_DOWN : BOOL ;	//1=Motorpotentiometer tiefer 
+    LOCAL : BOOL ;	//0=Fern-Steuerung aktiv             1=Vorort-Steuerung aktiv
+    AUS1 : BOOL ;	//0=AUS1->Abbremsen an der Rücklauframpe   1=EIN
+    AUS2 : BOOL ;	//0=Austrudeln (AUS2)                      1=kein Austrudeln   
+    AUS3 : BOOL ;	//0=Schnellhalt (AUS3)->Abbremsen an der Schnellhalt-Rampe  1=kein Schnellhalt
+    BETRIEB_FREIGEBEN : BOOL ;	//0=Betrieb sperren        1=Betrieb freigeben->Hochlauf mit anliegendem Sollwert
+    HOCHLAUF_SPERREN : BOOL ;	//0=Hochlaufgeber wird auf NULL gesetzt    1=Hochlaufgeber freigeben
+    HOCHLAUF_STOPPEN : BOOL ;	//0=Hochlaufgeber einfrieren               1=Hochlaufgeber freigeben
+    SOLLWERT_FREIGEBEN : BOOL ;	//0=Drehzahlsollwert wird auf NULL gesetzt 1=Drehzahlsollwert freigeben
+    FEHLER_QUITTIEREN : BOOL ;	//Flanke 0 -> 1 = Fehler quittieren, quittiert alle aktuellen Störungen
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//Hauptsollwert / Prozessdaten PD2
+   SetpointValue02 : INT ;	//Prozessdaten PD3
+   SetpointValue03 : INT ;	//Prozessdaten PD4
+   SetpointValue04 : INT ;	//Prozessdaten PD5
+   SetpointValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMovidrive : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+
+      L     P##Input; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands Par.ParMicroMaster
+
+      UN    #Par.ParNord; 
+      SPB   MMJ0; 
+//Load Status Word
+//      LAR1  #tmpAddrInputFU
+//      L     DIW [AR1,P#0.0]             //Status Word
+//      LAR1  P##MM_StateWord
+//      T     LW [AR1,P#0.0]              // MM_StateWord
+// prepare steuerword
+      L     W#16#47E; // Stop=AUS1
+      U     #InEnableFwd; 
+      O     #InEnableRev; 
+      SPBN  MMJ1; 
+      L     W#16#C7F; // EIN + DREHRICHTUNGSUMKEHR
+      U     #InEnableRev; 
+      SPB   MMJ1; 
+      L     W#16#47F; // Start=EIN
+MMJ1: LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+//-----------------------------------------
+// Fault Reset ins Steuerwort
+      U     #CmdFaultReset; 
+      U     #Input.StateWord_1.STOERUNG; // Fehler von FU
+      SPBN  MMR1; 
+      L     W#16#4FE; // Reset ins Steuerwort
+      LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+MMR1: NOP   0; 
+//- Feedback for motor
+      U     #Input.StateWord_1.BETRIEB_FREIGEGEBEN; 
+      UN    #Input.StateWord_1.STOERUNG; 
+      U     #InEnableRev; 
+      =     #OutRunningRev; 
+
+      U     #Input.StateWord_1.BETRIEB_FREIGEGEBEN; 
+      UN    #Input.StateWord_1.STOERUNG; 
+      U     #InEnableFwd; 
+      =     #OutRunningFwd; 
+
+      U     #Input.StateWord_1.STOERUNG; 
+      =     #OutFault; 
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     1.638400e+000; 
+      *R    ; 
+      RND   ; 
+      T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//4000H = 16384Dez = 100.0%
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     1.638400e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =Read Inputs of Inverter
+
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#8.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#8.0]; 
+NETWORK
+TITLE =Write Outputs of Inverter
+
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#4.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#8.0]; 
+
+NETWORK
+TITLE =
+
+MMJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

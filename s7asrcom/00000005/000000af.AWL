@@ -1,0 +1,1936 @@
+FUNCTION_BLOCK "GCS7_M_DFZK"
+TITLE =DFZK vertical rotor mill
+//  
+//COPYRIGHT:    (C) 2000  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB55 Machine Control: DFZK vertical rotor mill
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB55.2.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB55.1.5      A.Egli              CT3                         14.09.2001
+//              Condition B201LS.InMonTrue,B250LS.InMonTrue
+//FB55.1.4      A.Egli              CT3                         14.09.2001
+//              Unlock Cone in StNoPosition 
+//FB55.1.3      B.Thoma             FU53                        21.01.2001
+//              Monitoring Metal purifying if ma.ststarted 
+//FB55.1.2      S. Kalberer         CT3                         21.11.2000
+//              Avoid simultaneous brake event with global flag M 12.0
+//FB55.1.1      S. Kalberer         CT3                         02.10.2000
+//              Process of elements B201LS + 250LS (clam-gates) adapted
+//FB55.1.0      S. Kalberer         CT3                         06.06.2000
+//              1st Release in S7
+//FB55.0.3      S. Kalberer         CT3                         26.05.2000
+//              Cone open/close adapted
+//FB55.0.2      S. Kalberer         CT3                         03.05.2000
+//              Empty run without DFCM
+//FB55.0.1      S. Kalberer         CT3                         26.04.2000
+//              Segment gate parameter changed
+//FB55.0.0      S. Kalberer         CT3                         20.04.2000
+//              Software brake event and speed change
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.VRMillENMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DFZKVRMi
+VERSION : 2.0
+
+
+VAR
+  Ma : "GCS7_M_FB55_Data";	
+  M200 : "GCS7_E_Motor";	//Element
+  M300 : "GCS7_E_Motor";	//Element
+  M350 : "GCS7_E_Motor";	//Element
+  DFCMMill1 : "GCS7_E_Motor";	//Element
+  DFCMMill2 : "GCS7_E_Motor";	//Element
+  Y203V : "GCS7_E_ValveControl";	//Element
+  Y302V_Y305V : "GCS7_E_ValveControl";	//Element
+  Y352V_Y355V : "GCS7_E_ValveControl";	//Element
+  Y307V_Y309V : "GCS7_E_ValveControl";	//Element
+  Y357V_Y359V : "GCS7_E_ValveControl";	//Element
+  A316VI : "GCS7_E_DigInput";	//Element
+  A366VI : "GCS7_E_DigInput";	//Element
+  B205LS : "GCS7_E_DigInput";	//Element
+  B206HL : "GCS7_E_DigInput";	//Element
+  B201LS : "GCS7_E_DigInput";	//Element
+  B250LS : "GCS7_E_DigInput";	//Element
+  B300SM : "GCS7_E_DigInput";	//Element
+  B350SM : "GCS7_E_DigInput";	//Element
+  B310LS : "GCS7_E_DigInput";	//Element
+  B360LS : "GCS7_E_DigInput";	//Element
+  B317HL : "GCS7_E_DigInput";	//Element
+  B367HL : "GCS7_E_DigInput";	//Element
+  A209LC_AO1 : "GCS7_E_AnalogOutput";	//Element
+  A209LC_AO2 : "GCS7_E_AnalogOutput";	//Element
+  A209LC_AI1 : "GCS7_E_AnalogInput";	//Element
+  A209LC_AI2 : "GCS7_E_AnalogInput";	//Element
+  Y251V_52_53_54V : "GCS7_E_ValveControl4Pos";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	// Summary faults
+  tmpFaultStopFeedingMill1 : BOOL ;	// Relevant faults to stop feeding mill 1
+  tmpFaultStopFeedingMill2 : BOOL ;	// Relevant faults to stop feeding mill 2
+  tmpFaultImmStopMill1 : BOOL ;	// Relevant faults to stop mill 1 immediately
+  tmpFaultImmStopMill2 : BOOL ;	// Relevant faults to stop mill 2 immediately
+  tmpFaultStopAfEmptyMill1 : BOOL ;	// Relevant faults to stop mill 2 after emptying time
+  tmpFaultStopAfEmptyMill2 : BOOL ;	// Relevant faults to stop mill 1 after emptying time
+  tmpEnableMill1 : BOOL ;	
+  tmpEnableMill2 : BOOL ;	//[1.2] ParMa.OutScreenChMill1 = tmpOutScreenChangeMill1 : BOOL; // Signal screen
+  tmpSpeedChangeMill1 : BOOL ;	// Speed change requested mill 1
+  tmpSpeedChangeMill2 : BOOL ;	// Speed change requested mill 1
+  tmpTriggerFlag : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     106; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType  ========================
+      L     2055; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      L     "SYS_DirectCtrlDB".PC.Value[25]; //PCControl.PC.Value[25]
+      T     #Ma.Par.ParEmptyRunMill1; 
+      L     "SYS_DirectCtrlDB".PC.Value[26]; //PCControl.PC.Value[26]
+      T     #Ma.Par.ParEmptyRunMill2; 
+      L     "SYS_DirectCtrlDB".PC.Value[27]; //PCControl.PC.Value[27]
+      T     #Ma.Par.ParEmptyTimeMill1; 
+      L     "SYS_DirectCtrlDB".PC.Value[28]; //PCControl.PC.Value[28]
+      T     #Ma.Par.ParEmptyTimeMill2; 
+      L     "SYS_DirectCtrlDB".PC.Value[29]; //PCControl.PC.Value[29]
+      T     #Ma.Par.ParBrakeTimeMill1; 
+      L     "SYS_DirectCtrlDB".PC.Value[30]; //PCControl.PC.Value[30]
+      T     #Ma.Par.ParBrakeTimeMill2; 
+      L     "SYS_DirectCtrlDB".PC.Value[31]; //PCControl.PC.Value[31]
+      T     #Ma.Par.ParSwitchChTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //Cmd1[0]=CmdBrakeMill1On
+      S     #Ma.InBrakeMill1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[0]; //Cmd2[0]=CmdBrakeMill1Off
+      R     #Ma.InBrakeMill1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdBrakeMill2On
+      S     #Ma.InBrakeMill2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //Cmd2[1]=CmdBrakeMill2Off
+      R     #Ma.InBrakeMill2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; //Cmd1[6]=CmdUsedMill1On
+      S     #Ma.InUsedMill1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[6]; //Cmd2[6]=CmdUsedMill1Off
+      R     #Ma.InUsedMill1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[7]; //Cmd1[7]=CmdUsedMill2On
+      S     #Ma.InUsedMill2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[7]; //Cmd2[7]=CmdUsedMill2Off
+      R     #Ma.InUsedMill2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =General conditions
+
+      NOP   0; 
+//=== Condition to set hardware brake output
+// Mill1
+      U     #Ma.OutBrakeMill1; // No brake condition
+      UN    #Ma.OutLoadedMill1; // Mill 1 is loaded with product
+      UN    #Ma.Par.OutSpeedChMill1; // Mill 1 is speed changing
+      UN    #Ma.OutFastMill1; 
+      UN    #Ma.Par.OutBrakeAcvMill1; // Brake event is active
+      UN    #Ma.OutpBrakeMill2; // Mill 2 is braking
+      S     #Ma.OutpBrakeMill1; 
+// Mill2
+      U     #Ma.OutBrakeMill2; // No brake condition
+      UN    #Ma.OutLoadedMill2; // Mill 2 is loaded with product
+      UN    #Ma.Par.OutSpeedChMill2; // Mill 2 is speed changing
+      UN    #Ma.OutFastMill2; 
+      UN    #Ma.Par.OutBrakeAcvMill2; // Brake event is active
+      UN    #Ma.OutpBrakeMill1; // Mill 1 is braking
+      S     #Ma.OutpBrakeMill2; 
+//=== Speed change
+      U(    ; // Condition to change speed mill 1
+      UN    #Ma.InFastMill; 
+      U     #Ma.OutFastMill1; 
+      O     ; 
+      U     #Ma.OutFastMill1; 
+      U     #Ma.OutBrakeMill1; 
+      O     ; 
+      U     #Ma.InFastMill; 
+      UN    #Ma.OutFastMill1; 
+      UN    #Ma.OutBrakeMill1; 
+      )     ; 
+      UN    #M300.StStopped; 
+      UN    #M300.StFault; 
+      U     #M300.Par.Par2Speed; 
+      =     #tmpSpeedChangeMill1; 
+      S     #Ma.Par.OutSpeedChMill1; // Indicate speed changing mill 1
+      U     #M300.StStartedFwd; //--- If motor is started again 
+      O     #M300.StStartedRev; 
+      UN    #tmpSpeedChangeMill1; 
+      O     #M300.StFault; // or fault
+      R     #Ma.Par.OutSpeedChMill1; // --> Speed changing is done mill 1
+//        
+      U(    ; // Condition to change speed mill 2
+      UN    #Ma.InFastMill; 
+      U     #Ma.OutFastMill2; 
+      O     ; 
+      U     #Ma.OutFastMill2; 
+      U     #Ma.OutBrakeMill2; 
+      O     ; 
+      U     #Ma.InFastMill; 
+      UN    #Ma.OutFastMill2; 
+      UN    #Ma.OutBrakeMill2; 
+      )     ; 
+      UN    #M350.StStopped; 
+      UN    #M350.StFault; 
+      U     #M350.Par.Par2Speed; 
+      =     #tmpSpeedChangeMill2; 
+      S     #Ma.Par.OutSpeedChMill2; // Indicate speed changing mill 2
+      U     #M350.StStartedFwd; //--- If motor is started again 
+      O     #M350.StStartedRev; 
+      UN    #tmpSpeedChangeMill2; 
+      O     #M350.StFault; // or fault
+      R     #Ma.Par.OutSpeedChMill2; // --> Speed changing is done mill 2
+
+NETWORK
+TITLE =Prepare brake mills
+// Programming the following functions:
+// - Brake the motor (changing the direction) by request screen change
+//   or InBrake signal
+// - Stop only one mill at once
+      NOP   0; 
+//=== Prepare brake mill 1
+// Request screen change
+      L     #Ma.InScreenNoMill1; // Check for new screen number
+      L     #Ma.OutScreenNoAcMill1; 
+      <>I   ; 
+      U     #Ma.InUsedMill1; 
+      UN    "GCS7_Gr_InBrakeMill"; //[1.2->] Gr.InBrakeMill
+      S     #Ma.Par.OutScreenChMill1; // Screen change mill 1
+      L     #Ma.InScreenNoMill1; // Check for new screen number
+      L     #Ma.OutScreenNoAcMill1; 
+      ==I   ; 
+      ON    #Ma.InUsedMill1; 
+      R     #Ma.Par.OutScreenChMill1; //[<-1.2] Screen change mill 1
+
+      U     #Ma.Par.OutScreenChMill1; // Screennumber different to acutal screen
+      O     #Ma.Par.OutBrakeAcvMill1; // or brake signal
+      O     #Ma.InBrakeMill1; 
+      UN    #M300.StStopped; 
+      UN    #M300.StStopping; 
+      UN    #M300.StFault; 
+      UN    #M300.StStarting; 
+      UN    "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+      S     "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+      S     #Ma.OutBrakeMill1; 
+//=== Prepare brake mill 2
+// Request screen change
+      L     #Ma.InScreenNoMill2; // Check for new screen number
+      L     #Ma.OutScreenNoAcMill2; 
+      <>I   ; 
+      U     #Ma.InUsedMill2; 
+      U     #Ma.Par.ParWithMill2; 
+      UN    "GCS7_Gr_InBrakeMill"; //[1.2->] Gr.InBrakeMill
+      S     #Ma.Par.OutScreenChMill2; // Screen change mill 2
+      L     #Ma.InScreenNoMill2; // Check for new screen number
+      L     #Ma.OutScreenNoAcMill2; 
+      ==I   ; 
+      ON    #Ma.InUsedMill2; 
+      ON    #Ma.Par.ParWithMill2; 
+      R     #Ma.Par.OutScreenChMill2; //[<-1.2] Screen change mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  PBrE; 
+      U     #Ma.Par.OutScreenChMill2; // Screennumber different to acutal screen
+      O     #Ma.Par.OutBrakeAcvMill2; // or brake signal
+      O     #Ma.InBrakeMill2; 
+      UN    #M350.StStopped; 
+      UN    #M350.StStopping; 
+      UN    #M350.StFault; 
+      UN    #M350.StStarting; 
+      UN    "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+      S     "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+      S     #Ma.OutBrakeMill2; 
+PBrE: NOP   0; 
+
+NETWORK
+TITLE =Handle emptying timer
+// OutLoadedMillX will be set if once product was feeded (OutFeedingMillX were 
+//set once).
+      U     #Ma.OutLoadedMill1; //=== Condition for emptying mill 1
+      U(    ; 
+      ON    #Ma.OutFeedingMill1; 
+      O     #Ma.OutBrakeMill1; 
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      )     ; 
+      SPB   Em11; 
+      R     #Ma.OutEmptyingMill1; 
+      L     0; 
+      T     #Ma.OutEmptyTimeMill1; 
+      SPA   Em20; 
+Em11: U     #Ma.OutEmptyingMill1; // Emptying time is active
+      SPB   Em12; 
+      S     #Ma.OutEmptyingMill1; 
+      L     #Ma.Par.ParEmptyTimeMill1; // Set emptying time
+      T     #Ma.OutEmptyTimeMill1; 
+Em12: UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms (M 10.4)
+      L     #Ma.OutEmptyTimeMill1; 
+      SPB   Em13; 
+      +     -5; // Decrement timer
+      T     #Ma.OutEmptyTimeMill1; 
+Em13: L     0; 
+      <=I   ; 
+      R     #Ma.OutLoadedMill1; 
+      R     #Ma.OutEmptyingMill1; 
+      S     #Ma.OutEmptyingDoneMill1; 
+Em20: U     #Ma.OutLoadedMill2; //=== Condition for emptying mill 2
+      U(    ; 
+      ON    #Ma.OutFeedingMill2; 
+      O     #Ma.OutBrakeMill2; 
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      )     ; 
+      SPB   Em21; 
+      R     #Ma.OutEmptyingMill2; 
+      L     0; 
+      T     #Ma.OutEmptyTimeMill2; 
+      SPA   Em30; 
+Em21: U     #Ma.OutEmptyingMill2; // Emptying time is active
+      SPB   Em22; 
+      S     #Ma.OutEmptyingMill2; 
+      L     #Ma.Par.ParEmptyTimeMill2; // Set emptying time
+      T     #Ma.OutEmptyTimeMill2; 
+Em22: UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms (M 10.4)
+      L     #Ma.OutEmptyTimeMill2; 
+      SPB   Em23; 
+      +     -5; // Decrement timer
+      T     #Ma.OutEmptyTimeMill2; 
+Em23: L     0; 
+      <=I   ; 
+      R     #Ma.OutLoadedMill2; 
+      R     #Ma.OutEmptyingMill2; 
+      S     #Ma.OutEmptyingDoneMill2; 
+Em30: NOP   0; 
+
+NETWORK
+TITLE =Handle switch change timer
+
+      NOP   0; 
+//=== Condition for switch change time mill 1
+      U     #M300.StStartedFwd; 
+      O     #M300.StStartedRev; 
+      U(    ; 
+      U     #Ma.OutBrakeMill1; // Run time before brake
+      UN    #Ma.Par.OutBrakeAcvMill1; 
+      UN    #Ma.Par.OutSpeedChMill1; 
+      O     #tmpSpeedChangeMill1; // Run time at speed change
+      )     ; 
+      O     #Ma.Par.OutSwitchChMill1; 
+      UN    #Ma.OutEmptyingMill1; 
+      UN    #Ma.OutFeedingMill1; 
+      SPB   Ch11; 
+      R     #Ma.Par.OutSwitchChMill1; 
+      L     0; 
+      T     #Ma.OutSwitchChTimeMill1; 
+      SPA   Ch20; 
+Ch11: U     #Ma.Par.OutSwitchChMill1; // Change time is active
+      SPB   Ch12; 
+      S     #Ma.Par.OutSwitchChMill1; 
+      L     #Ma.Par.ParSwitchChTime; // Set switch change time
+      T     #Ma.OutSwitchChTimeMill1; 
+Ch12: UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms (M 10.4)
+      L     #Ma.OutSwitchChTimeMill1; 
+      SPB   Ch13; 
+      +     -5; // Decrement timer
+      T     #Ma.OutSwitchChTimeMill1; 
+Ch13: L     0; 
+      <=I   ; 
+      R     #Ma.Par.OutSwitchChMill1; 
+      S     #Ma.Par.OutSwitchChDoneMill1; 
+
+//=== Condition for switch change time mill 2
+Ch20: U     #M350.StStartedFwd; 
+      O     #M350.StStartedRev; 
+      U(    ; 
+      U     #Ma.OutBrakeMill2; // Run time before brake
+      UN    #Ma.Par.OutBrakeAcvMill2; 
+      UN    #Ma.Par.OutSpeedChMill2; 
+      O     #tmpSpeedChangeMill2; // Run time at speed change
+      )     ; 
+      O     #Ma.Par.OutSwitchChMill2; 
+      UN    #Ma.OutEmptyingMill2; 
+      UN    #Ma.OutFeedingMill2; 
+      SPB   Ch21; 
+      R     #Ma.Par.OutSwitchChMill2; 
+      L     0; 
+      T     #Ma.OutSwitchChTimeMill2; 
+      SPA   Ch30; 
+Ch21: U     #Ma.Par.OutSwitchChMill2; // Change time is active
+      SPB   Ch22; 
+      S     #Ma.Par.OutSwitchChMill2; 
+      L     #Ma.Par.ParSwitchChTime; // Set switch change time
+      T     #Ma.OutSwitchChTimeMill2; 
+Ch22: UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms (M 10.4)
+      L     #Ma.OutSwitchChTimeMill2; 
+      SPB   Ch23; 
+      +     -5; // Decrement timer
+      T     #Ma.OutSwitchChTimeMill2; 
+Ch23: L     0; 
+      <=I   ; 
+      R     #Ma.Par.OutSwitchChMill2; 
+      S     #Ma.Par.OutSwitchChDoneMill2; 
+Ch30: NOP   0; 
+
+NETWORK
+TITLE =Handle brake timer
+// Programming the following functions:
+// - Brake the motors
+      U     #Ma.OutpBrakeMill1; //=== Brake mill 1
+      UN    #Ma.Par.OutSwitchChMill1; 
+      SPBN  Br20; 
+      U     #Ma.Par.OutBrakeAcvMill1; 
+      SPB   Br11; 
+      S     #Ma.Par.OutBrakeAcvMill1; 
+      L     #Ma.Par.ParBrakeTimeMill1; // Brake time mill 1
+      T     #Ma.OutBrakeTimeMill1; 
+Br11: UN    #Ma.CmdTick100ms; 
+      L     #Ma.OutBrakeTimeMill1; 
+      SPB   Br12; 
+      +     -1; // Decrement timer
+      T     #Ma.OutBrakeTimeMill1; 
+Br12: L     0; 
+      <=I   ; 
+      R     #Ma.OutpBrakeMill1; // Brake mill 1
+      R     "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+Br20: U     #Ma.OutpBrakeMill2; //=== Brake mill 2
+      UN    #Ma.Par.OutSwitchChMill2; 
+      SPBN  Br30; 
+      U     #Ma.Par.OutBrakeAcvMill2; 
+      SPB   Br21; 
+      S     #Ma.Par.OutBrakeAcvMill2; 
+      L     #Ma.Par.ParBrakeTimeMill2; // Brake time mill 2
+      T     #Ma.OutBrakeTimeMill2; 
+Br21: UN    #Ma.CmdTick100ms; 
+      L     #Ma.OutBrakeTimeMill2; 
+      SPB   Br22; 
+      +     -1; // Decrement timer
+      T     #Ma.OutBrakeTimeMill2; 
+Br22: L     0; 
+      <=I   ; 
+      R     #Ma.OutpBrakeMill2; // Brake mill 2
+      R     "GCS7_Gr_InBrakeMill"; //[1.2] Gr.InBrakeMill
+
+Br30: NOP   0; 
+
+
+NETWORK
+TITLE =Change screen / clear brake event
+
+      NOP   0; 
+//Quit screen change mill 1 / clear InBrake event
+      U     #Ma.InpS311Z6; //--- Push button screen change acknowledge mill 1
+      U     #Y307V_Y309V.StLN; // Cone locked mill 1
+      U     #Ma.Par.OutScreenChMill1; 
+      U     #Ma.Par.OutConeOpenedMill1; // Was cone mill 1 opened?
+      O     ; 
+      UN    #Ma.Par.OutScreenChMill1; //--- Clear InBrake event
+      UN    #Ma.OutpBrakeMill1; // Mill is still braking
+      UN    #Ma.InBrakeMill1; 
+      U     #B300SM.StTrue; // Standstill mill 1
+      SPBN  Cs01; 
+      L     #Ma.InScreenNoMill1; // Set actual screen number
+      T     #Ma.OutScreenNoAcMill1; 
+      R     #Ma.Par.OutConeOpenedMill1; 
+      R     #Ma.OutBrakeMill1; // Clear brake event signal
+      R     #Ma.Par.OutBrakeAcvMill1; 
+
+//Quit screen change mill 2 / clear InBrake event
+Cs01: U     #Ma.InpS361Z6; //--- Push button screen change acknowledge mill 2
+      U     #Y357V_Y359V.StLN; // Cone locked mill 2
+      U     #Ma.Par.OutScreenChMill2; 
+      U     #Ma.Par.OutConeOpenedMill2; // Was cone mill 2 opened?
+      O     ; 
+      UN    #Ma.Par.OutScreenChMill2; //--- Clear InBrake event
+      UN    #Ma.OutpBrakeMill2; // Mill is still braking
+      UN    #Ma.InBrakeMill2; 
+      U     #B350SM.StTrue; // Standstill mill 2
+      ON    #Ma.Par.ParWithMill2; 
+      SPBN  Cs02; 
+      L     #Ma.InScreenNoMill2; // Set actual screen number
+      T     #Ma.OutScreenNoAcMill2; 
+      R     #Ma.Par.OutConeOpenedMill2; 
+      R     #Ma.OutBrakeMill2; // Clear brake event signal
+      R     #Ma.Par.OutBrakeAcvMill2; 
+
+//Set signals: cones of mills 1 and 2 were opened
+Cs02: UN    #Y302V_Y305V.StLN; // Cone not closed mill 1
+      U     #Y307V_Y309V.StHN; // Cone locked mill 1
+      U     #Ma.Par.OutScreenChMill1; 
+      S     #Ma.Par.OutConeOpenedMill1; 
+
+      UN    #Y352V_Y355V.StLN; // Cone not closed mill 2
+      U     #Y357V_Y359V.StHN; // Cone locked mill 2
+      U     #Ma.Par.OutScreenChMill2; 
+      S     #Ma.Par.OutConeOpenedMill2; 
+
+//Lamp request for screen change mill 1
+      U     #Ma.Par.OutScreenChMill1; 
+      U     "SYS_Pulse500ms"; // All.Pulse500ms (M 9.3): f= 1 Hz
+      =     #Ma.OutpS311Z6; // Lamp request for screen change mill 1
+
+//Lamp request for screen change mill 2
+      U     #Ma.Par.OutScreenChMill2; 
+      U     "SYS_Pulse500ms"; // All.Pulse500ms (M 9.3): f= 1 Hz
+      =     #Ma.OutpS361Z6; // Lamp request for screen change mill 2
+
+NETWORK
+TITLE =Interlocking
+
+      NOP   0; 
+//--- Summary fault----
+      U     #M200.StFault; // Fan DFAV
+      O     #M300.StFault; // Motor mill 1
+      O     #M350.StFault; // Motor mill 2
+      O     #DFCMMill1.StFault; // DFCM control unit mill 1
+      O     #DFCMMill2.StFault; // DFCM control unit mill 2
+      O     #Y203V.StFault; // Open dense-medium valve
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A316VI.StFault; // Vibration control mill 1
+      O     #A366VI.StFault; // Vibration control mill 2
+      O     #B205LS.StFault; // Metal purifying valve closed
+      O     #B206HL.StFault; // HL DFAV full
+      O     #B201LS.StFault; // Clam-gate mill 1 closed
+      O     #B250LS.StFault; // Clam-gate mill 2 closed
+      O     #B300SM.StFault; // Standstill mill 1
+      O     #B350SM.StFault; // Standstill mill 2
+      O     #B310LS.StFault; // Switch panel ok mill 1
+      O     #B360LS.StFault; // Switch panel ok mill 2
+      O     #B317HL.StFault; // HL cone mill 1 (backup)
+      O     #B367HL.StFault; // HL cone mill 2 (backup)
+      O     #Y251V_52_53_54V.StFault; // Flap box
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      =     #tmpFaultSum; 
+
+//--- Fault stop after emptying mill 1----
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      =     #tmpFaultStopAfEmptyMill1; 
+//--- Fault stop after emptying mill 2----
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      =     #tmpFaultStopAfEmptyMill2; 
+
+//--- Fault immediate stop mill 1----
+      U     #M300.StFault; // Motor mill 1
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A316VI.StFault; // Vibration control mill 1
+      O     #B300SM.StFault; // Standstill mill 1
+      UN    #Ma.InLocal; 
+      =     #tmpFaultImmStopMill1; 
+
+//--- Fault immediate stop mill 2----
+      O     #M350.StFault; // Motor mill 2
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A366VI.StFault; // Vibration control mill 2
+      O     #B350SM.StFault; // Standstill mill 2
+      UN    #Ma.InLocal; 
+      =     #tmpFaultImmStopMill2; 
+
+//--- Fault stop feeding mill 1----
+      U     #M200.StFault; // Fan DFAV
+      O     #M300.StFault; // Motor mill 1
+      O     #M350.StFault; // Motor mill 2
+      O     #DFCMMill1.StFault; // DFCM control unit mill 1
+      O     #Y203V.StFault; // Open dense-medium valve
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A316VI.StFault; // Vibration control mill 1
+      O     #A366VI.StFault; // Vibration control mill 2
+      O     #B205LS.StFault; // Metal purifying valve closed
+      O     #B206HL.StFault; // HL DFAV full
+      O     #B300SM.StFault; // Standstill mill 1
+      O     #B350SM.StFault; // Standstill mill 2
+      O     #B317HL.StFault; // HL cone mill 1 (backup)
+      O     #B367HL.StFault; // HL cone mill 2 (backup)
+      O     #Y251V_52_53_54V.StFault; // Flap box
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      =     #tmpFaultStopFeedingMill1; 
+
+//--- Fault stop feeding mill 2----
+      U     #M200.StFault; // Fan DFAV
+      O     #M300.StFault; // Motor mill 1
+      O     #M350.StFault; // Motor mill 2
+      O     #DFCMMill2.StFault; // DFCM control unit mill 2
+      O     #Y203V.StFault; // Open dense-medium valve
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A316VI.StFault; // Vibration control mill 1
+      O     #A366VI.StFault; // Vibration control mill 2
+      O     #B205LS.StFault; // Metal purifying valve closed
+      O     #B206HL.StFault; // HL DFAV full
+      O     #B300SM.StFault; // Standstill mill 1
+      O     #B350SM.StFault; // Standstill mill 2
+      O     #B317HL.StFault; // HL cone mill 1 (backup)
+      O     #B367HL.StFault; // HL cone mill 2 (backup)
+      O     #Y251V_52_53_54V.StFault; // Flap box
+      O     #Ma.InAlarmTempMill1; 
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      =     #tmpFaultStopFeedingMill2; 
+
+//--- Fault mill 1
+      U     #M200.StFault; // Fan DFAV
+      O     #M300.StFault; // Motor mill 1
+      O     #DFCMMill1.StFault; // DFCM control unit mill 1
+      O     #Y203V.StFault; // Open dense-medium valve
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      O     #A316VI.StFault; // Vibration control mill 1
+      O     #B205LS.StFault; // Metal purifying valve closed
+      O     #B206HL.StFault; // HL DFAV full
+      O     #B201LS.StFault; // Clam-gate mill 1 closed
+      O     #B300SM.StFault; // Standstill mill 1
+      O     #B310LS.StFault; // Switch panel ok mill 1
+      O     #B317HL.StFault; // HL cone mill 1
+      O     #Y251V_52_53_54V.StFault; // Flap box
+      O     #Ma.InAlarmTempMill1; 
+      UN    #Ma.InLocal; 
+      =     #Ma.OutpH311Z3; // Alarm lamp mill 1
+      =     #Ma.OutAlarmMill1; 
+
+//--- Fault mill 2
+      U     #M200.StFault; // Fan DFAV
+      O     #M350.StFault; // Motor mill 2
+      O     #DFCMMill2.StFault; // DFCM control unit mill 2
+      O     #Y203V.StFault; // Open dense-medium valve
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      O     #A366VI.StFault; // Vibration control mill 2
+      O     #B205LS.StFault; // Metal purifying valve closed
+      O     #B206HL.StFault; // HL DFAV full
+      O     #B250LS.StFault; // Clam-gate mill 2 closed
+      O     #B350SM.StFault; // Standstill mill 2
+      O     #B360LS.StFault; // Switch panel ok mill 2
+      O     #B367HL.StFault; // HL cone mill 2
+      O     #Y251V_52_53_54V.StFault; // Flap box
+      O     #Ma.InAlarmTempMill2; 
+      UN    #Ma.InLocal; 
+      U     #Ma.Par.ParWithMill2; 
+      =     #Ma.OutpH361Z3; // Alarm lamp mill 2
+      =     #Ma.OutAlarmMill2; 
+
+//--- Local mode --
+      U     #Ma.InLocal; 
+      =     #M200.InLocal; 
+      =     #M300.InLocal; 
+      =     #M350.InLocal; 
+      =     #DFCMMill1.InLocal; 
+      =     #DFCMMill2.InLocal; 
+      =     #B205LS.InLocal; 
+      =     #B206HL.InLocal; 
+      =     #B201LS.InLocal; 
+      =     #B250LS.InLocal; 
+      =     #B300SM.InLocal; 
+      =     #B350SM.InLocal; 
+      =     #B310LS.InLocal; 
+      =     #B360LS.InLocal; 
+      =     #B317HL.InLocal; 
+      =     #B367HL.InLocal; 
+      =     #A209LC_AO1.InLocal; 
+      =     #A209LC_AO2.InLocal; 
+      =     #A209LC_AI1.InLocal; 
+      =     #A209LC_AI2.InLocal; 
+      =     #Y251V_52_53_54V.InLocal; 
+// Open dense-medium valve
+      UN    #Ma.InpS311Z2; // Not automatic mode mill 1
+      UN    #Ma.InpS311Z2_1; // Not service mode mill 1
+      U(    ; 
+      UN    #Ma.InpS361Z2; // Not automatic mode mill 2
+      UN    #Ma.InpS361Z2_1; // Not service mode mill 2
+      ON    #Ma.Par.ParWithMill2; 
+      )     ; 
+      =     #Y203V.InLocal; 
+
+      UN    #Ma.InUsedMill1; 
+      O     #Ma.InLocal; 
+      =     #A316VI.InLocal; 
+      =     #B317HL.InLocal; 
+
+      UN    #Ma.InUsedMill2; 
+      O     #Ma.InLocal; 
+      =     #A366VI.InLocal; 
+      =     #B367HL.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #M200.CmdFaultReset; 
+      S     #M300.CmdFaultReset; 
+      S     #M350.CmdFaultReset; 
+      S     #DFCMMill1.CmdFaultReset; 
+      S     #DFCMMill2.CmdFaultReset; 
+      S     #Y203V.CmdFaultReset; 
+      S     #Y302V_Y305V.CmdFaultReset; 
+      S     #Y352V_Y355V.CmdFaultReset; 
+      S     #Y307V_Y309V.CmdFaultReset; 
+      S     #Y357V_Y359V.CmdFaultReset; 
+      S     #A316VI.CmdFaultReset; 
+      S     #A366VI.CmdFaultReset; 
+      S     #B205LS.CmdFaultReset; 
+      S     #B206HL.CmdFaultReset; 
+      S     #B201LS.CmdFaultReset; 
+      S     #B250LS.CmdFaultReset; 
+      S     #B300SM.CmdFaultReset; 
+      S     #B350SM.CmdFaultReset; 
+      S     #B310LS.CmdFaultReset; 
+      S     #B360LS.CmdFaultReset; 
+      S     #B317HL.CmdFaultReset; 
+      S     #B367HL.CmdFaultReset; 
+      S     #A209LC_AO1.CmdFaultReset; 
+      S     #A209LC_AO2.CmdFaultReset; 
+      S     #A209LC_AI1.CmdFaultReset; 
+      S     #A209LC_AI2.CmdFaultReset; 
+      S     #Y251V_52_53_54V.CmdFaultReset; 
+
+//--- Global enable mill 1---
+      UN    #Ma.OutBrakeMill1; // Brake mill 1
+      UN    #Ma.Par.OutScreenChMill1; // Screen change mill 1
+      UN    #tmpFaultStopAfEmptyMill1; 
+      O     #Ma.OutpBrakeMill1; 
+      O     #Ma.OutEmptyingMill1; 
+      O     #Ma.Par.OutSpeedChMill1; 
+      U     #Ma.InEnableMill1; // Enable mill 1
+      U     #Ma.InpS311Z2; // Automatic mode mill 1
+      UN    #Ma.InpS311Z2_1; // Not service mode mill 1
+      U     #Y302V_Y305V.StLN; // Cone closed mill 1
+      U     #Y307V_Y309V.StLN; // Cone locked mill 1
+      UN    #B300SM.StFault; // Standstill mill 1
+      UN    #tmpFaultImmStopMill1; 
+      UN    #Ma.Par.OutSwitchChMill1; // Change time active mill 1
+      =     #tmpEnableMill1; 
+//--- Global enable mill 2---
+      UN    #Ma.OutBrakeMill2; // Brake mill 2
+      UN    #Ma.Par.OutScreenChMill2; // Screen change mill 2
+      UN    #tmpFaultStopAfEmptyMill2; 
+      O     #Ma.OutpBrakeMill2; 
+      O     #Ma.OutEmptyingMill2; 
+      O     #Ma.Par.OutSpeedChMill2; 
+      U     #Ma.InEnableMill2; // Enable mill 2
+      U     #Ma.InpS361Z2; // Automatic mode mill 2
+      UN    #Ma.InpS361Z2_1; // Not service mode mill 2
+      U     #Y352V_Y355V.StLN; // Cone closed mill 2
+      U     #Y357V_Y359V.StLN; // Cone locked mill 2
+      UN    #B350SM.StFault; // Standstill mill 2
+      U     #Ma.Par.ParWithMill2; 
+      UN    #tmpFaultImmStopMill2; 
+      UN    #Ma.Par.OutSwitchChMill2; // Change time active mill 2
+      =     #tmpEnableMill2; 
+//--- Interlocking A316VI Vibration control mill 1
+      SET   ; 
+      =     #A316VI.InMonTrue; 
+//--- Interlocking A366VI Vibration control mill 2
+      SET   ; 
+      =     #A366VI.InMonTrue; 
+//--- Interlocking B205LS Metal purifying valve closed
+      U     #Ma.OutFeedingMill1; 
+      O     #Ma.OutFeedingMill2; 
+      O     #Ma.StStarted; // [1.3]
+      =     #B205LS.InMonTrue; 
+//--- Interlocking B206HL HL DFAV full
+      SET   ; 
+      =     #B206HL.InMonFalse; 
+//--- Interlocking B201LS Clam-gate mill 1 closed
+      UN    #Ma.InEnableFeedMill1; 
+      UN    #DFCMMill1.InManual; // [1.5]
+      U     #Ma.Par.ParWithDFCM; // [1.1]
+      =     #B201LS.InMonTrue; 
+      UN    #Ma.Par.ParWithDFCM; // [1.1]
+      =     #B201LS.InMonFalse; // [1.1]
+//--- Interlocking B250LS Clam-gate mill 2 closed
+      UN    #Ma.InEnableFeedMill2; 
+      UN    #DFCMMill2.InManual; // [1.5]
+      U     #Ma.Par.ParWithDFCM; // [1.1]
+      =     #B250LS.InMonTrue; 
+      UN    #Ma.Par.ParWithDFCM; // [1.1]
+      =     #B250LS.InMonFalse; // [1.1]
+//--- Interlocking B300SM Standstill mill 1
+// Check running by enable, otherwise fault
+      U     #M300.OutpRunFwd; 
+      O     #M300.OutpRunRev; 
+      =     #B300SM.InMonFalse; 
+//--- Interlocking B350SM Standstill mill 1
+// Check running by enable, otherwise fault
+      U     #M350.OutpRunFwd; 
+      O     #M350.OutpRunRev; 
+      =     #B350SM.InMonFalse; 
+//--- Interlocking B310LS Switch panel ok mill 1
+      CLR   ; 
+      =     #B310LS.InMonTrue; 
+//--- Interlocking B360LS Switch panel ok mill 2
+      CLR   ; 
+      =     #B360LS.InMonTrue; 
+//--- Interlocking B317HL HL cone mill 1
+      SET   ; 
+      =     #B317HL.InMonFalse; 
+//--- Interlocking B367HL HL cone mill 2
+      SET   ; 
+      =     #B367HL.InMonFalse; 
+
+NETWORK
+TITLE =Handle speed and direction change of mill motors M300/M350
+//--- Between forward <-> reverse motor must come to a standstill
+      U     #B350SM.StTrue; // Standstill mill 2
+      ON    #Ma.Par.ParWithMill2; 
+      U     #B300SM.StTrue; // Standstill mill 1
+      U     #Ma.InOutRevMill; 
+      S     #Ma.OutRevMill; 
+      U     #B350SM.StTrue; // Standstill mill 2
+      ON    #Ma.Par.ParWithMill2; 
+      U     #B300SM.StTrue; // Standstill mill 1
+      UN    #Ma.InOutRevMill; 
+      R     #Ma.OutRevMill; 
+//--- Between fast to slow motor switches must be cleared
+// Mill 1
+      U     #Ma.InFastMill; 
+      UN    #Ma.OutBrakeMill1; 
+      U     #Ma.Par.OutSwitchChDoneMill1; 
+      S     #Ma.OutFastMill1; 
+      R     #Ma.Par.OutSwitchChDoneMill1; 
+
+      UN    #Ma.InFastMill; 
+      O     #Ma.OutBrakeMill1; 
+      U     #Ma.Par.OutSwitchChDoneMill1; 
+      O     #M300.StStopped; 
+      ON    #M300.Par.Par2Speed; 
+      R     #Ma.OutFastMill1; 
+      R     #Ma.Par.OutSwitchChDoneMill1; 
+// Mill 2
+      U     #Ma.InFastMill; 
+      UN    #Ma.OutBrakeMill2; 
+      U     #Ma.Par.OutSwitchChDoneMill2; 
+      S     #Ma.OutFastMill2; 
+      R     #Ma.Par.OutSwitchChDoneMill2; 
+
+      UN    #Ma.InFastMill; 
+      O     #Ma.OutBrakeMill2; 
+      U     #Ma.Par.OutSwitchChDoneMill2; 
+      O     #M350.StStopped; 
+      ON    #M350.Par.Par2Speed; 
+      R     #Ma.OutFastMill2; 
+      R     #Ma.Par.OutSwitchChDoneMill2; 
+
+NETWORK
+TITLE =Interlocking M300 Motor mill 1
+
+      U(    ; 
+      UN    #Ma.OutRevMill; // Common run forward
+      UN    #Ma.OutpBrakeMill1; 
+      O     ; 
+      UN    #Ma.OutRevMill; // Brake at run forward
+      U     #Ma.OutpBrakeMill1; 
+      U     #Ma.Par.ParHwDirWhileBrake; 
+      O     ; 
+      U     #Ma.OutRevMill; // Brake at run reverse
+      U     #Ma.OutpBrakeMill1; 
+      UN    #Ma.Par.ParHwDirWhileBrake; 
+      )     ; 
+      U     #tmpEnableMill1; 
+      =     #M300.InEnableFwd; // M300 release forward
+
+      U(    ; 
+      U     #Ma.OutRevMill; // Common run reverse
+      UN    #Ma.OutpBrakeMill1; 
+      O     ; 
+      U     #Ma.OutRevMill; // Brake at run reverse
+      U     #Ma.OutpBrakeMill1; 
+      U     #Ma.Par.ParHwDirWhileBrake; 
+      O     ; 
+      UN    #Ma.OutRevMill; // Brake at run forward
+      U     #Ma.OutpBrakeMill1; 
+      UN    #Ma.Par.ParHwDirWhileBrake; 
+      )     ; 
+      U     #tmpEnableMill1; 
+      =     #M300.InEnableRev; // M300 release forward
+
+      UN    #Ma.OutFastMill1; 
+      =     #M300.InSlow; 
+
+      UN    #Ma.InBrakeMill1; 
+      UN    #Ma.Par.OutBrakeAcvMill1; 
+      O     #Ma.OutpBrakeMill1; 
+      O     #Ma.Par.OutSpeedChMill1; 
+      U     #Ma.CmdNext; 
+      U     #Ma.InDischargeOkMill1; // Discharge ok mill 1
+      U     #Y203V.StLN; // Dense-medium flap closed
+      UN    #B205LS.StFault; // Metal purifying valve closed
+      UN    #B206HL.StFault; // HL DFAV full
+      UN    #B201LS.StFault; // Clam gate mill 1 not fault
+      UN    #B250LS.StFault; // Clam gate mill 2 not fault
+      UN    #B317HL.StFault; // HL cone mill 1 (backup)
+      UN    #B367HL.StFault; // HL cone mill 2 (backup)
+      UN    #tmpFaultStopFeedingMill1; 
+      S     #M300.CmdNext; 
+//--- Sequence stop
+      U     #Ma.OutEmptyRunMill1; 
+      ON    #Ma.Par.ParWithDFCM; // [0.2]
+      ON    #Ma.Par.ParWithDFAV; // [0.2]
+      UN    #Ma.InEnableFeedMill1; 
+      U(    ; 
+      O     #M300.StStartedRev; 
+      O     #M300.StStartedFwd; 
+      )     ; 
+      S     #Ma.OutEmptySeqStopMill1; 
+      U     #Ma.InEnableFeedMill1; 
+      ON    #Ma.InEnableMill1; 
+      ON    #Ma.InUsedMill1; 
+      O     #tmpSpeedChangeMill1; 
+      O     #Ma.OutBrakeMill1; 
+      R     #Ma.OutEmptySeqStopMill1; 
+
+      U     #Ma.InSeqStop; 
+      ON    #Ma.InUsedMill1; 
+      O     #Ma.OutEmptySeqStopMill1; 
+      UN    #Ma.OutEmptyingMill1; // Emptying time not running
+      =     #M300.InSeqStop; 
+
+NETWORK
+TITLE =Interlocking M350 Motor mill 2
+
+      U(    ; 
+      UN    #Ma.OutRevMill; // Common run forward
+      UN    #Ma.OutpBrakeMill2; 
+      O     ; 
+      UN    #Ma.OutRevMill; // Brake at run forward
+      U     #Ma.OutpBrakeMill2; 
+      U     #Ma.Par.ParHwDirWhileBrake; 
+      O     ; 
+      U     #Ma.OutRevMill; // Brake at run reverse
+      U     #Ma.OutpBrakeMill2; 
+      UN    #Ma.Par.ParHwDirWhileBrake; 
+      )     ; 
+      U     #tmpEnableMill2; 
+      =     #M350.InEnableFwd; // M350 release forward
+
+      U(    ; 
+      U     #Ma.OutRevMill; // Common run reverse
+      UN    #Ma.OutpBrakeMill2; 
+      O     ; 
+      U     #Ma.OutRevMill; // Brake at run reverse
+      U     #Ma.OutpBrakeMill2; 
+      U     #Ma.Par.ParHwDirWhileBrake; 
+      O     ; 
+      UN    #Ma.OutRevMill; // Brake at run forward
+      U     #Ma.OutpBrakeMill2; 
+      UN    #Ma.Par.ParHwDirWhileBrake; 
+      )     ; 
+      U     #tmpEnableMill2; 
+      =     #M350.InEnableRev; // M350 release forward
+
+      UN    #Ma.OutFastMill2; 
+      =     #M350.InSlow; 
+
+      UN    #Ma.InBrakeMill2; 
+      UN    #Ma.Par.OutBrakeAcvMill2; 
+      O     #Ma.OutpBrakeMill2; 
+      O     #Ma.Par.OutSpeedChMill2; 
+      U     #Ma.CmdNext; 
+      U     #Ma.InDischargeOkMill2; // Discharge ok mill 2
+      U     #Y203V.StLN; // Dense-medium flap closed
+      UN    #B205LS.StFault; // Metal purifying valve closed
+      UN    #B206HL.StFault; // HL DFAV full
+      UN    #B201LS.StFault; // Clam gate mill 1 not fault
+      UN    #B250LS.StFault; // Clam gate mill 2 not fault
+      UN    #B317HL.StFault; // HL cone mill 1 (backup)
+      UN    #B367HL.StFault; // HL cone mill 2 (backup)
+      UN    #tmpFaultStopFeedingMill2; 
+      S     #M350.CmdNext; 
+//--- Sequence stop
+      U     #Ma.OutEmptyRunMill2; 
+      ON    #Ma.Par.ParWithDFCM; // [0.2]
+      ON    #Ma.Par.ParWithDFAV; // [0.2]
+      UN    #Ma.InEnableFeedMill2; 
+      U(    ; 
+      O     #M350.StStartedRev; 
+      O     #M350.StStartedFwd; 
+      )     ; 
+      S     #Ma.OutEmptySeqStopMill2; 
+      U     #Ma.InEnableFeedMill2; 
+      UN    #Ma.InSeqStop; 
+      U     #Ma.InUsedMill2; 
+      ON    #Ma.InEnableMill2; 
+      ON    #Ma.InUsedMill2; 
+      O     #tmpSpeedChangeMill2; 
+      O     #Ma.OutBrakeMill2; 
+      R     #Ma.OutEmptySeqStopMill2; 
+
+      U     #Ma.InSeqStop; 
+      ON    #Ma.InUsedMill2; 
+      O     #Ma.OutEmptySeqStopMill2; 
+      UN    #Ma.OutEmptyingMill2; // Emptying time not running
+      =     #M350.InSeqStop; 
+
+NETWORK
+TITLE =Interlocking M200
+
+      U     #Ma.InEnableMill1; 
+      O     #Ma.InEnableMill2; 
+      U     #Ma.Par.ParWithDFAV; 
+      =     #M200.InEnableFwd; 
+
+      U     #M300.StStartedFwd; 
+      O     #M300.StStartedRev; 
+      O(    ; 
+      U     #M350.StStartedFwd; 
+      O     #M350.StStartedRev; 
+      )     ; 
+      U     #Ma.CmdNext; 
+      UN    #tmpFaultStopFeedingMill1; 
+      UN    #tmpFaultStopFeedingMill2; 
+      S     #M200.CmdNext; 
+
+      U(    ; //--Case: 1 mill
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #Ma.Par.ParWithGateMill1; 
+      UN    #Ma.Par.ParWithMill2; 
+      O(    ; //--Case: 2 mills, 2 gates
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #Ma.Par.ParWithGateMill1; 
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #Ma.Par.ParWithGateMill2; 
+      U     #Ma.Par.ParWithMill2; 
+      )     ; 
+      O(    ; //--Case: 2 mills, only gate 1
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #Ma.Par.ParWithGateMill1; 
+      UN    #Ma.Par.ParWithGateMill2; 
+      U     #Ma.Par.ParWithMill2; 
+      )     ; 
+      O(    ; //--Case: 2 mills, only gate 2
+      UN    #Ma.Par.ParWithGateMill1; 
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #Ma.Par.ParWithGateMill2; 
+      U     #Ma.Par.ParWithMill2; 
+      )     ; 
+      O(    ; 
+      U     #B201LS.StFault; // Fault clam-gate mill 1: not closed
+      O     #B250LS.StFault; // Fault clam-gate mill 2: not closed
+      )     ; 
+      )     ; 
+      U     #Ma.InSeqStop; 
+      =     #M200.InSeqStop; 
+
+NETWORK
+TITLE =Interlocking DFCM Mills 1 and 2
+// Programming the following functions:
+// - Release DFCM (Clam-gate DFAV-1 or DFAV-2), if M200 is running
+//   and DFCM is released.
+      NOP   0; 
+//--- Feeding mill 1
+      U     #Ma.Par.OutInPosFlapBox; // Flap box in correct position
+      ON    #Ma.Par.ParWithFlapBox; 
+      ON    #Ma.Par.ParWithMill2; 
+      U     #Y203V.StLN; // Dense-medium valve is closed
+      U     #B205LS.StTrue; // Metal purifying valve closed
+      U     #B206HL.StFalse; // HL DFAV full
+      U     #B317HL.StFalse; // HL cone mill 1
+      U     #tmpEnableMill1; 
+      UN    #tmpFaultStopFeedingMill1; 
+      U     #Ma.InEnableFeedMill1; 
+      U     #Ma.InDischargeOkMill1; 
+      U     #Ma.InUsedMill1; // Mill 1 is used
+      UN    #Ma.InSeqStop; 
+      UN    #Ma.OutBrakeMill1; 
+      UN    #Ma.Par.OutBrakeAcvMill1; 
+      UN    #tmpSpeedChangeMill1; 
+      U     #Ma.StStarted; 
+      =     #DFCMMill1.InEnableFwd; 
+
+      U     #DFCMMill1.StStartedFwd; 
+      O     ; 
+      U     #Ma.InEnableFeedMill1; 
+      UN    #Ma.Par.ParWithDFAV; 
+      O     ; 
+      U     #Ma.InEnableFeedMill1; 
+      UN    #Ma.Par.ParWithDFCM; 
+      =     #Ma.OutFeedingMill1; 
+      S     #Ma.OutLoadedMill1; 
+      R     #Ma.OutEmptyingDoneMill1; 
+
+//--- Feeding mill 2
+      U     #Ma.Par.OutInPosFlapBox; // Flap box in correct position
+      ON    #Ma.Par.ParWithFlapBox; 
+      U     #Y203V.StLN; // Dense-medium valve is closed
+      U     #B205LS.StTrue; // Metal purifying valve closed
+      U     #B206HL.StFalse; // HL DFAV full
+      U     #B367HL.StFalse; // HL cone mill 2
+      U     #tmpEnableMill2; 
+      UN    #tmpFaultStopFeedingMill2; 
+      U     #Ma.InEnableFeedMill2; 
+      U     #Ma.InDischargeOkMill2; 
+      U     #Ma.InUsedMill2; // Mill 2 is used
+      UN    #Ma.InSeqStop; 
+      UN    #Ma.OutBrakeMill2; 
+      UN    #Ma.Par.OutBrakeAcvMill2; 
+      UN    #tmpSpeedChangeMill2; 
+      U     #Ma.Par.ParWithMill2; 
+      U     #Ma.StStarted; 
+      =     #DFCMMill2.InEnableFwd; 
+
+      U     #DFCMMill2.StStartedFwd; 
+      O     ; 
+      U     #Ma.InEnableFeedMill2; 
+      UN    #Ma.Par.ParWithDFAV; 
+      O     ; 
+      U     #Ma.InEnableFeedMill2; 
+      UN    #Ma.Par.ParWithDFCM; 
+      =     #Ma.OutFeedingMill2; 
+      S     #Ma.OutLoadedMill2; 
+      R     #Ma.OutEmptyingDoneMill2; 
+
+//----Seq. stop / next
+      CLR   ; 
+      =     #DFCMMill1.InSeqStop; 
+      =     #DFCMMill2.InSeqStop; 
+      U     #Ma.StStarted; 
+      S     #DFCMMill1.CmdNext; 
+      S     #DFCMMill2.CmdNext; 
+
+NETWORK
+TITLE =Interlocking Y203V dense-medium valve
+// Programming the following functions:
+// - Open/close the valve to empty the dense-medium via push button
+// - Control the push-button lamps S311Z5 and S361Z5. They may light on, if 
+//   the dense-medium emptying is released.
+//
+// Lamp release for opening heavy-particle gate mill 1
+//
+      U(    ; 
+      U     #B201LS.StTrue; // Clam-gate mill l closed
+      U     #DFCMMill1.StStopped; // Feeder mill 1 stopped
+      U     #Ma.Par.ParWithGateMill1; 
+      U(    ; 
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #DFCMMill2.StStopped; // Feeder mill 2 stopped
+      ON    #Ma.Par.ParWithGateMill2; // [0.1]
+      ON    #Ma.Par.ParWithMill2; // [0.1]
+      )     ; 
+      )     ; 
+      U     #Ma.Par.ParWithDFAV; 
+      UN    #Y203V.InLocal; 
+      =     #Ma.OutpS311Z5; // Lamp release for opening heavy-particle gate mill 1
+
+// Lamp release for opening heavy-particle gate mill 2
+
+      U(    ; 
+      U     #B201LS.StTrue; // Clam-gate mill l closed 
+      U     #DFCMMill1.StStopped; // Feeder mill 1 stopped
+      ON    #Ma.Par.ParWithGateMill1; 
+      U(    ; 
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #DFCMMill2.StStopped; // Feeder mill 2 stopped
+      U     #Ma.Par.ParWithGateMill2; // [0.1]
+      U     #Ma.Par.ParWithMill2; // [0.1]
+      )     ; 
+      )     ; 
+      U     #Ma.Par.ParWithDFAV; 
+      UN    #Y203V.InLocal; 
+      =     #Ma.OutpS361Z5; // Lamp release for opening heavy-particle gate mill 2
+
+// Dense-medium valve open/close
+
+      U     #Ma.InpS311Z5; // Push button open heavy-particle gate mill 1
+      U     #Ma.OutpS311Z5; // Lamp release for opening heavy-particle gate mill 1
+      O     ; 
+      U     #Ma.InpS361Z5; // Push button open heavy-particle gate mill 2
+      U     #Ma.OutpS361Z5; // Lamp release for opening heavy-particle gate mill 2
+      =     #Y203V.InEnableHN; // Open dense-medium valve
+
+      CLR   ; 
+      =     #Y203V.InSeqStop; 
+      SET   ; 
+      S     #Y203V.CmdNext; 
+
+NETWORK
+TITLE =Interlocking Y251V_52_53_54V Flap box
+// Programming the following functions:
+// - Set the flap valve-DFAV direction only mill 1, only mill 2 or both mills
+// - Automatically switch to the used mills 
+//
+      U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithFlapBox; 
+      SPBN  eIFV; 
+// Set signal flap box in correct position
+      U     #Ma.InUsedMill1; 
+      U     #Ma.InUsedMill2; 
+      U     #Y251V_52_53_54V.StMiddle1; //Position mill 1 and 2
+      O     ; 
+      U     #Ma.InUsedMill1; 
+      UN    #Ma.InUsedMill2; 
+      U     #Y251V_52_53_54V.StLN; //Position mill 1
+      O     ; 
+      UN    #Ma.InUsedMill1; 
+      U     #Ma.InUsedMill2; 
+      U     #Y251V_52_53_54V.StHN; //Position mill 2
+      =     #Ma.Par.OutInPosFlapBox; // Flap box is in correct position
+
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #Ma.InUsedMill1; 
+      UN    #Ma.InUsedMill2; 
+      =     #Y251V_52_53_54V.InLN; //Position mill 1
+
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      UN    #Ma.InUsedMill1; 
+      U     #Ma.InUsedMill2; 
+      S     #Y251V_52_53_54V.CmdHN; //Position mill 2
+
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      U     #Ma.InUsedMill1; 
+      U     #Ma.InUsedMill2; 
+      S     #Y251V_52_53_54V.CmdMiddle1; // Position mills 1 and 2
+eIFV: NOP   0; 
+
+NETWORK
+TITLE =Interlocking cone mill 1
+// Programming the following functions:
+//- Local mode
+//- Open/close cone
+//- Unlock/lock cone
+      NOP   0; 
+// [0.3] Cone open/close mill 1
+      U     #Ma.InpS311Z3; // Push button open cone mill 1
+      O     #Ma.InpS311Z4; // Push button close cone mill 1
+      O     #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U     #Y307V_Y309V.StHN; // Cone unlocked mill 1
+      O     #Ma.InpS311Z2; // Automatic mode mill 1
+      NOT   ; 
+      =     #Y302V_Y305V.InLocal; 
+// Cone unlock/lock mill 1
+      UN    #Ma.InpS311Z2; // Not automatic mode mill 1
+      UN    #Ma.InpS311Z2_1; // Not service mode mill 1
+      U     #B300SM.InpTrue; // Standstill mill 1
+      =     #Y307V_Y309V.InLocal; 
+//Open cone (valve)
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U(    ; 
+      U     #Ma.InpS311Z3; // Push button open cone mill 1
+      UN    #Ma.InpS311Z4; // Push button close cone mill 1
+      O     ; 
+      U     #Ma.InpS311Z4; // Push button close cone mill 1
+      U     #B310LS.StFalse; // Switch panel not ok mill 1
+      O     ; 
+      U     #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+      )     ; 
+      U     #B300SM.StTrue; // Standstill mill 1
+      U     #Y307V_Y309V.StHN; // Cone unlocked mill 1
+      UN    #Y302V_Y305V.StFault; // Cone open/close mill 1
+      UN    #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      =     #Y302V_Y305V.InEnableHN; // Cone open mill 1
+
+//Lamp open cone mill 1
+      UN    #Ma.InpS311Z2; // Not automatic mode mill 1
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U     #B300SM.StTrue; // Standstill mill 1
+      UN    #Y302V_Y305V.StFault; // Cone open/close mill 1
+      UN    #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      UN    #Y302V_Y305V.StHN; // Cone not opened mill 1
+//[0.3]   UN      #Y302V_Y305V.InLocal;
+      =     #Ma.OutpS311Z3; // Lamp release for opening cone mill 1
+
+//Close cone (valve)
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U     #B300SM.StTrue; // Standstill mill 1
+      U     #Ma.InpS311Z4; // Push button close cone mill 1
+      UN    #Ma.InpS311Z3; // Push button open cone mill 1
+      U     #Y307V_Y309V.StHN; // Cone unlocked  mill 1
+      UN    #Y302V_Y305V.StLN; // Cone not closed mill 1
+      U     #B310LS.StTrue; // Switch panel ok mill 1
+      UN    #Y302V_Y305V.StFault; // Cone open/close mill 1
+      UN    #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+//[0.3]   O;
+//[0.3]   UN      #Y302V_Y305V.StLN;              // Cone not closed mill 1
+//[0.3]   U       #Y307V_Y309V.StLN;              // Cone locked mill 1
+      =     #Y302V_Y305V.InEnableLN; // Close cone mill 1
+
+//Lamp close cone mill 1
+      UN    #Ma.InpS311Z2; // Not automatic mode mill 1
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U     #B300SM.StTrue; // Standstill mill 1
+      UN    #Y302V_Y305V.StFault; // Cone open/close mill 1
+      UN    #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      UN    #Y302V_Y305V.StLN; // Cone not closed mill 1
+      U     #B310LS.StTrue; // Switch panel ok mill 1
+//[0.3]   UN      #Y302V_Y305V.InLocal;
+      =     #Ma.OutpS311Z4; // Lamp release for closing cone mill 1
+
+//Unlock cone (valve)
+      U     #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+      =     #Y307V_Y309V.InEnableHN; // Unlock cone mill 1
+
+//Lock cone
+      U     #Y302V_Y305V.StLN; // Cone closed mill 1
+      UN    #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+      U     #B310LS.StTrue; // Switch panel ok mill 1
+      =     #Y307V_Y309V.InEnableLN; // Lock cone mill 1
+
+//Request unlock cone (#Ma.OutUnlockConeMill1)
+      UN    #Ma.InpS311Z2; // Not automatic mode mill 1
+      U     #Ma.InpS311Z2_1; // Service mode mill 1
+      U     #Ma.InpS311Z3; // Push button open cone mill 1
+      UN    #Ma.InpS311Z4; // Push button close cone mill 1
+      U     #B300SM.StTrue; // Standstill mill 1
+      U(    ; 
+      U     #Y302V_Y305V.StLN; // Cone closed mill 1
+      O     #Y302V_Y305V.StNoPosition; // Cone closed mill 1  // [1.4]
+      )     ; 
+      U     #Y307V_Y309V.StLN; // Cone locked mill 1
+      UN    #Y307V_Y309V.InLocal; 
+      S     #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+      U     #Y307V_Y309V.StHN; // Cone unlocked mill 1
+      UN    #Y302V_Y305V.InpLN; // Cone not closed mill 1
+      O     #Y302V_Y305V.StFault; // Cone open/close mill 1
+      O     #Y307V_Y309V.StFault; // Cone unlock/lock mill 1
+      R     #Ma.Par.OutUnlockConeMill1; // Request unlock cone mill 1
+
+      CLR   ; 
+      =     #Y302V_Y305V.InSeqStop; 
+      =     #Y307V_Y309V.InSeqStop; 
+      SET   ; 
+      S     #Y302V_Y305V.CmdNext; 
+      S     #Y307V_Y309V.CmdNext; 
+
+NETWORK
+TITLE =Interlocking cone mill 2
+// Programming the following functions:
+//- Open/close cone
+//- Unlock/lock cone
+      NOP   0; 
+//[0.3] Cone open/close mill 2
+      U     #Ma.InpS361Z3; // Push button open cone mill 2
+      O     #Ma.InpS361Z4; // Push button close cone mill 2
+      O     #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U     #Y357V_Y359V.StHN; // Cone unlocked mill 2
+      O     #Ma.InpS361Z2; // Automatic mode mill 2
+      NOT   ; 
+      =     #Y352V_Y355V.InLocal; 
+// Cone unlock/lock mill 2
+      UN    #Ma.InpS361Z2; // Not automatic mode mill 2
+      UN    #Ma.InpS361Z2_1; // Not service mode mill 2
+      U     #B350SM.InpTrue; // Standstill mill 2
+      =     #Y357V_Y359V.InLocal; 
+//Open cone (valve)
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U(    ; 
+      U     #Ma.InpS361Z3; // Push button open cone mill 2
+      UN    #Ma.InpS361Z4; // Push button close cone mill 2
+      O     ; 
+      U     #Ma.InpS361Z4; // Push button close cone mill 2
+      U     #B360LS.StFalse; // Switch panel not ok mill 2
+      O     ; 
+      U     #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+      )     ; 
+      U     #B350SM.StTrue; // Standstill mill 2
+      U     #Y357V_Y359V.StHN; // Cone unlocked mill 2
+      UN    #Y352V_Y355V.StFault; // Cone open/close mill 2
+      UN    #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      =     #Y352V_Y355V.InEnableHN; // Cone open mill 2
+
+//Lamp open cone mill 2
+      UN    #Ma.InpS361Z2; // Not automatic mode mill 2
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U     #B350SM.StTrue; // Standstill mill 2
+      UN    #Y352V_Y355V.StFault; // Cone open/close mill 2
+      UN    #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      UN    #Y352V_Y355V.StHN; // Cone not opened mill 2
+//[0.3]   UN      #Y352V_Y355V.InLocal;
+      =     #Ma.OutpS361Z3; // Lamp release for opening cone mill 2
+
+//Close cone (valve)
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U     #B350SM.StTrue; // Standstill mill 2
+      U     #Ma.InpS361Z4; // Push button close cone mill 2
+      UN    #Ma.InpS361Z3; // Push button open cone mill 2
+      U     #Y357V_Y359V.StHN; // Cone unlocked  mill 2
+      UN    #Y352V_Y355V.StLN; // Cone not closed mill 2
+      U     #B360LS.StTrue; // Switch panel ok mill 2
+      UN    #Y352V_Y355V.StFault; // Cone open/close mill 2
+      UN    #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+//[0.3]   O;
+//[0.3]   UN      #Y352V_Y355V.StLN;              // Cone not closed mill 2
+//[0.3]   U       #Y357V_Y359V.StLN;              // Cone locked mill 2
+      =     #Y352V_Y355V.InEnableLN; // Close cone mill 2
+
+//Lamp close cone mill 2
+      UN    #Ma.InpS361Z2; // Not automatic mode mill 2
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U     #B350SM.StTrue; // Standstill mill 2
+      UN    #Y352V_Y355V.StFault; // Cone open/close mill 2
+      UN    #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      UN    #Y352V_Y355V.StLN; // Cone not closed mill 2
+      U     #B360LS.StTrue; // Switch panel ok mill 2
+//[0.3]   UN      #Y352V_Y355V.InLocal;
+      =     #Ma.OutpS361Z4; // Lamp release for closing cone mill 2
+
+//Unlock cone (valve)
+      U     #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+      =     #Y357V_Y359V.InEnableHN; // Unlock cone mill 2
+
+//Lock cone
+      U     #Y352V_Y355V.StLN; // Cone closed mill 2
+      UN    #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+      U     #B360LS.StTrue; // Switch panel ok mill 2
+      =     #Y357V_Y359V.InEnableLN; // Lock cone mill 2
+
+//Request unlock cone (#Ma.OutUnlockConeMill2)
+      UN    #Ma.InpS361Z2; // Not automatic mode mill 2
+      U     #Ma.InpS361Z2_1; // Service mode mill 2
+      U     #Ma.InpS361Z3; // Push button open cone mill 2
+      UN    #Ma.InpS361Z4; // Push button close cone mill 2
+      U     #B350SM.StTrue; // Standstill mill 2
+      U(    ; 
+      U     #Y352V_Y355V.StLN; // Cone closed mill 2
+      O     #Y352V_Y355V.StNoPosition; // Cone closed mill 2  // [1.4]
+      )     ; 
+      U     #Y357V_Y359V.StLN; // Cone locked mill 2
+      UN    #Y357V_Y359V.InLocal; 
+      S     #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+      U     #Y357V_Y359V.StHN; // Cone unlocked mill 2
+      UN    #Y352V_Y355V.InpLN; // Cone not closed mill 2
+      O     #Y352V_Y355V.StFault; // Cone open/close mill 2
+      O     #Y357V_Y359V.StFault; // Cone unlock/lock mill 2
+      R     #Ma.Par.OutUnlockConeMill2; // Request unlock cone mill 2
+
+
+      CLR   ; 
+      =     #Y352V_Y355V.InSeqStop; 
+      =     #Y357V_Y359V.InSeqStop; 
+      SET   ; 
+      S     #Y352V_Y355V.CmdNext; 
+      S     #Y357V_Y359V.CmdNext; 
+
+
+NETWORK
+TITLE =Call motor: M200 Fan DFAV
+
+      U     #Ma.Par.ParWithDFAV; 
+      SPBN  el2; 
+      CALL #M200 ;
+
+NETWORK
+TITLE =Call motor: M300 Motor mill 1
+// Simulate inputs if braking motor mill 2
+el2:  U     #M300.InpRunFwd; 
+      O     #Ma.OutpBrakeMill1; 
+      U     #M300.OutpRunFwd; 
+      =     #M300.InpRunFwd; 
+
+      U     #M300.InpRunRev; 
+      O     #Ma.OutpBrakeMill1; 
+      U     #M300.OutpRunRev; 
+      =     #M300.InpRunRev; 
+
+      U     #M300.InpRunSlow; 
+      O     #Ma.OutpBrakeMill1; 
+      U     #M300.OutpRunSlow; 
+      =     #M300.InpRunSlow; 
+
+      U     #M300.InpRunFast; 
+      O     #Ma.OutpBrakeMill1; 
+      U     #M300.OutpRunFast; 
+      =     #M300.InpRunFast; 
+      CALL #M300 ;
+
+NETWORK
+TITLE =Call motor: M350 Motor mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el4; 
+// Simulate inputs if braking motor mill 2
+      U     #M350.InpRunFwd; 
+      O     #Ma.OutpBrakeMill2; 
+      U     #M350.OutpRunFwd; 
+      =     #M350.InpRunFwd; 
+
+      U     #M350.InpRunRev; 
+      O     #Ma.OutpBrakeMill2; 
+      U     #M350.OutpRunRev; 
+      =     #M350.InpRunRev; 
+
+      U     #M350.InpRunSlow; 
+      O     #Ma.OutpBrakeMill2; 
+      U     #M350.OutpRunSlow; 
+      =     #M350.InpRunSlow; 
+
+      U     #M350.InpRunFast; 
+      O     #Ma.OutpBrakeMill2; 
+      U     #M350.OutpRunFast; 
+      =     #M350.InpRunFast; 
+// call element
+      CALL #M350 ;
+
+NETWORK
+TITLE =Call motor: DFCMMill1 DFCM control unit mill 1
+
+el4:  U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el5; 
+      CALL #DFCMMill1 ;
+
+NETWORK
+TITLE =Call motor: DFCMMill2 DFCM control unit mill 2
+
+el5:  U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el6; 
+      CALL #DFCMMill2 ;
+
+NETWORK
+TITLE =Call VLS: Y203V Open dense-medium valve
+
+el6:  U     #Ma.Par.ParWithDFAV; 
+      SPBN  el7; 
+      CALL #Y203V ;
+
+// [1.1] Enable open flap in fault state
+      U     #Y203V.OutpHN; 
+      O     ; 
+      U     #Y203V.StFault; 
+      U     #Y203V.InEnableHN; 
+      =     #Y203V.OutpHN; 
+
+
+NETWORK
+TITLE =Call VLS: Y302V_Y305V Cone open/close mill 1
+
+el7:  CALL #Y302V_Y305V ;
+
+NETWORK
+TITLE =Call VLS: Y352V_Y355V Cone open/close mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el9; 
+      CALL #Y352V_Y355V ;
+
+NETWORK
+TITLE =Call VLS: Y307V_Y309V Cone unlock/lock mill 1
+
+el9:  CALL #Y307V_Y309V ;
+
+NETWORK
+TITLE =Call VLS: Y357V_Y359V Cone unlock/lock mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el11; 
+      CALL #Y357V_Y359V ;
+
+NETWORK
+TITLE =Call Digital Input: A316VI Vibration control mill 1
+
+el11: CALL #A316VI ;
+
+NETWORK
+TITLE =Call Digital Input: A366VI Vibration control mill 1
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el13; 
+      CALL #A366VI ;
+
+NETWORK
+TITLE =Call Digital Input: B205LS Metal purifying valve closed
+
+el13: U     #Ma.Par.ParWithDFAV; 
+      SPBN  el14; 
+      CALL #B205LS ;
+
+NETWORK
+TITLE =Call Digital Input: B206HL HL DFAV full
+
+el14: U     #Ma.Par.ParWithDFAV; 
+      SPBN  el15; 
+      CALL #B206HL ;
+
+NETWORK
+TITLE =Call Digital Input: B201LS Clam-gate mill 1 closed
+
+el15: U     #Ma.Par.ParWithGateMill1; 
+      U     #Ma.Par.ParWithDFAV; 
+// [1.1]     U    #Ma.Par.ParWithDFCM;
+      SPBN  el16; 
+      CALL #B201LS ;
+
+NETWORK
+TITLE =Call Digital Input: B250LS Clam-gate mill 2 closed
+
+el16: U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithGateMill2; 
+      U     #Ma.Par.ParWithDFAV; 
+// [1.1]  U       #Ma.Par.ParWithDFCM;
+      SPBN  el17; 
+      CALL #B250LS ;
+
+NETWORK
+TITLE =Call Digital Input: B300SM Standstill mill 1
+
+el17: CALL #B300SM ;
+
+NETWORK
+TITLE =Call Digital Input: B350SM Standstill mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el19; 
+      CALL #B350SM ;
+
+NETWORK
+TITLE =Call Digital Input: B310LS Switch panel ok mill 1
+
+el19: CALL #B310LS ;
+
+NETWORK
+TITLE =Call Digital Input: B360LS Switch panel ok mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el21; 
+      CALL #B360LS ;
+
+NETWORK
+TITLE =Call Digital Input: B317HL HL cone mill 1
+
+el21: CALL #B317HL ;
+
+NETWORK
+TITLE =Call Digital Input: B367HL HL cone mill 2
+
+      U     #Ma.Par.ParWithMill2; 
+      SPBN  el23; 
+      CALL #B367HL ;
+
+NETWORK
+TITLE =Call Analog Output: A209LC_AO1 Setpoint mill 1
+
+el23: U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el24; 
+      CALL #A209LC_AO1 ;
+
+NETWORK
+TITLE =Call Analog Output: A209LC_AO2 Setpoint mill 2
+
+el24: U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el25; 
+      CALL #A209LC_AO2 ;
+
+NETWORK
+TITLE =Call Analog Input: A209LC_AI1 Actual value mill 1
+// A209LC_AI1: Actual load motor mill 1 [0.01 %]
+el25: U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el26; 
+      CALL #A209LC_AI1 ;
+
+      L     #A209LC_AI1.OutValuePc; // Actual load [0.01 %]
+      L     #Ma.Par.ParEmptyRunMill1; 
+      <=I   ; 
+      =     #Ma.OutEmptyRunMill1; 
+
+NETWORK
+TITLE =Call Analog Input: A209LC_AI2 Actual value mill 2
+// A209LC_AI2: Actual load motor mill 2 [0.01 %]
+el26: U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithDFAV; 
+      U     #Ma.Par.ParWithDFCM; 
+      SPBN  el27; 
+      CALL #A209LC_AI2 ;
+      L     #A209LC_AI2.OutValuePc; // Actual load [0.01 %]
+      L     #Ma.Par.ParEmptyRunMill2; 
+      <=I   ; 
+      =     #Ma.OutEmptyRunMill2; 
+
+NETWORK
+TITLE =Call VLS4: Y251V_52_53_54V Flap box
+
+el27: U     #Ma.Par.ParWithMill2; 
+      U     #Ma.Par.ParWithFlapBox; 
+      SPBN  el28; 
+      CALL #Y251V_52_53_54V ;
+el28: NOP   0; 
+
+
+NETWORK
+TITLE =Transition to StStarting
+
+      U(    ; 
+      U     #M350.StStarting; 
+      U     #Ma.Par.ParWithMill2; 
+      O     ; 
+      U     #M200.StStarting; 
+      U     #Ma.Par.ParWithDFAV; 
+      O     #M300.StStarting; 
+      )     ; 
+      U(    ; 
+      O     #Ma.StStopped; 
+      O     #Ma.StStarted; 
+      O     #Ma.StStopping; 
+      )     ; 
+      R     #Ma.StStopped; 
+      R     #Ma.StStarted; 
+      R     #Ma.StStopping; 
+      S     #Ma.StStarting; 
+
+NETWORK
+TITLE =Transition to StStarted
+
+      U     #M300.StStartedFwd; 
+      O     #M300.StStartedRev; 
+      ON    #Ma.InUsedMill1; 
+      UN    #Ma.Par.OutSpeedChMill2; 
+      U(    ; 
+      U     #M350.StStartedFwd; 
+      O     #M350.StStartedRev; 
+      UN    #Ma.Par.OutSpeedChMill2; 
+      ON    #Ma.InUsedMill2; 
+      ON    #Ma.Par.ParWithMill2; 
+      )     ; 
+      U(    ; 
+      U     #M200.StStartedFwd; 
+      ON    #Ma.Par.ParWithDFAV; 
+      U(    ; // ParWithDFAV=0: one of the mill motors must run
+      O     #M300.StStartedFwd; 
+      O     #M300.StStartedRev; 
+      O     #M350.StStartedFwd; 
+      O     #M350.StStartedRev; 
+      )     ; 
+      )     ; 
+      U(    ; 
+      O     #Ma.StStopped; 
+      O     #Ma.StStarting; 
+      O     #Ma.StStopping; 
+      )     ; 
+      R     #Ma.StStopped; 
+      R     #Ma.StStarting; 
+      R     #Ma.StStopping; 
+      S     #Ma.StStarted; 
+
+NETWORK
+TITLE =Transition to StStopping
+
+      U(    ; 
+      U     #M350.StStopping; 
+      U     #Ma.Par.ParWithMill2; 
+      O     ; 
+      U     #M300.StStopping; 
+      O     ; 
+      U     #M200.StStopping; 
+      U     #Ma.Par.ParWithDFAV; 
+      )     ; 
+      U(    ; 
+      O     #Ma.StStarted; 
+      O     #Ma.StStarting; 
+      )     ; 
+      O     #Ma.StFault; 
+      UN    #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      R     #Ma.StStarting; 
+      R     #Ma.StFault; 
+      S     #Ma.StStopping; 
+// Transition StStarted -> StStopping
+      U(    ; 
+      UN    #M300.StStartedFwd; 
+      UN    #M300.StStartedRev; 
+      U     #Ma.InUsedMill1; 
+      O     ; 
+      UN    #M350.StStartedFwd; 
+      UN    #M350.StStartedRev; 
+      U     #Ma.Par.ParWithMill2; 
+      U     #Ma.InUsedMill2; 
+      O     ; 
+      UN    #M200.StStartedFwd; 
+      U     #Ma.Par.ParWithDFAV; 
+      )     ; 
+      U     #Ma.StStarted; 
+      R     #Ma.StStarted; 
+      S     #Ma.StStopping; 
+
+NETWORK
+TITLE =Transition to StStopped
+
+      U(    ; 
+      U     #M300.StStopped; 
+      U     #B300SM.StTrue; // Standstill mill 1
+      U(    ; 
+      U     #M350.StStopped; 
+      U     #B350SM.StTrue; // Standstill mill 2
+      ON    #Ma.Par.ParWithMill2; 
+      )     ; 
+      U(    ; 
+      U     #M200.StStopped; 
+      ON    #Ma.Par.ParWithDFAV; 
+      )     ; 
+      U(    ; 
+      U     #B201LS.StTrue; // Clam-gate mill 1 closed
+      ON    #Ma.Par.ParWithGateMill1; 
+      ON    #Ma.Par.ParWithDFAV; 
+      ON    #Ma.Par.ParWithDFCM; 
+      )     ; 
+      U(    ; 
+      U     #B250LS.StTrue; // Clam-gate mill 2 closed
+      ON    #Ma.Par.ParWithMill2; 
+      ON    #Ma.Par.ParWithGateMill1; 
+      ON    #Ma.Par.ParWithDFAV; 
+      ON    #Ma.Par.ParWithDFCM; 
+      )     ; 
+      )     ; 
+      U     #Ma.StStopping; 
+      O     ; 
+      UN    #Ma.StStopped; // Initialise state
+      UN    #Ma.StStarting; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopping; 
+      UN    #Ma.StFault; 
+      R     #Ma.StStopping; 
+      =     #tmpTriggerFlag; 
+      S     #Ma.StStopped; 
+
+      U     #tmpTriggerFlag; 
+      UN    #Ma.InOutRevMill; //--Change direction of mill motors:
+      S     #Ma.InOutRevMill; // Motor will be started reverse at next start
+      SPB   S0ed; 
+      U     #tmpTriggerFlag; 
+      U     #Ma.InOutRevMill; 
+      R     #Ma.InOutRevMill; // Motor will be started forward at next start
+S0ed: NOP   0; 
+
+NETWORK
+TITLE =Transition to StFault
+
+      U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      R     #Ma.StStarting; 
+      R     #Ma.StStarted; 
+      R     #Ma.StStopping; 
+      S     #Ma.StFault; 
+
+
+
+NETWORK
+TITLE =State Code
+// State                 StCode
+// -----------------------------
+// StFault                 32
+// StStopped                1
+// StStarting               2
+// StStarted.Wait           3
+// StStarted.Feeding        4
+// StStopping               7
+// StWarning                8
+      U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      O     #Ma.OutFeedingMill1; 
+      O     #Ma.OutFeedingMill2; 
+      U     #Ma.StStarted; 
+      L     4; // Code= StStarted.Feeding
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; // Code=StStarted.Wait
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+NETWORK
+TITLE =Global End
+
+      SET   ; //---Clear all commands
+      R     #Ma.CmdNext; 
+      R     #Ma.CmdFaultReset; 
+      R     #Ma.CmdTick100ms; 
+
+END_FUNCTION_BLOCK
+

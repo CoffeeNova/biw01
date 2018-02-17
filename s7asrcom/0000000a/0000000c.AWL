@@ -1,0 +1,272 @@
+DATA_BLOCK "PLC_BinListDB"
+TITLE =DBPLC1BIW01_02
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        Central Bin List DB
+//              Zentraler Zellen-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//P01_DB079.1.0 K.Renz              CSB41             28.Okt.2009
+//             1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 0.0
+
+"PLC_BinList"
+BEGIN
+   Para.Spare0 := 0; 
+   Para.Spare2 := 0; 
+   Para.Spare4 := 0; 
+   Para.Spare6 := 0; 
+   Para.ParByteFirstBin := 60; 
+   Para.ParNoOfBytePerBin := 30; 
+   Para.ParNoOfBin := 4; 
+   Para.Spare14 := 0; 
+   Para.Spare16 := 0; 
+   ChangeBit.spare := B#16#0; 
+   ChangeBit.CBit1 := FALSE; 
+   ChangeBit.CBit2 := FALSE; 
+   ChangeBit.CBit3 := FALSE; 
+   ChangeBit.CBit4 := FALSE; 
+   tmpBin.BinNr := 0; 
+   tmpBin.InLowLevel := FALSE; 
+   tmpBin.InFeedOffLL := FALSE; 
+   tmpBin.InHighLevel := FALSE; 
+   tmpBin.InFeedOffHL := FALSE; 
+   tmpBin.InOutEmpty := FALSE; 
+   tmpBin.CmdOverrideLL := FALSE; 
+   tmpBin.CmdOverrideHL := FALSE; 
+   tmpBin.CmdDischarging := FALSE; 
+   tmpBin.CmdFilling := FALSE; 
+   tmpBin.CmdLastReceiverActive := FALSE; 
+   tmpBin.InDPFaultLL := FALSE; 
+   tmpBin.InDPFaultHL := FALSE; 
+   tmpBin.spare34 := FALSE; 
+   tmpBin.spare35 := FALSE; 
+   tmpBin.spare36 := FALSE; 
+   tmpBin.spare37 := FALSE; 
+   tmpBin.OutLowLevel := FALSE; 
+   tmpBin.OutHighLevel := FALSE; 
+   tmpBin.OutDischarging := FALSE; 
+   tmpBin.OutFilling := FALSE; 
+   tmpBin.OutFull := FALSE; 
+   tmpBin.OutOverrideLL := FALSE; 
+   tmpBin.OutOverrideHL := FALSE; 
+   tmpBin.OutDryFillingDone := FALSE; 
+   tmpBin.OutLastReceiverActive := FALSE; 
+   tmpBin.spare51 := FALSE; 
+   tmpBin.spare52 := FALSE; 
+   tmpBin.spare53 := FALSE; 
+   tmpBin.spare54 := FALSE; 
+   tmpBin.spare55 := FALSE; 
+   tmpBin.spare56 := FALSE; 
+   tmpBin.spare57 := FALSE; 
+   tmpBin.InReceiverCounter := B#16#0; 
+   tmpBin.OutReceiverCounter := B#16#0; 
+   tmpBin.InOutOverfillWeight := 0.000000e+000; 
+   tmpBin.InOutFillingWeight := 0.000000e+000; 
+   tmpBin.spare16 := 0; 
+   tmpBin.spare18 := 0; 
+   tmpBin.Par.ParLL_isBelowBin := FALSE; 
+   tmpBin.Par.ParOverfillingWeight := 0; 
+   tmpBin.Par.ParDryFillingWeight := 0; 
+   tmpBin.Par.spare1 := 0; 
+   tmpBin.Par.spare2 := 0; 
+   Spare50 := 0; 
+   Spare52 := 0; 
+   Spare54 := 0; 
+   Spare56 := 0; 
+   Spare58 := 0; 
+   MAL1S01_BIN1.BinNr := 9001; 
+   MAL1S01_BIN1.InLowLevel := FALSE; 
+   MAL1S01_BIN1.InFeedOffLL := FALSE; 
+   MAL1S01_BIN1.InHighLevel := FALSE; 
+   MAL1S01_BIN1.InFeedOffHL := FALSE; 
+   MAL1S01_BIN1.InOutEmpty := FALSE; 
+   MAL1S01_BIN1.CmdOverrideLL := FALSE; 
+   MAL1S01_BIN1.CmdOverrideHL := FALSE; 
+   MAL1S01_BIN1.CmdDischarging := FALSE; 
+   MAL1S01_BIN1.CmdFilling := FALSE; 
+   MAL1S01_BIN1.CmdLastReceiverActive := FALSE; 
+   MAL1S01_BIN1.InDPFaultLL := FALSE; 
+   MAL1S01_BIN1.InDPFaultHL := FALSE; 
+   MAL1S01_BIN1.spare34 := FALSE; 
+   MAL1S01_BIN1.spare35 := FALSE; 
+   MAL1S01_BIN1.spare36 := FALSE; 
+   MAL1S01_BIN1.spare37 := FALSE; 
+   MAL1S01_BIN1.OutLowLevel := FALSE; 
+   MAL1S01_BIN1.OutHighLevel := FALSE; 
+   MAL1S01_BIN1.OutDischarging := FALSE; 
+   MAL1S01_BIN1.OutFilling := FALSE; 
+   MAL1S01_BIN1.OutFull := FALSE; 
+   MAL1S01_BIN1.OutOverrideLL := FALSE; 
+   MAL1S01_BIN1.OutOverrideHL := FALSE; 
+   MAL1S01_BIN1.OutDryFillingDone := FALSE; 
+   MAL1S01_BIN1.OutLastReceiverActive := FALSE; 
+   MAL1S01_BIN1.spare51 := FALSE; 
+   MAL1S01_BIN1.spare52 := FALSE; 
+   MAL1S01_BIN1.spare53 := FALSE; 
+   MAL1S01_BIN1.spare54 := FALSE; 
+   MAL1S01_BIN1.spare55 := FALSE; 
+   MAL1S01_BIN1.spare56 := FALSE; 
+   MAL1S01_BIN1.spare57 := FALSE; 
+   MAL1S01_BIN1.InReceiverCounter := B#16#0; 
+   MAL1S01_BIN1.OutReceiverCounter := B#16#0; 
+   MAL1S01_BIN1.InOutOverfillWeight := 0.000000e+000; 
+   MAL1S01_BIN1.InOutFillingWeight := 0.000000e+000; 
+   MAL1S01_BIN1.spare16 := 0; 
+   MAL1S01_BIN1.spare18 := 0; 
+   MAL1S01_BIN1.Par.ParLL_isBelowBin := FALSE; 
+   MAL1S01_BIN1.Par.ParOverfillingWeight := 100; 
+   MAL1S01_BIN1.Par.ParDryFillingWeight := 0; 
+   MAL1S01_BIN1.Par.spare1 := 0; 
+   MAL1S01_BIN1.Par.spare2 := 0; 
+   MAL1S01_BIN5.BinNr := 9005; 
+   MAL1S01_BIN5.InLowLevel := FALSE; 
+   MAL1S01_BIN5.InFeedOffLL := FALSE; 
+   MAL1S01_BIN5.InHighLevel := FALSE; 
+   MAL1S01_BIN5.InFeedOffHL := FALSE; 
+   MAL1S01_BIN5.InOutEmpty := FALSE; 
+   MAL1S01_BIN5.CmdOverrideLL := FALSE; 
+   MAL1S01_BIN5.CmdOverrideHL := FALSE; 
+   MAL1S01_BIN5.CmdDischarging := FALSE; 
+   MAL1S01_BIN5.CmdFilling := FALSE; 
+   MAL1S01_BIN5.CmdLastReceiverActive := FALSE; 
+   MAL1S01_BIN5.InDPFaultLL := FALSE; 
+   MAL1S01_BIN5.InDPFaultHL := FALSE; 
+   MAL1S01_BIN5.spare34 := FALSE; 
+   MAL1S01_BIN5.spare35 := FALSE; 
+   MAL1S01_BIN5.spare36 := FALSE; 
+   MAL1S01_BIN5.spare37 := FALSE; 
+   MAL1S01_BIN5.OutLowLevel := FALSE; 
+   MAL1S01_BIN5.OutHighLevel := FALSE; 
+   MAL1S01_BIN5.OutDischarging := FALSE; 
+   MAL1S01_BIN5.OutFilling := FALSE; 
+   MAL1S01_BIN5.OutFull := FALSE; 
+   MAL1S01_BIN5.OutOverrideLL := FALSE; 
+   MAL1S01_BIN5.OutOverrideHL := FALSE; 
+   MAL1S01_BIN5.OutDryFillingDone := FALSE; 
+   MAL1S01_BIN5.OutLastReceiverActive := FALSE; 
+   MAL1S01_BIN5.spare51 := FALSE; 
+   MAL1S01_BIN5.spare52 := FALSE; 
+   MAL1S01_BIN5.spare53 := FALSE; 
+   MAL1S01_BIN5.spare54 := FALSE; 
+   MAL1S01_BIN5.spare55 := FALSE; 
+   MAL1S01_BIN5.spare56 := FALSE; 
+   MAL1S01_BIN5.spare57 := FALSE; 
+   MAL1S01_BIN5.InReceiverCounter := B#16#0; 
+   MAL1S01_BIN5.OutReceiverCounter := B#16#0; 
+   MAL1S01_BIN5.InOutOverfillWeight := 0.000000e+000; 
+   MAL1S01_BIN5.InOutFillingWeight := 0.000000e+000; 
+   MAL1S01_BIN5.spare16 := 0; 
+   MAL1S01_BIN5.spare18 := 0; 
+   MAL1S01_BIN5.Par.ParLL_isBelowBin := FALSE; 
+   MAL1S01_BIN5.Par.ParOverfillingWeight := 100; 
+   MAL1S01_BIN5.Par.ParDryFillingWeight := 0; 
+   MAL1S01_BIN5.Par.spare1 := 0; 
+   MAL1S01_BIN5.Par.spare2 := 0; 
+   MAL1S34_RCV.BinNr := 9005; 
+   MAL1S34_RCV.InLowLevel := FALSE; 
+   MAL1S34_RCV.InFeedOffLL := FALSE; 
+   MAL1S34_RCV.InHighLevel := FALSE; 
+   MAL1S34_RCV.InFeedOffHL := FALSE; 
+   MAL1S34_RCV.InOutEmpty := FALSE; 
+   MAL1S34_RCV.CmdOverrideLL := FALSE; 
+   MAL1S34_RCV.CmdOverrideHL := FALSE; 
+   MAL1S34_RCV.CmdDischarging := FALSE; 
+   MAL1S34_RCV.CmdFilling := FALSE; 
+   MAL1S34_RCV.CmdLastReceiverActive := FALSE; 
+   MAL1S34_RCV.InDPFaultLL := FALSE; 
+   MAL1S34_RCV.InDPFaultHL := FALSE; 
+   MAL1S34_RCV.spare34 := FALSE; 
+   MAL1S34_RCV.spare35 := FALSE; 
+   MAL1S34_RCV.spare36 := FALSE; 
+   MAL1S34_RCV.spare37 := FALSE; 
+   MAL1S34_RCV.OutLowLevel := FALSE; 
+   MAL1S34_RCV.OutHighLevel := FALSE; 
+   MAL1S34_RCV.OutDischarging := FALSE; 
+   MAL1S34_RCV.OutFilling := FALSE; 
+   MAL1S34_RCV.OutFull := FALSE; 
+   MAL1S34_RCV.OutOverrideLL := FALSE; 
+   MAL1S34_RCV.OutOverrideHL := FALSE; 
+   MAL1S34_RCV.OutDryFillingDone := FALSE; 
+   MAL1S34_RCV.OutLastReceiverActive := FALSE; 
+   MAL1S34_RCV.spare51 := FALSE; 
+   MAL1S34_RCV.spare52 := FALSE; 
+   MAL1S34_RCV.spare53 := FALSE; 
+   MAL1S34_RCV.spare54 := FALSE; 
+   MAL1S34_RCV.spare55 := FALSE; 
+   MAL1S34_RCV.spare56 := FALSE; 
+   MAL1S34_RCV.spare57 := FALSE; 
+   MAL1S34_RCV.InReceiverCounter := B#16#0; 
+   MAL1S34_RCV.OutReceiverCounter := B#16#0; 
+   MAL1S34_RCV.InOutOverfillWeight := 0.000000e+000; 
+   MAL1S34_RCV.InOutFillingWeight := 0.000000e+000; 
+   MAL1S34_RCV.spare16 := 0; 
+   MAL1S34_RCV.spare18 := 0; 
+   MAL1S34_RCV.Par.ParLL_isBelowBin := FALSE; 
+   MAL1S34_RCV.Par.ParOverfillingWeight := 100; 
+   MAL1S34_RCV.Par.ParDryFillingWeight := 0; 
+   MAL1S34_RCV.Par.spare1 := 0; 
+   MAL1S34_RCV.Par.spare2 := 0; 
+   MAL1S34_SND.BinNr := 9001; 
+   MAL1S34_SND.InLowLevel := FALSE; 
+   MAL1S34_SND.InFeedOffLL := FALSE; 
+   MAL1S34_SND.InHighLevel := FALSE; 
+   MAL1S34_SND.InFeedOffHL := FALSE; 
+   MAL1S34_SND.InOutEmpty := FALSE; 
+   MAL1S34_SND.CmdOverrideLL := FALSE; 
+   MAL1S34_SND.CmdOverrideHL := FALSE; 
+   MAL1S34_SND.CmdDischarging := FALSE; 
+   MAL1S34_SND.CmdFilling := FALSE; 
+   MAL1S34_SND.CmdLastReceiverActive := FALSE; 
+   MAL1S34_SND.InDPFaultLL := FALSE; 
+   MAL1S34_SND.InDPFaultHL := FALSE; 
+   MAL1S34_SND.spare34 := FALSE; 
+   MAL1S34_SND.spare35 := FALSE; 
+   MAL1S34_SND.spare36 := FALSE; 
+   MAL1S34_SND.spare37 := FALSE; 
+   MAL1S34_SND.OutLowLevel := FALSE; 
+   MAL1S34_SND.OutHighLevel := FALSE; 
+   MAL1S34_SND.OutDischarging := FALSE; 
+   MAL1S34_SND.OutFilling := FALSE; 
+   MAL1S34_SND.OutFull := FALSE; 
+   MAL1S34_SND.OutOverrideLL := FALSE; 
+   MAL1S34_SND.OutOverrideHL := FALSE; 
+   MAL1S34_SND.OutDryFillingDone := FALSE; 
+   MAL1S34_SND.OutLastReceiverActive := FALSE; 
+   MAL1S34_SND.spare51 := FALSE; 
+   MAL1S34_SND.spare52 := FALSE; 
+   MAL1S34_SND.spare53 := FALSE; 
+   MAL1S34_SND.spare54 := FALSE; 
+   MAL1S34_SND.spare55 := FALSE; 
+   MAL1S34_SND.spare56 := FALSE; 
+   MAL1S34_SND.spare57 := FALSE; 
+   MAL1S34_SND.InReceiverCounter := B#16#0; 
+   MAL1S34_SND.OutReceiverCounter := B#16#0; 
+   MAL1S34_SND.InOutOverfillWeight := 0.000000e+000; 
+   MAL1S34_SND.InOutFillingWeight := 0.000000e+000; 
+   MAL1S34_SND.spare16 := 0; 
+   MAL1S34_SND.spare18 := 0; 
+   MAL1S34_SND.Par.ParLL_isBelowBin := FALSE; 
+   MAL1S34_SND.Par.ParOverfillingWeight := 100; 
+   MAL1S34_SND.Par.ParDryFillingWeight := 0; 
+   MAL1S34_SND.Par.spare1 := 0; 
+   MAL1S34_SND.Par.spare2 := 0; 
+END_DATA_BLOCK
+

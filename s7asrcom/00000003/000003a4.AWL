@@ -1,0 +1,41 @@
+	DATA_BLOCK DB2051
+	TITLE =Event DB : LINE 1 SEC 21 GERM 5
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Event DB : LINE 1 SEC 21 GERM 5
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB000.1.0 K.Renz              CSB41                       13.Jan.2010
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	  
+	VERSION : 0.0
+	"SSA_MH_EventsToPIC"
+	BEGIN
+	END_DATA_BLOCK

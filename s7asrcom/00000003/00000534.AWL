@@ -1,0 +1,45 @@
+	FUNCTION_BLOCK FB 1051
+	TITLE =A_2917_MXZ01MA BELT CONVEYOR 4600 GERM 5
+	//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:       WinCoS_BIW01_09
+	//
+	//TITLE:         BELT CONVEYOR 4600 GERM 5
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:         AUTHOR:             DEPT:                             DATE:
+	// 
+	//P01_FB1051.1.0 K.Renz              CSB41                             13.Jan.2010
+	//               1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 0.0
+	
+	
+	VAR
+	         Ma :  UDT 20500  ;  // Machine
+	         A_2917_SHE41 : FB14;  // Mon1: DigInpCont
+	         A_2917_BSA13 : FB14;  // Mon2: DigInpCont
+	         A_2917_BZS14_15 : FB14;  // Mon3: DigInpCont
+	         A_2917_BZS16_17 : FB14;  // Mon4: DigInpCont
+	         A_2917_SHE43 : FB14;  // Mon5: DigInpCont
+	         A_2917_SHE44 : FB14;   // Mon6: DigInpCont
+	         A_2917_MXZ01 : FB12; // Motor: Motor
+	END_VAR
+	
+	BEGIN
+	NETWORK
+	TITLE =Call SSW
+	   UC  FB50
+	END_FUNCTION_BLOCK

@@ -1,0 +1,1062 @@
+FUNCTION_BLOCK "SSW_EL_ASI_Fct"
+TITLE =ASI Master
+//
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7R2
+//
+//TITLE:        SSW_ASI_Wago_Fct
+//
+//REVISION:     20
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB1751.1A     A.Egli              BASE                        03-Mar-2007
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [SSW-EL-ASI_MAN_en]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//11  fault ASI-Master
+//12  fault ASI-Slave
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+// 0 StNotUsed   : Slave not used
+// 2 StOk        : ok
+//32 StFault
+//33 StFault.DPMaster  
+//34 StFault.ASIMaster            
+//35 StFault.CfgDiff             (Slave only)
+//36 StFault.PeripheralFault     (Slave only)
+//37 StFault.Corrupted           (Slave only) 
+//38 StFault.Overflow            (Master only) 
+//39 StFault.ASIInactive         (Master only) 
+//40 StFault.ErrPower            (Master only) 
+//41 StFault.ErrMapping          (Master only) 
+//42 StFault.ErrGeneral          (Master only) 
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : EL_ASI
+VERSION : 1.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InLogOff : BOOL ;	//No Log Message
+  InHornOff : BOOL ;	//No Alarm Horn
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  Spare3 : BYTE ;	
+  OutDPFault : BOOL ;	
+  OutFaultRelevant : BOOL ;	//Relevant Fault of ASIMaster
+  OutMsgDone : BOOL ;	//LOG Message Done
+  Spare43 : BOOL ;	
+  Spare44 : BOOL ;	
+  Spare45 : BOOL ;	
+  Spare46 : BOOL ;	
+  Spare47 : BOOL ;	
+  Spare51 : BOOL ;	
+  Spare52 : BOOL ;	
+  StOk : BOOL ;	//Element is stopped
+  Spare53 : BOOL ;	
+  StFault : BOOL ;	//Element has a fault
+  Fault : STRUCT 	
+   DPMaster : BOOL ;	//DPMaster not active
+   ASIMaster : BOOL ;	//ASI Master not response
+   Overflow : BOOL ;	//1=data not complet (timing)
+   ASIInactive : BOOL ;	//1=ASI Interface inactive / 0= Active
+   ErrPower : BOOL ;	//1=Power fault/24V 
+   ErrMapping : BOOL ;	//1=data not complett, mapping
+   CfgMode : BOOL ;	//1=Configuration mode / 0= Protected
+   ErrGeneral : BOOL ;	//1=Any fault 
+  END_STRUCT ;	
+  OutAlarmNoLog : INT ;	//Last textnumber send to log
+  OutTimeStarted : DINT ;	//not used
+  OutTimeFaulted : DINT ;	//not used
+  OutCntStartup : DINT ;	//not used
+  OutCntFault : DINT ;	//not used
+  Slaves_Detected : STRUCT 	//1= Detected Slaves A (Read with 0x46)
+   A : ARRAY  [0 .. 31 ] OF BOOL ;	
+   B : ARRAY  [0 .. 31 ] OF BOOL ;	
+  END_STRUCT ;	
+  Slaves_CfgDiff : STRUCT 	//1= Slaves A with configuartion diff.(Read with 0x57)
+   A : ARRAY  [0 .. 31 ] OF BOOL ;	
+   B : ARRAY  [0 .. 31 ] OF BOOL ;	
+  END_STRUCT ;	
+  Slaves_PeripheralFault : STRUCT 	//1= Slaves A peripheral failure (Read with 0x3E)
+   A : ARRAY  [0 .. 31 ] OF BOOL ;	
+   B : ARRAY  [0 .. 31 ] OF BOOL ;	
+  END_STRUCT ;	
+  Slaves_Corrupted : STRUCT 	//1= Corrupped Slaves A (Read with 0x6C)
+   A : ARRAY  [0 .. 31 ] OF BOOL ;	
+   B : ARRAY  [0 .. 31 ] OF BOOL ;	
+  END_STRUCT ;	
+  Slaves_Faulted : STRUCT 	//1= Faulted Slaves A (Summery state)
+   A : ARRAY  [0 .. 31 ] OF BOOL ;	
+   B : ARRAY  [0 .. 31 ] OF BOOL ;	
+  END_STRUCT ;	
+  tmpSlave : "SSW_EL_ASI_Slave";	
+  Slaves : STRUCT 	
+   A : ARRAY  [1 .. 31 ] OF "SSW_EL_ASI_Slave";	
+   B : ARRAY  [0 .. 31 ] OF "SSW_EL_ASI_Slave";	
+  END_STRUCT ;	
+  Com : STRUCT 	
+   IdxSlave : INT ;	//Current Slave
+   OutResult : INT ;	//Result Value Mailbox communication
+  END_STRUCT ;	
+  Snd : STRUCT 	
+   Control : STRUCT 	
+    Cmd0 : BOOL ;	
+    Cmd1 : BOOL ;	
+    Cmd2 : BOOL ;	
+    Cmd3 : BOOL ;	
+    Cmd4 : BOOL ;	
+    Mbx : BOOL ;	//1=Mailbox on
+    R_W : BOOL ;	//1=Write , 0=Read
+    RegisterCom : BOOL ;	//1=Register communication
+    Internal : BYTE ;	
+   END_STRUCT ;	
+   Mailbox : STRUCT 	
+    Opcode : BYTE ;	
+    spare20 : BOOL ;	
+    spare21 : BOOL ;	
+    spare22 : BOOL ;	
+    spare23 : BOOL ;	
+    spare24 : BOOL ;	
+    B_A : BOOL ;	//1=B / 0=A
+    Order : BOOL ;	//1=Parameter bytes order invers 
+    Toggle : BOOL ;	//Bit must toogle
+    Slave : BYTE ;	
+    Value1High : BYTE ;	
+    Value1Low : BYTE ;	
+    Value2High : BYTE ;	
+    Value2Low : BYTE ;	
+    Value3High : BYTE ;	
+    Value3Low : BYTE ;	
+    Value4High : BYTE ;	
+    Value4Low : BYTE ;	
+    spare : BYTE ;	
+   END_STRUCT ;	
+   ProcessData : ARRAY  [1 .. 288 ] OF BOOL ;	
+  END_STRUCT ;	
+  Rcv : STRUCT 	
+   Status : STRUCT 	
+    Overflow : BOOL ;	//1=data not complett timing
+    ASIInactive : BOOL ;	//1=ASI Interface inactive / 0= Active
+    ErrPower : BOOL ;	//1=Power fault/24V 
+    ErrMapping : BOOL ;	//1=data not complett, mapping
+    CfgMode : BOOL ;	//1=Configuration mode / 0= Protected
+    MailBox : BOOL ;	//1=Mailbox is fade in
+    ErrGeneral : BOOL ;	//1=Any fault 
+    AckProcessData : BOOL ;	//1=Acknowledge process data
+    Internal : BYTE ;	
+   END_STRUCT ;	
+   Mailbox : STRUCT 	
+    Opcode : BYTE ;	//Copy of Snd.Mailbox.Opcode
+    Result0 : BOOL ;	
+    Result1 : BOOL ;	
+    Result2 : BOOL ;	
+    Result3 : BOOL ;	
+    Result4 : BOOL ;	
+    Result5 : BOOL ;	//1=B / 0=A
+    Result7 : BOOL ;	//1=Parameter bytes order invers 
+    Toggle : BOOL ;	//Bit must toogle
+    ValueAB : DWORD ;	
+    ValueBA : DWORD ;	
+    spare : WORD ;	
+   END_STRUCT ;	
+   ProcessData : ARRAY  [1 .. 288 ] OF BOOL ;	
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParDPNode : INT ;	
+   ParASIMasterIdx : INT  := 1;	//Index of ASI Master
+   ParIOByteNo : INT  := 100;	
+   ParLenMailbox : INT  := 12;	
+   ParMonTime : INT  := 10;	//[0.1 s] Maximum reposnse time Slave
+   OutMonTime : INT ;	//[0.1 s] Maximum reposnse time
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpAddrIO : DWORD ;	
+  tmpMailboxLong : BOOL ;	
+  tmpLenSlaveData : DINT ;	//Lenght as Bits
+  tmpObjectNo : DINT ;	
+  tmpAddr : DINT ;	//Address Current Slave in Array
+  tmpIdx : INT ;	
+  tmpUsed : BOOL ;	
+  tmpDPFault : BOOL ;	
+  tmpRelavantFaultSlaves : BOOL ;	
+  tmpPar1 : WORD ;	
+  tmpPar2 : WORD ;	
+  tmpPar3 : WORD ;	
+  tmpHeader : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1899; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+// Write new commands from PC to Interface object
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      R     #InLogOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      S     #InLogOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[15]; // CmdHornOn
+      R     #InHornOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[15]; // CmdHornOff
+      S     #InHornOff; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     20; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     20; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =DPFault
+
+      U     #InDPFault; 
+      =     #OutDPFault; 
+NETWORK
+TITLE =Init
+
+      L     #Par.ParLenMailbox; 
+      L     10; 
+      >=I   ; 
+      =     #tmpMailboxLong; 
+      L     P##Slaves; 
+      L     P##tmpSlave; 
+      -D    ; 
+      T     #tmpLenSlaveData; 
+NETWORK
+TITLE =Input Data Status + Mailbox
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+//Copy Status
+      LAR1  #tmpAddrIO; 
+      L     EW [AR1,P#0.0]; 
+      LAR1  P##Rcv; 
+      T     DIW [AR1,P#0.0]; 
+
+//Copy Mailbox
+      LAR1  #tmpAddrIO; 
+      L     EW [AR1,P#2.0]; 
+      LAR1  P##Rcv; 
+      T     DIW [AR1,P#2.0]; 
+
+//Copy Mailbox
+      LAR1  #tmpAddrIO; 
+      L     ED [AR1,P#4.0]; 
+      T     #Rcv.Mailbox.ValueAB; 
+      UN    #tmpMailboxLong; 
+      SPB   RDJ0; 
+//Copy Mailbox
+      LAR1  #tmpAddrIO; 
+      L     ED [AR1,P#8.0]; 
+      T     #Rcv.Mailbox.ValueBA; 
+RDJ0: NOP   0; 
+NETWORK
+TITLE =Mailbox: Answer
+
+      L     #Snd.Mailbox.Opcode; 
+      L     #Rcv.Mailbox.Opcode; 
+      ==I   ; 
+      U(    ; 
+      U     #Snd.Mailbox.Toggle; 
+      U     #Rcv.Mailbox.Toggle; 
+      O     ; 
+      UN    #Snd.Mailbox.Toggle; 
+      UN    #Rcv.Mailbox.Toggle; 
+      )     ; 
+      SPB   MTOK; 
+      UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      SPB   MTJ0; 
+      L     #Par.OutMonTime; 
+      +     -2; 
+      T     #Par.OutMonTime; 
+      L     0; 
+      >=I   ; 
+      SPB   MTJ0; 
+//=========================================================
+//--Timeout Response ----
+//=========================================================
+      S     #Fault.ASIMaster; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      L     W#16#46; // Read Opcode Detected Slave
+      SPA   MNXA; //-->Send Next Command  
+//=========================================================
+//--Timeout Ok ----
+//=========================================================
+MTOK: R     #Fault.ASIMaster; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+MTJ0: NOP   0; 
+NETWORK
+TITLE =Mailbox: Check Togle Bit
+
+      X     #Snd.Mailbox.Toggle; 
+      X     #Rcv.Mailbox.Toggle; 
+      O(    ; 
+      L     #Snd.Mailbox.Opcode; 
+      L     #Rcv.Mailbox.Opcode; 
+      <>I   ; 
+      )     ; 
+      SPB   MOUT; 
+      LAR1  P##Rcv; 
+      L     DIB [AR1,P#3.0]; //Rcv.Mailbox.Result
+      L     2#1111111; 
+      UW    ; 
+      T     #Com.OutResult; 
+NETWORK
+TITLE =Mailbox: Detected Slaves Ox46
+
+      NOP   0; 
+      L     #Rcv.Mailbox.Opcode; 
+      L     W#16#46; // Opcode Detected Slaves
+      <>I   ; 
+      SPB   M57; 
+      UN    #tmpMailboxLong; 
+      SPB   M46S; //Short Mailbox
+//----------------------------------------------------
+//--Long Mailbox
+      LAR1  P##Slaves_Detected; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.ValueBA; 
+      T     DID [AR1,P#4.0]; 
+//Next Command
+      L     W#16#57; // Opcode Configuration Difference
+      SPA   MNXA; //-->Send Next Command
+//----------------------------------------------------
+//--Short Mailbox
+M46S: U     #Snd.Mailbox.B_A; 
+      SPB   M46B; 
+      LAR1  P##Slaves_Detected; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.Opcode; // Read Slaves B
+      SPA   MNXB; //-->Send Next Command
+M46B: LAR1  P##Slaves_Detected; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#4.0]; 
+      L     W#16#57; // Opcode Configuration Difference
+      SPA   MNXA; //-->Send Next Command 
+NETWORK
+TITLE =Mailbox: Configuration DIfferent Ox57
+
+      NOP   0; 
+M57:  L     #Rcv.Mailbox.Opcode; 
+      L     W#16#57; // Opcode Detected Slaves
+      <>I   ; 
+      SPB   M3E; 
+      LAR1  P##Slaves_CfgDiff; 
+      UN    #tmpMailboxLong; 
+      SPB   M57S; //Short Mailbox
+//----------------------------------------------------
+//--Long Mailbox
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.ValueBA; 
+      T     DID [AR1,P#4.0]; 
+//Next Command
+      L     W#16#3E; // Opcode Peripheral Failure
+      SPA   MNXA; //-->Send Next Command
+//----------------------------------------------------
+//--Short Mailbox
+M57S: U     #Snd.Mailbox.B_A; 
+      SPB   M57B; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.Opcode; // Read Slaves B
+      SPA   MNXB; //-->Send Next Command
+M57B: L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#4.0]; 
+      L     W#16#3E; // Opcode Peripheral Failure
+      SPA   MNXA; //-->Send Next Command 
+NETWORK
+TITLE =Mailbox: Configuration Pheriperal Failure Ox3E
+
+      NOP   0; 
+M3E:  L     #Rcv.Mailbox.Opcode; 
+      L     W#16#3E; // Opcode Pheriperal Failure
+      <>I   ; 
+      SPB   M6C; 
+      LAR1  P##Slaves_PeripheralFault; 
+      UN    #tmpMailboxLong; 
+      SPB   M3ES; //Short Mailbox
+//----------------------------------------------------
+//--Long Mailbox
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.ValueBA; 
+      T     DID [AR1,P#4.0]; 
+//Next Command
+      L     W#16#6C; // Opcode Corrupted Slaves
+      SPA   MNXA; //-->Send Next Command
+//----------------------------------------------------
+//--Short Mailbox
+M3ES: U     #Snd.Mailbox.B_A; 
+      SPB   M3EB; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.Opcode; // Read Slaves B
+      SPA   MNXB; //-->Send Next Command
+M3EB: L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#4.0]; 
+      L     W#16#6C; // Opcode Corrupted Slaves
+      SPA   MNXA; //-->Send Next Command 
+NETWORK
+TITLE =Mailbox: Corrupted Slaves Ox6C
+
+      NOP   0; 
+M6C:  L     #Rcv.Mailbox.Opcode; 
+      L     W#16#6C; // Opcode Corrupted Slaves
+      <>I   ; 
+      SPB   M50; 
+      LAR1  P##Slaves_Corrupted; 
+      UN    #tmpMailboxLong; 
+      SPB   M6CS; //Short Mailbox
+//----------------------------------------------------
+//--Long Mailbox
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.ValueBA; 
+      T     DID [AR1,P#4.0]; 
+//Next Command
+      SPA   M50I; //-->Send Next Command
+//----------------------------------------------------
+//--Short Mailbox
+M6CS: U     #Snd.Mailbox.B_A; 
+      SPB   M6CB; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#0.0]; 
+      L     #Rcv.Mailbox.Opcode; // Read Slaves B
+      SPA   MNXB; //-->Send Next Command
+M6CB: L     #Rcv.Mailbox.ValueAB; 
+      T     DID [AR1,P#4.0]; 
+      SPA   M50I; //-->Send Next Command 
+NETWORK
+TITLE =Mailbox: Read Slaves Channel Ox50
+
+      NOP   0; 
+//===========================================
+//Init Reading Analog Values
+M50I: L     0; 
+      T     #Com.IdxSlave; 
+      SPA   M50X; 
+//===========================================
+M50:  L     #Rcv.Mailbox.Opcode; 
+      L     W#16#50; // Opcode Read Slave In Data Channel 1 to 4
+      <>I   ; 
+      SPB   M51; 
+      L     31; 
+      L     #Com.IdxSlave; 
+      <I    ; 
+      SPB   M50X; 
+      L     1; 
+      L     #Com.IdxSlave; 
+      >I    ; 
+      SPB   M50X; 
+      +     -1; 
+      T     #tmpIdx; 
+      L     #tmpLenSlaveData; 
+      *D    ; 
+      L     P##Slaves; 
+      +D    ; 
+      T     #tmpAddr; 
+//Copy Data from  SlavesA[x] to tmpSlave
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#12.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#12.0]; 
+//Read Values from Mailbox
+      L     #Com.OutResult; 
+      T     #tmpSlave.OutResult; 
+      L     #Rcv.Mailbox.ValueAB; 
+      T     #tmpSlave.Ch2; 
+      SRD   16; 
+      T     #tmpSlave.Ch1; 
+      UN    #tmpMailboxLong; 
+      SPB   M50S; //--> Save Data
+      L     #Rcv.Mailbox.ValueBA; 
+      T     #tmpSlave.Ch4; 
+      SRD   16; 
+      T     #tmpSlave.Ch3; 
+//Copy Data from tmpSlave of SlavesA[x]
+M50S: LAR1  P##tmpSlave; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#12.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#12.0]; 
+//------------------------------------------------------------------
+//Loop Slave
+//------------------------------------------------------------------
+M50X: L     #Com.IdxSlave; 
+      +     1; 
+      T     #Com.IdxSlave; 
+      L     31; 
+      >I    ; 
+      SPB   M51I; 
+      L     #Com.IdxSlave; 
+      +     -1; 
+      L     #tmpLenSlaveData; 
+      *D    ; 
+      L     P##Slaves; 
+      +D    ; 
+      T     #tmpAddr; 
+//Copy Data of SlavesA[x] to tmpSlave
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#0.0]; 
+      UN    #tmpSlave.Par.ParAI; 
+      SPB   M50X; 
+//==================================
+//Prepare Mailbox Send
+//==================================
+      L     #Com.IdxSlave; 
+      T     #Snd.Mailbox.Slave; //Enter Slave address
+      L     W#16#50; // Opcode Read Slave In Data Channel 1 to 4
+      T     #Snd.Mailbox.Opcode; 
+      SET   ; 
+      R     #Snd.Mailbox.B_A; 
+      UN    #Rcv.Mailbox.Toggle; 
+      =     #Snd.Mailbox.Toggle; 
+      SPA   MOUT; 
+NETWORK
+TITLE =Mailbox: Write Slaves Channel Ox51
+
+      NOP   0; 
+//===========================================
+//Init Reading Analog Values
+M51I: L     0; 
+      T     #Com.IdxSlave; 
+      SPA   M51X; 
+//===========================================
+M51:  L     #Rcv.Mailbox.Opcode; 
+      L     W#16#51; // Opcode Write Slave Out Data Channel 1 to 4
+      <>I   ; 
+      SPB   MEND; //MEND
+      L     31; 
+      L     #Com.IdxSlave; 
+      <I    ; 
+      SPB   M51X; 
+      L     1; 
+      L     #Com.IdxSlave; 
+      >I    ; 
+      SPB   M51X; 
+      +     -1; 
+      T     #tmpIdx; 
+      L     #tmpLenSlaveData; 
+      *D    ; 
+      L     P##Slaves; 
+      +D    ; 
+      T     #tmpAddr; 
+//Copy Data from  SlavesA[x] to tmpSlave
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#12.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#12.0]; 
+//Read Values from Mailbox
+      L     #Com.OutResult; 
+      T     #tmpSlave.OutResult; 
+//Copy Data from tmpSlave of SlavesA[x]
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#12.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#12.0]; 
+//------------------------------------------------------------------
+//Loop Slave
+//------------------------------------------------------------------
+M51X: L     #Com.IdxSlave; 
+      +     1; 
+      T     #Com.IdxSlave; 
+      L     31; 
+      >I    ; 
+      SPB   MEND; //---> Start Sequence
+      L     #Com.IdxSlave; 
+      +     -1; 
+      L     #tmpLenSlaveData; 
+      *D    ; 
+      L     P##Slaves; 
+      +D    ; 
+      T     #tmpAddr; 
+//Copy Data of SlavesA[x] to tmpSlave
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#0.0]; 
+      UN    #tmpSlave.Par.ParAO; 
+      SPB   M51X; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#12.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#10.0]; 
+//==================================
+//Prepare Mailbox Send
+//==================================
+      L     #Com.IdxSlave; 
+      T     #Snd.Mailbox.Slave; //Enter Slave address
+      LAR1  P##Snd; 
+      +AR1  P#5.0; 
+      L     #tmpSlave.Ch1; 
+      T     DIW [AR1,P#0.0]; 
+      L     #tmpSlave.Ch2; 
+      T     DIW [AR1,P#2.0]; 
+      L     #tmpSlave.Ch3; 
+      T     DIW [AR1,P#4.0]; 
+      L     #tmpSlave.Ch4; 
+      T     DIW [AR1,P#6.0]; 
+      L     W#16#51; // Opcode Write Slave In Data Channel 1 to 4
+      T     #Snd.Mailbox.Opcode; 
+      SET   ; 
+      R     #Snd.Mailbox.B_A; 
+      UN    #Rcv.Mailbox.Toggle; 
+      =     #Snd.Mailbox.Toggle; 
+      SPA   MOUT; 
+NETWORK
+TITLE =Mailbox: Else 
+
+MEND: L     W#16#46; // Opcode Detected Slave
+      SPA   MNXA; //-->Send Next Command  
+NETWORK
+TITLE =Mailbox: Enter Next command
+//--------------------------------------
+//Send Next Command Order A/B
+//--------------------------------------
+MNXA: T     #Snd.Mailbox.Opcode; 
+      SET   ; 
+      R     #Snd.Mailbox.B_A; 
+      SPA   MNX; 
+//--------------------------------------
+//Send Next Command Order B/A
+//--------------------------------------
+MNXB: T     #Snd.Mailbox.Opcode; 
+      SET   ; 
+      S     #Snd.Mailbox.B_A; 
+MNX:  UN    #Rcv.Mailbox.Toggle; 
+      =     #Snd.Mailbox.Toggle; 
+      L     0; 
+      T     #Snd.Mailbox.Slave; 
+      T     #Snd.Mailbox.Value1High; 
+      T     #Snd.Mailbox.Value1Low; 
+      T     #Snd.Mailbox.Value2High; 
+      T     #Snd.Mailbox.Value2Low; 
+      T     #Snd.Mailbox.Value3High; 
+      T     #Snd.Mailbox.Value3Low; 
+      T     #Snd.Mailbox.Value4High; 
+      T     #Snd.Mailbox.Value4Low; 
+MOUT: NOP   0; 
+NETWORK
+TITLE =Mailbox Write to Output
+//Copy Mailbox
+      LAR1  P##Snd; 
+      L     DID [AR1,P#2.0]; 
+      LAR1  #tmpAddrIO; 
+      T     AD [AR1,P#2.0]; 
+      LAR1  P##Snd; 
+      L     DID [AR1,P#6.0]; 
+      LAR1  #tmpAddrIO; 
+      T     AD [AR1,P#6.0]; 
+      UN    #tmpMailboxLong; 
+      SPB   MWJ0; 
+      LAR1  P##Snd; 
+      L     DID [AR1,P#10.0]; 
+      LAR1  #tmpAddrIO; 
+      T     AD [AR1,P#10.0]; 
+      LAR1  P##Snd; 
+      L     DIW [AR1,P#14.0]; 
+      LAR1  #tmpAddrIO; 
+      T     AW [AR1,P#14.0]; 
+MWJ0: NOP   0; 
+NETWORK
+TITLE =Prepare Control Byte
+
+      SET   ; 
+      R     #Snd.Control.Mbx; 
+      LAR1  P##Snd; 
+      L     DIW [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     AW [AR1,P#0.0]; 
+NETWORK
+TITLE =Status/ StMode ASI Master
+
+      U     #OutDPFault; 
+      =     #Fault.DPMaster; 
+      U     #Fault.ASIMaster; 
+      =     #Fault.ASIMaster; 
+      U     #Rcv.Status.Overflow; 
+      =     #Fault.Overflow; 
+      U     #Rcv.Status.ASIInactive; 
+      =     #Fault.ASIInactive; 
+      U     #Rcv.Status.ErrPower; 
+      =     #Fault.ErrPower; 
+      U     #Rcv.Status.ErrMapping; 
+      =     #Fault.ErrMapping; 
+      U     #Rcv.Status.ErrGeneral; 
+      =     #Fault.ErrGeneral; 
+//----------
+      U     #Fault.DPMaster; 
+      O     #Fault.ASIMaster; 
+      O     #Fault.Overflow; 
+      O     #Fault.ASIInactive; 
+      O     #Fault.ErrPower; 
+      O     #Fault.ErrMapping; 
+      =     #tmpRelavantFaultSlaves; 
+      U     #tmpRelavantFaultSlaves; 
+      O     #Fault.ErrGeneral; 
+      =     #OutFaultRelevant; 
+//=======================================
+//State
+      UN    #OutFaultRelevant; 
+      =     #StOk; 
+      U     #OutFaultRelevant; 
+      =     #StFault; 
+
+//=======================================
+//Test Log Message
+      UN    #StFault; 
+      U     #OutMsgDone; 
+      SPB   MSGO; 
+      U     #StFault; 
+      UN    #InLogOff; 
+      UN    #Par.ParLogOff; 
+      UN    #OutMsgDone; 
+      SPB   MSCO; 
+      SPA   MSST; //-->StCode
+//=======================================
+//New Alarm
+MSCO: S     #OutMsgDone; 
+      U     #InHornOff; 
+      SPB   MSH2; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1899,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+MSH2: L     B#(1, 11); //ASI Master Alarm Coming 
+      SPA   MSLG; 
+//=======================================
+//Alarm Going
+MSGO: R     #OutMsgDone; 
+      L     B#(3, 11); //ASI Master Alarm Going 
+//=======================================
+//Entry Log Message
+MSLG: T     #tmpLOGvalue; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1899);
+//=======================================
+//StCode
+MSST: U     #StOk; 
+      L     2; // StOk
+      SPB   MSSC; 
+      U     #Fault.DPMaster; 
+      L     33; // StFault.DPMaster
+      SPB   MSSC; 
+      U     #Fault.ASIMaster; 
+      L     34; // StFault.ASIMaster
+      SPB   MSSC; 
+      U     #Fault.Overflow; 
+      L     38; // StFault.Overflow
+      SPB   MSSC; 
+      U     #Fault.ASIInactive; 
+      L     39; // StFault.ASIInactive
+      SPB   MSSC; 
+      U     #Fault.ErrPower; 
+      L     40; // StFault.ErrPower
+      SPB   MSSC; 
+      U     #Fault.ErrMapping; 
+      L     41; // StFault.ErrMapping
+      SPB   MSSC; 
+      U     #Fault.ErrGeneral; 
+      L     42; // StFault.ErrGeneral
+      SPB   MSSC; 
+      L     34; // StFault.ASIMaster
+MSSC: T     #StCode; 
+NETWORK
+TITLE =Status/StCode Slave
+
+      L     P##Slaves; 
+      T     #tmpAddr; 
+      L     1; 
+SLLP: T     #tmpIdx; 
+      L     63; 
+      >I    ; 
+      SPB   SLJ0; 
+//=======================================
+//Copy Data of SlavesA[x] to tmpSlave
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##tmpSlave; 
+      T     DID [AR1,P#4.0]; 
+//=======================================
+//Copy Bit Information to tmpSlave 
+      LAR1  P##Slaves_Detected; 
+      L     #tmpIdx; 
+      +AR1  ; 
+      U     DIX [AR1,P#0.0]; //Slaves_Detected
+      =     #tmpSlave.OutDetected; 
+      U     DIX [AR1,P#8.0]; //Slaves_CfgDiff
+      =     #tmpSlave.OutCfgDiff; 
+      U     DIX [AR1,P#16.0]; //Slaves_PeripheralFault
+      =     #tmpSlave.OutPeripheralFault; 
+      U     DIX [AR1,P#24.0]; //Slaves_Corrupted
+      =     #tmpSlave.OutCorrupted; 
+//=======================================
+      U     #tmpSlave.Par.ParDIDO; 
+      O     #tmpSlave.Par.ParAI; 
+      O     #tmpSlave.Par.ParAO; 
+      =     #tmpUsed; 
+//=======================================
+//Summary State
+      U     #tmpSlave.OutDetected; 
+      UN    #tmpSlave.OutCfgDiff; 
+      UN    #tmpSlave.OutPeripheralFault; 
+      UN    #tmpSlave.OutCorrupted; 
+      UN    #tmpRelavantFaultSlaves; //ASI Master
+      U     #tmpUsed; 
+      =     #tmpSlave.StOk; 
+      UN    #tmpSlave.StOk; 
+      =     #tmpSlave.StFault; 
+      =     DIX [AR1,P#32.0]; //SlavesX_Faulted
+//=======================================
+//Test Log Message
+      UN    #tmpUsed; 
+      SPB   SLST; //-->StCode
+      UN    #tmpSlave.StFault; 
+      U     #tmpSlave.OutMsgDone; 
+      SPB   SLGO; 
+      U     #tmpSlave.StFault; 
+      UN    #tmpRelavantFaultSlaves; 
+      UN    #InLogOff; 
+      UN    #Par.ParLogOff; 
+      UN    #tmpSlave.OutMsgDone; 
+      SPB   SLCO; 
+      SPA   SLST; //-->StCode
+//=======================================
+//New Alarm
+SLCO: S     #tmpSlave.OutMsgDone; 
+      U     #InHornOff; 
+      SPB   SLH2; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1899,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+SLH2: L     B#(1, 0); //ASI Slave Alarm Coming 
+      SPA   SLLG; 
+//=======================================
+//Alarm Going
+SLGO: R     #tmpSlave.OutMsgDone; 
+      L     B#(3, 0); //ASI Slave Alarm Going
+//=======================================
+//Entry Log Message
+SLLG: T     #tmpLOGvalue; 
+      L     31; 
+      L     #tmpIdx; 
+      >=I   ; 
+      SPB   SLLL; 
+//Message Slave B
+      L     200; 
+      L     #tmpIdx; 
+      +I    ; 
+      L     32; 
+      -D    ; 
+      SPA   LOG1; 
+//Message Slave A
+SLLL: L     100; 
+      L     #tmpIdx; 
+      +I    ; 
+//=======================================
+//Entry Log Message
+LOG1: L     #tmpLOGvalue; 
+      +I    ; 
+      T     #tmpLOGvalue; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1899);
+//=======================================
+//StCode
+SLST: UN    #tmpUsed; 
+      L     0; // StNotUsed
+      SPB   SLSC; 
+      U     #tmpSlave.StOk; 
+      L     2; // StOk
+      SPB   SLSC; 
+      U     #Fault.DPMaster; 
+      L     33; // StFault.DPMaster
+      SPB   SLSC; 
+      U     #tmpSlave.OutCfgDiff; 
+      L     35; // StFault.CfgDiff
+      SPB   SLSC; 
+      U     #tmpSlave.OutPeripheralFault; 
+      L     36; // StFault.PeripheralFault
+      SPB   SLSC; 
+      U     #tmpSlave.OutCorrupted; 
+      L     37; // StFault.Corrupted
+      SPB   SLSC; 
+      U     #tmpRelavantFaultSlaves; 
+      L     34; // StFault.ASIMaster
+      SPB   SLSC; 
+      L     32; // StFault
+SLSC: T     #tmpSlave.StCode; 
+//=======================================
+//Copy Data oftmpSlave to  SlavesA[x] to 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  P##tmpSlave; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddr; 
+      T     DID [AR1,P#4.0]; 
+//=======================================
+//Pointer to Next Slave
+      L     #tmpAddr; 
+      L     #tmpLenSlaveData; 
+      +D    ; 
+      T     #tmpAddr; 
+      L     #tmpIdx; 
+      +     1; 
+      SPA   SLLP; 
+//=======================================
+SLJ0: NOP   0; 
+NETWORK
+TITLE =Copy Slaves_Faulted to  "SSA_SYS_ASI_Info"
+
+      L     1; 
+      L     #Par.ParASIMasterIdx; 
+      >I    ; 
+      BEB   ; 
+      +     -1; 
+      L     P#8.0; 
+      *D    ; 
+      T     #tmpAddr; //Address  "SSA_SYS_ASI_Info".Master[x]
+      AUF   "SSA_SYS_ASI_Info"; 
+      LAR1  P##Slaves_Faulted; 
+      L     DID [AR1,P#0.0]; //  Slaves_Faulted.A
+      LAR1  #tmpAddr; 
+      T     DBD [AR1,P#0.0]; //  "SSA_SYS_ASI_Info".Master[x].Slaves_Faulted.A
+      LAR1  P##Slaves_Faulted; 
+      L     DID [AR1,P#4.0]; //  Slaves_Faulted.B
+      LAR1  #tmpAddr; 
+      T     DBD [AR1,P#4.0]; //  "SSA_SYS_ASI_Info".Master[x].Slaves_Faulted.B
+END_FUNCTION_BLOCK
+

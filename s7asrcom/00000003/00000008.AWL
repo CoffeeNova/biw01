@@ -1,0 +1,99 @@
+	  TYPE UDT8001	
+	    TITLE =UDTMAL1SecNom  MALTING LINE
+	    STRUCT 	 //UDTMAL1SecNom
+	   Par1On : STRUCT 	//Job parameters
+	    Cmd08 : BOOL ;	//Not used
+	    Cmd09 : BOOL ;	//Not used
+	    Cmd10 : BOOL ;	//Not used
+	    Cmd11 : BOOL ;	//Not used
+	    Cmd12 : BOOL ;	//Not used
+	    Cmd13 : BOOL ;	//Not used
+	    Cmd14 : BOOL ;	//Not used
+	    Cmd15 : BOOL ;	//Not used
+	    Cmd00 : BOOL ;	//Not used
+	    Cmd01 : BOOL ;	//Not used
+	    Cmd02 : BOOL ;	//Not used
+	    Cmd03 : BOOL ;	//Not used
+	    Cmd04 : BOOL ;	//Not used
+	    Cmd05 : BOOL ;	//Not used
+	    Cmd06 : BOOL ;	//Not used
+	    Cmd07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Par2On : STRUCT 	//Job parameters
+	    Cmd08 : BOOL ;	//Not used
+	    Cmd09 : BOOL ;	//Not used
+	    Cmd10 : BOOL ;	//Not used
+	    Cmd11 : BOOL ;	//Not used
+	    Cmd12 : BOOL ;	//Not used
+	    Cmd13 : BOOL ;	//Not used
+	    Cmd14 : BOOL ;	//Not used
+	    Cmd15 : BOOL ;	//Not used
+	    Cmd00 : BOOL ;	//Not used
+	    Cmd01 : BOOL ;	//Not used
+	    Cmd02 : BOOL ;	//Not used
+	    Cmd03 : BOOL ;	//Not used
+	    Cmd04 : BOOL ;	//Not used
+	    Cmd05 : BOOL ;	//Not used
+	    Cmd06 : BOOL ;	//Not used
+	    Cmd07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Par3On : STRUCT 	//Job parameters
+	    Cmd08 : BOOL ;	//Not used
+	    Cmd09 : BOOL ;	//Not used
+	    Cmd10 : BOOL ;	//Not used
+	    Cmd11 : BOOL ;	//Not used
+	    Cmd12 : BOOL ;	//Not used
+	    Cmd13 : BOOL ;	//Not used
+	    Cmd14 : BOOL ;	//Not used
+	    Cmd15 : BOOL ;	//Not used
+	    Cmd00 : BOOL ;	//Not used
+	    Cmd01 : BOOL ;	//Not used
+	    Cmd02 : BOOL ;	//Not used
+	    Cmd03 : BOOL ;	//Not used
+	    Cmd04 : BOOL ;	//Not used
+	    Cmd05 : BOOL ;	//Not used
+	    Cmd06 : BOOL ;	//Not used
+	    Cmd07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   Par4On : STRUCT 	//Job parameters
+	    Cmd08 : BOOL ;	//Not used
+	    Cmd09 : BOOL ;	//Not used
+	    Cmd10 : BOOL ;	//Not used
+	    Cmd11 : BOOL ;	//Not used
+	    Cmd12 : BOOL ;	//Not used
+	    Cmd13 : BOOL ;	//Not used
+	    Cmd14 : BOOL ;	//Not used
+	    Cmd15 : BOOL ;	//Not used
+	    Cmd00 : BOOL ;	//Not used
+	    Cmd01 : BOOL ;	//Not used
+	    Cmd02 : BOOL ;	//Not used
+	    Cmd03 : BOOL ;	//Not used
+	    Cmd04 : BOOL ;	//Not used
+	    Cmd05 : BOOL ;	//Not used
+	    Cmd06 : BOOL ;	//Not used
+	    Cmd07 : BOOL ;	//Not used
+	   END_STRUCT ;	
+	   NotUsed01 : INT ;	//Not used
+	   NotUsed02 : INT ;	//Not used
+	   NotUsed03 : INT ;	//Not used
+	   NotUsed04 : INT ;	//Not used
+	   NotUsed05 : INT ;	//Not used
+	   NotUsed06 : INT ;	//Not used
+	   NotUsed07 : INT ;	//Not used
+	   NotUsed08 : INT ;	//Not used
+	   NotUsed09 : INT ;	//Not used
+	   NotUsed10 : INT ;	//Not used
+	   NotUsed11 : INT ;	//Not used
+	   NotUsed12 : INT ;	//Not used
+	   NotUsed13 : INT ;	//Not used
+	   NotUsed14 : INT ;	//Not used
+	   NotUsed15 : INT ;	//Not used
+	   NotUsed16 : INT ;	//Not used
+	    HEADER : "SSA_MH_JobHeader";	
+	    STEEP1 : "SSA_Steep_Recipe";	
+	    STEEP2 : "SSA_Steep_Recipe";	
+	    GERM : "SSA_Germ_Recipe";	
+	    KILN1 : "SSA_Kiln_Recipe";	
+	    KILN2 : "SSA_Kiln_Recipe";	
+	   END_STRUCT ;	
+	  END_TYPE

@@ -1,0 +1,460 @@
+FUNCTION_BLOCK FB 16
+TITLE =PressureRange
+//  
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Pressure Range
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB16.4.1      A. Egli             CT3                         09-Mar-2004
+//              PCDirect Control: CmdReportOn,CmdReportOff=Bit14
+//FB16.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB16.2.2      S. Kalberer         CT3                         16-Oct-2000
+//              LOG-entry corrected: SPN -> SPBN
+//FB16.2.1      A. Egli             CT3                         08-Mai-2000
+//              Local: StOverP --> StMinP
+//              Set alarm horn by rising edge OutNoMinP
+//FB16.2B       A. Egli             CT3                         23-Nov-1999
+//              Message Nr StCtoOverP
+//FB16.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB16.1A       S. Kalberer         AEE61                       10-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [PRAENMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  normal pressure  
+// 1  high pressure
+// 2  over pressure
+// 3  no minimum pressure
+// 9  fault cancelled
+// 10 fault
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault             
+// 1  StMinP              
+//41  StMinP.HWStop       
+//51  StMinP.DPFault      
+// 3  StNormalP           
+//43  StNormalP.HWStop    
+//53  StNormalP.DPFault   
+// 4  StCtoOverP          
+//44  StCtoOverP.HWStop   
+//54  StCtoOverP.DPFault  
+// 5  StOverP             
+//45  StOverP.HWStop      
+//55  StOverP.DPFault     
+// 6  StNormalP.Warning  
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : PRang
+VERSION : 4.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InMonMinP : BOOL ;	//Monitoring the minimum pressure
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  spare0205 : BOOL ;	
+  InpMin : BOOL ;	//Digital input: Value <= min
+  InpMax : BOOL ;	//Digital input: Value >= max
+  spare0300 : BOOL ;	
+  spare0301 : BOOL ;	
+  spare0302 : BOOL ;	
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by Over Pressure)
+  spare0305 : BOOL ;	
+  InReport : BOOL ;	//Report of all state transition
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutNoMinP : BOOL ;	//Warning no minimum pressure
+  spare0403 : BOOL ;	
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  spare0406 : BOOL ;	
+  spare0407 : BOOL ;	
+  StMinP : BOOL ;	//Value <= Minimum
+  StNormalP : BOOL ;	//Value in Range Minimum to Maximum
+  StOverP : BOOL ;	//Value >= Maximum (only in local mode)
+  StCtoOverP : BOOL ;	//Value >= Maximum, delay time is active
+  StFault : BOOL ;	//Element has a fault 
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParDelayChange : INT ;	//t0, maximum time until state changes to StCtoOverP
+   ParDelayMin : INT ;	//t1, maximum time until state changes to StMinP
+   ParDelayMax : INT ;	//t2, maximum time until state changes to StOverP or StFault
+   ParMonMinP : INT ;	//t3, if InMonMinP: maximum time to be out of MinP until OutNoMinP
+   OutMonTime : INT ;	//Actual value monitoring time t3
+   OutDelayMinTime : INT ;	//Actual value delay time t1
+   OutDelayMaxTime : INT ;	//Actual value delay time t0,t2
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpDelayOver : BOOL ;	//Delay time is over
+  tmpLocal : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     30; 
+      T     #tmpLenDyn; // Length Dynamic datas
+
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1016; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   pExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParDelayChange; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParDelayMin; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParDelayMax; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParMonMinP; 
+// Write new commands from PC to Interface object
+pCmd: U     DB3.DBX   53.3; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     DB3.DBX   53.6; // CmdReportOn    [4.1]
+      S     #InReport; 
+      U     DB3.DBX   55.6; // CmdReportOff   [4.1]
+      R     #InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+
+NETWORK
+TITLE = All State Init
+//===Global Group Orders===
+//---Report is on---
+Ctrl: O     M     12.6; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+      U     #InLocal; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+// Monitoring
+//---Condition to start monitoring time:  Monitoring is on
+      U     #InMonMinP; 
+      UN    #StMinP; // State minimum pressure
+      SPB   MO2; 
+      R     #OutNoMinP; 
+      L     #Par.ParMonMinP; // Set monitoring time
+      T     #Par.OutMonTime; 
+      SPA   STAT; 
+//---Condition for monitoring
+MO2:  U     #OutNoMinP; // Monitoring output
+      SPB   STAT; 
+      UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutMonTime; 
+      SPB   MO3; 
+      +     -2; // Decrement all 200ms
+      T     #Par.OutMonTime; 
+MO3:  L     0; 
+      >I    ; // Check monitoring time t3 over
+      SPB   STAT; 
+      S     #OutNoMinP; // set monitoring output
+      S     M     13.7; // InFaultFlag
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 1016,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      SPA   LOG3; 
+
+NETWORK
+TITLE =States
+
+STAT: U     #StMinP; //===State machine===
+      SPB   MP; 
+      U     #StNormalP; 
+      SPB   NP; 
+      U     #StCtoOverP; 
+      SPB   COP; 
+      U     #StOverP; 
+      SPB   OP; 
+      U     #StFault; 
+      SPB   FLT; 
+      S     #StMinP; //Initialise: goto StMinP
+
+NETWORK
+TITLE =StMinP
+
+MP:   U     #InpMin; //---Condition for StMinP
+      UN    #InpMax; 
+      SPB   SAVE; 
+      R     #StMinP; //---Transition --> StNormal
+      S     #StNormalP; 
+      L     #Par.ParDelayChange; 
+      T     #Par.OutDelayMaxTime; 
+      SPA   LOG1; 
+
+NETWORK
+TITLE =StNormalP
+//Logic
+//---Condition for StCtoOverP
+NP:   U     #InpMax; 
+      SPB   NPJ1; 
+      L     #Par.ParDelayChange; 
+      T     #Par.OutDelayMaxTime; 
+//---Condition for StNormalP
+      U     #InpMin; 
+      R     #StNormalP; 
+      S     #StMinP; 
+      SPA   SAVE; 
+NPJ1: L     #Par.OutDelayMaxTime; 
+      UN    M     10.3; //Gr.OutTick200ms
+      SPB   NPJ2; 
+      +     -2; // Decrement all 0.2s
+      T     #Par.OutDelayMaxTime; 
+NPJ2: L     0; 
+      >I    ; 
+      SPB   SAVE; 
+//---Transition --> StCtoOverP
+      R     #StNormalP; 
+      S     #StCtoOverP; 
+      L     #Par.ParDelayMax; 
+      T     #Par.OutDelayMaxTime; 
+      L     #Par.ParDelayMin; 
+      T     #Par.OutDelayMinTime; 
+      SPA   LOG1; 
+
+NETWORK
+TITLE =StCtoOverP
+//---Condition for StCtoOverP
+COP:  UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutDelayMaxTime; 
+      SPB   COP1; 
+      +     -2; // Decrement all 0.2s
+      T     #Par.OutDelayMaxTime; 
+COP1: L     0; 
+      >I    ; 
+      SPB   COPM; 
+//---Transition --> StFault
+      UN    #tmpLocal; 
+      R     #StCtoOverP; 
+      SPB   xxS4; 
+//---Transition --> StOverP
+      R     #StCtoOverP; 
+      S     #StOverP; 
+      SPA   LOG1; 
+//---Condition for StMinP
+//Condition delay time minimum
+COPM: U     #InpMin; 
+      UN    #InpMax; 
+      SPB   COP6; 
+      L     #Par.ParDelayMin; 
+      T     #Par.OutDelayMinTime; 
+      SPA   SAVE; 
+COP6: UN    M     10.3; //Gr.OutTick200ms
+      L     #Par.OutDelayMinTime; 
+      SPB   COP7; 
+      +     -2; // Decrement all 0.2s
+      T     #Par.OutDelayMinTime; 
+COP7: L     0; 
+      >I    ; 
+      SPB   SAVE; 
+//---Transition --> StMinP
+      R     #StCtoOverP; 
+      S     #StMinP; 
+      SPA   LOG1; 
+NETWORK
+TITLE =StOverP
+
+OP:   UN    #InpMin; //---Condition for StOverP
+      O     #InpMax; 
+      U     #tmpLocal; 
+      SPB   SAVE; 
+      U     #InpMin; //---Condition for StMinP
+      UN    #InpMax; 
+      SPB   OP5; 
+      R     #StOverP; //---Transition --> StFault
+      SPA   xxS4; 
+OP5:  R     #StOverP; //---Transition --> StMinP
+      S     #StMinP; 
+      SPA   LOG1; 
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #StFault; 
+      S     M     13.7; // InFaultFlag
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 1016,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      SPA   LOG8; 
+//===logic
+FLT:  UN    M     12.3; //---Condition for StFault
+      UN    #CmdFaultReset; 
+      UN    #InLocal; 
+      SPB   SAVE; 
+      UN    #InpMin; //---reLOG Fault
+      O     #InpMax; 
+      UN    #tmpLocal; 
+      SPB   LOG8; 
+      UN    #InpMin; //---Condition for StOverP
+      O     #InpMax; 
+      U     #tmpLocal; 
+      SPB   FLT8; 
+      R     #StFault; //---Transition --> StMinP
+      S     #StMinP; 
+      SPA   LOG9; 
+FLT8: R     #StFault; //---Transition --> StOverP
+      S     #StOverP; 
+      SPA   LOG9; 
+
+NETWORK
+TITLE =LOG Message
+
+LOG1: UN    #tmpReport; //---Report all?
+      SPB   SAVE; // [2.2]
+      U     #StMinP; 
+      O     #StNormalP; 
+      L     B#(4, 0); //Message Class Information normal pressure
+      SPB   LOG; 
+      U     #StCtoOverP; 
+      L     B#(4, 1); // Message Class Information high pressure
+      SPB   LOG; 
+      U     #StOverP; 
+      L     B#(4, 2); // Message Class Information over pressure [Rel2B]
+      SPB   LOG; 
+      SPA   SAVE; 
+LOG3: L     B#(4, 3); // Message Class Information no minimum pressure reached
+      SPA   LOG; 
+LOG8: L     B#(1, 10); // Message Class Error Message
+      SPA   LOG; 
+LOG9: L     B#(3, 9); // Message Class Operate fault cancelled
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL FC    45 (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1016);
+
+NETWORK
+TITLE =Global End
+
+SAVE: CLR   ; //---Clear all commands
+      =     #CmdFaultReset; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #InLocal; 
+      S     M     15.1; 
+
+      U     #InHWStop; 
+      UN    #InLocal; 
+      S     M     15.0; 
+
+NETWORK
+TITLE =State Code
+
+      U     #StMinP; 
+      L     1; // Code: minimum
+      SPB   STC8; 
+      U     #StNormalP; 
+      U     #OutNoMinP; 
+      UN    #tmpLocal; 
+      L     6; // Code: normal.warning
+      SPB   STC8; 
+      U     #StNormalP; 
+      L     3; // Code: normal.ok
+      SPB   STC8; 
+      U     #StCtoOverP; 
+      L     4; // Code: high
+      SPB   STC8; 
+      U     #StOverP; 
+      L     5; // Code: over
+      SPB   STC8; 
+      SPA   STCF; 
+STC8: UN    #InHWStop; 
+      SPB   STCD; 
+      +     40; //StXxx.HWStop
+      SPA   STC9; 
+STCD: UN    #InDPFault; 
+      SPB   STC9; 
+      +     50; //StXxx.DPFault
+      SPA   STC9; 
+STCF: L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    FC     2; 
+
+END_FUNCTION_BLOCK
+

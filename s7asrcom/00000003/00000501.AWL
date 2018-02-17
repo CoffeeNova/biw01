@@ -1,0 +1,323 @@
+	FUNCTION_BLOCK FB 272
+	TITLE =G172M EXHAUST AIR LOUVER GERM 4
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        EXHAUST AIR LOUVER GERM 4
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB272.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_2450_BZS01 : FB14;   // DigInpCont 
+	     #A_2450_BZS02 : FB14;   // DigInpCont 
+	     #A_2450_MXZ01 : FB20;   // VLS4Ctrl 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[172];
+	      R   GCS7_GrCtrlDB.ParWGR[172];
+	      R   GCS7_GrCtrlDB.ParGGR[172];
+	      R   GCS7_GrCtrlDB.ParFeed[172];
+	      R   GCS7_GrCtrlDB.ParShare[172];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[172];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[172];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[172];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[172];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[172];
+	      R   #GCS7_GrCtrlDB.CmdNext[172];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[172];
+	      O   #GCS7_GrCtrlDB.OutOccupied[172];
+	      R   GCS7_GrCtrlDB.CmdManualOff[172];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[172];
+	      R   GCS7_GrCtrlDB.CmdContinue[172];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[172];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX31.6;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE ==A-2450-BZS01 : LOUVER EXHAUST AIR 0% CLOSED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2450_BZS01.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_2450_BZS01.InMonTrue; 
+	      CLR;
+	      =      #A_2450_BZS01.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_2450_BZS01.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_2450_BZS01.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_2450_BZS01.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 464.2; 
+	      =     #A_2450_BZS01.InpTrue; 
+	       U     PLC_DPInfo.Master[1].SlavesError[48];
+	       =       #A_2450_BZS01.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2450_BZS01;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-2450-BZS02 : LOUVER EXHAUST AIR 100%  OPEN
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2450_BZS02.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_2450_BZS02.InMonTrue; 
+	      CLR;
+	      =      #A_2450_BZS02.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_2450_BZS02.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_2450_BZS02.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_2450_BZS02.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 464.3; 
+	      =     #A_2450_BZS02.InpTrue; 
+	       U     PLC_DPInfo.Master[1].SlavesError[48];
+	       =       #A_2450_BZS02.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2450_BZS02;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-2450-MXZ01 : LOUVER EXHAUST AIR 
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_2450_MXZ01.InLocal; 
+	//
+	//-Interlocking---
+	      UN     #Gr.OutEnableEl; 
+	      =     #A_2450_MXZ01.InLN; 
+	      U    #Gr.OutEnableEl; 
+	      S     #A_2450_MXZ01.CmdMiddle1; 
+	      S     #A_2450_MXZ01.CmdMiddle2; 
+	      S     #A_2450_MXZ01.CmdHN; 
+	// 
+	//-Read inputs---
+	      L     EW476; 
+	      T     #A_2450_MXZ01.InpPosition;
+	      U   DB050.DBX31.6;
+	      =     #A_2450_MXZ01.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[43];
+	       O     PLC_DPInfo.Master[1].SlavesError[48];
+	       =       #A_2450_MXZ01.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_2450_MXZ01;
+	// 
+	//-Write outputs---
+	      U     #A_2450_MXZ01.OutpLN; 
+	      =     A 464.1; 
+	      U     #A_2450_MXZ01.OutpHN; 
+	      =     A 464.0; 
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_2450_BZS01.StFault;
+	      O     #A_2450_BZS02.StFault;
+	      O     #A_2450_MXZ01.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      CLR;   
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      U     #A_2450_MXZ01.StLN; 
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      UN     #A_2450_MXZ01.StLN; 
+	      UN     #A_2450_MXZ01.StFault;
+	      UN     #A_2450_MXZ01.StNoPosition;
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[172];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[172];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[172];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[172];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[172];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[172];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[172];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[172];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[172];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[172];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

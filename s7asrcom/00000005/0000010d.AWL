@@ -1,0 +1,1094 @@
+FUNCTION_BLOCK "GCS7_E_Sampler"
+TITLE =Sampler MZER + MZEP
+// 
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Sampler MZER + MZEP
+//              (GCPROVB Revision=12)
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB29.7.1      A. Egli             CT3                         30-Mai-2007
+//              ProfibusDP: Line LAR1 moved
+//FB29.7.0      A. Egli             CT3                         14-Mar-2007
+//              - Using Baumer FB to read RFID
+//              - OutBottleInPosition
+//              - InSimulation  
+//              - Do not read IO as long DPNode is not connected
+//              - CmdFaultReset: Reset OutNxBottleNotEmpty, OutCoverNotClosed 
+//FB29.6.2      Ph. Engler          GP92                        21-Feb-2007
+//              - Changes for failure save tag reading
+//              - Changes for Tag registration
+//FB29.6.1      A. Egli             CT3                         19-Jun-2006
+//              Reading Tag only when bottle in position
+//FB29.6.0      Ph. Engler          MU92                        14-Feb-2006
+//              - Tag reading corrected
+//FB29.5.2      Ph. Engler          MU92                        01-Sep-2005
+//              - Don't reset Sample and BottleChangeTime if no productflow
+//              - Reload InBottleChangeTime on every StBottleChange
+//FB29.5.1      A. Egli             CT3                         17-Mai-2005
+//              CmdBottleChange do not delete OutSampleCounter
+//              (only when ParBatchSampler=1)
+//FB29.5.0      A. Egli             CT3                         05-Mai-2004
+//              2kByte or 256 Byte
+//FB29.4.2      A. Egli             CT3                         24-Sep-2003
+//              Alarm handling 
+//FB29.4.1      A. Egli             CT3                         04-Sep-2003
+//              Write outputs only to peripherie not to image
+//FB29.4.0      A. Egli             CT3                         10-Mai-2003
+//              New Release with one block , Profibus-DP, Tag-Reader
+//FB29.3.0      S. Kalberer         CT3                         21-Feb-2000
+//              MZEP added, new reLOG 17
+//FB29.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB29.1A       S. Kalberer         AEE61                       31-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MZExxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0   off
+// 1   wait
+// 2   sampling
+// 3   bottle change
+// 4   sampler in local mode
+// 9   fault cancelled
+//10  fault sampling
+//11  fault sample time
+//12  fault current bottle full
+//13  fault bottle change (reLOG fault)
+//14  fault next bottle not empty
+//15  fault cover not closed
+//16  fault multiple
+//18  fault reading RFID
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32       StFault                 
+// 1       StOff                   
+//41       StOff.HWStop                     StOff + InHWStop
+//51       StOff.DPFault                    StOff + InDPFault
+// 2       StWait                
+// 3       StSampling              
+// 4       StBottleChange        
+// 5       StWarning             
+//45       StWarning.HWStop                 StWarning + InHWStop
+//55       StWarning.DPFault                StWarning + InDPFault
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MZEx
+VERSION : 7.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Interlocking: 1= Enable to start/ 0= Immediate stop
+  spare0201 : BOOL ;	
+  InSimulation : BOOL ;	
+  OutReadingFaultRFID : BOOL ;	//Reading Fault RFID
+  CmdSendResult : BOOL ;	
+  InpSampleAllowed : BOOL ;	//DI sample allowed (2*)
+  InpBottleChangeAllowed : BOOL ;	//DI botte change allowed (2*)
+  InProductFlow : BOOL ;	//Signal to indicate product flow in automatic mode
+  CmdSample : BOOL ;	//Pulse to start a sample sequence
+  CmdBottleChange : BOOL ;	//Pulse to start a bottle change sequence
+  CmdNewBatch : BOOL ;	//Pulse to start a new batch (for batch sampler only)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  InWarningMode : BOOL ;	//1= By fault, the element changes to StWarning
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutProductFlow : BOOL ;	//Signal product flow
+  OutDelayFault : BOOL ;	//Signal delay time over
+  OutFlagOk : BOOL ;	//Signal positive edge flag ok (2*)
+  OutBottleInPosition : BOOL ;	
+  OutResponseFault : BOOL ;	//Signal response time over
+  OutResponseTime : BOOL ;	//Signal response time running
+  StOff : BOOL ;	//Element is off
+  StWait : BOOL ;	//Element is on and waiting for next steps
+  StSampling : BOOL ;	//Element is sampling
+  StBottleChange : BOOL ;	//Element is changing bottle
+  StFault : BOOL ;	//Element has a fault
+  StWarning : BOOL ;	//Element has a warning
+  spare56 : BOOL ;	
+  spare57 : BOOL ;	// 
+  InpSamplerInAuto : BOOL ;	//DI sampler in automatic mode (1*/2*)
+  InpCmdOk : BOOL ;	//DI command ok (1*)
+  InpAlarmCollect : BOOL ;	//DI alarm collected (1*)
+  InpAlarmSampleTime : BOOL ;	//DI alarm sample time (1*)
+  InpAlarmCurBottleFull : BOOL ;	//DI alarm current bottle full (1*)
+  InpAlarmNxBottleNotEmpty : BOOL ;	//DI alarm next bottle not empty  (1*/2*)
+  InpAlarmCoverNotClosed : BOOL ;	//DI alarm cover not closed  (1*)
+  InpAlarmMultiple : BOOL ;	//DI alarm multiple (for further alarms)  (1*)
+  OutCurBottleFull : BOOL ;	//Signal current bottle full
+  OutNxBottleNotEmpty : BOOL ;	//Signal next bottle not empty
+  OutCoverNotClosed : BOOL ;	//Signal cover not closed
+  OutSamplerInLocal : BOOL ;	//Signal sampler in local mode
+  OutpAlarmReset : BOOL ;	//DO alarm reset  (1*)
+  OutpSampling : BOOL ;	//DO sampling (1*/2*)
+  OutpBottleChange : BOOL ;	//DO change bottle (1*/2*)
+  OutpFuncRelease : BOOL ;	//DO function release (1*)
+  InSamplePerBatch : INT ;	//Number of sample per batch
+  InSampleTime : INT ;	//Time between two samples [s]
+  InBottleChangeTime : INT ;	//Time between two bottle changes [s]
+  OutSampleCounter : INT ;	//Actual value: Sample counter
+  OutBottleCounter : INT  := 1;	//Actual value: Bottle counter
+  OutActSampleTime : INT ;	//Actual time: Before next sample [s]
+  OutActBottleChangeTime : INT ;	//Actual time: Before next bottle change [s]
+  InSamplePulseLength : INT ;	//Lenght of Sample pulse lenght [ms]
+  Tag : STRUCT 	
+   HskWrite : STRUCT 	
+    Q_Result : BOOL ;	
+   END_STRUCT ;	
+   HskRead : STRUCT 	
+    F_Result : BOOL ;	
+   END_STRUCT ;	
+   OutRegistrated : BOOL ;	
+   InJobNr : DINT ;	//Current Job
+   InBatchNr : INT ;	//Current batch
+   OutTagNrAc : DWORD ;	//Tag number of the current bottle
+   OutJobNrResult : DWORD ;	//Job number of the resulting bottle
+   OutBatchNrResult : INT ;	//Batch number of the resulting bottle
+   OutTagNrResult : DWORD ;	//Tag number of the resulting bottle
+   spare_1 : DWORD ;	
+   spare_2 : DWORD ;	
+  END_STRUCT ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   spare0401 : BOOL ;	
+   ParBatchSampler : BOOL ;	//1= Batch sampler / 0= Job sampler
+   ParBatchBottleChange : BOOL ;	//1= Automatic bottle change with batch sampler
+   ParMZEP : BOOL ;	//1= Sampler MZEP / 0= Sampler MZER
+   ParAlarmCollectWarn : BOOL ;	//InpAlarmCollect gives only warning
+   ParAlarmSampleTimeWarn : BOOL ;	//InpAlarmSampleTime gives only warning
+   ParAlarmCurBottleWarn : BOOL ;	//InpAlarmCurBottleFull gives only warning
+   ParAlarmNxBottleWarn : BOOL ;	//InpAlarmNxBottleNotEmpty gives only warning
+   ParAlarmCoverWarn : BOOL ;	//InpAlarmCoverNotClosed gives only warning
+   ParAlarmMultipleWarn : BOOL ;	//InpAlarmMultiple gives only warning
+   ParDP : BOOL ;	//Profibus DP
+   ParTagReader : BOOL ;	//OIS Tagreader
+   ParIOByteNr : INT ;	//PROFIBUS: Address of first input and output byte Profibus DP
+   ParDBNoRFID : INT ;	//Instance DB of SSA_EL_Sampler_RFID
+   ParSampleResponseTime : INT ;	//Maximum response time after CmdSample
+   ParBottleResponseTime : INT ;	//Maximum response time after CmdBottleChange
+   ParAlarmResponseTime : INT ;	//Maximum response time after CmdFaultReset
+   ParDelayTime : INT ;	//Delay time after InProductFlow
+   OutActResponseTime : INT ;	//Actual time: Response time
+   OutActDelayTime : INT ;	//Actual time: Delay time after InProductFlow
+   OutSpare22 : INT ;	
+   OutSpare26 : INT ;	
+   OutSpare28 : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpFaultReset : BOOL ;	//Global FaultReset
+  tmpWarning : BOOL ;	//temp sampler warning
+  tmpFault : BOOL ;	//temp sampler fault
+  tmpResponseFault : BOOL ;	//temp sampler response fault
+  tmpAlarmCollect : BOOL ;	//temp sampler alarm collect
+  tmpEnableWait : BOOL ;	//Enable to change to StWait (automatic mode)
+  tmpEnableManual : BOOL ;	//Enable manual mode
+  tmpCmdOk : BOOL ;	//temp sampling/bottle change is finished and ok
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  InpData : STRUCT 	
+   KDO : BYTE ;	
+   ANT : BYTE ;	
+   StartP : BYTE ;	
+   AnzP : BYTE ;	
+   ADB : BYTE ;	
+   DBN : BYTE ;	
+   DBL : BYTE ;	
+   CTR : BYTE ;	
+  END_STRUCT ;	
+  OutpData : STRUCT 	
+   KDO : BYTE ;	
+   ANT : BYTE ;	
+   StartP : BYTE ;	
+   AnzP : BYTE ;	
+   ADB : BYTE ;	
+   DBN : BYTE ;	
+   DBL : BYTE ;	
+   CTR : BYTE ;	
+  END_STRUCT ;	
+  tmpAddrIO : DWORD ;	
+  tmpIO : STRUCT 	
+   AE32_0 : BOOL ;	
+   AE32_1 : BOOL ;	
+   AE32_2 : BOOL ;	
+   AE32_3 : BOOL ;	
+   AE32_4 : BOOL ;	
+   AE32_5 : BOOL ;	
+   AE32_6 : BOOL ;	
+   AE32_7 : BOOL ;	
+   AE33_0 : BOOL ;	
+   AE33_1 : BOOL ;	
+   AE33_2 : BOOL ;	
+   AE33_3 : BOOL ;	
+   AE33_4 : BOOL ;	
+   AE33_5 : BOOL ;	
+   AE33_6 : BOOL ;	
+   AE33_7 : BOOL ;	
+   EAW102 : INT ;	
+  END_STRUCT ;	
+  tmpAddrDP : DWORD ;	
+  tmpSendResult : BOOL ;	
+  tmpDBTagReader : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     92; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1029; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParSampleResponseTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParBottleResponseTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParAlarmResponseTime; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParDelayTime; 
+//Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //Cmd1[0]  =Q_Result
+      S     #Tag.HskWrite.Q_Result; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]  =CmdSample
+      S     #CmdSample; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]  =CmdBottleChange
+      S     #CmdBottleChange; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //3.0: Cmd1[10] =CmdNewBatch
+      S     #CmdNewBatch; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14]=CmdReportOff
+      R     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[15]; //Cmd1[15]=CmdWarningOn
+      S     #InWarningMode; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[15]; //Cmd2[15]=CmdWarningOff
+      R     #InWarningMode; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBD [AR1,P#8.0]; 
+      T     #InSamplePerBatch; 
+      L     DBD [AR1,P#10.0]; 
+      T     #InSampleTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #InBottleChangeTime; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; //-->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     11; //Revision   [5.0]
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =Read Data from Profibus DP
+
+      UN    #Par.ParDP; 
+      SPB   rdJ0; 
+      L     #Par.ParIOByteNr; 
+      SLD   3; 
+      T     #tmpAddrDP; 
+      LAR1  ; //[7.1]
+      L     0; //[7.0]
+      U     #InDPFault; //[7.0]
+      SPB   rdJ2; //[7.0]
+      UN    #InSimulation; //[7.0]
+      SPB   rdJ1; //[7.0]
+      L     ED [AR1,P#0.0]; //[7.0]
+      SPA   rdJ2; //[7.0]
+rdJ1: L     PED [AR1,P#0.0]; 
+rdJ2: LAR1  P##tmpIO; 
+      T     LD [AR1,P#0.0]; 
+      U     #tmpIO.AE33_0; 
+      =     #InpSamplerInAuto; 
+      U     #tmpIO.AE33_1; 
+      =     #InpCmdOk; 
+      U     #tmpIO.AE33_2; 
+      =     #InpAlarmCollect; 
+      U     #tmpIO.AE33_3; 
+      =     #InpAlarmSampleTime; 
+      U     #tmpIO.AE33_4; 
+      =     #InpAlarmCurBottleFull; 
+      U     #tmpIO.AE33_5; 
+      =     #InpAlarmNxBottleNotEmpty; 
+      U     #tmpIO.AE33_6; 
+      =     #InpAlarmCoverNotClosed; 
+      U     #tmpIO.AE33_7; 
+      =     #InpAlarmMultiple; 
+      L     2#100000000000000; //[7.0] E32.6
+      L     #tmpIO.EAW102; //[7.0]
+      UW    ; //[7.0]
+      ==I   ; //[7.0]
+      =     #OutBottleInPosition; //[7.0]
+rdJ0: NOP   0; 
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+//---Report is on---
+      U     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+      U     #CmdFaultReset; 
+      =     #tmpFaultReset; 
+//3.0:---Command Ok: dyn.InpCmdOk replaced with tmpCmdOk
+      U     #Par.ParMZEP; 
+      U     #InpSampleAllowed; 
+      FP    #OutFlagOk; 
+      O     ; 
+      UN    #Par.ParMZEP; 
+      U     #InpCmdOk; 
+      =     #tmpCmdOk; 
+//---Manual mode---
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//tmpLocal
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InDPFault; 
+      O     #InHWStop; 
+      =     #tmpLocal; 
+//---tmpEnableWait: aux. signal to stay in state StWait
+      U     #InEnable; //Automatic
+      UN    #InLocal; 
+      UN    #InManual; 
+      U     #OutpFuncRelease; 
+      UN    #tmpLocal; 
+      =     #tmpEnableWait; 
+//---tmpEnableManual: changing from StOff directly to StSampl./BottleChange
+//   without 'InEnable' Interlocking
+      U     #CmdSample; 
+      O     #CmdBottleChange; 
+      U     #InManual; 
+      U     #OutpFuncRelease; 
+      UN    #tmpLocal; 
+      =     #tmpEnableManual; 
+//===New batch
+      UN    #CmdNewBatch; 
+      SPB   inJ1; //At CmdNewBatch
+      L     0; // do Clear sample counter
+      T     #OutSampleCounter; 
+//===Warning/Fault detection
+inJ1: UN    #InpAlarmCollect; //[4.2]
+      UN    #InpAlarmSampleTime; //[4.2]
+      UN    #InpAlarmCurBottleFull; //[4.2]
+      UN    #InpAlarmNxBottleNotEmpty; //[4.2]
+      UN    #InpAlarmCoverNotClosed; //[4.2]
+      UN    #InpAlarmMultiple; //[4.2]
+      UN    #OutReadingFaultRFID; //[7.0]
+      R     #tmpWarning; //No warning, no fault
+      R     #tmpFault; 
+      SPB   FNC; 
+//---Save alarm info: Set Output OutXxx
+      U     #InpAlarmCurBottleFull; 
+      S     #OutCurBottleFull; 
+      U     #InpAlarmNxBottleNotEmpty; 
+      S     #OutNxBottleNotEmpty; 
+      U     #InpAlarmCoverNotClosed; 
+      S     #OutCoverNotClosed; 
+      U     #OutpAlarmReset; //[7.0]
+      UN    #InpAlarmNxBottleNotEmpty; //[7.0]
+      R     #OutNxBottleNotEmpty; //[7.0]
+      U     #OutpAlarmReset; //[7.0]
+      UN    #InpAlarmCoverNotClosed; //[7.0]
+      R     #OutCoverNotClosed; //[7.0]
+//---Check for releavant Alarms
+      U     #InpAlarmCollect; //[4.2]
+      UN    #Par.ParAlarmCollectWarn; //[4.2]
+      O     ; //[4.2]
+      U     #InpAlarmSampleTime; //[4.2]
+      UN    #Par.ParAlarmSampleTimeWarn; //[4.2]
+      O     ; //[4.2]
+      U     #InpAlarmCurBottleFull; //[4.2]
+      UN    #Par.ParAlarmCurBottleWarn; //[4.2]
+      O     ; //[4.2]
+      U     #InpAlarmNxBottleNotEmpty; //[4.2]
+      UN    #Par.ParAlarmNxBottleWarn; //[4.2]
+      O     ; //[4.2]
+      U     #InpAlarmCoverNotClosed; //[4.2]
+      UN    #Par.ParAlarmCoverWarn; //[4.2]
+      O     ; //[4.2]
+      U     #InpAlarmMultiple; //[4.2]
+      UN    #Par.ParAlarmMultipleWarn; //[4.2]
+      O     ; //[7.0]
+      U     #OutReadingFaultRFID; //[7.0]
+      U     #Par.ParTagReader; //[7.0]
+      =     #tmpFault; //-->Fault detected
+      UN    #tmpFault; // Fault detected
+      =     #tmpWarning; //-->Warning detected
+
+      U     #CmdBottleChange; //[4.2]
+      U     #InpAlarmCurBottleFull; //[4.2]
+      U     #tmpWarning; //[4.2]
+      S     #CmdFaultReset; //[4.2]
+FNC:  NOP   0; 
+NETWORK
+TITLE = Batch and Job sample functions
+// !! Only in automatic mode !!
+//
+//=>Batch Sampler(ParBatchSampler='1', ParBatchBottleChange='0'):
+//  The sampler takes several configured samples per batch into one 
+//  bottle, without automatically changing the bottle.
+//  If product flows (InProduct='1') it will take samples every InSampleTime
+//  up to number of sample per batch (InSamplePerBatch).
+//  With CmdNewBatch you can start a new sample sequence into the same bottle.
+//  If it's necessary to change first the bottle and then start a new sample
+//  sequence, use only CmdBottleChange (e.g. mixing lines).
+//
+//  With ParBatchBottleChange='1': It takes several configured samples per batch
+//  into one bottle and changes automatically the bottle after InBottleChangeTime.
+//
+//=>Job Sampler (ParBatchSampler='0'):
+//  The sampler takes samples and changes automatically the bottles
+//  in configured time intervals.
+//  If product flows (InProduct='1') it will take samples every
+//  InSampleTime and changes the bottles every InBottleChangeTime
+//  (e.g. blending lines or intake).
+      UN    #tmpEnableWait; 
+      ON    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      O     #StFault; 
+      O     #StWarning; 
+      SPB   STAT; 
+//===Job or batch sampler active only in automatic mode
+      UN    #Par.ParBatchSampler; 
+      SPB   FNC1; 
+//---Samples per Batch reached: only Batch sampler
+      L     #OutSampleCounter; 
+      L     #InSamplePerBatch; 
+      >=I   ; 
+      SPB   FNC2; //Batch finished: no sampling anymore
+//----Sample intervall: Job and Batch Sampler
+FNC1: L     #InSampleTime; //Check InSampleTime >=0
+      L     0; 
+      <=I   ; 
+      ON    #OutDelayFault; //Delay time not over
+      SPB   FNC2; 
+      L     #OutActSampleTime; 
+      +     -1; 
+      T     #OutActSampleTime; 
+      <I    ; 
+      SPB   FNC2; 
+      S     #CmdSample; //Sampling time over, take now a sample
+      L     #InSampleTime; //set new time
+      T     #OutActSampleTime; 
+//---Bottle change interval: Job or Batch Sampler with bottle change
+FNC2: L     #InBottleChangeTime; //Check InBottleChangeTime >=0
+      L     0; 
+      <=I   ; 
+      ON    #OutDelayFault; //Delay time not over
+      O(    ; 
+      U     #Par.ParBatchSampler; //Batch sampler without..
+      UN    #Par.ParBatchBottleChange; //..automatically bottle change
+      )     ; 
+      SPB   FNC5; 
+      L     #OutActBottleChangeTime; 
+      +     -1; 
+      T     #OutActBottleChangeTime; 
+      <I    ; 
+      SPB   FNC5; 
+      S     #CmdBottleChange; //BottleChange time time over, change bottle now
+      L     #InBottleChangeTime; //set new time
+      T     #OutActBottleChangeTime; 
+//---Delay sampling and bottle change with DelayTime
+FNC5: U     #OutProductFlow; 
+      ON    #InProductFlow; 
+      SPB   FNC6; 
+      S     #OutProductFlow; 
+      L     #Par.ParDelayTime; 
+      T     #Par.OutActDelayTime; 
+//[5.2]      L     #InSampleTime
+//[5.2]      T     #OutActSampleTime
+//[5.2]      L     #InBottleChangeTime
+//[5.2]      T     #OutActBottleChangeTime
+FNC6: UN    #OutProductFlow; 
+      O     #OutDelayFault; 
+      SPB   STAT; 
+      L     #Par.OutActDelayTime; 
+      +     -10; 
+      T     #Par.OutActDelayTime; 
+      L     0; 
+      <=I   ; 
+      S     #OutDelayFault; //DelayTime over
+
+NETWORK
+TITLE = States
+//===State machine===
+STAT: U     #StOff; 
+      SPB   S0; 
+      U     #StWait; 
+      SPB   S1; 
+      U     #StSampling; 
+      SPB   S2; 
+      U     #StBottleChange; 
+      SPB   S3; 
+      U     #StFault; 
+      O     #StWarning; 
+      SPB   S4; 
+      S     #StOff; //Init
+      SPA   S0; 
+
+NETWORK
+TITLE =StOff
+//Any transition to StOff
+xS0:  S     #StOff; 
+      R     #StWait; 
+      L     0; //Reset actual timer
+      T     #Par.OutActResponseTime; 
+      T     #Par.OutActDelayTime; 
+      UN    #InReport; 
+      SPB   OUT; 
+      L     B#(4, 0); //Message Info ('off' )
+      SPA   LOG; 
+
+//=== Logic ====
+S0:   U     #tmpEnableWait; //Condition for StWait
+      O     #tmpEnableManual; 
+      SPB   xS1; 
+      SPA   OUT; 
+
+NETWORK
+TITLE = StWait
+//Any Transition to StWait
+xS1:  R     #StOff; 
+      UN    #tmpEnableManual; 
+      O     #tmpEnableWait; 
+      O     #tmpCmdOk; //Old command is not finished yet
+      SPB   xS1a; 
+//Manual mode with no Interlocking
+      U     #CmdSample; //Condition for StSampling
+      SPB   xS2; 
+      SPA   xS3; //Condition for StBottleChange
+//Automatic mode
+xS1a: S     #StWait; 
+//Increment BottleCounter (ring counter 1-27)
+      UN    #StBottleChange; 
+      SPB   xS1s; 
+      R     #OutCurBottleFull; 
+      L     27; 
+      L     #OutBottleCounter; 
+      +     1; 
+      >=I   ; 
+      SPB   xS1b; 
+      L     1; 
+xS1b: T     #OutBottleCounter; 
+      U     #Par.ParBatchSampler; //[5.1]
+      SPB   xS1c; //[5.1]
+      L     0; //Reset SampleCounter
+      T     #OutSampleCounter; 
+xS1c: NOP   0; //[5.1]
+      UN    #Par.ParBatchSampler; 
+      SPB   xS1r; //At Batch sampler
+      L     #InSampleTime; // do Actualize sample time
+      T     #OutActSampleTime; 
+      SPA   xS1r; 
+//Increment Sample Counter
+xS1s: UN    #StSampling; 
+      SPB   xS1r; 
+      L     #OutSampleCounter; 
+      +     1; 
+      T     #OutSampleCounter; 
+xS1r: R     #StSampling; 
+      R     #StBottleChange; 
+      UN    #tmpEnableWait; //Condition for immediate change to StOff
+      SPB   xS0; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 1); //Message Info ('wait')
+      SPA   LOG; 
+//=== Logic ====
+S1:   UN    #tmpEnableWait; //Condition for StOff
+      SPB   xS0; 
+      UN    #CmdNewBatch; 
+      SPB   S1J1; //At CmdNewBatch
+      L     #InSampleTime; // do Actualize sample time
+      T     #OutActSampleTime; 
+S1J1: U     #InpSampleAllowed; // 3.0:
+      U     #Par.ParMZEP; // 3.0:
+      ON    #Par.ParMZEP; // 3.0:
+      U     #CmdSample; 
+      UN    #tmpCmdOk; 
+      SPB   xS2; 
+      U     #InpBottleChangeAllowed; // 3.0:
+      U     #Par.ParMZEP; // 3.0:
+      ON    #Par.ParMZEP; // 3.0:
+      U     #CmdBottleChange; 
+      UN    #tmpCmdOk; 
+      SPB   xS3; 
+      SPA   OUT; //Condition for StWait
+
+NETWORK
+TITLE =StSampling
+//Any transition to StSampling
+xS2:  S     #StSampling; 
+      R     #StWait; 
+      R     #CmdSample; 
+      L     #Par.ParSampleResponseTime; //Set timer
+      T     #Par.OutActResponseTime; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 2); //Message Info ('sampling')
+      SPA   LOG; 
+//=== Logic ====
+//Transition to StWait
+S2:   U     #tmpCmdOk; //Condition for StWait
+      SPB   xS1; 
+      UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      L     #Par.OutActResponseTime; 
+      SPB   S2J1; 
+      +     -10; 
+      T     #Par.OutActResponseTime; 
+S2J1: L     0; 
+      <=I   ; 
+      S     #OutResponseFault; 
+      UN    #OutResponseFault; //Condition for StSampling
+      UN    #tmpFault; 
+      UN    #tmpWarning; 
+      SPB   OUT; 
+      SPA   xS45; //Transition to StFault/StWarning
+
+NETWORK
+TITLE =StBottleChange
+//Any transition to StBottleChange
+xS3:  S     #StBottleChange; 
+      R     #StWait; 
+      R     #CmdBottleChange; 
+      R     #OutNxBottleNotEmpty; 
+      R     #OutCoverNotClosed; 
+      L     #Par.ParBottleResponseTime; //Set timer
+      T     #Par.OutActResponseTime; 
+      L     #InBottleChangeTime; //[5.2]
+      T     #OutActBottleChangeTime; //[5.2]
+      SET   ; 
+      S     #CmdSendResult; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 3); //Message Info ('bottle change')
+      SPA   LOG; 
+//=== Logic ====
+//Transition to StWait
+S3:   U     #tmpCmdOk; //Condition for StWait
+      SPB   xS1; 
+      UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      L     #Par.OutActResponseTime; 
+      SPB   S3J1; 
+      +     -10; 
+      T     #Par.OutActResponseTime; 
+S3J1: L     0; 
+      <=I   ; 
+      S     #OutResponseFault; 
+      UN    #OutResponseFault; //Condition for StBottleChange
+      UN    #tmpFault; 
+      UN    #tmpWarning; 
+      SPB   OUT; 
+      SPA   xS45; //Transition to StFault/StWarning
+
+NETWORK
+TITLE = Fault/Warning
+//Any transiton to Fault/Warning
+xS45: U     #InpAlarmSampleTime; 
+      L     B#(1, 11); //Message Error ('fault sample time')
+      SPB   S45a; 
+      U     #InpAlarmCurBottleFull; 
+      L     B#(1, 12); //Message Error ('fault actual bottle full')
+      SPB   S45a; 
+      U     #InpAlarmNxBottleNotEmpty; 
+      L     B#(1, 14); //Message Error ('fault next bottle not empty')
+      SPB   S45a; 
+      U     #InpAlarmCoverNotClosed; 
+      L     B#(1, 15); //Message Error ('fault cover not closed')
+      SPB   S45a; 
+      U     #InpAlarmMultiple; 
+      L     B#(1, 16); //Message Error ('fault multiple')
+      SPB   S45a; 
+      U     #OutReadingFaultRFID; //[7.0]
+      U     #Par.ParTagReader; //[7.0]
+      L     B#(1, 18); //[7.0] Message Error ('fault reading RFID')
+      SPB   S45a; 
+      U     #StSampling; 
+      L     B#(1, 10); //Message Error ('fault sampling')
+      SPB   S45a; 
+      L     B#(1, 13); //Message Error ('fault bottle change')
+S45a: T     #tmpLOGvalue; 
+      R     #StSampling; 
+      R     #StBottleChange; 
+      R     #CmdSample; //Reset commands 
+      R     #CmdBottleChange; 
+      U     #OutResponseFault; //Condition for StFault
+      O     #tmpFault; 
+      UN    #InWarningMode; //StXxx -> StFault transition flag
+      UN    #tmpLocal; 
+      SPBN  S4J3; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #StFault; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1029,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     #tmpLOGvalue; 
+      SPA   LOG; 
+S4J3: S     #StWarning; 
+      SPA   LOG; //Condition for StWarning
+
+
+//=== Logic ====
+// If there's a collective alarm it is not allowed to change the bottle, 
+// reset fault first, then set bottle change.
+//S4:   U     #CmdBottleChange; // 3.0: Allow bottle change if
+//      U     #OutCurBottleFull; // 3.0:  alarm current bottle full
+//      S     #StWait; // 3.0: --> StWait
+//      R     #StFault; 
+//      R     #StWarning; 
+//    R     #OutResponseFault; 
+//    R     #OutResponseTime; 
+//  L     B#(3, 9); //Message ('fault cancelled' )
+//    SPB   LOG; 
+S4:   U     #InLocal; //Local mode and
+      UN    #InManual; //automatic mode, not manual
+      O     ; 
+      U     #tmpCmdOk; //Fault indicated by hardware inputs
+      UN    #OutResponseFault; //not a response fault
+      UN    #tmpFault; 
+      UN    #tmpWarning; 
+      O     ; 
+      UN    #OutResponseFault; //3.0: Fault reset manually done:
+      U     #tmpFaultReset; //     No InpCmdOk after fault reset
+      UN    #tmpFault; 
+      UN    #tmpWarning; 
+      O     ; 
+      U     #OutSamplerInLocal; //Sampler in local mode
+      UN    #OutResponseFault; //not a response fault
+      UN    #tmpFault; 
+      UN    #tmpWarning; 
+      O     ; 
+      U     #OutResponseFault; //Response fault
+      U     #tmpFaultReset; 
+//      S     #StOff                      //[4.2]
+      S     #StWait; //[4.2]
+      R     #StFault; 
+      R     #StWarning; 
+      R     #OutResponseFault; 
+      R     #OutResponseTime; 
+      L     B#(3, 9); //Message ('fault cancelled' )
+      SPB   LOG; 
+      UN    #tmpFaultReset; //Condition to start timer
+      O     #OutResponseTime; 
+      SPB   S4J1; 
+      S     #OutResponseTime; 
+      L     #Par.ParAlarmResponseTime; 
+      T     #Par.OutActResponseTime; 
+S4J1: UN    #OutResponseTime; 
+      SPB   OUT; 
+      UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      L     #Par.OutActResponseTime; 
+      SPB   S4J2; 
+      +     -10; 
+      T     #Par.OutActResponseTime; 
+S4J2: L     0; 
+      <=I   ; 
+      =     #tmpResponseFault; 
+      R     #OutResponseTime; 
+      U     #tmpFault; 
+      O     #tmpWarning; 
+      U     #tmpResponseFault; // 3.0:
+      L     B#(1, 17); // 3.0: reLOG Message Error ('alarm reset fault')
+      SPB   LOG; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =LOG
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1029);
+
+NETWORK
+TITLE =Global End
+//===Handle dyn.OutLocalMode
+OUT:  U     #InpSamplerInAuto; 
+      R     #OutSamplerInLocal; 
+      UN    #InLocal; 
+      UN    #InpSamplerInAuto; 
+      UN    #OutSamplerInLocal; 
+      S     #OutSamplerInLocal; 
+      SPB   LOM; 
+      SPA   OUTx; 
+LOM:  UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 4); //Message Info ('sampler in local mode')
+      SPA   LOG; 
+//===Set digital outputs
+//---OutpAlarmReset
+OUTx: U     #StWarning; 
+      O     #StFault; 
+      U     #OutResponseTime; 
+      UN    #OutResponseFault; 
+      UN    #tmpCmdOk; 
+      O     #CmdFaultReset; 
+      UN    "GCS7_Gr_OutTick500ms"; 
+      S     #OutpAlarmReset; 
+      R     #CmdFaultReset; 
+      U     "GCS7_Gr_OutTick500ms"; 
+      ON    #InpAlarmCollect; 
+      R     #OutpAlarmReset; 
+//---OutpTakeSample
+      U     #StSampling; 
+      =     #OutpSampling; 
+//---OutpBottleChange
+      U     #StBottleChange; 
+      =     #OutpBottleChange; 
+//---OutpFunctionRelease
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InpSamplerInAuto; 
+      =     #OutpFuncRelease; 
+//===Clear Commands and auxiliary signals
+//---By not output function release
+      UN    #OutpFuncRelease; 
+      O     #StOff; 
+      R     #OutCurBottleFull; 
+      R     #CmdSample; 
+      R     #CmdBottleChange; 
+//---All others
+      CLR   ; 
+      =     #CmdNewBatch; 
+//---By no product flow
+      UN    #InProductFlow; 
+      U     #OutDelayFault; 
+      R     #OutProductFlow; 
+      R     #OutDelayFault; 
+      R     #CmdSample; 
+      SPBN  STC0; 
+//[5.2]      L     0
+//[5.2]      T     #OutActSampleTime
+//[5.2]      T     #OutActBottleChangeTime
+
+//--Output for group 
+STC0: UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =Registering Tag
+
+      NOP   0; 
+//Resulting Tag
+      U     #Tag.HskRead.F_Result; //[6.2]
+      SPB   rgJ3; //[6.2]
+      UN    #CmdSendResult; 
+      O     #Tag.OutRegistrated; 
+      SPB   rgJ1; 
+      L     #Tag.InJobNr; 
+      T     #Tag.OutJobNrResult; 
+      L     #Tag.InBatchNr; 
+      T     #Tag.OutBatchNrResult; 
+      L     #Tag.OutTagNrAc; 
+      T     #Tag.OutTagNrResult; 
+      SET   ; 
+      S     #Tag.HskRead.F_Result; 
+rgJ1: R     #CmdSendResult; 
+rgJ3: NOP   0; //[6.2]
+//--------------------------
+      UN    #Tag.HskWrite.Q_Result; 
+      SPB   rgJ2; 
+      L     #Tag.OutTagNrAc; 
+      L     #Tag.OutTagNrResult; 
+      ==D   ; 
+      U     #Tag.HskRead.F_Result; 
+      U     #Tag.HskWrite.Q_Result; 
+      S     #Tag.OutRegistrated; 
+      SET   ; 
+      R     #Tag.HskWrite.Q_Result; 
+      R     #Tag.HskRead.F_Result; 
+rgJ2: NOP   0; 
+//--------------------------
+//Init Registered
+      L     0; 
+      L     #Tag.OutTagNrAc; 
+      <>D   ; 
+      U(    ; 
+      L     #Tag.OutTagNrResult; 
+      <>D   ; 
+      )     ; 
+      R     #Tag.OutRegistrated; 
+NETWORK
+TITLE =State Code
+
+      L     1; //Code: StOff
+      U     #StOff; 
+      SPB   STCH; 
+      L     2; //Code: StWait
+      U     #StWait; 
+      SPB   STC; 
+      L     3; //Code: StSampling
+      U     #StSampling; 
+      SPB   STC; 
+      L     4; //Code: StBottleChange
+      U     #StBottleChange; 
+      SPB   STC; 
+      L     5; //Code: StWarning
+      U     #StWarning; 
+      SPB   STCH; 
+      L     32; //Code: StFault
+      SPA   STC; 
+//Add +40 if HWStop
+STCH: UN    #InHWStop; 
+      SPB   STCD; 
+      +     40; 
+      SPB   STC; 
+//Add +50 if DPFault
+STCD: UN    #InDPFault; 
+      SPB   STC; 
+      +     50; 
+      SPB   STC; 
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+NETWORK
+TITLE =Write Data to Profibus DP
+
+      UN    #Par.ParDP; 
+      O     #InDPFault; //[7.0]
+      SPB   wrJ0; 
+      LAR1  P##tmpIO; 
+      L     0; 
+      T     LD [AR1,P#0.0]; 
+
+      U     #OutpBottleChange; 
+      =     #tmpIO.AE33_0; 
+      U     #OutpSampling; 
+      =     #tmpIO.AE33_1; 
+      U     #OutpAlarmReset; 
+      =     #tmpIO.AE33_2; 
+      SET   ; 
+      =     #tmpIO.AE33_6; 
+      L     #InSamplePulseLength; 
+      T     #tmpIO.EAW102; 
+
+      LAR1  P##tmpIO; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrDP; 
+      UN    #InSimulation; //[7.0]
+      SPB   wrJ1; //[7.0]
+      T     AD [AR1,P#0.0]; //[7.0]
+      SPB   wrJ0; //[7.0]
+wrJ1: T     PAD [AR1,P#0.0]; 
+wrJ0: NOP   0; 
+NETWORK
+TITLE =[7.0]: Communication RFID
+//
+//
+//
+      UN    #Par.ParTagReader; 
+      BEB   ; 
+      L     #Par.ParDBNoRFID; 
+      T     #tmpDBTagReader; 
+      AUF   DB [#tmpDBTagReader]; 
+      TDB   ; 
+      UC    "SSA_EL_Sampler_RFID"; //Call Tag Reader Baumer
+      TDB   ; 
+//Data from RFID
+      L     DBD  424; //ToBuhler.OutTagNoAct
+      T     #Tag.OutTagNrAc; 
+      U     DBX  420.0; //ToBuhler.OutReadingFault
+      =     #OutReadingFaultRFID; 
+//Data To RFID
+      U     #tmpFaultReset; 
+      S     DBX  410.2; //FromBuhler.CmdFaultReset
+      U     #OutBottleInPosition; 
+      =     DBX  410.0; //FromBuhler.BottleInPosition
+      U     #StBottleChange; 
+      =     DBX  410.1; //FromBuhler.StBottleChange
+END_FUNCTION_BLOCK
+

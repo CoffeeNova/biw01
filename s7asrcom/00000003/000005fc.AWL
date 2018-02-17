@@ -1,0 +1,791 @@
+	DATA_BLOCK DB397
+	TITLE =DBG297M  FAN KILN 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        FAN KILN 2
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB397.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG297M 
+	VERSION : 00.00
+	
+	FB397
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=29700; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=11;
+	//Parameter =A-3225-KCU04AI1 : VIBRATION MONITOR FAN 1 CHANNEL 1
+	      #A_3225_KCU04AI1.Par.ParObjectNo                             :=29701;
+	      #A_3225_KCU04AI1.Par.ParHornCode                             :=11;
+	      #A_3225_KCU04AI1.Par.ParMsgType                              :=7252;
+	      #A_3225_KCU04AI1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_KCU04AI1.Par.ParUnitsByMaxDigit                      :=L#2000;
+	      #A_3225_KCU04AI1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_KCU04AI1.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_KCU04AI1.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_KCU04AI1.Par.ParDelayTime                            :=30;
+	      #A_3225_KCU04AI1.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_KCU04AI1.Par.ParLimitL                               :=L#0;
+	      #A_3225_KCU04AI1.Par.ParLimitH                               :=L#3150;
+	      #A_3225_KCU04AI1.Par.ParLimitHH                              :=L#3550;
+	      #A_3225_KCU04AI1.Par.ParMonTimeLL                            :=0;
+	      #A_3225_KCU04AI1.Par.ParMonTimeL                             :=0;
+	      #A_3225_KCU04AI1.Par.ParMonTimeMid                           :=0;
+	      #A_3225_KCU04AI1.Par.ParMonTimeH                             :=600;
+	      #A_3225_KCU04AI1.Par.ParMonTimeHH                            :=0;
+	      #A_3225_KCU04AI1.Par.ParLogOff                               :=False;
+	      #A_3225_KCU04AI1.Par.ParValueByUser                          :=False;
+	      #A_3225_KCU04AI1.Par.ParLimitsPc                             :=True;
+	      #A_3225_KCU04AI1.Par.ParWago                                 :=False;
+	      #A_3225_KCU04AI1.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_KCU04AI1.Par.ParWarningLL                            :=False;
+	      #A_3225_KCU04AI1.Par.ParWarningL                             :=False;
+	      #A_3225_KCU04AI1.Par.ParWarningMid                           :=False;
+	      #A_3225_KCU04AI1.Par.ParWarningH                             :=True;
+	      #A_3225_KCU04AI1.Par.ParWarningHH                            :=False;
+	      #A_3225_KCU04AI1.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_KCU04AI1.Par.ParPreAlarmL                            :=False;
+	      #A_3225_KCU04AI1.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_KCU04AI1.Par.ParPreAlarmH                            :=False;
+	      #A_3225_KCU04AI1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-KCU04AI2 : VIBRATION MONITOR FAN 1 CHANNEL 2
+	      #A_3225_KCU04AI2.Par.ParObjectNo                             :=29702;
+	      #A_3225_KCU04AI2.Par.ParHornCode                             :=11;
+	      #A_3225_KCU04AI2.Par.ParMsgType                              :=7252;
+	      #A_3225_KCU04AI2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_KCU04AI2.Par.ParUnitsByMaxDigit                      :=L#2000;
+	      #A_3225_KCU04AI2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_KCU04AI2.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_KCU04AI2.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_KCU04AI2.Par.ParDelayTime                            :=30;
+	      #A_3225_KCU04AI2.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_KCU04AI2.Par.ParLimitL                               :=L#0;
+	      #A_3225_KCU04AI2.Par.ParLimitH                               :=L#3150;
+	      #A_3225_KCU04AI2.Par.ParLimitHH                              :=L#3550;
+	      #A_3225_KCU04AI2.Par.ParMonTimeLL                            :=0;
+	      #A_3225_KCU04AI2.Par.ParMonTimeL                             :=0;
+	      #A_3225_KCU04AI2.Par.ParMonTimeMid                           :=0;
+	      #A_3225_KCU04AI2.Par.ParMonTimeH                             :=600;
+	      #A_3225_KCU04AI2.Par.ParMonTimeHH                            :=0;
+	      #A_3225_KCU04AI2.Par.ParLogOff                               :=False;
+	      #A_3225_KCU04AI2.Par.ParValueByUser                          :=False;
+	      #A_3225_KCU04AI2.Par.ParLimitsPc                             :=True;
+	      #A_3225_KCU04AI2.Par.ParWago                                 :=False;
+	      #A_3225_KCU04AI2.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_KCU04AI2.Par.ParWarningLL                            :=False;
+	      #A_3225_KCU04AI2.Par.ParWarningL                             :=False;
+	      #A_3225_KCU04AI2.Par.ParWarningMid                           :=False;
+	      #A_3225_KCU04AI2.Par.ParWarningH                             :=True;
+	      #A_3225_KCU04AI2.Par.ParWarningHH                            :=False;
+	      #A_3225_KCU04AI2.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_KCU04AI2.Par.ParPreAlarmL                            :=False;
+	      #A_3225_KCU04AI2.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_KCU04AI2.Par.ParPreAlarmH                            :=False;
+	      #A_3225_KCU04AI2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-BTE05 : TEMPERATURE BEARING TEMPERATUR SENSOR
+	      #A_3225_BTE05.Par.ParObjectNo                             :=29703;
+	      #A_3225_BTE05.Par.ParHornCode                             :=11;
+	      #A_3225_BTE05.Par.ParMsgType                              :=7252;
+	      #A_3225_BTE05.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_BTE05.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3225_BTE05.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_BTE05.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_BTE05.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_BTE05.Par.ParDelayTime                            :=30;
+	      #A_3225_BTE05.Par.ParLimitLL                              :=L#0;
+	      #A_3225_BTE05.Par.ParLimitL                               :=L#2000;
+	      #A_3225_BTE05.Par.ParLimitH                               :=L#8000;
+	      #A_3225_BTE05.Par.ParLimitHH                              :=L#10000;
+	      #A_3225_BTE05.Par.ParMonTimeLL                            :=0;
+	      #A_3225_BTE05.Par.ParMonTimeL                             :=0;
+	      #A_3225_BTE05.Par.ParMonTimeMid                           :=0;
+	      #A_3225_BTE05.Par.ParMonTimeH                             :=600;
+	      #A_3225_BTE05.Par.ParMonTimeHH                            :=0;
+	      #A_3225_BTE05.Par.ParLogOff                               :=False;
+	      #A_3225_BTE05.Par.ParValueByUser                          :=False;
+	      #A_3225_BTE05.Par.ParLimitsPc                             :=True;
+	      #A_3225_BTE05.Par.ParWago                                 :=False;
+	      #A_3225_BTE05.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_BTE05.Par.ParWarningLL                            :=False;
+	      #A_3225_BTE05.Par.ParWarningL                             :=False;
+	      #A_3225_BTE05.Par.ParWarningMid                           :=False;
+	      #A_3225_BTE05.Par.ParWarningH                             :=True;
+	      #A_3225_BTE05.Par.ParWarningHH                            :=False;
+	      #A_3225_BTE05.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_BTE05.Par.ParPreAlarmL                            :=False;
+	      #A_3225_BTE05.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_BTE05.Par.ParPreAlarmH                            :=False;
+	      #A_3225_BTE05.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-BTE06 : TEMPERATURE BEARING TEMPERATUR SENSOR
+	      #A_3225_BTE06.Par.ParObjectNo                             :=29704;
+	      #A_3225_BTE06.Par.ParHornCode                             :=11;
+	      #A_3225_BTE06.Par.ParMsgType                              :=7252;
+	      #A_3225_BTE06.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_BTE06.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3225_BTE06.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_BTE06.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_BTE06.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_BTE06.Par.ParDelayTime                            :=30;
+	      #A_3225_BTE06.Par.ParLimitLL                              :=L#0;
+	      #A_3225_BTE06.Par.ParLimitL                               :=L#2000;
+	      #A_3225_BTE06.Par.ParLimitH                               :=L#8000;
+	      #A_3225_BTE06.Par.ParLimitHH                              :=L#10000;
+	      #A_3225_BTE06.Par.ParMonTimeLL                            :=0;
+	      #A_3225_BTE06.Par.ParMonTimeL                             :=0;
+	      #A_3225_BTE06.Par.ParMonTimeMid                           :=0;
+	      #A_3225_BTE06.Par.ParMonTimeH                             :=600;
+	      #A_3225_BTE06.Par.ParMonTimeHH                            :=0;
+	      #A_3225_BTE06.Par.ParLogOff                               :=False;
+	      #A_3225_BTE06.Par.ParValueByUser                          :=False;
+	      #A_3225_BTE06.Par.ParLimitsPc                             :=True;
+	      #A_3225_BTE06.Par.ParWago                                 :=False;
+	      #A_3225_BTE06.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_BTE06.Par.ParWarningLL                            :=False;
+	      #A_3225_BTE06.Par.ParWarningL                             :=False;
+	      #A_3225_BTE06.Par.ParWarningMid                           :=False;
+	      #A_3225_BTE06.Par.ParWarningH                             :=True;
+	      #A_3225_BTE06.Par.ParWarningHH                            :=False;
+	      #A_3225_BTE06.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_BTE06.Par.ParPreAlarmL                            :=False;
+	      #A_3225_BTE06.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_BTE06.Par.ParPreAlarmH                            :=False;
+	      #A_3225_BTE06.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-MXZ01MA : FAN 1
+	      #A_3225_MXZ01MA.Ma.Par.ParObjectNo                                     :=29706;
+	      #A_3225_MXZ01MA.Ma.Par.ParWithMon3                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_3225_MXZ01MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParEBM                                          :=False;
+	      #A_3225_MXZ01MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_3225_MXZ01MA.=A-3225-KCU04 : VIBRATION MONITOR FAN 1 ALARM CONTACT
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParObjectNo                             :=29707;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParMsgType                              :=7154;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParHornCode                             :=11;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParDelayChange                          :=20;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParDelayTrue                            :=10;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParDelayFalse                           :=0;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParTimeoutTrue                          :=0;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParTimeoutFalse                         :=0;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParLogOff                               :=False;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.Par2WorkingCond                         :=False;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParFaultRetry                           :=False;
+	      #A_3225_MXZ01MA.A_3225_KCU04.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_3225_MXZ01MA.=A-3225-MXZ01_SM : SM FAN 1
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParObjectNo                             :=29708;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParMsgType                              :=7135;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParHornCode                             :=11;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParDelayChange                          :=0;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParDelayTrue                            :=10;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParDelayFalse                           :=0;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParTimeoutTrue                          :=50;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParTimeoutFalse                         :=0;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParLogOff                               :=False;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.Par2WorkingCond                         :=True;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParFaultRetry                           :=False;
+	      #A_3225_MXZ01MA.A_3225_MXZ01_SM.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_3225_MXZ01MA.=A-3225-MXZ01 : FAN 1
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParObjectNo                             :=29709;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParHornCode                             :=11;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParMonTime                              :=20;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParStartingTime                         :=1800;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParStoppingTime                         :=1200;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParLogOff                               :=False;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParManual                               :=True;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.Par2Speed                               :=False;
+	      #A_3225_MXZ01MA.A_3225_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-3225-TSC01_COM : FAN 1 FU KOMMUNIKATION
+	      #A_3225_TSC01_COM.Par.ParMovidrive                            :=1;
+	      #A_3225_TSC01_COM.Par.ParSinamics                             :=0;
+	      #A_3225_TSC01_COM.Par.ParMicromaster                          :=0;
+	      #A_3225_TSC01_COM.Par.ParABB                                  :=0;
+	      #A_3225_TSC01_COM.Par.ParNord                                 :=0;
+	      #A_3225_TSC01_COM.Par.ParDanfoss                              :=0;
+	      #A_3225_TSC01_COM.Par.ParIOByteNo                             :=0;
+	//
+	//
+	//Parameter =A-3225-TSC01_AC : ACT. CURRENT FAN 1 FU 
+	      #A_3225_TSC01_AC.Par.ParObjectNo                             :=29710;
+	      #A_3225_TSC01_AC.Par.ParHornCode                             :=11;
+	      #A_3225_TSC01_AC.Par.ParMsgType                              :=7252;
+	      #A_3225_TSC01_AC.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_TSC01_AC.Par.ParUnitsByMaxDigit                      :=L#25384;
+	      #A_3225_TSC01_AC.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_TSC01_AC.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_TSC01_AC.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_TSC01_AC.Par.ParDelayTime                            :=30;
+	      #A_3225_TSC01_AC.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_TSC01_AC.Par.ParLimitL                               :=L#0;
+	      #A_3225_TSC01_AC.Par.ParLimitH                               :=L#5400;
+	      #A_3225_TSC01_AC.Par.ParLimitHH                              :=L#6000;
+	      #A_3225_TSC01_AC.Par.ParMonTimeLL                            :=0;
+	      #A_3225_TSC01_AC.Par.ParMonTimeL                             :=0;
+	      #A_3225_TSC01_AC.Par.ParMonTimeMid                           :=0;
+	      #A_3225_TSC01_AC.Par.ParMonTimeH                             :=0;
+	      #A_3225_TSC01_AC.Par.ParMonTimeHH                            :=0;
+	      #A_3225_TSC01_AC.Par.ParLogOff                               :=False;
+	      #A_3225_TSC01_AC.Par.ParValueByUser                          :=False;
+	      #A_3225_TSC01_AC.Par.ParLimitsPc                             :=True;
+	      #A_3225_TSC01_AC.Par.ParWago                                 :=False;
+	      #A_3225_TSC01_AC.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_TSC01_AC.Par.ParWarningLL                            :=False;
+	      #A_3225_TSC01_AC.Par.ParWarningL                             :=False;
+	      #A_3225_TSC01_AC.Par.ParWarningMid                           :=False;
+	      #A_3225_TSC01_AC.Par.ParWarningH                             :=False;
+	      #A_3225_TSC01_AC.Par.ParWarningHH                            :=False;
+	      #A_3225_TSC01_AC.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_TSC01_AC.Par.ParPreAlarmL                            :=False;
+	      #A_3225_TSC01_AC.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_TSC01_AC.Par.ParPreAlarmH                            :=False;
+	      #A_3225_TSC01_AC.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-TSC01_AF : ACT. FREQUENCY FAN 1 FU 
+	      #A_3225_TSC01_AF.Par.ParObjectNo                             :=29711;
+	      #A_3225_TSC01_AF.Par.ParHornCode                             :=11;
+	      #A_3225_TSC01_AF.Par.ParMsgType                              :=7252;
+	      #A_3225_TSC01_AF.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_TSC01_AF.Par.ParUnitsByMaxDigit                      :=L#16880;
+	      #A_3225_TSC01_AF.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_TSC01_AF.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_TSC01_AF.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_TSC01_AF.Par.ParDelayTime                            :=30;
+	      #A_3225_TSC01_AF.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_TSC01_AF.Par.ParLimitL                               :=L#3000;
+	      #A_3225_TSC01_AF.Par.ParLimitH                               :=L#10000;
+	      #A_3225_TSC01_AF.Par.ParLimitHH                              :=L#10100;
+	      #A_3225_TSC01_AF.Par.ParMonTimeLL                            :=0;
+	      #A_3225_TSC01_AF.Par.ParMonTimeL                             :=0;
+	      #A_3225_TSC01_AF.Par.ParMonTimeMid                           :=0;
+	      #A_3225_TSC01_AF.Par.ParMonTimeH                             :=0;
+	      #A_3225_TSC01_AF.Par.ParMonTimeHH                            :=0;
+	      #A_3225_TSC01_AF.Par.ParLogOff                               :=False;
+	      #A_3225_TSC01_AF.Par.ParValueByUser                          :=False;
+	      #A_3225_TSC01_AF.Par.ParLimitsPc                             :=True;
+	      #A_3225_TSC01_AF.Par.ParWago                                 :=False;
+	      #A_3225_TSC01_AF.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_TSC01_AF.Par.ParWarningLL                            :=False;
+	      #A_3225_TSC01_AF.Par.ParWarningL                             :=False;
+	      #A_3225_TSC01_AF.Par.ParWarningMid                           :=False;
+	      #A_3225_TSC01_AF.Par.ParWarningH                             :=False;
+	      #A_3225_TSC01_AF.Par.ParWarningHH                            :=False;
+	      #A_3225_TSC01_AF.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_TSC01_AF.Par.ParPreAlarmL                            :=False;
+	      #A_3225_TSC01_AF.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_TSC01_AF.Par.ParPreAlarmH                            :=False;
+	      #A_3225_TSC01_AF.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-TSC01_AP : ACT. POWER FAN 1 FU 
+	      #A_3225_TSC01_AP.Par.ParObjectNo                             :=29712;
+	      #A_3225_TSC01_AP.Par.ParHornCode                             :=11;
+	      #A_3225_TSC01_AP.Par.ParMsgType                              :=7252;
+	      #A_3225_TSC01_AP.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_TSC01_AP.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_3225_TSC01_AP.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_TSC01_AP.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_TSC01_AP.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_TSC01_AP.Par.ParDelayTime                            :=30;
+	      #A_3225_TSC01_AP.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_TSC01_AP.Par.ParLimitL                               :=L#0;
+	      #A_3225_TSC01_AP.Par.ParLimitH                               :=L#3150;
+	      #A_3225_TSC01_AP.Par.ParLimitHH                              :=L#3500;
+	      #A_3225_TSC01_AP.Par.ParMonTimeLL                            :=0;
+	      #A_3225_TSC01_AP.Par.ParMonTimeL                             :=0;
+	      #A_3225_TSC01_AP.Par.ParMonTimeMid                           :=0;
+	      #A_3225_TSC01_AP.Par.ParMonTimeH                             :=0;
+	      #A_3225_TSC01_AP.Par.ParMonTimeHH                            :=0;
+	      #A_3225_TSC01_AP.Par.ParLogOff                               :=False;
+	      #A_3225_TSC01_AP.Par.ParValueByUser                          :=False;
+	      #A_3225_TSC01_AP.Par.ParLimitsPc                             :=True;
+	      #A_3225_TSC01_AP.Par.ParWago                                 :=False;
+	      #A_3225_TSC01_AP.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_TSC01_AP.Par.ParWarningLL                            :=False;
+	      #A_3225_TSC01_AP.Par.ParWarningL                             :=False;
+	      #A_3225_TSC01_AP.Par.ParWarningMid                           :=False;
+	      #A_3225_TSC01_AP.Par.ParWarningH                             :=False;
+	      #A_3225_TSC01_AP.Par.ParWarningHH                            :=False;
+	      #A_3225_TSC01_AP.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_TSC01_AP.Par.ParPreAlarmL                            :=False;
+	      #A_3225_TSC01_AP.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_TSC01_AP.Par.ParPreAlarmH                            :=False;
+	      #A_3225_TSC01_AP.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-TSC01_AT : ACT. TORQUE FAN 1 FU 
+	      #A_3225_TSC01_AT.Par.ParObjectNo                             :=29713;
+	      #A_3225_TSC01_AT.Par.ParHornCode                             :=11;
+	      #A_3225_TSC01_AT.Par.ParMsgType                              :=7252;
+	      #A_3225_TSC01_AT.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3225_TSC01_AT.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_3225_TSC01_AT.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3225_TSC01_AT.Par.ParDelayTimeDown                        :=10;
+	      #A_3225_TSC01_AT.Par.ParDelayTimeUp                          :=10;
+	      #A_3225_TSC01_AT.Par.ParDelayTime                            :=30;
+	      #A_3225_TSC01_AT.Par.ParLimitLL                              :=L#-1;
+	      #A_3225_TSC01_AT.Par.ParLimitL                               :=L#0;
+	      #A_3225_TSC01_AT.Par.ParLimitH                               :=L#7000;
+	      #A_3225_TSC01_AT.Par.ParLimitHH                              :=L#8000;
+	      #A_3225_TSC01_AT.Par.ParMonTimeLL                            :=0;
+	      #A_3225_TSC01_AT.Par.ParMonTimeL                             :=0;
+	      #A_3225_TSC01_AT.Par.ParMonTimeMid                           :=0;
+	      #A_3225_TSC01_AT.Par.ParMonTimeH                             :=0;
+	      #A_3225_TSC01_AT.Par.ParMonTimeHH                            :=0;
+	      #A_3225_TSC01_AT.Par.ParLogOff                               :=False;
+	      #A_3225_TSC01_AT.Par.ParValueByUser                          :=False;
+	      #A_3225_TSC01_AT.Par.ParLimitsPc                             :=True;
+	      #A_3225_TSC01_AT.Par.ParWago                                 :=False;
+	      #A_3225_TSC01_AT.Par.ParNoHornByWarning                      :=False;
+	      #A_3225_TSC01_AT.Par.ParWarningLL                            :=False;
+	      #A_3225_TSC01_AT.Par.ParWarningL                             :=False;
+	      #A_3225_TSC01_AT.Par.ParWarningMid                           :=False;
+	      #A_3225_TSC01_AT.Par.ParWarningH                             :=False;
+	      #A_3225_TSC01_AT.Par.ParWarningHH                            :=False;
+	      #A_3225_TSC01_AT.Par.ParPreAlarmLL                           :=False;
+	      #A_3225_TSC01_AT.Par.ParPreAlarmL                            :=False;
+	      #A_3225_TSC01_AT.Par.ParPreAlarmMid                          :=False;
+	      #A_3225_TSC01_AT.Par.ParPreAlarmH                            :=False;
+	      #A_3225_TSC01_AT.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-KCU04AI1 : VIBRATION MONITOR FAN 2 CHANNEL 1
+	      #A_3226_KCU04AI1.Par.ParObjectNo                             :=29715;
+	      #A_3226_KCU04AI1.Par.ParHornCode                             :=11;
+	      #A_3226_KCU04AI1.Par.ParMsgType                              :=7252;
+	      #A_3226_KCU04AI1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_KCU04AI1.Par.ParUnitsByMaxDigit                      :=L#2000;
+	      #A_3226_KCU04AI1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_KCU04AI1.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_KCU04AI1.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_KCU04AI1.Par.ParDelayTime                            :=30;
+	      #A_3226_KCU04AI1.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_KCU04AI1.Par.ParLimitL                               :=L#0;
+	      #A_3226_KCU04AI1.Par.ParLimitH                               :=L#3150;
+	      #A_3226_KCU04AI1.Par.ParLimitHH                              :=L#3550;
+	      #A_3226_KCU04AI1.Par.ParMonTimeLL                            :=0;
+	      #A_3226_KCU04AI1.Par.ParMonTimeL                             :=0;
+	      #A_3226_KCU04AI1.Par.ParMonTimeMid                           :=0;
+	      #A_3226_KCU04AI1.Par.ParMonTimeH                             :=600;
+	      #A_3226_KCU04AI1.Par.ParMonTimeHH                            :=0;
+	      #A_3226_KCU04AI1.Par.ParLogOff                               :=False;
+	      #A_3226_KCU04AI1.Par.ParValueByUser                          :=False;
+	      #A_3226_KCU04AI1.Par.ParLimitsPc                             :=True;
+	      #A_3226_KCU04AI1.Par.ParWago                                 :=False;
+	      #A_3226_KCU04AI1.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_KCU04AI1.Par.ParWarningLL                            :=False;
+	      #A_3226_KCU04AI1.Par.ParWarningL                             :=False;
+	      #A_3226_KCU04AI1.Par.ParWarningMid                           :=False;
+	      #A_3226_KCU04AI1.Par.ParWarningH                             :=True;
+	      #A_3226_KCU04AI1.Par.ParWarningHH                            :=False;
+	      #A_3226_KCU04AI1.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_KCU04AI1.Par.ParPreAlarmL                            :=False;
+	      #A_3226_KCU04AI1.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_KCU04AI1.Par.ParPreAlarmH                            :=False;
+	      #A_3226_KCU04AI1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-KCU04AI2 : VIBRATION MONITOR FAN 2 CHANNEL 2
+	      #A_3226_KCU04AI2.Par.ParObjectNo                             :=29716;
+	      #A_3226_KCU04AI2.Par.ParHornCode                             :=11;
+	      #A_3226_KCU04AI2.Par.ParMsgType                              :=7252;
+	      #A_3226_KCU04AI2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_KCU04AI2.Par.ParUnitsByMaxDigit                      :=L#2000;
+	      #A_3226_KCU04AI2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_KCU04AI2.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_KCU04AI2.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_KCU04AI2.Par.ParDelayTime                            :=30;
+	      #A_3226_KCU04AI2.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_KCU04AI2.Par.ParLimitL                               :=L#0;
+	      #A_3226_KCU04AI2.Par.ParLimitH                               :=L#3150;
+	      #A_3226_KCU04AI2.Par.ParLimitHH                              :=L#3550;
+	      #A_3226_KCU04AI2.Par.ParMonTimeLL                            :=0;
+	      #A_3226_KCU04AI2.Par.ParMonTimeL                             :=0;
+	      #A_3226_KCU04AI2.Par.ParMonTimeMid                           :=0;
+	      #A_3226_KCU04AI2.Par.ParMonTimeH                             :=600;
+	      #A_3226_KCU04AI2.Par.ParMonTimeHH                            :=0;
+	      #A_3226_KCU04AI2.Par.ParLogOff                               :=False;
+	      #A_3226_KCU04AI2.Par.ParValueByUser                          :=False;
+	      #A_3226_KCU04AI2.Par.ParLimitsPc                             :=True;
+	      #A_3226_KCU04AI2.Par.ParWago                                 :=False;
+	      #A_3226_KCU04AI2.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_KCU04AI2.Par.ParWarningLL                            :=False;
+	      #A_3226_KCU04AI2.Par.ParWarningL                             :=False;
+	      #A_3226_KCU04AI2.Par.ParWarningMid                           :=False;
+	      #A_3226_KCU04AI2.Par.ParWarningH                             :=True;
+	      #A_3226_KCU04AI2.Par.ParWarningHH                            :=False;
+	      #A_3226_KCU04AI2.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_KCU04AI2.Par.ParPreAlarmL                            :=False;
+	      #A_3226_KCU04AI2.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_KCU04AI2.Par.ParPreAlarmH                            :=False;
+	      #A_3226_KCU04AI2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-BTE05 : TEMPERATURE BEARING TEMPERATUR SENSOR
+	      #A_3226_BTE05.Par.ParObjectNo                             :=29717;
+	      #A_3226_BTE05.Par.ParHornCode                             :=11;
+	      #A_3226_BTE05.Par.ParMsgType                              :=7252;
+	      #A_3226_BTE05.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_BTE05.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3226_BTE05.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_BTE05.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_BTE05.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_BTE05.Par.ParDelayTime                            :=30;
+	      #A_3226_BTE05.Par.ParLimitLL                              :=L#0;
+	      #A_3226_BTE05.Par.ParLimitL                               :=L#2000;
+	      #A_3226_BTE05.Par.ParLimitH                               :=L#8000;
+	      #A_3226_BTE05.Par.ParLimitHH                              :=L#10000;
+	      #A_3226_BTE05.Par.ParMonTimeLL                            :=0;
+	      #A_3226_BTE05.Par.ParMonTimeL                             :=0;
+	      #A_3226_BTE05.Par.ParMonTimeMid                           :=0;
+	      #A_3226_BTE05.Par.ParMonTimeH                             :=600;
+	      #A_3226_BTE05.Par.ParMonTimeHH                            :=0;
+	      #A_3226_BTE05.Par.ParLogOff                               :=False;
+	      #A_3226_BTE05.Par.ParValueByUser                          :=False;
+	      #A_3226_BTE05.Par.ParLimitsPc                             :=True;
+	      #A_3226_BTE05.Par.ParWago                                 :=False;
+	      #A_3226_BTE05.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_BTE05.Par.ParWarningLL                            :=False;
+	      #A_3226_BTE05.Par.ParWarningL                             :=False;
+	      #A_3226_BTE05.Par.ParWarningMid                           :=False;
+	      #A_3226_BTE05.Par.ParWarningH                             :=True;
+	      #A_3226_BTE05.Par.ParWarningHH                            :=False;
+	      #A_3226_BTE05.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_BTE05.Par.ParPreAlarmL                            :=False;
+	      #A_3226_BTE05.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_BTE05.Par.ParPreAlarmH                            :=False;
+	      #A_3226_BTE05.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-BTE06 : TEMPERATURE BEARING TEMPERATUR SENSOR
+	      #A_3226_BTE06.Par.ParObjectNo                             :=29718;
+	      #A_3226_BTE06.Par.ParHornCode                             :=11;
+	      #A_3226_BTE06.Par.ParMsgType                              :=7252;
+	      #A_3226_BTE06.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_BTE06.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3226_BTE06.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_BTE06.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_BTE06.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_BTE06.Par.ParDelayTime                            :=30;
+	      #A_3226_BTE06.Par.ParLimitLL                              :=L#0;
+	      #A_3226_BTE06.Par.ParLimitL                               :=L#2000;
+	      #A_3226_BTE06.Par.ParLimitH                               :=L#8000;
+	      #A_3226_BTE06.Par.ParLimitHH                              :=L#10000;
+	      #A_3226_BTE06.Par.ParMonTimeLL                            :=0;
+	      #A_3226_BTE06.Par.ParMonTimeL                             :=0;
+	      #A_3226_BTE06.Par.ParMonTimeMid                           :=0;
+	      #A_3226_BTE06.Par.ParMonTimeH                             :=600;
+	      #A_3226_BTE06.Par.ParMonTimeHH                            :=0;
+	      #A_3226_BTE06.Par.ParLogOff                               :=False;
+	      #A_3226_BTE06.Par.ParValueByUser                          :=False;
+	      #A_3226_BTE06.Par.ParLimitsPc                             :=True;
+	      #A_3226_BTE06.Par.ParWago                                 :=False;
+	      #A_3226_BTE06.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_BTE06.Par.ParWarningLL                            :=False;
+	      #A_3226_BTE06.Par.ParWarningL                             :=False;
+	      #A_3226_BTE06.Par.ParWarningMid                           :=False;
+	      #A_3226_BTE06.Par.ParWarningH                             :=True;
+	      #A_3226_BTE06.Par.ParWarningHH                            :=False;
+	      #A_3226_BTE06.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_BTE06.Par.ParPreAlarmL                            :=False;
+	      #A_3226_BTE06.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_BTE06.Par.ParPreAlarmH                            :=False;
+	      #A_3226_BTE06.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-MXZ01MA : FAN 2
+	      #A_3226_MXZ01MA.Ma.Par.ParObjectNo                                     :=29719;
+	      #A_3226_MXZ01MA.Ma.Par.ParWithMon3                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_3226_MXZ01MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParEBM                                          :=False;
+	      #A_3226_MXZ01MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_3226_MXZ01MA.=A-3226-KCU04 : VIBRATION MONITOR FAN 2 ALARM CONTACT
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParObjectNo                             :=29720;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParMsgType                              :=7154;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParHornCode                             :=11;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParDelayChange                          :=20;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParDelayTrue                            :=10;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParDelayFalse                           :=0;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParTimeoutTrue                          :=0;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParTimeoutFalse                         :=0;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParLogOff                               :=False;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.Par2WorkingCond                         :=False;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParFaultRetry                           :=False;
+	      #A_3226_MXZ01MA.A_3226_KCU04.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_3226_MXZ01MA.=A-3226-MXZ01_SM : SM FAN 2
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParObjectNo                             :=29721;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParMsgType                              :=7135;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParHornCode                             :=11;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParDelayChange                          :=0;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParDelayTrue                            :=10;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParDelayFalse                           :=0;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParTimeoutTrue                          :=50;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParTimeoutFalse                         :=0;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParLogOff                               :=False;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.Par2WorkingCond                         :=True;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParFaultRetry                           :=False;
+	      #A_3226_MXZ01MA.A_3226_MXZ01_SM.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_3226_MXZ01MA.=A-3226-MXZ01 : FAN 2
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParObjectNo                             :=29722;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParHornCode                             :=11;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParMonTime                              :=20;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParStartingTime                         :=1800;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParStoppingTime                         :=1200;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParLogOff                               :=False;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParManual                               :=True;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.Par2Speed                               :=False;
+	      #A_3226_MXZ01MA.A_3226_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-3226-TSC01_COM : FAN 2 FU KOMMUNIKATION
+	      #A_3226_TSC01_COM.Par.ParMovidrive                            :=1;
+	      #A_3226_TSC01_COM.Par.ParSinamics                             :=0;
+	      #A_3226_TSC01_COM.Par.ParMicromaster                          :=0;
+	      #A_3226_TSC01_COM.Par.ParABB                                  :=0;
+	      #A_3226_TSC01_COM.Par.ParNord                                 :=0;
+	      #A_3226_TSC01_COM.Par.ParDanfoss                              :=0;
+	      #A_3226_TSC01_COM.Par.ParIOByteNo                             :=0;
+	//
+	//
+	//Parameter =A-3226-TSC01_AC : ACT. CURRENT FAN 2 FU 
+	      #A_3226_TSC01_AC.Par.ParObjectNo                             :=29723;
+	      #A_3226_TSC01_AC.Par.ParHornCode                             :=11;
+	      #A_3226_TSC01_AC.Par.ParMsgType                              :=7252;
+	      #A_3226_TSC01_AC.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_TSC01_AC.Par.ParUnitsByMaxDigit                      :=L#25384;
+	      #A_3226_TSC01_AC.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_TSC01_AC.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_TSC01_AC.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_TSC01_AC.Par.ParDelayTime                            :=30;
+	      #A_3226_TSC01_AC.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_TSC01_AC.Par.ParLimitL                               :=L#0;
+	      #A_3226_TSC01_AC.Par.ParLimitH                               :=L#5400;
+	      #A_3226_TSC01_AC.Par.ParLimitHH                              :=L#6000;
+	      #A_3226_TSC01_AC.Par.ParMonTimeLL                            :=0;
+	      #A_3226_TSC01_AC.Par.ParMonTimeL                             :=0;
+	      #A_3226_TSC01_AC.Par.ParMonTimeMid                           :=0;
+	      #A_3226_TSC01_AC.Par.ParMonTimeH                             :=0;
+	      #A_3226_TSC01_AC.Par.ParMonTimeHH                            :=0;
+	      #A_3226_TSC01_AC.Par.ParLogOff                               :=False;
+	      #A_3226_TSC01_AC.Par.ParValueByUser                          :=False;
+	      #A_3226_TSC01_AC.Par.ParLimitsPc                             :=True;
+	      #A_3226_TSC01_AC.Par.ParWago                                 :=False;
+	      #A_3226_TSC01_AC.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_TSC01_AC.Par.ParWarningLL                            :=False;
+	      #A_3226_TSC01_AC.Par.ParWarningL                             :=False;
+	      #A_3226_TSC01_AC.Par.ParWarningMid                           :=False;
+	      #A_3226_TSC01_AC.Par.ParWarningH                             :=False;
+	      #A_3226_TSC01_AC.Par.ParWarningHH                            :=False;
+	      #A_3226_TSC01_AC.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_TSC01_AC.Par.ParPreAlarmL                            :=False;
+	      #A_3226_TSC01_AC.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_TSC01_AC.Par.ParPreAlarmH                            :=False;
+	      #A_3226_TSC01_AC.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-TSC01_AF : ACT. FREQUENCY FAN 2 FU 
+	      #A_3226_TSC01_AF.Par.ParObjectNo                             :=29724;
+	      #A_3226_TSC01_AF.Par.ParHornCode                             :=11;
+	      #A_3226_TSC01_AF.Par.ParMsgType                              :=7252;
+	      #A_3226_TSC01_AF.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_TSC01_AF.Par.ParUnitsByMaxDigit                      :=L#16880;
+	      #A_3226_TSC01_AF.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_TSC01_AF.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_TSC01_AF.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_TSC01_AF.Par.ParDelayTime                            :=30;
+	      #A_3226_TSC01_AF.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_TSC01_AF.Par.ParLimitL                               :=L#3000;
+	      #A_3226_TSC01_AF.Par.ParLimitH                               :=L#10000;
+	      #A_3226_TSC01_AF.Par.ParLimitHH                              :=L#10100;
+	      #A_3226_TSC01_AF.Par.ParMonTimeLL                            :=0;
+	      #A_3226_TSC01_AF.Par.ParMonTimeL                             :=0;
+	      #A_3226_TSC01_AF.Par.ParMonTimeMid                           :=0;
+	      #A_3226_TSC01_AF.Par.ParMonTimeH                             :=0;
+	      #A_3226_TSC01_AF.Par.ParMonTimeHH                            :=0;
+	      #A_3226_TSC01_AF.Par.ParLogOff                               :=False;
+	      #A_3226_TSC01_AF.Par.ParValueByUser                          :=False;
+	      #A_3226_TSC01_AF.Par.ParLimitsPc                             :=True;
+	      #A_3226_TSC01_AF.Par.ParWago                                 :=False;
+	      #A_3226_TSC01_AF.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_TSC01_AF.Par.ParWarningLL                            :=False;
+	      #A_3226_TSC01_AF.Par.ParWarningL                             :=False;
+	      #A_3226_TSC01_AF.Par.ParWarningMid                           :=False;
+	      #A_3226_TSC01_AF.Par.ParWarningH                             :=False;
+	      #A_3226_TSC01_AF.Par.ParWarningHH                            :=False;
+	      #A_3226_TSC01_AF.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_TSC01_AF.Par.ParPreAlarmL                            :=False;
+	      #A_3226_TSC01_AF.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_TSC01_AF.Par.ParPreAlarmH                            :=False;
+	      #A_3226_TSC01_AF.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-TSC01_AP : ACT. POWER FAN 2 FU 
+	      #A_3226_TSC01_AP.Par.ParObjectNo                             :=29725;
+	      #A_3226_TSC01_AP.Par.ParHornCode                             :=11;
+	      #A_3226_TSC01_AP.Par.ParMsgType                              :=7252;
+	      #A_3226_TSC01_AP.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_TSC01_AP.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_3226_TSC01_AP.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_TSC01_AP.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_TSC01_AP.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_TSC01_AP.Par.ParDelayTime                            :=30;
+	      #A_3226_TSC01_AP.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_TSC01_AP.Par.ParLimitL                               :=L#0;
+	      #A_3226_TSC01_AP.Par.ParLimitH                               :=L#3150;
+	      #A_3226_TSC01_AP.Par.ParLimitHH                              :=L#3500;
+	      #A_3226_TSC01_AP.Par.ParMonTimeLL                            :=0;
+	      #A_3226_TSC01_AP.Par.ParMonTimeL                             :=0;
+	      #A_3226_TSC01_AP.Par.ParMonTimeMid                           :=0;
+	      #A_3226_TSC01_AP.Par.ParMonTimeH                             :=0;
+	      #A_3226_TSC01_AP.Par.ParMonTimeHH                            :=0;
+	      #A_3226_TSC01_AP.Par.ParLogOff                               :=False;
+	      #A_3226_TSC01_AP.Par.ParValueByUser                          :=False;
+	      #A_3226_TSC01_AP.Par.ParLimitsPc                             :=True;
+	      #A_3226_TSC01_AP.Par.ParWago                                 :=False;
+	      #A_3226_TSC01_AP.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_TSC01_AP.Par.ParWarningLL                            :=False;
+	      #A_3226_TSC01_AP.Par.ParWarningL                             :=False;
+	      #A_3226_TSC01_AP.Par.ParWarningMid                           :=False;
+	      #A_3226_TSC01_AP.Par.ParWarningH                             :=False;
+	      #A_3226_TSC01_AP.Par.ParWarningHH                            :=False;
+	      #A_3226_TSC01_AP.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_TSC01_AP.Par.ParPreAlarmL                            :=False;
+	      #A_3226_TSC01_AP.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_TSC01_AP.Par.ParPreAlarmH                            :=False;
+	      #A_3226_TSC01_AP.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3226-TSC01_AT : ACT. TORQUE FAN 2 FU 
+	      #A_3226_TSC01_AT.Par.ParObjectNo                             :=29726;
+	      #A_3226_TSC01_AT.Par.ParHornCode                             :=11;
+	      #A_3226_TSC01_AT.Par.ParMsgType                              :=7252;
+	      #A_3226_TSC01_AT.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3226_TSC01_AT.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_3226_TSC01_AT.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3226_TSC01_AT.Par.ParDelayTimeDown                        :=10;
+	      #A_3226_TSC01_AT.Par.ParDelayTimeUp                          :=10;
+	      #A_3226_TSC01_AT.Par.ParDelayTime                            :=30;
+	      #A_3226_TSC01_AT.Par.ParLimitLL                              :=L#-1;
+	      #A_3226_TSC01_AT.Par.ParLimitL                               :=L#0;
+	      #A_3226_TSC01_AT.Par.ParLimitH                               :=L#7000;
+	      #A_3226_TSC01_AT.Par.ParLimitHH                              :=L#8000;
+	      #A_3226_TSC01_AT.Par.ParMonTimeLL                            :=0;
+	      #A_3226_TSC01_AT.Par.ParMonTimeL                             :=0;
+	      #A_3226_TSC01_AT.Par.ParMonTimeMid                           :=0;
+	      #A_3226_TSC01_AT.Par.ParMonTimeH                             :=0;
+	      #A_3226_TSC01_AT.Par.ParMonTimeHH                            :=0;
+	      #A_3226_TSC01_AT.Par.ParLogOff                               :=False;
+	      #A_3226_TSC01_AT.Par.ParValueByUser                          :=False;
+	      #A_3226_TSC01_AT.Par.ParLimitsPc                             :=True;
+	      #A_3226_TSC01_AT.Par.ParWago                                 :=False;
+	      #A_3226_TSC01_AT.Par.ParNoHornByWarning                      :=False;
+	      #A_3226_TSC01_AT.Par.ParWarningLL                            :=False;
+	      #A_3226_TSC01_AT.Par.ParWarningL                             :=False;
+	      #A_3226_TSC01_AT.Par.ParWarningMid                           :=False;
+	      #A_3226_TSC01_AT.Par.ParWarningH                             :=False;
+	      #A_3226_TSC01_AT.Par.ParWarningHH                            :=False;
+	      #A_3226_TSC01_AT.Par.ParPreAlarmLL                           :=False;
+	      #A_3226_TSC01_AT.Par.ParPreAlarmL                            :=False;
+	      #A_3226_TSC01_AT.Par.ParPreAlarmMid                          :=False;
+	      #A_3226_TSC01_AT.Par.ParPreAlarmH                            :=False;
+	      #A_3226_TSC01_AT.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3225-TSC01 : FAN 1 FU KOMMUNIKATION
+	      #A_3225_TSC01.Par.ParObjectNo                             :=29705;
+	      #A_3225_TSC01.Par.ParMsgType                              :=7156;
+	      #A_3225_TSC01.Par.ParHornCode                             :=0;
+	      #A_3225_TSC01.Par.ParDelayChange                          :=20;
+	      #A_3225_TSC01.Par.ParDelayTrue                            :=10;
+	      #A_3225_TSC01.Par.ParDelayFalse                           :=0;
+	      #A_3225_TSC01.Par.ParTimeoutTrue                          :=0;
+	      #A_3225_TSC01.Par.ParTimeoutFalse                         :=0;
+	      #A_3225_TSC01.Par.ParLogOff                               :=False;
+	      #A_3225_TSC01.Par.Par2WorkingCond                         :=False;
+	      #A_3225_TSC01.Par.ParFaultRetry                           :=False;
+	      #A_3225_TSC01.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3226-TSC01 : FAN 2 FU KOMMUNIKATION
+	      #A_3226_TSC01.Par.ParObjectNo                             :=29728;
+	      #A_3226_TSC01.Par.ParMsgType                              :=7156;
+	      #A_3226_TSC01.Par.ParHornCode                             :=0;
+	      #A_3226_TSC01.Par.ParDelayChange                          :=20;
+	      #A_3226_TSC01.Par.ParDelayTrue                            :=10;
+	      #A_3226_TSC01.Par.ParDelayFalse                           :=0;
+	      #A_3226_TSC01.Par.ParTimeoutTrue                          :=0;
+	      #A_3226_TSC01.Par.ParTimeoutFalse                         :=0;
+	      #A_3226_TSC01.Par.ParLogOff                               :=False;
+	      #A_3226_TSC01.Par.Par2WorkingCond                         :=False;
+	      #A_3226_TSC01.Par.ParFaultRetry                           :=False;
+	      #A_3226_TSC01.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,45 @@
+FUNCTION FC 11 : VOID
+TITLE =Call Line Control 
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS90
+//
+//TITLE:        Aufruf Sektionssteuerungen Demo PIC
+//              Call section control Demo PIC
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//FC011.1A      A_Egli              AEE61             14-Aug-97
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GCSOSMAN
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+NAME : PICDEMO
+VERSION : 0.0
+
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Call Group control
+
+
+
+NETWORK
+TITLE =Call Methode Scale Control
+
+
+
+END_FUNCTION
+

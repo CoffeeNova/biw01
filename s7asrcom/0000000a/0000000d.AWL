@@ -1,0 +1,559 @@
+ORGANIZATION_BLOCK "SYS_CycInt50ms"
+TITLE = "Cyclic Interrupt" 50ms
+VERSION : 0.1
+
+
+VAR_TEMP
+  OB36_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+  OB36_STRT_INF : BYTE ;	//16#37 (OB 36 has started)
+  OB36_PRIORITY : BYTE ;	//Priority of OB Execution
+  OB36_OB_NUMBR : BYTE ;	//36 (Organization block 36, OB36)
+  OB36_RESERVED_1 : BYTE ;	//Reserved for system
+  OB36_RESERVED_2 : BYTE ;	//Reserved for system
+  OB36_PHS_OFFSET : INT ;	//Phase offset (integer, milliseconds)
+  OB36_RESERVED_3 : INT ;	//Reserved for system
+  OB36_EXC_FREQ : INT ;	//Frequency of execution (msec)
+  OB36_DATE_TIME : DATE_AND_TIME ;	//Date and time OB36 started
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      NOP   0; 
+
+NETWORK
+TITLE =
+
+      NOP   0; 
+
+NETWORK
+TITLE =KILN Counter lifting device 1
+/////    Für Zählen mit Eingängen
+//
+//      L     PEB   32
+//      T     MB    32
+/////
+//
+//      UN    M     32.4                  // E 32.4 Track A
+//      R     M     33.2
+//      R     M     34.2
+//      UN    M     32.5                  // E 32.5 Track B
+//      R     M     33.3
+//      R     M     34.3
+//
+//      U     M     32.4                  // E 32.4 Track A
+//      UN    M     33.2
+//      S     M     33.2
+//      =     M     34.2
+//
+//      U     M     32.5                  // E 32.5 Track B
+//      UN    M     33.3
+//      S     M     33.3
+//      =     M     34.3
+/////
+//
+//      U     M     32.4                  //E 32.4 Track A
+//      UN    M     34.2                  // E 229.6 Track A pos Flanke
+//      U     M     34.3                  // E 229.7 Track B pos Flanke
+//      SPBN  e03
+//
+//      NOP   0
+//      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount
+//      L     1
+//      +D    
+//      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount
+//
+//      SET   
+//      R     M     34.3                  // E 229.7 Track B pos Flanke
+//e03:  NOP   0
+/////
+//
+//      U     M     32.5                  // E 229.7 Track B
+//      UN    M     34.3                  // E 229.7 Track B pos Flanke
+//      U     M     34.2                  // E 229.6 Track A pos Flanke
+//      SPBN  e031
+//
+//      NOP   0
+//      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount
+//      L     1
+//      -D    
+//      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount
+//
+//      SET   
+//      R     M     34.2                  // E 229.6 Track A pos Flanke
+//e031: NOP   0
+// 
+//
+//
+//
+//
+//
+//
+//
+//
+//
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  S111; 
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ21.OutpRunFwd; // up
+      =     M    160.0; // high
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ21.OutpRunRev; // down
+      =     M    160.1; // down
+
+      U     M    160.0; // high
+      SPBN  D111; 
+      U     "CPU_Pulse200ms"; 
+//      U     M      9.4
+      U     M    161.0; 
+      S     M    161.1; 
+
+      UN    "CPU_Pulse200ms"; 
+//      UN    M      9.4
+      U     M    161.0; 
+      U     M    161.1; 
+      R     M    161.0; 
+
+      U     "CPU_Pulse200ms"; 
+//      U     M      9.4
+      UN    M    161.0; 
+      U     M    161.1; 
+      R     M    161.1; 
+
+      UN    "CPU_Pulse200ms"; 
+//      UN    M      9.4
+      UN    M    161.0; 
+      UN    M    161.1; 
+      S     M    161.0; 
+D111: NOP   0; 
+
+      U     M    160.1; // down
+      SPBN  H111; 
+      U     "CPU_Pulse200ms"; 
+//      U     M      9.4
+      U     M    161.1; 
+      S     M    161.0; 
+
+      UN    "CPU_Pulse200ms"; 
+//      UN    M      9.4
+      U     M    161.1; 
+      U     M    161.0; 
+      R     M    161.1; 
+
+      U     "CPU_Pulse200ms"; 
+//      U     M      9.4
+      UN    M    161.1; 
+      U     M    161.0; 
+      R     M    161.0; 
+
+      UN    "CPU_Pulse200ms"; 
+//      UN    M      9.4
+      UN    M    161.1; 
+      UN    M    161.0; 
+      S     M    161.1; 
+H111: NOP   0; 
+
+      UN    M    160.0; // high
+      UN    M    160.1; // down
+      R     M    161.0; 
+      R     M    161.1; 
+
+//      U     M    161.0
+//      =     "_2405_B112LS_I1"
+//      U     M    161.1
+//      =     "_2405_B112LS_I2"
+S111: NOP   0; 
+
+///////////////////////KR 29042009
+      UN    M    161.0; // Track A
+//      R     #Zahler.OutpTrack_A
+//      R     #Zahler.OutpTrack_A_pos_Flag
+      R     M    161.2; 
+      R     M    161.3; 
+
+      UN    M    161.1; // Track B
+//      R     #Zahler.OutpTrack_B
+//      R     #Zahler.OutpTrack_B_pos_Flag
+      R     M    161.4; 
+      R     M    161.5; 
+
+
+      U     M    161.0; // Track A
+      UN    M    161.2; 
+      S     M    161.2; 
+      =     M    161.3; 
+
+// 
+      U     M    161.1; // Track B
+      UN    M    161.4; 
+      S     M    161.4; 
+      =     M    161.5; 
+
+      U     M    161.0; // Track A
+      UN    M    161.3; // Track A pos Flanke
+      U     M    161.5; // Track B pos Flanke
+      SPBN  en05; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     1; 
+      +D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      SET   ; 
+      R     M    161.5; // Track B pos Flanke
+en05: NOP   0; 
+
+      U     M    161.1; // Track B
+      UN    M    161.5; // Track B pos Flanke
+      U     M    161.3; // Track A pos Flanke
+      SPBN  en06; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      L     1; 
+      -D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterLeft.InpActCount; 
+      SET   ; 
+      R     M    161.3; // Track A pos Flanke
+en06: NOP   0; 
+
+
+///////////////////////KR 29042009
+//      CALL  FC  1048
+//       Eingang1:=M161.0
+//       Eingang2:=M161.1
+//       Zahler  :="G293M"._3111_MA1.CounterLeft
+
+NETWORK
+TITLE =KILN Counter lifting device 2
+/////  Für Zählen mit Eingängen
+//
+//      L     PEB   33
+//      T     MB    35
+/////
+//
+//      UN    M     35.0                  // E 33.0 Track A
+//      R     M     36.2
+//      R     M     37.2
+//      UN    M     35.1                  // E 33.1 Track B
+//      R     M     36.3
+//      R     M     37.3
+//
+//      U     M     35.0                  // E 33.0 Track A
+//      UN    M     36.2
+//      S     M     36.2
+//      =     M     37.2
+//
+//      U     M     35.1                  // E 33.1 Track B
+//      UN    M     36.3
+//      S     M     36.3
+//      =     M     37.3
+/////
+//
+//      U     M     35.0                  //E 33.0 Track A
+//      UN    M     37.2                  // E 229.6 Track A pos Flanke
+//      U     M     37.3                  // E 229.7 Track B pos Flanke
+//      SPBN  e04
+//
+//      NOP   0
+//      L     DB365.DBD  484
+//      L     1
+//      +D    
+//      T     DB365.DBD  484
+//
+//      SET   
+//      R     M     37.3                  // E 229.7 Track B pos Flanke
+//e04:  NOP   0
+/////
+//
+//      U     M     35.1                  // E 33.1 Track B
+//      UN    M     37.3                  // E 229.7 Track B pos Flanke
+//      U     M     37.2                  // E 229.6 Track A pos Flanke
+//      SPBN  e041
+//
+//      NOP   0
+//      L     DB365.DBD  484
+//      L     1
+//      -D    
+//      T     DB365.DBD  484
+//
+//      SET   
+//      R     M     37.2                  // E 229.6 Track A pos Flanke
+//e041: NOP   0
+//  
+//
+//
+//
+//
+//
+//
+//   
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  S121; 
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ31.OutpRunFwd; // up
+      =     M    162.0; // high
+      U     "G265M".A_3111_MXZ21_31MA.A_3111_MXZ31.OutpRunRev; // down
+      =     M    162.1; // down
+
+      U     M    162.0; // high
+      SPBN  D121; 
+      U     "CPU_Pulse200ms"; 
+      U     M    163.0; 
+      S     M    163.1; 
+
+      UN    "CPU_Pulse200ms"; 
+      U     M    163.0; 
+      U     M    163.1; 
+      R     M    163.0; 
+
+      U     "CPU_Pulse200ms"; 
+      UN    M    163.0; 
+      U     M    163.1; 
+      R     M    163.1; 
+
+      UN    "CPU_Pulse200ms"; 
+      UN    M    163.0; 
+      UN    M    163.1; 
+      S     M    163.0; 
+D121: NOP   0; 
+
+      U     M    162.1; // down
+      SPBN  H121; 
+      U     "CPU_Pulse200ms"; 
+      U     M    163.1; 
+      S     M    163.0; 
+
+      UN    "CPU_Pulse200ms"; 
+      U     M    163.1; 
+      U     M    163.0; 
+      R     M    163.1; 
+
+      U     "CPU_Pulse200ms"; 
+      UN    M    163.1; 
+      U     M    163.0; 
+      R     M    163.0; 
+
+      UN    "CPU_Pulse200ms"; 
+      UN    M    163.1; 
+      UN    M    163.0; 
+      S     M    163.1; 
+H121: NOP   0; 
+
+      UN    M    162.0; // high
+      UN    M    162.1; // down
+      R     M    163.0; 
+      R     M    163.1; 
+
+//      U     M    163.0
+//      =     "_2405_B122LS_I1"
+//      U     M    163.1
+//      =     "_2405_B122LS_I2"
+S121: NOP   0; 
+
+///////////////////////KR 29042009
+      UN    M    163.0; // Track A
+//      R     #Zahler.OutpTrack_A
+//      R     #Zahler.OutpTrack_A_pos_Flag
+      R     M    163.2; 
+      R     M    163.3; 
+
+      UN    M    163.1; // Track B
+//      R     #Zahler.OutpTrack_B
+//      R     #Zahler.OutpTrack_B_pos_Flag
+      R     M    163.4; 
+      R     M    163.5; 
+
+
+      U     M    163.0; // Track A
+      UN    M    163.2; 
+      S     M    163.2; 
+      =     M    163.3; 
+
+// 
+      U     M    163.1; // Track B
+      UN    M    163.4; 
+      S     M    163.4; 
+      =     M    163.5; 
+
+      U     M    163.0; // Track A
+      UN    M    163.3; // Track A pos Flanke
+      U     M    163.5; // Track B pos Flanke
+      SPBN  en07; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      L     1; 
+      +D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      SET   ; 
+      R     M    163.5; // Track B pos Flanke
+en07: NOP   0; 
+
+      U     M    163.1; // Track B
+      UN    M    163.5; // Track B pos Flanke
+      U     M    163.3; // Track A pos Flanke
+      SPBN  en08; 
+      L     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      L     1; 
+      -D    ; 
+      T     "G265M".A_3111_MXZ21_31MA.CounterRight.InpActCount; 
+      SET   ; 
+      R     M    163.3; // Track A pos Flanke
+en08: NOP   0; 
+
+
+///////////////////////KR 29042009
+//      CALL  "SSA_MH_Increment_counter"
+//       Eingang1:=M163.0
+//       Eingang2:=M163.1
+//       Zahler  :="G293M"._3111_MA1.CounterRight
+
+NETWORK
+TITLE =KILN Counter traveling device
+
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  S131; 
+      U     "G266M".A_3111_MXZ41MA.A_3111_MXZ41.OutpRunFwd; 
+      =     M    164.0; // high
+      U     "G266M".A_3111_MXZ41MA.A_3111_MXZ41.OutpRunRev; 
+      =     M    164.1; // down
+
+      L     "G266M".A_3111_MXZ41MA.Ma.InSpeed; 
+      L     5000; 
+      <=I   ; 
+      SPB   LSp; 
+      L     "G266M".A_3111_MXZ41MA.Ma.InSpeed; 
+      L     5000; 
+      >I    ; 
+      SPB   HSp; 
+      SPA   NSp; 
+LSp:  NOP   0; 
+      U     "CPU_Pulse500ms"; 
+      =     M    164.7; 
+      SPA   NSp; 
+HSp:  NOP   0; 
+      U     "CPU_Pulse200ms"; 
+      =     M    164.7; // CPU_PulseXXXms
+      SPA   NSp; 
+NSp:  NOP   0; 
+
+      U     M    164.0; // high
+      SPBN  DOWN; 
+      U     M    164.7; // CPU_PulseXXXms
+      U     M    165.0; 
+      S     M    165.1; 
+
+      UN    M    164.7; // CPU_PulseXXXms
+      U     M    165.0; 
+      U     M    165.1; 
+      R     M    165.0; 
+
+      U     M    164.7; // CPU_PulseXXXms
+      UN    M    165.0; 
+      U     M    165.1; 
+      R     M    165.1; 
+
+      UN    M    164.7; // CPU_PulseXXXms
+      UN    M    165.0; 
+      UN    M    165.1; 
+      S     M    165.0; 
+DOWN: NOP   0; 
+
+      U     M    164.1; // down
+      SPBN  HIGH; 
+      U     M    164.7; // CPU_PulseXXXms
+      U     M    165.1; 
+      S     M    165.0; 
+
+      UN    M    164.7; // CPU_PulseXXXms
+      U     M    165.1; 
+      U     M    165.0; 
+      R     M    165.1; 
+
+      U     M    164.7; // CPU_PulseXXXms
+      UN    M    165.1; 
+      U     M    165.0; 
+      R     M    165.0; 
+
+      UN    M    164.7; // CPU_PulseXXXms
+      UN    M    165.1; 
+      UN    M    165.0; 
+      S     M    165.1; 
+HIGH: NOP   0; 
+
+      UN    M    164.0; // high
+      UN    M    164.1; // down
+      R     M    165.0; 
+      R     M    165.1; 
+
+//      U     M    165.0
+//      =     "_2405_B133LS_I1"
+//      U     M    165.1
+//      =     "_2405_B133LS_I2"
+S131: NOP   0; 
+///////////////////////KR 29042009
+      UN    M    165.0; // Track A
+//      R     #Zahler.OutpTrack_A
+//      R     #Zahler.OutpTrack_A_pos_Flag
+      R     M    165.2; 
+      R     M    165.3; 
+
+      UN    M    165.1; // Track B
+//      R     #Zahler.OutpTrack_B
+//      R     #Zahler.OutpTrack_B_pos_Flag
+      R     M    165.4; 
+      R     M    165.5; 
+
+
+      U     M    165.0; // Track A
+      UN    M    165.2; 
+      S     M    165.2; 
+      =     M    165.3; 
+
+// 
+      U     M    165.1; // Track B
+      UN    M    165.4; 
+      S     M    165.4; 
+      =     M    165.5; 
+
+      U     M    165.0; // Track A
+      UN    M    165.3; // Track A pos Flanke
+      U     M    165.5; // Track B pos Flanke
+      SPBN  en10; 
+      L     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      L     1; 
+      +D    ; 
+      T     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      SET   ; 
+      R     M    165.5; // Track B pos Flanke
+en10: NOP   0; 
+
+      U     M    165.1; // Track B
+      UN    M    165.5; // Track B pos Flanke
+      U     M    165.3; // Track A pos Flanke
+      SPBN  en11; 
+      L     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      L     1; 
+      -D    ; 
+      T     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+      SET   ; 
+      R     M    165.3; // Track A pos Flanke
+en11: NOP   0; 
+      U     "G266M".A_3111_MXZ41_FU.InHWStop; 
+      SPBN  enXX; 
+      L     0; 
+      T     "G266M".A_3111_MXZ41MA.IncCounter.InpActCount; 
+enXX: NOP   0; 
+///////////////////////KR 29042009
+
+//       CALL  "SSA_MH_Increment_counter"
+//       Eingang1:=M165.0
+//       Eingang2:=M165.1
+//       Zahler  :="G294M"._3111_MA2.A_3111_MXZ41.IncCounter
+
+NETWORK
+TITLE =End
+
+      BEA   ; 
+
+
+NETWORK
+TITLE =End
+
+      BEA   ; 
+
+
+END_ORGANIZATION_BLOCK
+

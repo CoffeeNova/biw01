@@ -1,0 +1,289 @@
+FUNCTION_BLOCK "SSA_ABB"
+TITLE =ABB ACS800
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        ABB ACS800 Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1816.2.1     M.Wedler            AEB41                            07-Nov-2008
+//               Assignation of MotorStStopped internal 
+//FB1816.2.0     M.Wedler            AEB41                            25-Okt-2007
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//State Word ABB
+    AT_SETPOINT : BOOL ;	//0=Actual value differs from reference valu; 1=Actual value equals reference val
+    REMOTE : BOOL ;	//0=LOCAL                         1=REMOTE
+    ABOVE_LIMIT : BOOL ;	//0=within supervision limit      1=equals or is greater than supervision limit
+    STATE_WORD_BIT_11 : BOOL ;	//Drive-specific
+    STATE_WORD_BIT_12 : BOOL ;	//Drive-specific
+    STATE_WORD_BIT_13 : BOOL ;	//Drive-specific
+    STATE_WORD_BIT_14 : BOOL ;	//Drive-specific
+    STATE_WORD_BIT_15 : BOOL ;	//Drive-specific
+    RDY_ON : BOOL ;	//0=NOT READY TO SWITCH ON        1=READY TO SWITCH ON
+    RDY_RUN : BOOL ;	//0=OFF1 ACTIVE                   1=READY TO OPERATE
+    RDY_REF : BOOL ;	//0=DISABLE OPERATION             1=ENABLE OPERATION
+    TRIPPED : BOOL ;	//0=No fault                      1=FAULT
+    OFF_2_STA : BOOL ;	//0=OFF2 ACTIVE                   1=OFF2 inactive
+    OFF_3_STA : BOOL ;	//0=OFF3 ACTIVE                   1=OFF3 inactive
+    SWC_ON_INHIB : BOOL ;	//0=SWITCH-ON INHIBIT NOT ACTIVE  1=SWITCH-ON INHIBIT ACTIVE
+    ALARM : BOOL ;	//0=No Warning/Alarm              1=Warning/Alarm
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//ACTUAL VALUE / the actual speed (0-4000h) corresponds to 0-motor nominal speed
+   ActualValue02 : INT ;	//Process Data PZD3
+   ActualValue03 : INT ;	//Process Data PZD4
+   ActualValue04 : INT ;	//Process Data PZD5
+   ActualValue05 : INT ;	//Process Data PZD6
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Control Word ABB
+    INCHING_1 : BOOL ;	//Inching 1.
+    INCHING_2 : BOOL ;	//Inching 2.
+    REMOTE_CMD : BOOL ;	//0=Retain last Control Word and Reference        1=Fieldbus control enabled
+    CONTROL_WORD_BIT_11 : BOOL ;	//Drive-specific
+    CONTROL_WORD_BIT_12 : BOOL ;	//Drive-specific
+    CONTROL_WORD_BIT_13 : BOOL ;	//Drive-specific
+    CONTROL_WORD_BIT_14 : BOOL ;	//Drive-specific
+    CONTROL_WORD_BIT_15 : BOOL ;	//Drive-specific
+    OFF1 : BOOL ;	//0=Emergency OFF-stop by the selected deceleration 1=Proceed to READY TO OPERATE
+    OFF2 : BOOL ;	//0=Emergency OFF-coast to stop              1=Continue operation (OFF2 inactive)
+    OFF3 : BOOL ;	//0=Emergency stop-stop according to fastest possible deceleration mode        
+    OPERATION_ENABLE : BOOL ;	//0=Inhibit operation                             1=Proceed to ENABLE OPERATION
+    RAMP_OUT_ZERO : BOOL ;	//0=Stop according to selected stop type          1=Normal operation
+    RAMP_HOLD : BOOL ;	//0=Halt ramping                                  1=Normal operation
+    RAMP_IN_ZERO : BOOL ;	//0=Force Ramp Function Generator input to zero   1=Normal operation
+    RESET : BOOL ;	//1=Fault reset if an active fault exists
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//REFERENCE / the speed reference (0-4000h) corresponds to 0-motor nominal speed
+   SetpointValue02 : INT ;	//Process Data PZD3
+   SetpointValue03 : INT ;	//Process Data PZD4
+   SetpointValue04 : INT ;	//Process Data PZD5
+   SetpointValue05 : INT ;	//Process Data PZD6
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMovidrive : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+
+      L     P##Input; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands Par.ParABB
+//Erklärung für Unbeteiligte:
+//
+//1. Wenn FU ohne Rampe gestoppt wird (Austrudeln), dann
+//a) L  W#16#477  // DISABLE OPERATION (Austrudeln)
+//und wenn Motor steht (Drehzahl = ca. 0 rpm)   
+//b) L  W#16#476  // DISABLE OPERATION + Emergency OFF-stop by the selected 
+//deceleration (Not-Halt, anhalten mit der eingestellten Verzögerungsrampe)
+//
+//2. Wenn FU mit Rampe gestoppt wird (Stopprampe), dann
+//a) L  W#16#47E  // Emergency OFF-stop by the selected deceleration 
+//(Stopp mit Rampe)
+//
+      UN    #Par.ParABB; 
+      SPB   ABJ0; 
+//Load Status Word
+//      LAR1  #tmpAddrInputFU
+//      L     DIW [AR1,P#0.0]             // Status Word
+//      LAR1  P##ABB_StateWord
+//      T     LW [AR1,P#0.0]              // ABB_StateWord
+// prepare steuerword
+
+// DISABLE OPERATION + Emergency OFF-stop by the selected deceleration  
+// (Not-Halt, anhalten mit der eingestellten Verzögerungsrampe)
+      L     W#16#476; 
+      UN    #InEnableFwd; 
+      UN    #InEnableRev; 
+      U     #MotorStStopped; // Standstill of motor
+      O     #Input.StateWord_1.TRIPPED; // FAULT (Fehler)
+      SPB   ABJ1; 
+// Stopp without ramp 
+      L     W#16#477; // DISABLE OPERATION (Austrudeln)
+// or stopp with ramp
+// Emergency OFF-stop by the selected deceleration (Stopp mit Rampe)
+//      L     W#16#47E     // DISABLE OPERATION + Emergency OFF             
+      U     #InEnableFwd; 
+      O     #InEnableRev; 
+      SPBN  ABJ1; 
+      L     W#16#47F; // Start=EIN
+ABJ1: LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+//-----------------------------------------
+// Fault Reset ins Steuerwort
+      U     #CmdFaultReset; 
+      U     #Input.StateWord_1.TRIPPED; // FAULT (Fehler)
+      SPBN  ABR1; 
+      L     W#16#4FE; // Reset ins Steuerwort
+      LAR1  #tmpAddrOutputFU; 
+      T     DIW [AR1,P#0.0]; // controlword 
+ABR1: NOP   0; 
+//- Feedback for motor
+      U     #Input.StateWord_1.RDY_REF; 
+      UN    #Input.StateWord_1.TRIPPED; 
+      U     #InEnableRev; 
+      =     #OutRunningRev; 
+
+      U     #Input.StateWord_1.RDY_REF; 
+      UN    #Input.StateWord_1.TRIPPED; 
+      U     #InEnableFwd; 
+      =     #OutRunningFwd; 
+
+      U     #Input.StateWord_1.TRIPPED; 
+      =     #OutFault; 
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//+20000Dez = +100.0%
+//-20000Dez = -100.0%
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     2.000000e+000; 
+      *R    ; 
+      RND   ; 
+      U     #InEnableRev; 
+      SPBN  tsp; 
+      NEGD  ; 
+tsp:  T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//+20000Dez = +100.0%
+//-20000Dez = -100.0%
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     2.000000e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+
+//-Assignation of MotorStStopped internal      [2.1]
+      L     #Input.ActualValue01; 
+      L     200; // 200Dez = 1.0%Fn
+      >I    ; 
+      U     #Input.StateWord_1.RDY_REF; 
+      SPBN  MSta; 
+      CLR   ; 
+      =     #MotorStStopped; // Standstill of motor
+MSta: NOP   0; 
+
+      L     #Input.ActualValue01; 
+      L     200; // 200Dez = 1.0%Fn
+      <I    ; 
+      SPBN  MSto; 
+      SET   ; 
+      =     #MotorStStopped; // Standstill of motor
+MSto: NOP   0; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =Read Inputs of Inverter
+
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#8.0]; 
+      LAR1  #tmpAddrInputFU; 
+      T     DID [AR1,P#8.0]; 
+NETWORK
+TITLE =Write Outputs of Inverter
+
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#4.0]; 
+      LAR1  #tmpAddrOutputFU; 
+      L     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#8.0]; 
+
+NETWORK
+TITLE =
+
+ABJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

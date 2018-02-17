@@ -1,0 +1,45 @@
+	FUNCTION_BLOCK FB 1011
+	TITLE =A_2926_MXZ0MA BELT CONVEYOR 7200
+	//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:       WinCoS_BIW01_09
+	//
+	//TITLE:         BELT CONVEYOR 7200
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:         AUTHOR:             DEPT:                             DATE:
+	// 
+	//P01_FB1011.1.0 K.Renz              CSB41                             13.Jan.2010
+	//               1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 0.0
+	
+	
+	VAR
+	         Ma :  UDT 20500  ;  // Machine
+	         Mon1  : FB14 ;    // spare
+	         A_2926_BSA13 : FB14;  // Mon2: DigInpCont
+	         Mon3  : FB14  ;  // spare
+	         A_2926_BZS14_15 : FB14;  // Mon4: DigInpCont
+	         A_2926_SHE20 : FB14;  // Mon5: DigInpCont
+	         Mon6  : FB14 ;   // spare
+	         A_2926_MXZ01 : FB12; // Motor: Motor
+	END_VAR
+	
+	BEGIN
+	NETWORK
+	TITLE =Call SSW
+	   UC  FB50
+	END_FUNCTION_BLOCK

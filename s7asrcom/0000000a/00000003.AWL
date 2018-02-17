@@ -1,0 +1,369 @@
+ORGANIZATION_BLOCK "SYS_MainProgram"
+TITLE =Main program
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GEN_MU664
+//
+//TITLE:        Main program
+//              
+//              Hauptprogramm
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//GEN_OB001.1.0 A.Egli              CT3                                07-Feb-2003
+//              Redesign GCS7 Release 2
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+//
+//
+AUTHOR : KR
+FAMILY : GEN
+VERSION : 9.9
+
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+  OB1_SCAN_1 : BYTE ;	//1 (Cold restart scan 1 of OB 1), 3 (Scan 2-n of OB 1)
+  OB1_PRIORITY : BYTE ;	//1 (Priority of 1 is lowest)
+  OB1_OB_NUMBR : BYTE ;	//1 (Organization block 1, OB1)
+  OB1_RESERVED_1 : BYTE ;	//Reserved for system
+  OB1_RESERVED_2 : BYTE ;	//Reserved for system
+  OB1_PREV_CYCLE : INT ;	//Cycle time of previous OB1 scan (milliseconds)
+  OB1_MIN_CYCLE : INT ;	//Minimum cycle time of OB1 (milliseconds)
+  OB1_MAX_CYCLE : INT ;	//Maximum cycle time of OB1 (milliseconds)
+  OB1_DATE_TIME : DATE_AND_TIME ;	//Date and time OB1 started
+  tmpInt : INT ;	
+  tmpWord : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =TF General test functions
+
+      CLR   ; 
+      =     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  TF00; 
+// 
+//-Test functions ON---
+      SET   ; 
+      R     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      R     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      R     "PLC_SystemDB".TestFunctions.StaHardware; 
+      S     "PLC_SystemDB".TestFunctions.StaCWASimulation; 
+      S     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      S     "PLC_SystemDB".TestFunctions.StaDPSimulation; 
+      S     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC1ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC2ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC3ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC4ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC5ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaWinAC; 
+
+// 
+//-Temporary test functions....... (0000)---
+      U     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      SPBN  TF02; 
+      CALL "TEST_Functions" (
+           code_no                  := 0,
+           RET_VAL                  := #tmpWord);
+TF02: NOP   0; 
+// 
+//-............................... (1001)---
+      U     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      SPBN  TF03; 
+      CALL "TEST_Functions" (
+           code_no                  := 1001,
+           RET_VAL                  := #tmpWord);
+TF03: NOP   0; 
+// 
+
+      CALL "Simu" ;
+
+//-Test functions OFF---
+TF00: NOP   0; 
+NETWORK
+TITLE =IN Initialisation
+
+      NOP   0; 
+//-Standard software---
+      CALL "SYS_InitFlagTimer" ;
+// 
+//-Simulation with DB---
+      SET   ; 
+      =     "GCS7_Gr_SimDPtoImage"; 
+// 
+//-User software---
+      SET   ; 
+      =     "ENG_RemarkFlag"; 
+      U     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      =     "GCS7_Gr_OutReportAll"; 
+      U     "PLC_SystemDB".GlobalFlags.StaLOGOff; 
+      =     "GCS7_Gr_OutLogOff"; 
+// 
+//-Testfunctionality for WinAC---
+      U     "PLC_SystemDB".TestFunctions.StaWinAC; 
+      SPBN  IN01; 
+      CALL "SIEMENS_DIS_IRT" (
+           MODE                     := B#16#2,
+           OB_NR                    := 80,
+           RET_VAL                  := #tmpInt);
+      SPA   IN02; 
+IN01: CALL "SIEMENS_EN_IRT" (
+           MODE                     := B#16#2,
+           OB_NR                    := 80,
+           RET_VAL                  := #tmpInt);
+IN02: NOP   0; // 
+// 
+//-Testfunctions---
+      UN    "PLC_SystemDB".GlobalFlags.StaTest; 
+      R     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      R     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      R     "PLC_SystemDB".TestFunctions.StaHardware; 
+      R     "PLC_SystemDB".TestFunctions.StaCWASimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      R     "PLC_SystemDB".TestFunctions.StaDPSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC1ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC2ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC3ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC4ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC5ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaWinAC; 
+// 
+//-Startup warning time
+      L     10; 
+      T     "SYS_StartWarningDB".ParStartwarningTime; 
+      L     120; 
+      T     "SYS_StartWarningDB".ParStartReleaseTimeL; 
+      L     20; 
+      T     "SYS_StartWarningDB".ParStartReleaseTimeH; 
+NETWORK
+TITLE =GF Plant general functions
+
+      CALL "SYS_GeneralFunctions" ;
+      CALL "ASW_PlantParFunction" ;
+//         CALL  "HW_PanelLamps";
+
+//--Create actual Time for Timestamps in process data messages JV280809
+      CALL "SIEMENS_READ_CLK" (
+           RET_VAL                  := #tmpInt,
+           CDT                      := "MAL1ProcessTime".Arbeitsbereich.dt2);
+
+NETWORK
+TITLE =GR General, way and machine groups
+
+      CALL "SYS_CallGroup" ;
+
+NETWORK
+TITLE =LS Lines and sections
+
+      CALL "SYS_CallLineSection" (
+           InCode                   := 0);
+
+NETWORK
+TITLE =PC PCC Direct control
+
+      NOP   0; 
+//-LC Parameter Upload---
+      L     10; 
+      AUF   "SYS_DirectCtrlLCDB"; 
+      UC    "SYS_DirectCtrl"; 
+//-General control---
+      L     0; 
+      AUF   "SYS_DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for process control system main---
+      L     5; 
+      AUF   "SYS_PCCDirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for process control system clients---
+//  ---Client 1 --- 
+      L     5; 
+      AUF   "SYS_PC1DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 2 --- 
+      L     5; 
+      AUF   "SYS_PC2DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 3 --- 
+      L     5; 
+      AUF   "SYS_PC3DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 4 --- 
+      L     5; 
+      AUF   "SYS_PC4DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 5 --- 
+      L     5; 
+      AUF   "SYS_PC5DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 6 --- 
+      L     5; 
+      AUF   "SYS_PC6DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+//  ---Client 7 --- 
+      L     5; 
+      AUF   "SYS_PC7DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for ObjView---
+      L     5; 
+      AUF   "SYS_ObjViewDirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for inhouse test channel---
+      L     5; 
+      U     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      AUF   "SYS_IHTestDirectCtrlDB"; 
+      CC    "SYS_DirectCtrl"; 
+NETWORK
+TITLE =CB Changebit
+//-> ParBlockLen: 128 for VISControl; 220 for MELE; 220 for WinCoS
+//-> For more changebit-interface-DB's add the new DB and set the pointer
+//   ParNextDB in the previous DB. A call of additional method is not necessary.
+      NOP   0; 
+//-Init Changebit---
+      L     220; 
+      T     "SYS_CBitDB".ParBlockLen; 
+// 
+//-Copy change bits from object DB to change bit DB---
+      AUF   "SYS_CBitDB"; 
+      L     1; 
+      CALL "SYS_CBitCtrl" ;//Read/copy
+// 
+//-Reset change bit CBit[x], if PC has accepted---
+      AUF   "SYS_CBitDB"; 
+      L     2; 
+      CALL "SYS_CBitCtrl" ;//Update
+
+NETWORK
+TITLE =MQ message queues
+
+      NOP   0; 
+//-LOG-Queue---
+      CALL "SYS_LOG_CtrlQueue" (
+           DBNumber                 := 5);
+
+// UK
+//-ActValues-Queue---
+      CALL "SSA_MH_LogCtrl_ActValue" (
+           DBNumber                 := 1005);
+
+NETWORK
+TITLE =CM Communication
+
+      NOP   0; 
+//-->
+      U     "ENG_RemarkFlag"; 
+//--Check that the InModeRetry is set to 1, if newtronics are connected on a loop
+      =     "ENG_RemarkFlag"; 
+//<--
+// 
+//-PLC to PLC Communication---
+//      CALL  "COM_PLCtoPLC"
+NETWORK
+TITLE =GD Graphic display data (PLC=>PCC)
+// Copy cycle time
+      L     #OB1_MIN_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Minimal; 
+      L     #OB1_PREV_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Actual; 
+      L     #OB1_MAX_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Maximal; 
+// Call Funtion
+      CALL "ASW_GraphicFunction" ;
+
+NETWORK
+TITLE =DP Diagnosis
+
+      NOP   0; 
+//-Detailed profibus DP---
+      CALL "SYS_DPDiagMain" ;
+// 
+//-PLCLiveValue for the PCC---
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_CBitDB".PLCLifeValue);
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_PC1CBitDB".PLCLifeValue);
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_PC2CBitDB".PLCLifeValue);
+NETWORK
+TITLE =Processtime
+//// MW
+//      U     "MAL1S005Par".Par.FlagProcess.ProcessActive
+//      =     "DB Prozesszeit".Sektion_5.Prozess_aktiv    // Steep 1
+// 
+//      U     "MAL1S006Par".Par.FlagProcess.ProcessActive
+//      =     "DB Prozesszeit".Sektion_6.Prozess_aktiv    // Steep 2
+// 
+//      U     "MAL1S007Par".Par.FlagProcess.ProcessActive
+//      =     "DB Prozesszeit".Sektion_7.Prozess_aktiv    // Steep 3
+// 
+      U     "MAL1S017Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_17.Prozess_aktiv; // Germ 1
+      U     "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_18.Prozess_aktiv; // Germ 2
+      U     "MAL1S019Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_19.Prozess_aktiv; // Germ 3
+      U     "MAL1S020Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_20.Prozess_aktiv; // Germ 4
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_21.Prozess_aktiv; // Germ 5
+      U     "MAL1S022Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_22.Prozess_aktiv; // Germ 6
+      U     "MAL1S023Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_23.Prozess_aktiv; // Germ 7
+      U     "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_24.Prozess_aktiv; // Germ 8
+// 
+      U     "MAL1S023Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_23.Prozess_aktiv; // Kiln 1
+      U     "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      =     "DB Prozesszeit".Sektion_24.Prozess_aktiv; // Kiln 2
+// 
+//JV020310      CALL  FC  1010                    // processtime
+NETWORK
+TITLE =Heavy Startup M13.6
+//This flag must be reseted, when is is to long high
+//(This is happen after downloading the DB)
+      U     "GCS7_Gr_InHeavyStartup"; 
+      L     S5T#1M; 
+      SE    "SYS_DelayHeavyStartup"; 
+      U     "SYS_DelayHeavyStartup"; 
+      R     "GCS7_Gr_InHeavyStartup"; 
+NETWORK
+TITLE =BrakeMill M12.0
+//This flag must be reseted, when is is to long high
+//(This is happen after downloading the DB)
+      U     "GCS7_Gr_InBrakeMill"; 
+      L     S5T#1M; 
+      SE    "SYS_DelayBrakeMill"; 
+      U     "SYS_DelayBrakeMill"; 
+      R     "GCS7_Gr_InBrakeMill"; 
+NETWORK
+TITLE =Reset startup flags
+
+      SET   ; 
+      R     "PLC_SystemDB".Startup.CmdRestartMan; 
+      R     "PLC_SystemDB".Startup.CmdRestartAuto; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

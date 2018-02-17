@@ -1,0 +1,96 @@
+FUNCTION FC 45 : VOID
+TITLE =Log: Message Converter for LOG Entry
+//COPYRIGHT:     (C) 1996 BY  BUEHLER LTD. 
+//                            CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7 
+//
+//TITLE:        Message Converter for LOG Entry
+//
+//--------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                       DATE:
+//
+//FC45.1.2      A. Egli             CT3                         04.03.2003
+//              Redesign, M11.2
+//FC45.1B       A. Egli             CT3                         26.03.1999
+//              Special format for MELE: MsgType>=7000
+//FC45.1A       S. Kalberer         AEE61                       27-Sep-1996
+//              1st Release in S7, converted from FX251.2A
+//
+//--------------------------------------------------------------------------
+//
+//PURPOSE:       DATA-CONVERT FOR PRINTER PER LOG WITH PC
+//
+//RESTRICTIONS:  S7
+//
+//--------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MECONV
+VERSION : 0.0
+
+
+VAR_INPUT
+  ObjectNo : INT ;	//Is used for communication with PC
+  MsgType : INT ;	//Is used for message translation
+  ClassMsgTxt : WORD ;	//Contains MessageClass and MessageTextNumber
+  OType : INT ;	//Object Type
+END_VAR
+VAR_TEMP
+  tmpHeader : WORD ;	
+  tmpPara2 : WORD ;	
+  tmpObjectNo : WORD ;	
+  tmpLineNo : WORD ;	
+  tmpMsgType : WORD ;	
+  tmpGr : INT ;	
+  tmpIndex : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = MESSAGE
+
+//Standard GCS90
+      L     #ObjectNo; // Change type INT --> WORD
+      T     #tmpObjectNo; 
+      L     #ClassMsgTxt; // Load: HighByte= Class ¦ Low Byte= TextNo (8 Bit)
+      SRW   8; // Delete TextNo
+      SLW   5; 
+      +     13; // add MessageFormatNo
+      T     #tmpHeader; //-> Header=Format := Class ¦ MsgFormatNo
+      L     #ClassMsgTxt; // Load: HighByte= Class ¦ Low Byte= TextNo (8 Bit)
+      L     2#11111111; // Delete Class
+      UW    ; 
+      L     #MsgType; 
+      SLW   8; 
+      OW    ; 
+      T     #tmpPara2; //-->Para2 := MsgType ¦ TextNo
+
+      L     MB    14; 
+      T     #tmpLineNo; 
+      L     #MsgType; 
+      T     #tmpMsgType; 
+      U     M     11.2; 
+      SPB   EQ00; 
+      CALL FC    46 (//---Call Message Entry---
+           DBNumber                 := 5,// Queue DB Number                
+           Header                   := #tmpHeader,// Format
+           Para1                    := #tmpObjectNo,// ObjectNumber
+           Para2                    := #tmpPara2,// MsgType ¦ TextNo
+           Para3                    := #tmpLineNo,// Line
+           Para4                    := #tmpMsgType,// MsgType S7
+           Para5                    := W#16#0,// not used 
+           Para6                    := W#16#0,// not used 
+           Para7                    := W#16#0,// not used 
+           Para8                    := W#16#0,// not used 
+           Para9                    := W#16#0,// not used 
+           Para10                   := W#16#0,// not used 
+           Para11                   := W#16#0);// not used
+EQ00: NOP   0; 
+NETWORK
+TITLE =End of Block
+
+
+
+END_FUNCTION
+

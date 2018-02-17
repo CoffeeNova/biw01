@@ -1,0 +1,221 @@
+	DATA_BLOCK DB395
+	TITLE =DBG295M  TEMPERATURE MES. KILN 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        TEMPERATURE MES. KILN 2
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB395.1.0 K.Renz              CSB41             08.Okt.2009
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG295M 
+	VERSION : 00.00
+	
+	FB395
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=29500; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=11;
+	//Parameter =A-3291-BTE01 : AIR TEMPERATURE BELOW FLOOR
+	      #A_3291_BTE01.Par.ParObjectNo                             :=29501;
+	      #A_3291_BTE01.Par.ParHornCode                             :=11;
+	      #A_3291_BTE01.Par.ParMsgType                              :=7252;
+	      #A_3291_BTE01.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3291_BTE01.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3291_BTE01.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3291_BTE01.Par.ParDelayTimeDown                        :=10;
+	      #A_3291_BTE01.Par.ParDelayTimeUp                          :=10;
+	      #A_3291_BTE01.Par.ParDelayTime                            :=30;
+	      #A_3291_BTE01.Par.ParLimitLL                              :=L#0;
+	      #A_3291_BTE01.Par.ParLimitL                               :=L#2000;
+	      #A_3291_BTE01.Par.ParLimitH                               :=L#8500;
+	      #A_3291_BTE01.Par.ParLimitHH                              :=L#10000;
+	      #A_3291_BTE01.Par.ParMonTimeLL                            :=0;
+	      #A_3291_BTE01.Par.ParMonTimeL                             :=600;
+	      #A_3291_BTE01.Par.ParMonTimeMid                           :=0;
+	      #A_3291_BTE01.Par.ParMonTimeH                             :=600;
+	      #A_3291_BTE01.Par.ParMonTimeHH                            :=0;
+	      #A_3291_BTE01.Par.ParLogOff                               :=False;
+	      #A_3291_BTE01.Par.ParValueByUser                          :=False;
+	      #A_3291_BTE01.Par.ParLimitsPc                             :=True;
+	      #A_3291_BTE01.Par.ParWago                                 :=False;
+	      #A_3291_BTE01.Par.ParNoHornByWarning                      :=False;
+	      #A_3291_BTE01.Par.ParWarningLL                            :=False;
+	      #A_3291_BTE01.Par.ParWarningL                             :=True;
+	      #A_3291_BTE01.Par.ParWarningMid                           :=False;
+	      #A_3291_BTE01.Par.ParWarningH                             :=True;
+	      #A_3291_BTE01.Par.ParWarningHH                            :=False;
+	      #A_3291_BTE01.Par.ParPreAlarmLL                           :=False;
+	      #A_3291_BTE01.Par.ParPreAlarmL                            :=False;
+	      #A_3291_BTE01.Par.ParPreAlarmMid                          :=False;
+	      #A_3291_BTE01.Par.ParPreAlarmH                            :=False;
+	      #A_3291_BTE01.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3291-BTE05 : AIR TEMPERATURE DIFFUSOR FAN 1
+	      #A_3291_BTE05.Par.ParObjectNo                             :=29502;
+	      #A_3291_BTE05.Par.ParHornCode                             :=11;
+	      #A_3291_BTE05.Par.ParMsgType                              :=7252;
+	      #A_3291_BTE05.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3291_BTE05.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3291_BTE05.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3291_BTE05.Par.ParDelayTimeDown                        :=10;
+	      #A_3291_BTE05.Par.ParDelayTimeUp                          :=10;
+	      #A_3291_BTE05.Par.ParDelayTime                            :=30;
+	      #A_3291_BTE05.Par.ParLimitLL                              :=L#0;
+	      #A_3291_BTE05.Par.ParLimitL                               :=L#2000;
+	      #A_3291_BTE05.Par.ParLimitH                               :=L#8500;
+	      #A_3291_BTE05.Par.ParLimitHH                              :=L#10000;
+	      #A_3291_BTE05.Par.ParMonTimeLL                            :=0;
+	      #A_3291_BTE05.Par.ParMonTimeL                             :=600;
+	      #A_3291_BTE05.Par.ParMonTimeMid                           :=0;
+	      #A_3291_BTE05.Par.ParMonTimeH                             :=600;
+	      #A_3291_BTE05.Par.ParMonTimeHH                            :=0;
+	      #A_3291_BTE05.Par.ParLogOff                               :=False;
+	      #A_3291_BTE05.Par.ParValueByUser                          :=False;
+	      #A_3291_BTE05.Par.ParLimitsPc                             :=True;
+	      #A_3291_BTE05.Par.ParWago                                 :=False;
+	      #A_3291_BTE05.Par.ParNoHornByWarning                      :=False;
+	      #A_3291_BTE05.Par.ParWarningLL                            :=False;
+	      #A_3291_BTE05.Par.ParWarningL                             :=True;
+	      #A_3291_BTE05.Par.ParWarningMid                           :=False;
+	      #A_3291_BTE05.Par.ParWarningH                             :=True;
+	      #A_3291_BTE05.Par.ParWarningHH                            :=False;
+	      #A_3291_BTE05.Par.ParPreAlarmLL                           :=False;
+	      #A_3291_BTE05.Par.ParPreAlarmL                            :=False;
+	      #A_3291_BTE05.Par.ParPreAlarmMid                          :=False;
+	      #A_3291_BTE05.Par.ParPreAlarmH                            :=False;
+	      #A_3291_BTE05.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3291-BTE07 : AIR TEMPERATURE ABOVE FLOOR
+	      #A_3291_BTE07.Par.ParObjectNo                             :=29503;
+	      #A_3291_BTE07.Par.ParHornCode                             :=11;
+	      #A_3291_BTE07.Par.ParMsgType                              :=7252;
+	      #A_3291_BTE07.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3291_BTE07.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3291_BTE07.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3291_BTE07.Par.ParDelayTimeDown                        :=10;
+	      #A_3291_BTE07.Par.ParDelayTimeUp                          :=10;
+	      #A_3291_BTE07.Par.ParDelayTime                            :=30;
+	      #A_3291_BTE07.Par.ParLimitLL                              :=L#0;
+	      #A_3291_BTE07.Par.ParLimitL                               :=L#2000;
+	      #A_3291_BTE07.Par.ParLimitH                               :=L#8500;
+	      #A_3291_BTE07.Par.ParLimitHH                              :=L#10000;
+	      #A_3291_BTE07.Par.ParMonTimeLL                            :=0;
+	      #A_3291_BTE07.Par.ParMonTimeL                             :=600;
+	      #A_3291_BTE07.Par.ParMonTimeMid                           :=0;
+	      #A_3291_BTE07.Par.ParMonTimeH                             :=600;
+	      #A_3291_BTE07.Par.ParMonTimeHH                            :=0;
+	      #A_3291_BTE07.Par.ParLogOff                               :=False;
+	      #A_3291_BTE07.Par.ParValueByUser                          :=False;
+	      #A_3291_BTE07.Par.ParLimitsPc                             :=True;
+	      #A_3291_BTE07.Par.ParWago                                 :=False;
+	      #A_3291_BTE07.Par.ParNoHornByWarning                      :=False;
+	      #A_3291_BTE07.Par.ParWarningLL                            :=False;
+	      #A_3291_BTE07.Par.ParWarningL                             :=True;
+	      #A_3291_BTE07.Par.ParWarningMid                           :=False;
+	      #A_3291_BTE07.Par.ParWarningH                             :=True;
+	      #A_3291_BTE07.Par.ParWarningHH                            :=False;
+	      #A_3291_BTE07.Par.ParPreAlarmLL                           :=False;
+	      #A_3291_BTE07.Par.ParPreAlarmL                            :=False;
+	      #A_3291_BTE07.Par.ParPreAlarmMid                          :=False;
+	      #A_3291_BTE07.Par.ParPreAlarmH                            :=False;
+	      #A_3291_BTE07.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3291-BTE08 : AIR TEMPERATURE AFTER BURNER 1
+	      #A_3291_BTE08.Par.ParObjectNo                             :=29504;
+	      #A_3291_BTE08.Par.ParHornCode                             :=11;
+	      #A_3291_BTE08.Par.ParMsgType                              :=7252;
+	      #A_3291_BTE08.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3291_BTE08.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3291_BTE08.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3291_BTE08.Par.ParDelayTimeDown                        :=10;
+	      #A_3291_BTE08.Par.ParDelayTimeUp                          :=10;
+	      #A_3291_BTE08.Par.ParDelayTime                            :=30;
+	      #A_3291_BTE08.Par.ParLimitLL                              :=L#0;
+	      #A_3291_BTE08.Par.ParLimitL                               :=L#2000;
+	      #A_3291_BTE08.Par.ParLimitH                               :=L#8500;
+	      #A_3291_BTE08.Par.ParLimitHH                              :=L#10000;
+	      #A_3291_BTE08.Par.ParMonTimeLL                            :=0;
+	      #A_3291_BTE08.Par.ParMonTimeL                             :=600;
+	      #A_3291_BTE08.Par.ParMonTimeMid                           :=0;
+	      #A_3291_BTE08.Par.ParMonTimeH                             :=600;
+	      #A_3291_BTE08.Par.ParMonTimeHH                            :=0;
+	      #A_3291_BTE08.Par.ParLogOff                               :=False;
+	      #A_3291_BTE08.Par.ParValueByUser                          :=False;
+	      #A_3291_BTE08.Par.ParLimitsPc                             :=True;
+	      #A_3291_BTE08.Par.ParWago                                 :=False;
+	      #A_3291_BTE08.Par.ParNoHornByWarning                      :=False;
+	      #A_3291_BTE08.Par.ParWarningLL                            :=False;
+	      #A_3291_BTE08.Par.ParWarningL                             :=True;
+	      #A_3291_BTE08.Par.ParWarningMid                           :=False;
+	      #A_3291_BTE08.Par.ParWarningH                             :=True;
+	      #A_3291_BTE08.Par.ParWarningHH                            :=False;
+	      #A_3291_BTE08.Par.ParPreAlarmLL                           :=False;
+	      #A_3291_BTE08.Par.ParPreAlarmL                            :=False;
+	      #A_3291_BTE08.Par.ParPreAlarmMid                          :=False;
+	      #A_3291_BTE08.Par.ParPreAlarmH                            :=False;
+	      #A_3291_BTE08.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3291-BTE10 : AIR TEMPERATURE BEFORE BURNER 2
+	      #A_3291_BTE10.Par.ParObjectNo                             :=29505;
+	      #A_3291_BTE10.Par.ParHornCode                             :=11;
+	      #A_3291_BTE10.Par.ParMsgType                              :=7252;
+	      #A_3291_BTE10.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3291_BTE10.Par.ParUnitsByMaxDigit                      :=L#27384;
+	      #A_3291_BTE10.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3291_BTE10.Par.ParDelayTimeDown                        :=10;
+	      #A_3291_BTE10.Par.ParDelayTimeUp                          :=10;
+	      #A_3291_BTE10.Par.ParDelayTime                            :=30;
+	      #A_3291_BTE10.Par.ParLimitLL                              :=L#0;
+	      #A_3291_BTE10.Par.ParLimitL                               :=L#2000;
+	      #A_3291_BTE10.Par.ParLimitH                               :=L#8500;
+	      #A_3291_BTE10.Par.ParLimitHH                              :=L#10000;
+	      #A_3291_BTE10.Par.ParMonTimeLL                            :=0;
+	      #A_3291_BTE10.Par.ParMonTimeL                             :=600;
+	      #A_3291_BTE10.Par.ParMonTimeMid                           :=0;
+	      #A_3291_BTE10.Par.ParMonTimeH                             :=600;
+	      #A_3291_BTE10.Par.ParMonTimeHH                            :=0;
+	      #A_3291_BTE10.Par.ParLogOff                               :=False;
+	      #A_3291_BTE10.Par.ParValueByUser                          :=False;
+	      #A_3291_BTE10.Par.ParLimitsPc                             :=True;
+	      #A_3291_BTE10.Par.ParWago                                 :=False;
+	      #A_3291_BTE10.Par.ParNoHornByWarning                      :=False;
+	      #A_3291_BTE10.Par.ParWarningLL                            :=False;
+	      #A_3291_BTE10.Par.ParWarningL                             :=True;
+	      #A_3291_BTE10.Par.ParWarningMid                           :=False;
+	      #A_3291_BTE10.Par.ParWarningH                             :=True;
+	      #A_3291_BTE10.Par.ParWarningHH                            :=False;
+	      #A_3291_BTE10.Par.ParPreAlarmLL                           :=False;
+	      #A_3291_BTE10.Par.ParPreAlarmL                            :=False;
+	      #A_3291_BTE10.Par.ParPreAlarmMid                          :=False;
+	      #A_3291_BTE10.Par.ParPreAlarmH                            :=False;
+	      #A_3291_BTE10.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	END_DATA_BLOCK

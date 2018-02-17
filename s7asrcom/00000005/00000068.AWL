@@ -1,0 +1,798 @@
+FUNCTION_BLOCK "GCS7_TractionDrive"
+TITLE =MACHINE: Traction Drive (de:Fahrantrieb)
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 86 MACHINE: Traction Drive (de:Fahrantrieb)
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB86.1.7      M.Wedler            AEB31                       05-Jan-2007
+//              Load counter value after failure
+//FB86.1.6      U.Kemmesies         AEB31                       23-Nov-2006
+//              Round counter only for Inkremental-Counter               
+//FB86.1.5      U.Kemmesies         AEB31                       14-Nov-2006
+//              Round counter               
+//FB86.1.4      M.Wedler            AEB31                       12-Sep-2006
+//              Don't reset "#Ma.CmdSetZeroPoint" after each cycle.               
+//FB86.1.3      J.Voss              AEB31                       31-Aug-2006
+//              Never clear setpoint speed [#Speed.InOutValuePc]
+//FB86.1.2      M.Wedler            AEB31                       31-Aug-2006
+//              Round counter forward and reverse for manual     
+//              and automatic mode. Stop motor by loading if
+//              flow detector is not covered.
+//FB86.1.1      A.Egli              CT3                         31-Aug-2006
+//              Count forward and reverse
+//FB86.1.0      A.Egli              CT3                         22-Mar-2006
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.xxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : StrokeDr
+VERSION : 1.7
+
+
+VAR
+  Ma : "GCS7_FB86_Data";	
+  Motor : "GCS7_E_Motor";	//Element Motor 
+  Speed : "GCS7_E_AnalogOutput";	//Element Analog output
+  LSZeroPoint : "GCS7_E_DigInput";	//LS zero point
+  Product : "GCS7_E_DigInput";	//Level probe
+  SM : "GCS7_E_DigInput";	//Speed monitoring
+  IncCounter : "GCS7_FB85_Counter";	
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpOK : BOOL ;	
+  tmpTestTime : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrCounter : DINT ;	
+  tmpAddrOffset : DINT ;	
+  tmpAdjusted : BOOL ;	
+  tmpStartPosition : BOOL ;	
+  tmpAngle1 : INT ;	
+  tmpAngleLes355 : BOOL ;	
+  tmpAngleDelta : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     80; 
+      T     #tmpLenDyn; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2086; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdUp
+      S     #Ma.CmdOnFwd; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[7]; //Cmd1[6]=CmdRev
+      S     #Ma.CmdOnRev; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+//-----------------------------------------------------------
+//Audit Log
+aExa: NOP   0; 
+//------------------------------------------
+      TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+NETWORK
+TITLE =Calculate Address for Counter
+
+      NOP   0; 
+//Calculate address for counter
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; 
+      L     P##IncCounter; 
+      +D    ; 
+      T     #tmpAddrCounter; 
+      L     #Ma.Par.ParIOByteNoCounter; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+NETWORK
+TITLE =Commands for Counter
+
+      NOP   0; 
+//Clear command or counter
+      U     #Ma.InPowerOk; // [1.7]
+      U     #IncCounter.OutpLOAD_VAL; // [1.7]
+      UN    #IncCounter.InpSTS_LOAD; // [1.7]
+      SPB   CTJ9; // [1.7]
+      LAR1  #tmpAddrCounter; 
+      L     0; 
+      T     DID [AR1,P#4.0]; 
+CTJ9: NOP   0; // [1.7]
+//---------------------------
+      SET   ; 
+      S     #IncCounter.OutpSW_GATE; 
+//---------------------------
+      U     #Ma.InPowerOk; 
+      UN    #Ma.InPowerOkDelayDone; 
+      O     ; // [1.7]
+      U     #IncCounter.OutpLOAD_VAL; // [1.7]
+      UN    #IncCounter.InpSTS_LOAD; // [1.7]
+      SPBN  CTJ1; 
+      L     #IncCounter.VarInpHold; 
+      T     #IncCounter.OutpSetCount; 
+//    SET                               // [1.7]
+      L     #IncCounter.VarInpHold; // [1.7]
+      L     #IncCounter.InpActCount; // [1.7]
+      <>D   ; // [1.7]
+      S     #IncCounter.OutpLOAD_VAL; 
+CTJ1: U     #Ma.InPowerOk; 
+      U     #Ma.InPowerOkDelayDone; 
+      UN    #IncCounter.InpSTS_LOAD; // [1.7]
+      UN    #IncCounter.OutpLOAD_VAL; // [1.7]
+      SPBN  CTJ0; 
+      L     #IncCounter.InpActCount; 
+      T     #IncCounter.VarInpHold; 
+CTJ0: NOP   0; 
+
+      U     #IncCounter.InpSTS_LOAD; // [1.7]
+      R     #IncCounter.OutpLOAD_VAL; // [1.7]
+
+NETWORK
+TITLE =Initialisation counter module 
+
+      NOP   0; 
+      U     #IncCounter.InpSTS_LOAD; 
+      ON    #Ma.InPowerOkDelayDone; 
+      R     #Ma.CmdSetZeroPoint; // [1.4]
+      SPB   InJ0; 
+//------------------------------
+//When CmdSetZeroPoint then set 0
+//------------------------------
+      U     #Ma.CmdSetZeroPoint; 
+      SPBN  InJ1; 
+      L     L#0; 
+      T     #IncCounter.OutpSetCount; 
+      T     #IncCounter.VarInpHold; // [1.7]
+      L     L#0; 
+      L     #Ma.OutIncrement; 
+      <>I   ; 
+      S     #IncCounter.OutpLOAD_VAL; //--> Command to counter to set target value
+//      SET                             // [1.4]
+//      R     #Ma.CmdSetZeroPoint       // [1.4]
+      L     #IncCounter.InpActCount; // [1.4]
+      L     #IncCounter.OutpSetCount; // [1.4]
+      ==D   ; // [1.4]
+      ON    #IncCounter.OutpLOAD_VAL; // [1.4] //--> Command to counter to set target value
+      R     #Ma.CmdSetZeroPoint; // [1.4]
+//------------------------------
+//When angle >360° then set 0
+//------------------------------
+InJ1: L     #IncCounter.InpActCount; 
+      ITD   ; 
+      L     #Ma.Par.ParIncrementsPerRound; 
+      <=I   ; 
+      ON    #Ma.Par.ParEndless; 
+      SPB   InJ2; 
+      S     #IncCounter.OutpLOAD_VAL; //--> Command to counter to set target value
+      L     L#0; 
+      T     #IncCounter.OutpSetCount; 
+      T     #IncCounter.VarInpHold; // [1.7]
+//------------------------------
+//When angle < 0° then set 360°
+//------------------------------
+InJ2: L     #IncCounter.InpActCount; 
+      ITD   ; 
+      L     0; 
+      >=I   ; 
+      ON    #Ma.Par.ParEndless; 
+      SPB   InJ0; 
+      S     #IncCounter.OutpLOAD_VAL; //--> Command to counter to set target value
+      L     #Ma.Par.ParIncrementsPerRound; 
+      T     #IncCounter.OutpSetCount; 
+      T     #IncCounter.VarInpHold; // [1.7]
+InJ0: NOP   0; 
+NETWORK
+TITLE =Read Global Command
+
+      U     "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      S     #Ma.CmdFaultReset; 
+NETWORK
+TITLE =Write Outputs of counter
+
+      L     0; 
+      L     #tmpAddrCounter; 
+      ==D   ; 
+      SPB   WCJ0; 
+///Write Outputs  Counter left
+      LAR1  #tmpAddrCounter; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounter; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAD [AR1,P#4.0]; 
+WCJ0: NOP   0; 
+NETWORK
+TITLE =Read Counter
+
+      L     0; 
+//      L     #tmpAddrCounter   // JV [1.3]
+      L     #tmpAddrIO; // JV [1.3]
+      ==D   ; 
+      SPB   RCJ0; 
+//Read IO Counter left
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#0.0]; 
+      LAR1  #tmpAddrCounter; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PED [AR1,P#4.0]; 
+      LAR1  #tmpAddrCounter; 
+      T     DID [AR1,P#12.0]; 
+RCJ0: NOP   0; 
+NETWORK
+TITLE =Speed monitoring
+
+      NOP   0; 
+//==========================================================
+//Speed Monitoring Left
+//==========================================================
+//- Check if increment is changing
+      U(    ; 
+      L     #IncCounter.InpActCount; 
+      ITD   ; 
+      L     #Ma.OutIncrement; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      O     #Motor.OutpRunFwd; 
+      O     #Motor.OutpRunRev; 
+      )     ; 
+      UN    #Ma.CmdFaultReset; 
+      SPB   M1J1; 
+      L     #Ma.Par.ParMonTime; //5s
+      T     #Ma.Par.OutMonTime; 
+      S     #SM.InpTrue; 
+//---Run monitoring time
+M1J1: UN    "GCS7_Gr_OutTick200ms"; 
+      SPB   M1J2; 
+      L     #Ma.Par.OutMonTime; 
+      +     -2; 
+      T     #Ma.Par.OutMonTime; 
+      L     0; 
+      >=I   ; 
+      SPB   M1J2; 
+      T     #Ma.Par.OutMonTime; 
+      R     #SM.InpTrue; 
+//---Store old counter value
+M1J2: L     #IncCounter.InpActCount; 
+      ITD   ; 
+      T     #Ma.OutIncrement; 
+NETWORK
+TITLE =Calculation position
+
+      NOP   0; 
+//-----
+      L     3.600000e+003; 
+      L     #Ma.Par.ParIncrementsPerRound; 
+      DTR   ; 
+      /R    ; 
+      L     #Ma.OutIncrement; 
+      DTR   ; 
+      TAK   ; 
+      *R    ; 
+      RND   ; 
+      T     #Ma.OutPositionAngle; //Position [0.1°]
+//--------
+      L     1.000000e+003; 
+      L     #Ma.Par.ParIncrementsPerRound; 
+      DTR   ; 
+      /R    ; 
+      L     #Ma.OutIncrement; 
+      DTR   ; 
+      TAK   ; 
+      *R    ; 
+//      TRUNC 
+      RND   ; 
+      T     #Ma.OutPositionRel; //Position [0.1%]
+NETWORK
+TITLE =Check Adjusted
+//Test is actual prosition is in range:
+//    InPositionTarget+Ma.Par.ParTolPosition  OutPositionLeft
+      NOP   0; 
+//------------------
+      L     #Ma.OutPositionAngle; 
+      L     #Ma.InPositionTarget; 
+      -I    ; 
+      SPP   A1J1; 
+      NEGI  ; 
+A1J1: T     #tmpAngle1; 
+      L     1800; 
+      <=I   ; 
+      ON    #Ma.Par.ParEndless; 
+      TAK   ; 
+      SPB   A1J2; 
+      L     3600; 
+      L     #tmpAngle1; 
+      -I    ; 
+A1J2: L     #Ma.Par.ParTolPosition; 
+      <=I   ; 
+      =     #Ma.OutAdjusted; 
+      U     #Ma.OutAdjusted; 
+      U     #Ma.InAdjusting; 
+      =     #tmpAdjusted; 
+NETWORK
+TITLE =Round counter
+
+      UN    #Ma.Par.ParEndless; //[1.2]
+      SPB   RCJ9; //[1.2]
+      UN    #Ma.CmdNewJob; 
+      SPB   RCJ1; 
+      S     #Ma.OutEdgeCntRoundFwd; //[1.1]
+      S     #Ma.OutEdgeCntRoundRev; //[1.1]
+      R     #Ma.CmdNewJob; 
+      L     0; 
+      T     #Ma.OutCntRound; 
+//      L     #Ma.OutPositionAngle    //[1.5]  // UK 9.11.2006 geändert
+      T     #Ma.OutPositionStart; 
+RCJ1: NOP   0; 
+//------------------
+//Calculate Delta angel between OutStartPosition and OutPositionAngle 
+//------------------
+      L     #Ma.OutPositionAngle; 
+      L     #Ma.OutPositionStart; 
+      -I    ; 
+      SPP   RCJ2; 
+      NEGI  ; 
+RCJ2: T     #tmpAngle1; 
+      L     1800; 
+      <=I   ; 
+      TAK   ; 
+      SPB   RCJ3; 
+      L     3600; 
+      L     #tmpAngle1; 
+      -I    ; 
+RCJ3: T     #tmpAngleDelta; 
+      L     1700; //Delta angle 170°
+      >I    ; 
+      R     #Ma.OutEdgeCntRoundFwd; //[1.1]
+      R     #Ma.OutEdgeCntRoundRev; //[1.1]
+//----------------------                //[1.1]
+//Round Counter                         //[1.1]
+//---------------------                 //[1.1]
+      U(    ; //[1.1]
+      L     #tmpAngleDelta; //[1.1]
+      L     #Ma.Par.ParTolPosition; //[1.1]Delta angle 1°
+      <=I   ; //[1.1]
+      )     ; //[1.1]
+      SPBN  RCJ9; //[1.1]
+//      UN    #Ma.StStartedFwd            //[1.2]
+//      UN    #Motor.InEnableFwd          //[1.1]
+      UN    #IncCounter.InpSTS_C_UP; //[1.6]       UK 23.11.2006 geändert
+      SPB   RCJ4; //[1.1]
+      U     #Ma.OutEdgeCntRoundFwd; //[1.1]
+      SPB   RCJ9; //[1.1]
+      S     #Ma.OutEdgeCntRoundFwd; //[1.1]
+      R     #Ma.OutEdgeCntRoundRev; //[1.1]
+      L     #Ma.OutCntRound; //[1.1]
+//      +     L#1                         //[1.1]  // UK 14.11.2006 geändert
+      L     L#1; //[1.5]       UK 14.11.2006 geändert
+      +D    ; //[1.5]       UK 14.11.2006 geändert
+      T     #Ma.OutCntRound; //[1.1]
+      SPA   RCJ9; //[1.1]
+// RCJ4: UN    #Ma.StStartedRev            //[1.2]
+// RCJ4: UN    #Motor.InEnableRev          //[1.1]
+RCJ4: UN    #IncCounter.InpSTS_C_DN; //[1.6]       UK 23.11.2006 geändert
+      SPB   RCJ9; //[1.1]
+      U     #Ma.OutEdgeCntRoundRev; //[1.1]
+      SPB   RCJ9; //[1.1]
+      S     #Ma.OutEdgeCntRoundRev; //[1.1]
+      R     #Ma.OutEdgeCntRoundFwd; //[1.1]
+      L     #Ma.OutCntRound; //[1.1]
+      L     L#1; //[1.1]
+      -D    ; //[1.1]
+      T     #Ma.OutCntRound; //[1.1]
+      L     0; //[1.1]
+      >=D   ; //[1.1]
+      SPB   RCJ9; //[1.1]
+      L     0; //[1.1]
+      T     #Ma.OutCntRound; //[1.1]
+RCJ9: NOP   0; 
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//--------------
+      U     #Ma.CmdOnFwd; 
+      S     #Ma.OutManStartReqFwd; 
+      R     #Ma.OutManStartReqRev; 
+      U     #Ma.CmdOnRev; 
+      R     #Ma.OutManStartReqFwd; 
+      S     #Ma.OutManStartReqRev; 
+      U     #Ma.CmdOff; 
+      ON    #Ma.InManual; 
+      R     #Ma.OutManStartReqFwd; 
+      R     #Ma.OutManStartReqRev; 
+//--- Fault----
+      U     #Motor.StFault; 
+      O     #Speed.StFault; 
+      O     #LSZeroPoint.StFault; 
+      O     #Product.StFault; 
+      O     #SM.StFault; 
+      =     #tmpFaultSum; 
+//--- InLocal----
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+      =     #Motor.InLocal; 
+      =     #Speed.InLocal; 
+      =     #LSZeroPoint.InLocal; 
+      =     #Product.InLocal; 
+      =     #SM.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+      S     #Speed.CmdFaultReset; 
+      S     #LSZeroPoint.CmdFaultReset; 
+      S     #Product.CmdFaultReset; 
+      S     #SM.CmdFaultReset; 
+NETWORK
+TITLE =Interlocking Motor
+
+      UN    #tmpFaultSum; 
+      ON    #Ma.InInterlocked; 
+      U(    ; 
+      UN    #tmpAdjusted; 
+      ON    #Ma.InAdjusting; 
+      UN    #Ma.InManual; 
+      O     #Ma.OutManStartReqRev; 
+      )     ; 
+      U     #Ma.InEnableRev; 
+      U     #Ma.InPowerOkDelayDone; 
+      =     #Motor.InEnableRev; 
+
+      UN    #tmpFaultSum; 
+      ON    #Ma.InInterlocked; 
+      U(    ; 
+      UN    #tmpAdjusted; 
+      ON    #Ma.InAdjusting; 
+      UN    #Ma.InManual; 
+      O     #Ma.OutManStartReqFwd; 
+      )     ; 
+      U(    ; //[1.2]
+      U     #Ma.InLoading; //[1.2]
+      U     #Product.InpTrue; //[1.2]
+      ON    #Ma.InLoading; //[1.2]
+      )     ; //[1.2]
+      U     #Ma.InEnableFwd; 
+      U     #Ma.InPowerOkDelayDone; 
+      =     #Motor.InEnableFwd; 
+
+      U     #Ma.CmdNext; 
+      O     #Ma.InManual; 
+      S     #Motor.CmdNext; 
+NETWORK
+TITLE =Interlocking Speed
+
+      UN    #Motor.InEnableRev; 
+      UN    #Motor.InEnableFwd; 
+      UN    #Ma.InManual; 
+      UN    #Motor.InManual; 
+      U     "SYS_infLog0"; // never disable JV [1.3]
+      =     #Speed.InDisable; 
+      L     0; 
+      SPB   SpJ1; 
+      L     #Ma.InSpeed; 
+SpJ1: T     #Speed.InOutValuePc; 
+      SET   ; 
+      =     #Speed.Par.ParValuePc; 
+NETWORK
+TITLE =Interlocking Flow control
+//At start of loading:
+//   If the flow detector is covered then generate alarm
+//
+//During loading:
+//   If the flowdectecor is to long covered then generate alarm
+      CLR   ; 
+      =     #Product.InMonTrue; 
+      =     #Product.Par.Par2WorkingCond; 
+      U     #Ma.InLoading; 
+      =     #Product.InMonFalse; 
+      U     #Product.InpTrue; 
+      FP    #Ma.OutEdgeLoading; 
+      S     #Product.CmdRunTimeoutTime; 
+NETWORK
+TITLE =Control Element SM
+
+      U     #Motor.StStartedRev; 
+      O     #Motor.StStartedFwd; 
+      =     #SM.InMonTrue; 
+NETWORK
+TITLE =Control Element LSZeroPoint
+//      CLR   
+//      =     #LSZeroPoint.InpTrue
+//      =     #LSZeroPoint.InMonTrue
+      U     #Ma.InManual; 
+      O     #Motor.InManual; 
+      U     #LSZeroPoint.OutFlagPos; 
+      S     #Motor.CmdOff; 
+NETWORK
+TITLE =Call Motor
+
+      CALL #Motor ;
+
+NETWORK
+TITLE =Call Analog Output: Speed
+
+      CALL #Speed ;
+
+NETWORK
+TITLE =Call Digital Input: LSZeroPoint
+
+      CALL #LSZeroPoint ;
+
+NETWORK
+TITLE =Call Digital Input: Product
+
+      CALL #Product ;
+
+NETWORK
+TITLE =Call Digital Input: SM
+
+      CALL #SM ;
+
+NETWORK
+TITLE =States
+
+      U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StAdjusted; 
+      SPB   S6; 
+      U     #Ma.StStartedFwd; 
+      SPB   S2; 
+      U     #Ma.StStartedRev; 
+      SPB   S5; 
+      U     #Ma.StStopping; 
+      SPB   S3; 
+      U     #Ma.StStarting; 
+      SPB   S1; 
+      U     #Ma.StFault; 
+      SPB   S4; 
+      SPA   xxS0; //Initialise: goto StStopped
+
+NETWORK
+TITLE =StStopped
+
+xxS0: S     #Ma.StStopped; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; 
+//---Transition -> StStarting
+      U     #Ma.OutManStartReqFwd; 
+      O     #Ma.OutManStartReqRev; 
+      U     #Ma.InManual; 
+      ON    #Motor.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; 
+//---Transition for StAdjusted
+      U     #tmpAdjusted; 
+      UN    #tmpLocal; 
+      R     #Ma.StStopped; 
+      SPB   xxS6; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStarting
+//== Any transition to StStarting
+xxS1: SET   ; 
+      S     #Ma.StStarting; 
+      SPA   SAVE; 
+//== Logic ====
+//---Transition -> StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; 
+//---Transition -> StStartedUn
+      U     #Motor.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; 
+//---Transition -> StStartingRev
+      U     #Motor.StStartedRev; 
+      R     #Ma.StStarting; 
+      SPB   xxS5; 
+//---Transition for StStopping
+      U     #Motor.StStopped; 
+      UN    #Ma.OutManStartReqFwd; 
+      UN    #Ma.OutManStartReqRev; 
+      O     #tmpLocal; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; 
+//---Transition for StAdjusted
+      U     #tmpAdjusted; 
+      UN    #tmpLocal; 
+      R     #Ma.StStarting; 
+      SPB   xxS6; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStartedFwd
+
+xxS2: SET   ; 
+      S     #Ma.StStartedFwd; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S2:   U     #tmpFaultSum; //---Condition for StFault
+      R     #Ma.StStartedFwd; 
+      SPB   xxS4; 
+//---Transition -> StStoppting
+      UN    #Motor.StStartedFwd; 
+      R     #Ma.StStartedFwd; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStartedRev
+
+xxS5: SET   ; 
+      S     #Ma.StStartedRev; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S5:   U     #tmpFaultSum; //---Condition for StFault
+      R     #Ma.StStartedRev; 
+      SPB   xxS4; 
+//---Transition -> StStoppting
+      UN    #Motor.StStartedRev; 
+      R     #Ma.StStartedRev; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StAdjusted
+
+xxS6: SET   ; 
+      S     #Ma.StAdjusted; 
+//---Transition -> StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS4; 
+//---Transition for StStarting
+      UN    #Motor.StStopped; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS1; 
+//---Transition -> StStopping
+      UN    #tmpAdjusted; 
+      O     #tmpLocal; 
+      R     #Ma.StAdjusted; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStopping
+//===Any transition to StStopping
+xxS3: SET   ; 
+      S     #Ma.StStopping; 
+      SPA   SAVE; 
+//===Logic =======================
+//---Transtition -> StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; 
+//---Transition for StAdjusted
+      U     #tmpAdjusted; 
+      U     #Motor.StStopped; 
+      UN    #tmpLocal; // [1.2]
+      R     #Ma.StStopping; 
+      SPB   xxS6; 
+//---Transition -> StStopped
+      U     #Motor.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; 
+//---Transition -> StStarting
+      UN    #Motor.StStopping; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; 
+      SPA   SAVE; 
+NETWORK
+TITLE = StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #Ma.StFault; 
+//===logic
+//---Transition -> StStopping
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+NETWORK
+TITLE =Global End
+
+SAVE: SET   ; //---Clear all commands
+      R     #Ma.CmdOnFwd; 
+      R     #Ma.CmdOnRev; 
+      R     #Ma.CmdOff; 
+      R     #Ma.CmdNext; 
+      R     #Ma.CmdFaultReset; 
+//---------------------------------
+      UN    #Motor.StStarting; 
+      UN    #Motor.StStartedFwd; 
+      UN    #Motor.StStartedRev; 
+      ON    #Ma.InManual; 
+      R     #Ma.OutManStartReqRev; 
+      R     #Ma.OutManStartReqFwd; 
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      U     #Ma.StStopped; 
+      L     1; 
+      SPB   STC9; 
+      U     #Ma.StStarting; 
+      L     2; 
+      SPB   STC9; 
+      U     #Ma.StStartedFwd; 
+      L     3; 
+      SPB   STC9; 
+      U     #Ma.StStartedRev; 
+      L     5; 
+      SPB   STC9; 
+      U     #Ma.StAdjusted; 
+      L     6; 
+      SPB   STC9; 
+      U     #Ma.StStopping; 
+      L     7; 
+      SPB   STC9; 
+      L     32; // Code: fault
+STC9: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+END_FUNCTION_BLOCK
+

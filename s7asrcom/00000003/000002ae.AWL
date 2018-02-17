@@ -1,0 +1,452 @@
+	DATA_BLOCK DB 799
+	TITLE =Line parameter DB : MALTING LINE
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	VERSION : 9.9
+	//
+	//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Line parameter : MALTING LINE
+	//
+	//
+	//
+	//
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P01_DB810.1.0 K.Renz              CSB41                              30.Sep.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	
+	
+	  STRUCT 	
+	   Spare0 : WORD ;	
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   Spare6 : WORD ;	
+	   Spare8 : WORD ;	
+	   Spare10 : WORD ;	
+	   Switches1 : STRUCT 	
+	    StaOn24 : BOOL ;	//Example for comment: StaOn24WaterPumpA
+	    StaOn25 : BOOL ;	
+	    StaOn26 : BOOL ;	
+	    StaOn27 : BOOL ;	
+	    StaOn28 : BOOL ;	
+	    StaOn29 : BOOL ;	
+	    StaOn30 : BOOL ;	
+	    StaOn31 : BOOL ;	
+	    StaOn16 : BOOL ;	
+	    StaOn17 : BOOL ;	
+	    StaOn18 : BOOL ;	
+	    StaOn19 : BOOL ;	
+	    StaOn20 : BOOL ;	
+	    StaOn21 : BOOL ;	
+	    StaOn22 : BOOL ;	
+	    StaOn23 : BOOL ;	
+	    StaOn08 : BOOL ;	
+	    StaOn09 : BOOL ;	
+	    StaOn10 : BOOL ;	
+	    StaOn11 : BOOL ;	
+	    StaOn12 : BOOL ;	
+	    StaOn13 : BOOL ;	
+	    StaOn14 : BOOL ;	
+	    StaOn15 : BOOL ;	
+	    StaOn00 : BOOL ;	
+	    StaOn01 : BOOL ;	
+	    StaOn02 : BOOL ;	
+	    StaOn03 : BOOL ;	
+	    StaOn04 : BOOL ;	
+	    StaOn05 : BOOL ;	
+	    StaOn06 : BOOL ;	
+	    StaOn07 : BOOL ;	
+	   END_STRUCT ;	
+	   Switches2 : STRUCT 	
+	    StaOn24 : BOOL ;	
+	    StaOn25 : BOOL ;	
+	    StaOn26 : BOOL ;	
+	    StaOn27 : BOOL ;	
+	    StaOn28 : BOOL ;	
+	    StaOn29 : BOOL ;	
+	    StaOn30 : BOOL ;	
+	    StaOn31 : BOOL ;	
+	    StaOn16 : BOOL ;	
+	    StaOn17 : BOOL ;	
+	    StaOn18 : BOOL ;	
+	    StaOn19 : BOOL ;	
+	    StaOn20 : BOOL ;	
+	    StaOn21 : BOOL ;	
+	    StaOn22 : BOOL ;	
+	    StaOn23 : BOOL ;	
+	    StaOn08 : BOOL ;	
+	    StaOn09 : BOOL ;	
+	    StaOn10 : BOOL ;	
+	    StaOn11 : BOOL ;	
+	    StaOn12 : BOOL ;	
+	    StaOn13 : BOOL ;	
+	    StaOn14 : BOOL ;	
+	    StaOn15 : BOOL ;	
+	    StaOn00 : BOOL ;	
+	    StaOn01 : BOOL ;	
+	    StaOn02 : BOOL ;	
+	    StaOn03 : BOOL ;	
+	    StaOn04 : BOOL ;	
+	    StaOn05 : BOOL ;	
+	    StaOn06 : BOOL ;	
+	    StaOn07 : BOOL ;	
+	   END_STRUCT ;	
+	   Values1 : STRUCT 	//Lineparameter data written by Host-System
+	    Value01 : DINT ;	//Example for comment: TurnoverTime [xxxs]
+	    Value02 : DINT ;	
+	    Value03 : DINT ;	
+	    Value04 : DINT ;	
+	    Value05 : DINT ;	
+	    Value06 : DINT ;	
+	    Value07 : DINT ;	
+	    Value08 : DINT ;	
+	    Value09 : DINT ;	
+	    Value10 : DINT ;	
+	    Value11 : DINT ;	
+	    Value12 : DINT ;	
+	    Value13 : DINT ;	
+	    Value14 : DINT ;	
+	    Value15 : DINT ;	
+	    Value16 : DINT ;	
+	    Value17 : DINT ;	
+	    Value18 : DINT ;	
+	    Value19 : DINT ;	
+	    Value20 : DINT ;	
+	    Value21 : DINT ;	
+	    Value22 : DINT ;	
+	    Value23 : DINT ;	
+	    Value24 : DINT ;	
+	    Value25 : DINT ;	
+	    Value26 : DINT ;	
+	    Value27 : DINT ;	
+	    Value28 : DINT ;	
+	    Value29 : DINT ;	
+	    Value30 : DINT ;	
+	   END_STRUCT ;	
+	   Spare140 : ARRAY  [140 .. 199 ] OF BYTE ;	
+	   ParInt : STRUCT 	//Lineparameter data written by Host-System
+	    ParMaxDwellTime : INT ; //Maximum Time before alarm [s]	
+	    Value2 : WORD ;	//Example for comment: TurnoverTime [xxxs]
+	    Value3 : WORD ;	
+	    Value4 : WORD ;	
+	    Value5 : WORD ;	
+	    Value6 : WORD ;	
+	    Value7 : WORD ;	
+	    Value8 : WORD ;	
+	    Value9 : WORD ;	
+	    Value10 : WORD ;	
+	    Value11 : WORD ;	
+	    Value12 : WORD ;	
+	    Value13 : WORD ;	
+	    Value14 : WORD ;	
+	    Value15 : WORD ;	
+	    Value16 : WORD ;	
+	    Value17 : WORD ;	
+	    Value18 : WORD ;	
+	    Value19 : WORD ;	
+	    Value20 : WORD ;	
+	    Value21 : WORD ;	
+	    Value22 : WORD ;	
+	    Value23 : WORD ;	
+	    Value24 : WORD ;	
+	    Value25 : WORD ;	
+	    Value26 : WORD ;	
+	    Value27 : WORD ;	
+	    Value28 : WORD ;	
+	    Value29 : WORD ;	
+	    Value30 : WORD ;	
+	    Value31 : WORD ;	
+	    Value32 : WORD ;	
+	    Value33 : WORD ;	
+	    Value34 : WORD ;	
+	    Value35 : WORD ;	
+	    Value36 : WORD ;	
+	    Value37 : WORD ;	
+	    Value38 : WORD ;	
+	    Value39 : WORD ;	
+	    Value40 : WORD ;	
+	    Value41 : WORD ;	
+	    Value42 : WORD ;	
+	    Value43 : WORD ;	
+	    Value44 : WORD ;	
+	    Value45 : WORD ;	
+	    Value46 : WORD ;	
+	    Value47 : WORD ;	
+	    Value48 : WORD ;	
+	    Value49 : WORD ;	
+	    Value50 : WORD ;	
+	   END_STRUCT ;	
+	   FlagS01 : STRUCT 	//Flags section 1
+	    Inf24 : BOOL ;	//Example for comment: Inf24WaterPumpA
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   FlagS02 : STRUCT 	//flags section 2
+	    Inf24 : BOOL ;	//Example for comment: Inf24WaterPumpA
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   FlagS03 : STRUCT 	//Flags section 3
+	    Inf24 : BOOL ;	//Example for comment: Inf24WaterPumpA
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   FlagS04 : STRUCT 	//Flags section 4
+	    Inf24 : BOOL ;	//Example for comment: Inf24WaterPumpA
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   FlagGen00 : STRUCT 	//Flags general
+	    Inf24 : BOOL ;	//Example for comment: Inf24WaterPumpA
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   FlagGen33 : STRUCT 	//Flags general
+	    Inf24staPCCOffline : BOOL ;	//Host is offline
+	    Inf25 : BOOL ;	
+	    Inf26 : BOOL ;	
+	    Inf27 : BOOL ;	
+	    Inf28 : BOOL ;	
+	    Inf29 : BOOL ;	
+	    Inf30 : BOOL ;	
+	    Inf31 : BOOL ;	
+	    Inf16 : BOOL ;	
+	    Inf17 : BOOL ;	
+	    Inf18 : BOOL ;	
+	    Inf19 : BOOL ;	
+	    Inf20 : BOOL ;	
+	    Inf21 : BOOL ;	
+	    Inf22 : BOOL ;	
+	    Inf23 : BOOL ;	
+	    Inf08 : BOOL ;	
+	    Inf09 : BOOL ;	
+	    Inf10 : BOOL ;	
+	    Inf11 : BOOL ;	
+	    Inf12 : BOOL ;	
+	    Inf13 : BOOL ;	
+	    Inf14 : BOOL ;	
+	    Inf15 : BOOL ;	
+	    Inf00 : BOOL ;	
+	    Inf01 : BOOL ;	
+	    Inf02 : BOOL ;	
+	    Inf03 : BOOL ;	
+	    Inf04 : BOOL ;	
+	    Inf05 : BOOL ;	
+	    Inf06 : BOOL ;	
+	    Inf07 : BOOL ;	
+	   END_STRUCT ;	
+	   PLCValue : STRUCT 	//Value used only in the PLC
+	    Value01 : DINT ;	//Example for comment: TurnoverTime [xxxs]
+	    Value02 : DINT ;	
+	    Value03 : DINT ;	
+	    Value04 : DINT ;	
+	    Value05 : DINT ;	
+	    Value06 : DINT ;	
+	    Value07 : DINT ;	
+	    Value08 : DINT ;	
+	    Value09 : DINT ;	
+	    Value10 : DINT ;	
+	    Value11 : DINT ;	
+	    Value12 : DINT ;	
+	    Value13 : DINT ;	
+	    Value14 : DINT ;	
+	    Value15 : DINT ;	
+	    Value16 : DINT ;	
+	    Value17 : DINT ;	
+	    Value18 : DINT ;	
+	    Value19 : DINT ;	
+	    Value20 : DINT ;	
+	    Value21 : DINT ;	
+	    Value22 : DINT ;	
+	    Value23 : DINT ;	
+	    Value24 : DINT ;	
+	    Value25 : DINT ;	
+	    Value26 : DINT ;	
+	    Value27 : DINT ;	
+	    Value28 : DINT ;	
+	    Value29 : DINT ;	
+	    Value30 : DINT ;	
+	   END_STRUCT ;	
+	   FaultTimeoutFeedOff : STRUCT     //Delay Timer
+	    PT : DINT ; 
+	    ET : DINT ; 
+	    EN : BOOL ; 
+	    Q : BOOL ;  
+	   END_STRUCT ; 
+	   FaultTimeoutImmStop : STRUCT     //Delay Timer
+	    PT : DINT ; 
+	    ET : DINT ; 
+	    EN : BOOL ; 
+	    Q : BOOL ;  
+	   END_STRUCT ; 
+	  END_STRUCT ;	
+	BEGIN
+	   Spare0 := W#16#0; 
+	END_DATA_BLOCK

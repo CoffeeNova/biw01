@@ -1,0 +1,221 @@
+FUNCTION_BLOCK "SSA_SEW_MOVITRAC"
+TITLE =SEW MOVITRAC
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      SSA
+//
+//TITLE:        SEW MOVITRAC Frequency Inverter Profibus Communication
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:         AUTHOR:             DEPT:                            DATE:
+//
+//FB1812.2.0     M.Wedler            AEB41                            13-Okt-2008
+//               2nd Release
+//FB1811.1.0     A.Egli              CT3                              13-Jul-2007
+//               1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : MW
+FAMILY : STD
+VERSION : 0.0
+
+
+VAR
+  InValuePC : INT ;	//Setpoint value 1 in [0.01 %]
+  InEnableRev : BOOL ;	
+  InEnableFwd : BOOL ;	
+  CmdFaultReset : BOOL ;	
+  OutRunningRev : BOOL ;	//Feedback for element motor
+  OutRunningFwd : BOOL ;	//Feedback for element motor
+  OutFault : BOOL ;	//Feedback for element motor
+  MotorStStopped : BOOL ;	//Motor has come to a standstill after stopping time
+  Spare : BOOL ;	
+  OutValuePC : INT ;	//Aktuel value 1 in [0.01 %]
+  Input : STRUCT 	
+   StateWord_1 : STRUCT 	//Statuswort MOVIDRIVE
+    STATE_WORD_BIT_8 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_9 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_10 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_11 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_12 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_13 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_14 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    STATE_WORD_BIT_15 : BOOL ;	//Geraetezustand / Fehelr-Nummer
+    ENDSTUFE_FREIGEGEBEN : BOOL ;	//0=Endstufe gesperrt                 1=Endstufe freigegeben
+    BETRIEBSBEREIT : BOOL ;	//0=Umrichter nicht betriebsbereit    1=Umrichter betriebsbereit              
+    PA_DATEN_FREIGEGEBEN : BOOL ;	//0=PA-Daten gesperrt                 1=PA-Daten freigegeben
+    AKTUELL_INTEGRATORSATZ : BOOL ;	//0=Integrator 1                      1=Integrator 2
+    AKTUELL_PARAMETERSATZ : BOOL ;	//0=Parametersatz 1                   1=Parametersatz 2
+    STOERUNG_WARNUNG : BOOL ;	//0=keine Störung/Warnung             1=Störung/Warnung
+    LS_RECHTS_AKTIV : BOOL ;	//1=Endschalter RECHTS betaetigt -> Drehrichtung RECHTS gesperrt
+    LS_LINKS_AKTIV : BOOL ;	//1=Endschalter LINKS betaetigt -> Drehrichtung LINKS gesperrt
+   END_STRUCT ;	
+   ActualValue01 : INT ;	//Hauptistwert / Prozessdaten PD2
+   ActualValue02 : INT ;	//Prozessdaten PD3
+   ActualValue03 : INT ;	//Prozessdaten PD4
+   ActualValue04 : INT ;	//Prozessdaten PD5
+   ActualValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Output : STRUCT 	
+   ControlWord_1 : STRUCT 	//Steuerwort MOVIDRIVE
+    CONTROL_WORD_BIT_8 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_9 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_10 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_11 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_12 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_13 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_14 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    CONTROL_WORD_BIT_15 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+    REGLERSPERRE : BOOL ;	//0=Freigabe                          1=Regler sperren, Bremse aktivieren
+    FREIGABE_SCHNELLSTOPP : BOOL ;	//0=Schnellstopp                      1=Freigabe                             
+    FREIGABE_HALT : BOOL ;	//0=Halt an Integrator/Prozess-Rampe  1=Freigabe                             
+    HALTEREGELUNG : BOOL ;	//0=Halteregelung nicht aktiv         1=Halteregelung aktiv
+    INTEGRATOR : BOOL ;	//0=Integrator 1                      1=Integrator 2
+    PARAMETERSATZ : BOOL ;	//0=Parametersatz 1                   1=Parametersatz 2
+    RESET : BOOL ;	//0=nicht aktiv                       1=Fehler quittieren
+    RESERVE_BIT_7 : BOOL ;	//Reserviert für Zusatzfuktionen = "0"
+   END_STRUCT ;	
+   SetpointValue01 : INT ;	//Hauptsollwert / Prozessdaten PD2
+   SetpointValue02 : INT ;	//Prozessdaten PD3
+   SetpointValue03 : INT ;	//Prozessdaten PD4
+   SetpointValue04 : INT ;	//Prozessdaten PD5
+   SetpointValue05 : INT ;	//Prozessdaten PD6
+  END_STRUCT ;	
+  Par : STRUCT 	
+   spare1 : INT ;	
+   spare2 : INT ;	
+   spare3 : INT ;	
+   ParMOVITRAC : BOOL ;	
+   ParSinamics : BOOL ;	
+   ParMicromaster : BOOL ;	
+   ParABB : BOOL ;	
+   ParNord : BOOL ;	
+   ParDanfoss : BOOL ;	
+   ParIOByteNo : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrDB : INT ;	
+  tmpAddrIO : DINT ;	
+  tmpAddrInputFU : DINT ;	
+  tmpAddrOutputFU : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Calculate Address of Inverter
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+
+      L     P##Input; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrInputFU; 
+
+      L     P##Output; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrOutputFU; 
+NETWORK
+TITLE =Prepare Commands for Inverter SEW MOVITRAC
+
+      UN    #Par.ParMOVITRAC; 
+      SPB   MDJ0; 
+//- Prepare steuerword
+      U     #Input.StateWord_1.STATE_WORD_BIT_15; 
+      =     #Output.ControlWord_1.FREIGABE_SCHNELLSTOPP; 
+
+      U     #InEnableFwd; 
+      O     #InEnableRev; 
+      =     #Output.ControlWord_1.REGLERSPERRE; 
+
+NETWORK
+TITLE =Prepare setpoint value
+//Motor nominal speed:
+//C000H = -16384Dez = -100.0% (direction left)
+//4000H = +16384Dez = +100.0% (direction right)
+      L     #OutValuePC; 
+      ITD   ; 
+      DTR   ; 
+      L     1.638400e+000; 
+      *R    ; 
+      RND   ; 
+      U     #InEnableRev; 
+      SPBN  tsp; 
+      NEGD  ; 
+tsp:  T     #Output.SetpointValue01; 
+NETWORK
+TITLE =Communication to Inverter SEW MOVITRAC               
+
+
+      CALL "Standard_MC07" (
+           DRIVE_IO_ADDRESS         := #Par.ParIOByteNo,
+           ENABLE_RAPID_STOP        := #Output.ControlWord_1.FREIGABE_SCHNELLSTOPP,
+           ENABLE                   := #Output.ControlWord_1.REGLERSPERRE,
+           RESET                    := #CmdFaultReset,
+           SETPOINT_SPEED           := #Output.SetpointValue01,
+           RAMP                     := 10000,
+           COMMUNICATION_OK         := #Input.StateWord_1.STATE_WORD_BIT_15,
+           INVERTER_READY           := #Input.StateWord_1.BETRIEBSBEREIT,
+           FAULT_OF_AXIS            := #Input.StateWord_1.STOERUNG_WARNUNG,
+           FAULT_NO                 := #Input.ActualValue05,
+           ACTUAL_SPEED             := #Input.ActualValue01,
+           OUTPUT_CURRENT           := #Input.ActualValue02);
+
+NETWORK
+TITLE =Set State of Inverter SEW MOVITRAC
+
+//- Feedback for motor
+      U     #Input.StateWord_1.BETRIEBSBEREIT; 
+      UN    #Input.StateWord_1.STOERUNG_WARNUNG; 
+      U     #InEnableRev; 
+      =     #OutRunningRev; 
+
+      U     #Input.StateWord_1.BETRIEBSBEREIT; 
+      UN    #Input.StateWord_1.STOERUNG_WARNUNG; 
+      U     #InEnableFwd; 
+      =     #OutRunningFwd; 
+
+      U     #Input.StateWord_1.STOERUNG_WARNUNG; 
+      =     #OutFault; 
+
+NETWORK
+TITLE =Prepare actual value
+//Motor nominal speed:
+//C000H = -16384Dez = -100.0% (direction left)
+//4000H = +16384Dez = +100.0% (direction right)
+      L     #Input.ActualValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      L     1.638400e+000; 
+      /R    ; 
+      RND   ; 
+      T     #InValuePC; 
+NETWORK
+TITLE =
+
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+NETWORK
+TITLE =
+
+MDJ0: NOP   0; 
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

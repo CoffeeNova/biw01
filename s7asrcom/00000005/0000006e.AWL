@@ -1,0 +1,665 @@
+FUNCTION_BLOCK "GCS7_M_FluidlifVessel"
+TITLE =Pressure Vessel Conveying system
+//  
+//COPYRIGHT:    (C) 1999  BUEHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 82 Machine Control:Fluidlift with Vessel
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB82.1.1      A. Egli             CT3                          3-Mar-2005
+//              Close Blowoff valve when stopped
+//FB82.1.0      A. Egli             CT3                         15-Dec-2004
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.FLVxxMAN]
+//
+//RESTRICTIONS: S7
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : FLVessel
+VERSION : 1.1
+
+
+VAR
+  Ma : "GCS7_M_FB82_Data";	
+  Blower : "GCS7_E_Motor";	
+  Pressure : "GCS7_E_PressureRange";	
+  BlowOff : "GCS7_E_ValveControl";	//Element
+  FillingFlap : "GCS7_E_ValveControl";	//Element
+  BlowlineFlap : "GCS7_E_ValveControl";	//Element
+  InletFlap : "GCS7_E_ValveControl";	//Element
+  OutletFlap : "GCS7_E_ValveControl";	//Element
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpVKE : BOOL ;	
+  tmpEnableConveying : BOOL ;	//General condition for conveying Valve
+  tmpLenDyn : INT ;	
+  tmpEnableClearing : BOOL ;	
+  tmpEnableFilling : BOOL ;	
+  tmpFillingReq : BOOL ;	
+  tmpFault : BOOL ;	
+  tmpLocal : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     30; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2082; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParMinConveyingTime; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Ma.Par.ParClearingTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //CmdOff   
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //CmdConveying
+      S     #Ma.CmdConveying; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //CmdFilling
+      S     #Ma.CmdFilling; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //CmdManualOff
+      R     #Ma.InManual; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; ///Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+//Fault 
+      O     #Blower.StFault; 
+      O     #Pressure.StFault; 
+      O     #BlowOff.StFault; 
+      O     #FillingFlap.StFault; 
+      O     #InletFlap.StFault; 
+      O     #BlowlineFlap.StFault; 
+      O     #OutletFlap.StFault; 
+      =     #tmpFault; 
+//Local
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+      U     #FillingFlap.StLN; 
+      ON    #Ma.Par.ParWithFillingFlap; 
+      U     #OutletFlap.StLN; 
+      U     #InletFlap.StLN; 
+      U     #BlowlineFlap.StLN; 
+      O     #tmpFault; 
+      U     #tmpLocal; 
+      S     #FillingFlap.InLocal; 
+
+      UN    #tmpLocal; 
+      R     #FillingFlap.InLocal; 
+      U     #FillingFlap.InLocal; 
+      =     #BlowlineFlap.InLocal; 
+      =     #InletFlap.InLocal; 
+      =     #OutletFlap.InLocal; 
+
+      U     #BlowOff.InLocal; //[1.1]
+      O     #BlowOff.StLN; //[1.1]
+      U     #FillingFlap.InLocal; //[1.1]
+      =     #BlowOff.InLocal; //[1.1]
+      U     #tmpLocal; 
+      =     #Blower.InLocal; 
+      =     #Pressure.InLocal; 
+//Enable 
+      U(    ; 
+      UN    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      O     ; 
+      U     #Ma.OutManFilling; 
+      U     #Ma.InManual; 
+      O     ; 
+      U     #Ma.OutManConveying; 
+      U     #Ma.InManual; 
+      )     ; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+//Manual filling
+      U     #Ma.CmdFilling; 
+      S     #Ma.OutManFilling; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      O     #Ma.CmdConveying; 
+      R     #Ma.OutManFilling; 
+//Manual conveying
+      U     #Ma.CmdConveying; 
+      S     #Ma.OutManConveying; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      O     #Ma.CmdFilling; 
+      R     #Ma.OutManConveying; 
+//Warning
+      U     #Pressure.OutNoMinP; 
+      =     #Ma.OutWarning; 
+NETWORK
+TITLE =Call Blower
+
+      CALL #Blower ;
+
+NETWORK
+TITLE =Call BlowOff
+
+      CALL #BlowOff ;
+
+NETWORK
+TITLE =Call Pressure
+
+      CALL #Pressure ;
+
+NETWORK
+TITLE =Call FillingFlap
+
+      UN    #Ma.Par.ParWithFillingFlap; 
+      SPB   E04; 
+      CALL #FillingFlap ;
+
+NETWORK
+TITLE =Call InletFlap
+
+E04:  CALL #InletFlap ;
+
+NETWORK
+TITLE =Call BlowlineFlap
+
+      CALL #BlowlineFlap ;
+
+NETWORK
+TITLE =Call OutletFlap
+
+      CALL #OutletFlap ;
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StStarting; 
+      SPB   S1; 
+      U     #Ma.StConveying; 
+      SPB   S2; 
+      U     #Ma.StStopping; 
+      SPB   S3; 
+      U     #Ma.StFault; 
+      SPB   S4; 
+      U     #Ma.StClearing; 
+      SPB   S5; 
+      U     #Ma.StWaiting; 
+      SPB   S6; 
+      U     #Ma.StFilling; 
+      SPB   S7; 
+      SPA   xxS6; // ===> Initialisation
+
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; 
+      SPA   OUT; 
+//=== Logic
+S0:   U     #tmpFault; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //-->Fault
+      UN    #FillingFlap.StLN; 
+      U     #Ma.Par.ParWithFillingFlap; 
+      R     #Ma.StStopped; 
+      SPB   xxS7; //-->StFilling
+      UN    #Blower.StStopped; 
+      UN    #Blower.StFault; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //-->Starting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+//=== Logic
+S1:   U     #tmpFault; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //-->Fault
+      U     #Blower.StStopped; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+      U     #Blower.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS6; 
+      SPA   OUT; 
+NETWORK
+TITLE =StConveying
+//any Transition 
+xxS2: S     #Ma.StConveying; 
+      R     #Ma.OutConveyingTimeDone; 
+      L     0; 
+      T     #Ma.Par.OutConveyingTime; 
+//=== Logic
+// Condition for Stopped
+S2:   U     #tmpFault; 
+      R     #Ma.StConveying; 
+      SPB   xxS4; //-->Fault
+      UN    #Blower.StStartedFwd; 
+      R     #Ma.StConveying; 
+      SPB   xxS3; //--> StStopping
+// Condition for Clearing
+      UN    #OutletFlap.StHN; 
+      UN    #InletFlap.StHN; 
+      O     #Ma.OutConveyingTimeDone; 
+      R     #Ma.StConveying; 
+      SPB   xxS5; //--> StClearing
+      U     #OutletFlap.StHN; 
+      U     #InletFlap.StHN; 
+      U     #BlowlineFlap.StHN; 
+      U     "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPBN  S2H2; 
+      L     #Ma.Par.OutConveyingTime; 
+      +     2; 
+      T     #Ma.Par.OutConveyingTime; 
+      L     #Ma.Par.ParMinConveyingTime; 
+      L     #Ma.Par.OutConveyingTime; 
+      <=I   ; 
+      S     #Ma.OutConveyingTimeDone; 
+S2H2: SPA   OUT; 
+NETWORK
+TITLE =StStopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+//=== Logic
+S3:   U     #tmpFault; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //-->Fault
+      U     #BlowOff.StLN; //[1.1]
+      ON    #Ma.InSeqStop; //[1.1]
+      U     #Blower.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+      SPA   OUT; 
+NETWORK
+TITLE =StFault
+
+xxS4: S     #Ma.StFault; 
+S4:   U     #tmpFault; 
+      SPB   OUT; 
+      U     #Blower.StStartedFwd; 
+      R     #Ma.StFault; 
+      SPB   xxS6; //--> StWaiting
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+      L     0; 
+      T     #Ma.Par.OutClearingTime; 
+//=== Logic
+S5:   U     #tmpFault; 
+      R     #Ma.StClearing; 
+      SPB   xxS4; //-->Fault
+// Condition for StCleared Case 1:
+      L     #Ma.Par.ParClearingTime; 
+      L     #Ma.Par.OutClearingTime; 
+      <=I   ; 
+      U     #Ma.OutConveyingTimeDone; 
+      R     #Ma.OutLoaded; 
+// Condition for StStopped
+      <=I   ; 
+      ON    #BlowlineFlap.StHN; 
+      ON    #Blower.StStartedFwd; 
+      R     #Ma.StClearing; 
+      SPB   xxS6; //--> StWaiting
+// Condition for StConveying
+      U     #OutletFlap.StHN; 
+      U     #InletFlap.StHN; 
+      UN    #Ma.OutConveyingTimeDone; 
+      R     #Ma.StClearing; 
+      SPB   xxS2; //--> StConveing
+//Clearing Time
+      U     #Pressure.StMinP; 
+      O     #Ma.InNoWaitMinP; 
+      U     "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      UN    #tmpFault; 
+      SPBN  OUT; 
+      L     #Ma.Par.OutClearingTime; 
+      +     2; 
+      T     #Ma.Par.OutClearingTime; 
+      SPA   OUT; 
+NETWORK
+TITLE =StWaiting
+//any Transition 
+xxS6: S     #Ma.StWaiting; 
+      SPA   OUT; 
+//=== Logic
+S6:   U     #tmpFault; //-->StFault
+      R     #Ma.StWaiting; 
+      SPB   xxS4; 
+//Condition for StFilling
+      UN    #FillingFlap.StLN; 
+      U     #Ma.Par.ParWithFillingFlap; 
+      R     #Ma.StWaiting; 
+      SPB   xxS7; //-->StFilling
+//Condition for StConveying
+      U     #OutletFlap.StHN; 
+      U     #InletFlap.StHN; 
+      U     #BlowlineFlap.StHN; 
+      U     #BlowOff.StLN; 
+      R     #Ma.StWaiting; 
+      SPB   xxS2; //-->StConveying
+// Condition for StStopped
+      UN    #Blower.StStartedFwd; 
+      R     #Ma.StWaiting; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+NETWORK
+TITLE =StFilling
+//any Transition 
+xxS7: S     #Ma.StFilling; 
+      S     #Ma.OutLoaded; 
+      R     #Ma.OutConveyingTimeDone; 
+//=== Logic
+S7:   U     #tmpFault; 
+      R     #Ma.StFilling; //-->StFault
+      SPB   xxS4; 
+      U     #FillingFlap.StLN; 
+      R     #Ma.StFilling; 
+      SPB   xxS6; //--> StWaiting
+      SPA   OUT; 
+
+NETWORK
+TITLE =State Code
+// State           StCode
+// ----------------------
+// StFault            32
+// StStopped.Empty     1
+// StStopped.Loaded   11
+// StStarting          2 
+// StConveying         3
+// StClearing.Ok       4
+// StClearing.Warning 14
+// StWaiting.Empty     6
+// StWaiting.Loaded   16
+// StStopping          7 
+// StFilling           8
+//
+OUT:  L     1; //Code=Stopped.Empty
+      U     #Ma.StStopped; 
+      UN    #Ma.OutLoaded; 
+      SPB   Code; 
+      L     11; //Code=Stopped.Loaded
+      U     #Ma.StStopped; 
+      SPB   Code; 
+      L     2; //Code=Staring
+      U     #Ma.StStarting; 
+      SPB   Code; 
+      L     3; //Code=Conveying
+      U     #Ma.StConveying; 
+      SPB   Code; 
+      L     4; //Code=Clearing.Ok
+      U     #Ma.StClearing; 
+      UN    #Ma.OutWarning; 
+      SPB   Code; 
+      L     14; //Code=Clearing.Warning
+      U     #Ma.StClearing; 
+      SPB   Code; 
+      L     5; //Code=Waiting.Empty
+      U     #Ma.StWaiting; 
+      UN    #Ma.OutLoaded; 
+      SPB   Code; 
+      L     15; //Code=Waiting.Loaded
+      U     #Ma.StWaiting; 
+      SPB   Code; 
+      L     7; //Code=Stopping
+      U     #Ma.StStopping; 
+      SPB   Code; 
+      L     8; //Code=Filling
+      U     #Ma.StFilling; 
+      SPB   Code; 
+      L     32; //StFault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      UC    "SYS_CBitCtrl"; //Set change bit
+
+NETWORK
+TITLE =General Commands
+
+      U     #Ma.CmdFaultReset; 
+      S     #Blower.CmdFaultReset; 
+      S     #Pressure.CmdFaultReset; 
+      S     #BlowOff.CmdFaultReset; 
+      S     #FillingFlap.CmdFaultReset; 
+      S     #InletFlap.CmdFaultReset; 
+      S     #BlowlineFlap.CmdFaultReset; 
+      S     #OutletFlap.CmdFaultReset; 
+//----
+      UN    #Ma.InManual; 
+      U     #Ma.InEnableFilling; 
+      O     #Ma.OutManFilling; 
+      =     #tmpFillingReq; 
+
+      U     #tmpFillingReq; 
+      U     #InletFlap.StLN; 
+      U     #OutletFlap.StLN; 
+      U     #BlowOff.StHN; 
+      =     #tmpEnableFilling; 
+//--- Manaul 
+      U     #Ma.CmdConveying; 
+      U     #Ma.InManual; 
+      S     #Ma.OutLoaded; 
+
+      U     #Ma.OutManConveying; 
+      S     #Ma.CmdNext; 
+//---
+      U     #Ma.OutLoaded; 
+      UN    #Ma.InManual; 
+      U(    ; 
+      UN    #Ma.OutConveyingTimeDone; 
+      ON    #Ma.InNoWaitMinP; 
+      ON    #Ma.OutLoaded; 
+      ON    #Ma.InEnableFilling; 
+      )     ; 
+      O     #Ma.OutManConveying; 
+      U     #Blower.StStartedFwd; 
+      U(    ; 
+      U     #FillingFlap.StLN; 
+      ON    #Ma.Par.ParWithFillingFlap; 
+      )     ; 
+      U     #tmpEnable; 
+      UN    #tmpLocal; 
+      =     #tmpEnableConveying; 
+NETWORK
+TITLE =Commands Blower
+
+      UN    #Pressure.StOverP; 
+      UN    #Pressure.StFault; 
+      UN    #BlowOff.StFault; 
+      U(    ; 
+      U     #InletFlap.StHN; 
+      UN    #BlowlineFlap.InManual; 
+      UN    #BlowlineFlap.StFault; 
+      O     #BlowOff.StHN; 
+      O     #BlowlineFlap.StHN; 
+      )     ; 
+      U     #tmpEnable; 
+      UN    #Ma.StStopping; 
+      =     #Blower.InEnableFwd; 
+
+      U     #Blower.InEnableFwd; 
+      UN    #Blower.InSeqStop; 
+      UN    #BlowlineFlap.InManual; 
+      UN    #InletFlap.InManual; 
+      UN    #OutletFlap.InManual; 
+      UN    #tmpFault; 
+      U     #Ma.CmdNext; 
+      S     #Blower.CmdNext; 
+
+      UN    #Ma.OutLoaded; 
+      O     #tmpFault; 
+      O     #Ma.InSeqStop; 
+      =     #Blower.InSeqStop; 
+
+      U     #tmpFault; 
+      R     #Ma.OutAutostart; 
+      U     #Ma.CmdNext; 
+      O     #Ma.CmdConveying; 
+      S     #Ma.OutAutostart; 
+NETWORK
+TITLE =Command FillingFlap
+
+      U     #tmpEnableFilling; 
+      =     #FillingFlap.InEnableHN; 
+      NOT   ; 
+      =     #FillingFlap.InEnableLN; 
+      U     #Ma.CmdNext; 
+      O     #Ma.InManual; 
+      O     #FillingFlap.InEnableLN; 
+      S     #FillingFlap.CmdNext; 
+NETWORK
+TITLE =Command BlowOffFlap
+
+      U     #InletFlap.StHN; 
+      R     #BlowOff.InEnableHN; 
+      S     #BlowOff.InEnableLN; 
+      U     #Ma.StWaiting; 
+      U     #Ma.InClearing; 
+      ON    #tmpEnableConveying; 
+      ON    #Blower.StStartedFwd; 
+      ON    #FillingFlap.InEnableLN; 
+      S     #BlowOff.InEnableHN; 
+      R     #BlowOff.InEnableLN; 
+      U     #tmpLocal; //[1.1]
+      O     #Ma.InSeqStop; //[1.1]
+      U     #BlowlineFlap.StLN; //[1.1]
+      R     #BlowOff.InEnableHN; //[1.1]
+      S     #BlowOff.InEnableLN; //[1.1]
+      SET   ; 
+      S     #BlowOff.CmdNext; 
+NETWORK
+TITLE =Command BlowLineFlap/ OutletFlap /InletFlap
+//BlowlineFlap
+      NOP   0; 
+//InletFlap   (Air)
+      U     #tmpEnableConveying; 
+      S     #InletFlap.InEnableHN; 
+      R     #InletFlap.InEnableLN; 
+      UN    #tmpEnableConveying; 
+      U     #BlowOff.StHN; 
+      O     #Ma.InClearing; 
+      O     #Pressure.StCtoOverP; 
+      ON    #FillingFlap.InEnableLN; 
+      S     #InletFlap.InEnableLN; 
+      R     #InletFlap.InEnableHN; 
+      UN    #BlowlineFlap.InManual; 
+      UN    #OutletFlap.InManual; 
+      U     #Ma.CmdNext; 
+      O     #InletFlap.InEnableLN; 
+      S     #InletFlap.CmdNext; 
+//--OutletFlap ----
+      U     #tmpEnableConveying; 
+      U     #BlowOff.StLN; 
+      S     #OutletFlap.InEnableHN; 
+      R     #OutletFlap.InEnableLN; 
+      UN    #tmpEnableConveying; 
+      U     #BlowOff.StHN; 
+      O     #Ma.InClearing; 
+      O     #Pressure.StCtoOverP; 
+      ON    #FillingFlap.InEnableLN; 
+      R     #OutletFlap.InEnableHN; 
+      S     #OutletFlap.InEnableLN; 
+      U     #OutletFlap.InEnableLN; 
+      UN    #OutletFlap.StLN; 
+      O     #Ma.OutAutostart; 
+      S     #OutletFlap.CmdNext; 
+//BlowlineFlap ----
+      U     #tmpEnableConveying; 
+      U     #BlowOff.StLN; 
+      S     #BlowlineFlap.InEnableHN; 
+      R     #BlowlineFlap.InEnableLN; 
+      U     #Ma.InClearing; 
+      ON    #tmpEnableConveying; 
+      U     #BlowOff.StHN; 
+      ON    #FillingFlap.InEnableLN; 
+      R     #BlowlineFlap.InEnableHN; 
+      S     #BlowlineFlap.InEnableLN; 
+      U     #Ma.OutAutostart; 
+      O     #BlowlineFlap.InEnableLN; 
+      S     #BlowlineFlap.CmdNext; 
+NETWORK
+TITLE =Interlocking Pressure
+//--- Interlocking pressure 
+      U     #Ma.StClearing; 
+      =     #Pressure.InMonMinP; 
+NETWORK
+TITLE =Global End
+//Next
+//---Clear all commands
+      CLR   ; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdConveying; 
+      =     #Ma.CmdFilling; 
+END_FUNCTION_BLOCK
+

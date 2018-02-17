@@ -1,0 +1,543 @@
+FUNCTION_BLOCK FB 44
+TITLE =Scourer
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 44 Machine Control:Scourer 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB44.5.2      A. Egli             CT3                         12-Sep-2003
+//              No command Scourer.CmdNext as long InSeqStop
+//FB44.5.1      A. Egli             CT3                         22-Jul-2003
+//              Scourer.InLocal 
+//FB44.5.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB44.4.3      Ph. Engler          MU664                       03-Apr-2002
+//              - Transition from stBypassed to stStarted
+//                only if Flap.StHn
+//              - Scourer.InLocal reset only if not Flap.StHn
+//FB44.4.2      A. Egli             CT3                         24-Mai-2002
+//              Set Scourer to local, if machine is bypassed
+//FB44.4.1      Ph. Engler          MU664                       13-Mar-2002
+//              - Screw: CmdFaultReset corrected
+//              - Machine: stFault corrected
+//              - Screw: InSeqStop if bypassed integrated
+//FB44.4.0      A. Egli             CT3                         24-Mai-2000
+//              Screw and Scraper 
+//FB44.3.1      S.Kalberer          CT3                         10-Dec-1999
+//              Scourer motor seqstops on Aspiration fan fault
+//FB44.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB44.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB44.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB44.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MHXENMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Scourer
+VERSION : 5.2
+
+
+VAR
+  Ma : UDT 20440;	
+  AspLow : FB 12;	//Element 
+  AspHigh : FB 12;	//Element 
+  Scourer : FB 12;	//Element 
+  ManFlap : FB 13;	//Element 
+  HL : FB 14;	//Element 
+  Screw : FB 12;	//Element 
+  Scraper : FB 11;	//Element 
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpStopped : BOOL ;	
+  tmpOffsetInstanzDB : DWORD ;	
+  tmpAddrParMa : DWORD ;	//Byte Nr of first Parameter in Instanz DB
+  tmpAddrParaElement : DWORD ;	
+  tmpNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpEnableOpen : BOOL ;	
+  tmpEmpty : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     10; 
+      T     #tmpLenDyn; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2044; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   aExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      O     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+
+
+aCmd: U     DB3.DBX   53.0; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   55.5; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+
+      UN    DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+aEnd: NOP   0; 
+
+
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+      UN    #tmpLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+//--- Fault----
+      U     #AspLow.StFault; 
+      O     #AspHigh.StFault; 
+      O     #Scourer.StFault; 
+      O     #HL.StFault; 
+      O     #ManFlap.StFault; 
+      O     #Screw.StFault; // [4.1]
+      O     #Scraper.StFault; // [4.1]
+      =     #tmpFaultSum; 
+//--- Next
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   InX1; 
+      U     #tmpNext; 
+      S     #Screw.CmdNext; 
+InX1: UN    #Ma.Par.ParWithScraper; 
+      SPB   InX2; 
+      U     #tmpNext; 
+      S     #Scraper.CmdNext; 
+InX2: U(    ; 
+      O     #Screw.StStartedFwd; 
+      ON    #Ma.Par.ParWithScrew; 
+      )     ; 
+      U(    ; 
+      O     #Scraper.StStarted; 
+      ON    #Ma.Par.ParWithScraper; 
+      )     ; 
+      U     #tmpNext; 
+      S     #AspLow.CmdNext; 
+      U     #AspLow.StStartedFwd; 
+      U     #tmpNext; 
+      S     #AspHigh.CmdNext; 
+      U     #AspHigh.StStartedFwd; // 3.1:
+      ON    #Ma.Par.ParWithAspHigh; // 3.1:
+      U     #AspLow.StStartedFwd; // 3.1:
+      U     #tmpNext; // 3.1:
+      UN    #Scourer.InSeqStop; //[5.2]
+      S     #Scourer.CmdNext; 
+
+//--- Interlocking
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   InE1; 
+      U     #tmpEnable; 
+      =     #Screw.InEnableFwd; 
+InE1: UN    #Ma.Par.ParWithScraper; 
+      SPB   InE2; 
+      U(    ; 
+      O     #Screw.StStartedFwd; 
+      ON    #Ma.Par.ParWithScrew; 
+      )     ; 
+      U     #tmpEnable; 
+      =     #Scraper.InEnable; 
+InE2: U     #tmpEnable; 
+      =     #AspLow.InEnableFwd; 
+      U     #tmpEnable; 
+      =     #AspHigh.InEnableFwd; 
+
+      U(    ; 
+      U     #Screw.StStartedFwd; 
+      ON    #Ma.Par.ParWithScrew; 
+      )     ; 
+      U(    ; 
+      U     #Scraper.StStarted; 
+      ON    #Ma.Par.ParWithScraper; 
+      )     ; 
+      U     #tmpEnable; 
+//      UN    #ManFlap.StHN // [4.1]
+      =     #Scourer.InEnableFwd; 
+//Sequenz stop
+      UN    #Ma.InManual; 
+      U     #Ma.InSeqStop; 
+      =     #AspLow.InSeqStop; 
+      =     #AspHigh.InSeqStop; 
+
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   InQ1; 
+      U     #AspLow.InSeqStop; 
+      =     #Screw.InSeqStop; 
+InQ1: UN    #Ma.Par.ParWithScraper; 
+      SPB   InQ2; 
+      U     #AspLow.InSeqStop; 
+      =     #Scraper.InSeqStop; 
+InQ2: U     #AspHigh.StFault; // 3.1:
+      U     #Ma.Par.ParWithAspHigh; // 3.1:
+      O     #AspLow.StFault; // 3.1:
+      O     #AspLow.InSeqStop; 
+      O     #ManFlap.StHN; // [4.1]
+      =     #Scourer.InSeqStop; 
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #AspLow.InLocal; 
+      =     #AspHigh.InLocal; 
+      =     #ManFlap.InLocal; 
+      =     #HL.InLocal; 
+
+      UN    #tmpLocal; // [4.2]
+      UN    #ManFlap.StHN; // [4.3]
+      R     #Scourer.InLocal; // [4.2]
+      U     #ManFlap.StHN; // [4.2]
+      U     #Scourer.StStopped; // [4.2]
+      O     #tmpLocal; // [5.1]
+      S     #Scourer.InLocal; // [4.2]
+
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   InL1; 
+      U     #tmpLocal; 
+      =     #Screw.InLocal; 
+InL1: UN    #Ma.Par.ParWithScraper; 
+      SPB   InL2; 
+      U     #tmpLocal; 
+      =     #Scraper.InLocal; 
+//--- Fault Reset -------------
+InL2: U     #Ma.CmdFaultReset; 
+      S     #AspLow.CmdFaultReset; 
+      S     #AspHigh.CmdFaultReset; 
+      S     #Scourer.CmdFaultReset; 
+      S     #ManFlap.CmdFaultReset; 
+      S     #HL.CmdFaultReset; 
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   InF1; 
+      U     #Ma.CmdFaultReset; // [4.1]
+      S     #Screw.CmdFaultReset; 
+InF1: UN    #Ma.Par.ParWithScraper; 
+      SPB   InF2; 
+      U     #Ma.CmdFaultReset; 
+      S     #Scraper.CmdFaultReset; 
+//--- Monitoring HL
+InF2: SET   ; 
+      S     #HL.InMonFalse; 
+
+NETWORK
+TITLE =Call AspLow
+
+      CALL #AspLow ;
+
+NETWORK
+TITLE =Call AspHigh
+
+      UN    #Ma.Par.ParWithAspHigh; 
+      SPB   el3; 
+      CALL #AspHigh ;
+
+NETWORK
+TITLE =Call Scourer
+
+el3:  CALL #Scourer ;
+
+NETWORK
+TITLE =Call ManFlap
+
+      CALL #ManFlap ;
+
+NETWORK
+TITLE =Call Digital Input: HL
+
+      UN    #Ma.Par.ParWithHL; 
+      SPB   HLen; 
+      CALL #HL ;
+HLen: NOP   0; 
+NETWORK
+TITLE =Call Motor: Screw
+
+      UN    #Ma.Par.ParWithScrew; 
+      SPB   SCen; 
+      CALL #Screw ;
+SCen: NOP   0; 
+NETWORK
+TITLE =Call Digital Output: Scraper
+
+      UN    #Ma.Par.ParWithScraper; 
+      SPB   SPen; 
+      CALL #Scraper ;
+SPen: NOP   0; 
+NETWORK
+TITLE =Jump to actual state
+
+      U     #AspHigh.StStopped; 
+      ON    #Ma.Par.ParWithAspHigh; 
+      U     #AspLow.StStopped; 
+      U     #Scourer.StStopped; 
+      U(    ; 
+      U     #Screw.StStopped; 
+      ON    #Ma.Par.ParWithScrew; 
+      )     ; 
+      U(    ; 
+      U     #Scraper.StStopped; 
+      ON    #Ma.Par.ParWithScraper; 
+      )     ; 
+      =     #tmpStopped; 
+//====================================
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+      U     #Ma.StBypassed; 
+      SPB   S6; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #tmpStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Scourer.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StBypassed
+      U     #AspHigh.StStartedFwd; 
+      ON    #Ma.Par.ParWithAspHigh; 
+      U     #AspLow.StStartedFwd; 
+      U     #ManFlap.StHN; 
+      R     #Ma.StStarting; 
+      SPB   xxS6; //-->StBypassed
+// Condition for StStopping
+      U     #AspLow.InSeqStop; 
+      ON    #AspLow.InEnableFwd; 
+      O     #tmpStopped; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StBypassed
+      U     #AspHigh.StStartedFwd; 
+      ON    #Ma.Par.ParWithAspHigh; 
+      U     #AspLow.StStartedFwd; 
+      U     #ManFlap.StHN; 
+      R     #Ma.StStarted; 
+      SPB   xxS6; //-->StBypassed
+// Condition for StStopping
+      UN    #Scourer.StStartedFwd; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #tmpStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      U     #AspHigh.StStartedFwd; 
+      U     #Ma.Par.ParWithAspHigh; 
+      U     #AspLow.StStartedFwd; 
+      U     #ManFlap.StHN; 
+      O     #Scourer.StStartedFwd; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS1; //-->StStopping 
+
+NETWORK
+TITLE =StBypassed
+//any Transition 
+xxS6: S     #Ma.StBypassed; 
+//=== Logic
+// Condition for StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StBypassed; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #AspHigh.StStartedFwd; 
+      ON    #Ma.Par.ParWithAspHigh; 
+      U     #AspLow.StStartedFwd; 
+      U     #Scourer.StStartedFwd; 
+      U     #ManFlap.StLN; // [4.3]
+      R     #Ma.StBypassed; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #AspHigh.StStartedFwd; 
+      U     #Ma.Par.ParWithAspHigh; 
+      ON    #AspLow.StStartedFwd; 
+      O     ; 
+      U     #Scourer.StStopped; 
+      UN    #ManFlap.StHN; 
+      UN    #ManFlap.StCtoLN; 
+      R     #Ma.StBypassed; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted.Wait   3
+// StStarted.Feeding4
+// StEmptying    5
+// StBypassed    6
+// StStopping  7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StBypassed; 
+      L     9; //Code=StBypassed
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    FC     2; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+
+END_FUNCTION_BLOCK
+

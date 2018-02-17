@@ -1,0 +1,39 @@
+TYPE "GCS7_UDT_FaultPattern"
+
+
+  STRUCT 	
+   Es00 : BOOL ;	
+   Es01 : BOOL ;	
+   Es02 : BOOL ;	
+   Es03 : BOOL ;	
+   Es04 : BOOL ;	
+   Es05 : BOOL ;	
+   Es06 : BOOL ;	
+   Es07 : BOOL ;	
+   Es08 : BOOL ;	
+   Es09 : BOOL ;	
+   Es10 : BOOL ;	
+   Es11 : BOOL ;	
+   Es12 : BOOL ;	
+   Es13 : BOOL ;	
+   Es14 : BOOL ;	
+   EsNewBinTimeout : BOOL ;	//ASW: Max. delay time to send a new bin
+   EsBatchSize : BOOL ;	
+   EsRefillLevel : BOOL ;	
+   EsSectionTimeOut : BOOL ;	//ASW: Max. section time to stay in section 
+   EsHandAddTimeOut : BOOL ;	//ASW: Max. delay time to accept manual ingredients 
+   EsRecipePlace : BOOL ;	//ASW: Fault recipe place
+   EsProductMismatch : BOOL ;	//ASW: Product check failed
+   Es22 : BOOL ;	
+   Es23 : BOOL ;	
+   EsEmpty : BOOL ;	
+   EsFull : BOOL ;	
+   EsWayConflict : BOOL ;	
+   EsWarning : BOOL ;	
+   EsMech : BOOL ;	
+   EsDosing : BOOL ;	
+   EsEmptying : BOOL ;	
+   EsInterrupt : BOOL ;	
+  END_STRUCT ;	
+END_TYPE
+

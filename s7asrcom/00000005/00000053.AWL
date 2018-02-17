@@ -1,0 +1,1042 @@
+FUNCTION "CWA_ScaleCtrlSub" : VOID
+TITLE =CWA SUBROUTINE
+//  
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      CWA
+//
+//TITLE:        SCALE CONTROL: SUBROUTINE
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC40.1.7      A. Egli             CT3                           21-Set-2004
+//              Registration: Test Ingr.WtActual >0 
+//FC40.1.6      A. Egli             CT3                           12-Jun-2003
+//              Test if more than 48 bins 
+//FC40.1.5      A. Egli             CT3                           12-April-2000
+//              Negativ CutoffWt >= 2* ParTolPosWt 
+//FC40.1E       A. Egli             CT3                           12-Nov-98
+//              Fault in SUBROUTINE EMPTYING_MONITORING 
+//              Run closing delay only if scale is open
+//FC40.1D       A. Egli             CT3                           24-Jun-98
+//              Start part recipe
+//              DBB52: First Ingredient
+//              DBB53: Number of Ingredient
+//FC40.1C       A. Egli             AEE61                         18-Mar-98
+//              Update to S5 Version 2F
+//
+//FC40.1B       A. Egli             AEE61                         20-Jan-98
+//              Update to S5 Version 2D
+//
+//FC40.1A       S. Kalberer         AEE61                         24-Apr-96
+//              1st Release in S7, converted from FB40.1D
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : CWAMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//$EJECT
+AUTHOR : EA
+FAMILY : CWA
+NAME : CWASubr
+VERSION : 1.7
+CODE_VERSION1
+
+
+VAR_TEMP
+  InCode : WORD ;	//InFunctionCode
+  TargetAddress : DWORD ;	//temp address pointer
+  Cnt : WORD ;	//temp loop counter
+  tmpAddr : DWORD ;	
+  tmpTimeTarget : INT ;	
+  tmpTimeTotal : INT ;	
+  tmpWtPartIngr : DINT ;	
+  tmpWtDiff : DINT ;	
+  tmpWtCorr : DINT ;	
+  tmpWt : DINT ;	
+  tmpBinNr : INT ;	
+  tmpWtDiffIsPos : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =FC-PARAMETER
+//FC-PARAMETER:
+//-------------
+//  CODE: CODE OF EXECUTING FUNCTION
+//        KY 0,0   : SUBROUTINE RESET TIMER
+//        KY 0,1   : SUBROUTINE RUN DosingMonDelay
+//        KY 0,2   : SUBROUTINE RUN SettlingTime
+//        KY 0,4   : SUBROUTINE DOSING_MONITORING
+//        KY 0,5   : SUBROUTINE EMPTYING_MONITORING
+//        KY 0,8   : SUBROUTINE RUN DAMPENING TIME SCALE CLOSED
+//        KY 0,10  : SUBROUTINE RUN CLOSING DELAY IF EMPTY
+//        KY 0,11  : SUBROUTINE CORRECTION CUTOFF VALUE
+//        KY 0,12  : SUBROUTINE TOLERANCE TEST
+//                   Input : DW196 = var_tol._pos_unit
+//                           DW197 = var_tol._pos_%
+//                   Output: M199.0: 1=fault pos
+//                   Output: M199.1: 1=fault neg
+//                   Output: M199.2: 1=Ingr.Done
+//        KY 1,1   : SUBROUTINE TEST_RESULT_DB
+//        KY 1,2   : SUBROUTINE INIT_RESULT
+//        KY 1,4   : SUBROUTINE REGISTRATION_INGREDIENT
+//        KY 2,1   : SUBROUTINE TEST_RECIPE_DB
+//        KY 2,2   : SUBROUTINE COUNT INGR
+//        KY 2,4   : SUBROUTINE READ RECIPE INGR
+//        KY 2,8   : SUBROUTINE MODIFY_RECIPE
+//        KY 4,1   : SUBROUTINE TEST_BIN_PARAMETER_DB
+//        KY 4,2   : SUBROUTINE READ_BIN_PARA
+//        KY 4,4   : SUBROUTINE WRITE_BIN_PARA
+//        KY 4,8   : SUBROUTINE TEST BIN
+//                      Input  : DW195 = Bin-Nr
+//                      Output : M 199.3 : 1= Fault
+//                               DW197 = DW_NR_Bin
+//                               DW198 = relBinNr
+//
+//ACTUAL DB BY CALL: SCALE    DB
+//AUFGESCHALGENER  : WAAGEN   DB
+//
+//
+      T     #InCode; 
+
+NETWORK
+TITLE =Subroutine Reset Time
+//Not implemented.
+//Instead of this function call, write your self:
+//      L     S5T#0MS                     // Partimer_1
+//      SE    T [DBW 24]                  // --> Reset Timer
+
+
+
+
+
+
+
+
+
+
+
+
+NETWORK
+TITLE = Subroutine Run DosingMonDelay
+
+      L     #InCode; 
+      L     B#(0, 1); // CODE= Run Settling time dos.
+      <>I   ; 
+      SPB   NX4; // NEXT;
+      UN    M    189.3; // --> inf_DelayMon
+      ON    "SYS_Tick1s"; 
+      BEB   ; 
+      L     DBW   96; // var_DosingMonDelay
+      +     10; 
+      T     DBW   96; // var_DosingMonDelay
+      L     DBW  160; // ParDosingMonDelay
+      >=I   ; 
+      R     M    189.3; // --> inf_DelayMon
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Run Settling time
+
+NX4:  L     #InCode; 
+      L     B#(0, 2); // CODE= Run Settling time
+      <>I   ; 
+      SPB   NX5; 
+      L     W#16#999; 
+      L     DBW  194; // ParSettlingTime
+      DTB   ; 
+      <D    ; 
+      SPB   NX4s; 
+      L     W#16#1000; // time_base 1/10s
+NX4a: OW    ; 
+      U     M    193.4; // --> sta_SettlingTime
+      SE    T [DBW 24]; // Partimer_1 --> Timer
+      U     T [DBW 24]; // Partimer_1 --> Timer
+      R     M    193.4; // --> sta_SettlingTime
+      BEA   ; 
+NX4s: SRW   4; 
+      L     W#16#2000; // time_base 1 s
+      SPA   NX4a; 
+NETWORK
+TITLE = Subroutine Dosing monitoring
+
+NX5:  L     #InCode; 
+      L     B#(0, 4); // CODE= dos_MONITORING
+      <>I   ; 
+      SPB   NX6; // NEXT;
+      L     DBW  378; // var_MonTime
+      L     0; 
+      >I    ; 
+      SPB   OK5; // -- INIT --------------------
+      L     DBW  162; // ParDosingMonTime
+      T     DBW  378; // --> var_MonTime
+      L     DBD  254; // inf_ScaleWt
+      T     DBD  380; // --> var_MonTara
+OK5:  UN    "SYS_Tick1s"; // -- CONTROL -----------------
+      BEB   ; 
+      U     M    191.2; // es_DosingMon
+      O     M    189.3; // inf_DosingMon
+      SPB   TI2; 
+      L     DBW  378; // var_MonTime [1/10s]
+      +     -10; 
+      T     DBW  378; // --> var_MonTime [1/10s]
+      L     0; 
+      >I    ; 
+      SPB   TI2; // --- CONTROL ---------------
+      L     DBW  166; // ParDosingMonWtFast
+      U     M    180.6; // outp_DosingFast
+      SPB   X1; 
+      L     DBW  168; // ParDosingMinWtSlow
+X1:   L     DBD  380; // var_MonTara
+      U     DBX    7.0; // ParNegativeWeighing
+      SPB   NX5n; 
+      +D    ; 
+      L     DBD  254; // inf_ScaleWt
+      >=D   ; 
+      UN    DBX    7.0; // ParNegativeWeighing
+      SPB   ERRO; 
+      SPA   TI2; 
+NX5n: TAK   ; 
+      -D    ; 
+      L     DBD  254; // inf_ScaleWt
+      <D    ; 
+      SPB   ERRO; 
+      SPA   TI2; 
+ERRO: S     M    191.2; // --> es_time_outdos
+      L     63; 
+      T     DBW  246; // --> errCodeSW
+TI2:  L     DBW  328; // Ingr.DosingTime
+      L     DBW  354; // ParDosingTimeMax
+      <=I   ; 
+      O(    ; 
+      L     0; // no monitioring
+      ==I   ; 
+      )     ; 
+      BEB   ; // --- error 2 -------------------
+      S     M    191.4; // --> es_DosingTime
+      L     64; 
+      T     DBW  246; // --> errCodeSW
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Emptying monitoring
+
+NX6:  L     #InCode; 
+      L     B#(0, 5); // CODE= Emptying monitoring
+      <>I   ; 
+      SPB   NX7; // NEXT;
+      L     DBW  378; // var_MonTime
+      L     0; 
+      >I    ; 
+      SPB   OK6; // -- INIT -------------------
+      L     DBW  164; // ParEmptyingMonTime
+      T     DBW  378; // --> var_MonTime [s]
+      L     DBD  254; // inf_ScaleWt
+      T     DBD  380; // --> var_MonTara
+OK6:  UN    "SYS_Tick1s"; // -- CONTROL -----------------
+      BEB   ; 
+      L     DBW  376; // var_emptying_time
+      +     1; 
+      T     DBW  376; // --> var_emptying_time
+      L     DBW  172; // ParEmptyingTimeMax
+      <=I   ; 
+      O(    ; 
+      L     0; // no monitioring
+      ==I   ; 
+      )     ; 
+      SPB   MONI; 
+      S     M    191.1; // --> es_emptying_time
+      L     62; 
+      T     DBW  246; // --> errCodeSW
+MONI: L     DBW  378; // var_MonTime [1/10s]
+      L     10; //[1E]
+      -I    ; 
+      T     DBW  378; // --> var_MonTime [1/10s]
+      SPP   OUT; // --- CONTROL ---------------
+      L     DBD  380; // var_MonTara
+      L     DBW  170; // ParEmptyingMonWt
+      -D    ; 
+      L     DBD  254; // inf_ScaleWt
+      >=D   ; 
+      BEB   ; 
+      S     M    191.1; // --> es_emptyingTime
+      L     61; 
+      T     DBW  246; // --> errCodeSW
+OUT:  BEA   ; 
+NETWORK
+TITLE = Subroutine Run StartingDelay
+
+NX7:  L     #InCode; 
+      L     B#(0, 8); // CODE= Run StartingDelay
+      <>I   ; 
+      SPB   NX8; 
+      L     W#16#999; 
+      L     DBW  192; // ParStartingDelay
+      DTB   ; 
+      <D    ; 
+      SPB   NX8s; 
+      L     W#16#1000; // time_base 1/10s
+NX8a: OW    ; 
+      U     M    193.7; // sta_StartingDelay
+      SE    T [DBW 24]; // Partimer_1 --> Timer
+      U     T [DBW 24]; // Partimer_1 --> Timer
+      R     M    193.7; // --> sta_StartingDelay
+      BEA   ; 
+NX8s: SRW   4; 
+      L     W#16#2000; // time_base 1 s
+      SPA   NX8a; 
+NETWORK
+TITLE = Subroutine Run Closing Delay
+
+NX8:  L     #InCode; 
+      L     B#(0, 10); // CODE= Run Closing Delay
+      <>I   ; 
+      SPB   NX9; 
+      L     W#16#999; 
+      L     DBW  196; // ParClosingDelay
+      DTB   ; 
+      <D    ; 
+      SPB   NX9s; 
+      L     W#16#1000; // time_base 1/10s
+NX9a: OW    ; 
+      U     M    193.5; // sta_ClosingDelay
+      U     M    182.6; // inp_open [1E]
+      SE    T [DBW 24]; // Partimer_1 --> Timer
+      U     T [DBW 24]; // Partimer_1 --> Timer
+      R     M    193.5; // --> sta_ClosingDelay
+      BEA   ; 
+NX9s: SRW   4; 
+      L     W#16#2000; // time_base 1 s
+      SPA   NX9a; 
+NETWORK
+TITLE = Subroutine Correction Cutoff
+//Correction switch over value:
+//-----------------------------
+// mode 1:  actual_switch_over_time < (Parswitch_over_time/4)
+// mode 2:  actual_switch_over_time > (Parswitch_over_time/4)
+//
+// Implementation:
+// ===============
+// Sequence will go through loop twice:
+// 1. Correction of pre cutoff value:
+//     var_CutoffWt and var_SwitchOverWt will be optimized.
+//     Function: after dosing stop, weight is not in tolerance
+// 2. Correction of switch over weight:
+//     var_SwitchOverWt will be optimized.
+//     Function: fine feeding time is not the same as ParSwitchOverTime
+NX9:  L     #InCode; 
+      L     B#(0, 11); // CODE= Correction Cutoff Value
+      <>I   ; 
+      SPB   NX10; 
+      R     M    199.0; // VAR_LOOP_Cnt
+      L     DBW  346; // ParCutoffWtCorrMax
+      L     0; 
+      ==I   ; 
+      BEB   ; 
+      L     DBW  174; // ParCorrFactorMax [%]
+      L     100; //   max 100%
+      <=I   ; 
+      SPB   OK9; 
+      T     DBW  174; // -->ParCorrFactorMax [%]
+      UN    DBX  338.7; // ParSwitchOwerWt (sign)
+      SPB   OK9; 
+      L     0; 
+      T     DBW  338; // ParSwitchOverWt
+OK9:  L     DBD  254; // inf_ScaleWt
+      L     DBD  324; // Ingr.PartWtTara
+      UN    DBX    7.0; // ParNegativeWeighing
+      SPB   POS0; 
+      TAK   ; 
+POS0: -D    ; 
+      T     #tmpWtPartIngr; 
+      L     DBD  320; // Ingr.PartWtTarget
+      -D    ; 
+      T     #tmpWtDiff; // --> var_difference
+LOOP: L     #tmpWtDiff; 
+      L     0; 
+      >=D   ; 
+      =     #tmpWtDiffIsPos; 
+      TAK   ; 
+      SPB   POS; // --> overweight
+      -D    ; // ) (Invert)
+      L     DBW  178; // ParDeadBandNeg
+      SPA   T1; 
+//-- Overweight ---
+POS:  L     DBW  176; // ParDeadBandPos
+T1:   ITD   ; 
+      >D    ; 
+      SPB   CR1; // --> correction overweight
+      SPA   SWI; // --> no correction cutoffvalue
+CR1:  L     DBW  174; // ParCorrFactorMac [%]
+      DTR   ; 
+      L     #tmpWtDiff; // var_difference
+      DTR   ; 
+      *R    ; 
+      L     1.000000e+002; // /100
+      /R    ; 
+      RND   ; 
+MIN:  T     #tmpWtCorr; // --> var_correctionWt
+      L     0; 
+      <>D   ; 
+      SPB   JL1; 
+      L     #tmpWtDiff; // var_difference == 0
+      ==D   ; 
+      SPB   JL1; 
+      L     1; 
+      U     #tmpWtDiffIsPos; 
+      SPB   MIN; 
+      L     L#-1; 
+      SPA   MIN; 
+JL1:  L     #tmpWtCorr; 
+      U     M    192.0; // sta_testWeighment
+      SPB   CR2; 
+      L     DBW  346; // ParCutoffWtCorrMax
+      >D    ; 
+      SPB   MAXP; // --> max correction if positive
+      +D    ; 
+      SPM   MAXM; // --> max correction in negative
+      SPA   CR2; 
+MAXP: T     #tmpWtCorr; 
+      SPA   CR2; // var_correctionWt
+MAXM: L     DBW  346; // ParCutoffWtCorrMax
+      L     -1; 
+      *I    ; 
+      T     #tmpWtCorr; // var_correctionWt
+CR2:  UN    #tmpWtDiffIsPos; 
+      U     M    189.5; // cmd_NorCorrCutoffWt
+      O     M    199.0; // VAR_LOOP_Cnt
+      SPB   CR3; // --> only switchOverWt
+      L     DBW  340; // ParCutoffWt
+      ITD   ; 
+      L     #tmpWtCorr; // var_correctionWt
+      +D    ; 
+      T     DBW  340; // --> ParCutoffWt
+//=== Begrenzung Vorabschaltwert >=0
+CR3:  U     DBX    7.3; //Negative CutoffWt                  //[1.5]
+      SPB   CR3P; 
+      L     DBW  340; // ParCutoffWt
+      L     0; 
+      >=I   ; 
+      SPB   CR3A; 
+      T     DBW  340; // --> ParCutoffWt
+      T     #tmpWtCorr; // var_correctionWt
+      SPA   CR3A; 
+//=== Begrenzung Vorabschaltwert >= minus 2* positive Toleranz    //[-->1.5]
+CR3P: L     DBW  342; // ParTolPosWt
+      L     DBW  344; // ParTolNegWt
+      +I    ; 
+      NEGI  ; 
+      L     DBW  340; // ParCutoffWt
+      <=I   ; 
+      SPB   CR3A; 
+      TAK   ; 
+      T     DBW  340; // --> ParCutoffWt
+      -I    ; 
+      ITD   ; 
+//-- Correcon for Switch over weight:
+//  := tmpWtCorr - (ParCutoffWt-Limit)
+      L     #tmpWtCorr; // var_correctionWt
+      TAK   ; 
+      -D    ; 
+      T     #tmpWtCorr; // var_correctionWt
+//Ende Berenzung auf Positive Toleranz                              //[<--1.5]
+CR3A: UN    #tmpWtDiffIsPos; 
+      O     M    199.0; // VAR_LOOP_Cnt
+      U     M    189.5; // cmd_NorCorrCutoffWt
+      SPB   SWI; 
+      L     DBW  338; // ParSwitchOverWt
+      ITD   ; 
+      L     #tmpWtCorr; // var_correctionWt
+      +D    ; 
+      T     DBW  338; // --> ParSwitchOverWt
+      L     0; 
+      >D    ; 
+      SPB   SWI; 
+      L     1; 
+      T     DBW  338; // --> ParSwitchOverWt
+SWI:  U     M    199.0; // VAR_LOOP_Cnt (Loop 2)
+      BEB   ; 
+      S     M    199.0; // --> VAR_LOOP_Cnt
+      L     DBW  348; // ParDoisngTimeSlow
+      L     DBW  350; // ParSwitchOverTime_f/s
+      +I    ; 
+      T     #tmpTimeTarget; 
+      SRW   2; // / 4
+      L     DBW  330; // Ingr.SwitchOverTime
+      <=I   ; 
+      SPB   MOD2; // --> correction mode 2
+      L     DBW  376; // dos_time_Part_ingr [1]
+      +I    ; 
+      T     #tmpTimeTotal; 
+// 
+      L     #tmpTimeTarget; 
+      L     DBW  330; // Ingr.SwitchOverTime
+      -I    ; 
+      DTR   ; // [1/10s]
+      L     #tmpTimeTotal; 
+      DTR   ; 
+      /R    ; 
+      L     1.000000e-001; 
+      *R    ; 
+      L     #tmpWtPartIngr; 
+CALC: DTR   ; 
+      *R    ; 
+      RND   ; 
+      T     #tmpWtDiff; // --> var_difference
+      SPA   LOOP; // -- Mode 2 --------------------
+MOD2: L     #tmpTimeTarget; 
+      DTR   ; 
+      L     DBW  330; // Ingr.SwitchOverTime
+      DTR   ; // / 4
+      /R    ; 
+      L     1.000000e+000; 
+      -R    ; 
+      L     DBW  338; // ParSwitchOverWt_F/S
+      SPA   CALC; 
+NETWORK
+TITLE = Subroutine Tolerance
+
+NX10: L     #InCode; 
+      L     B#(0, 12); 
+      <>I   ; 
+      SPB   NX11; 
+      R     M    199.0; // --> fault_pos
+      R     M    199.1; // --> fault_neg
+      R     M    199.2; // --> ingr_done
+      L     DBD  312; // ingr.WtActual
+      L     DBD  308; // ingr.WtTarget
+      -D    ; 
+      T     DBD  316; // -->ingr.WtDiff
+      SPM   NEG; // IF neg. goto NEG
+      L     DBD  316; // ingr.WtDiff
+      L     DBW  392; // BIN.ParTolPosWt
+      >D    ; 
+      L     72; 
+      SPB   FPOS; // ->fault pos.
+      SPA   REL1; 
+NEG:  L     DBW  344; // BIN.ParTolNegWt
+      L     DBD  316; // ingr.WtDiff
+      +D    ; 
+      SPM   NEG1; // ->fault neg.
+      L     DBW  358; // BIN.ParTolNegPc (%)
+      DTR   ; 
+      L     1.000000e-003; // / 1000
+      *R    ; 
+      L     DBD  308; // ingr.WtTarget
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+      L     DBD  316; // ingr.WtDiff
+      +D    ; 
+      SPM   NEG2; 
+      SPA   DONE; // --> ingr_done
+REL1: L     DBW  394; // BIN.ParTolPosPc (%)
+      DTR   ; 
+      L     1.000000e-003; // / 1000
+      *R    ; 
+      L     DBD  308; // ingr.WtTarget
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+      L     DBD  316; // ingr.WtDiff
+      <D    ; 
+      L     73; // CODE: pos._tol._%
+      SPB   FPOS; // --> fault_pos
+DONE: SET   ; 
+      S     M    199.2; // --> ingr_done
+      BEA   ; 
+NEG1: L     70; // CODE: neg._tol._abs.
+      SPA   FNEG; 
+NEG2: L     71; // CODE: neg._tol.%
+FNEG: UN    DBX  337.0; // bin_type.ParmanualAdd
+      O     M    193.3; // StaPartIngr
+      BEB   ; 
+      S     M    191.5; // ->es_underWt
+      S     M    199.1; // ->fault_neg
+      SPA   FAUL; 
+FPOS: S     M    191.6; // ->es_overWt
+      S     M    199.0; // ->fault_pos
+FAUL: T     DBW  246; // ->errCodeSW
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Test Result-DB
+
+NX11: L     #InCode; 
+      L     B#(1, 0); // CODE= For all Result-DB function
+      UW    ; 
+      SPZ   NX12; 
+      L     0; 
+      L     DBW  116; // ParDBNrResultDB
+      ==I   ; 
+      BEB   ; 
+      L     10; 
+      UN    DBX    9.4; // ParResultRecFull
+      SPB   CE1; 
+      L     16; 
+CE1:  L     DBW  122; // ParNoOfBytePerRecord
+      >I    ; 
+      SPB   ERR3; // --> record to small
+      L     DBW  120; // ParNoOfRecords
+      L     DBW  122; // ParNrOfBytePerRecord
+      *I    ; 
+      L     DBW  118; // ParDW_NrResult
+      +I    ; 
+      +     18; // len_header
+      T     DBW  392; // --> var_target_len (WORD)
+      AUF   DI [DBW 116]; // ParDB_NrResult
+      L     DILG; // length DB (in BYTE)
+      T     DBW  394; // --> var_DB_length
+      L     DBW  392; // --> var_target_len
+      <I    ; 
+      SPB   ERR2; 
+      L     DBW  118; // ParByteNrResult
+      SLD   3; // bit-offset
+      LAR2  ; 
+      L     B#(1, 1); 
+      L     #InCode; // CODE= Test_Result_DB
+      ==I   ; 
+      BEB   ; 
+      SPA   NX12; 
+ERR3: L     55; // --> record to small
+      SPA   ERR; 
+ERR2: L     54; // --> result_DB to small
+ERR:  S     DBX    3.3; // --> cfg_fault_RESULT
+      S     M    190.4; // --> es_cfg_SPS
+      T     DBW  246; // --> errCodeSW
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Init_result_DB
+
+NX12: L     #InCode; 
+      L     B#(1, 2); // CODE= INIT_RESULT_DB
+      <>I   ; 
+      SPB   NX13; // NEXT;
+      L     DBD  258; // job number
+      T     DID [AR2,P#0.0]; // --> R_DB.job_number
+      L     DBD  262; // recipe_nr / batch_nr
+      T     DID [AR2,P#4.0]; // --> R_DB.recipe_nr /batch_nr
+      L     2#0; 
+      T     DIW [AR2,P#8.0]; // --> R_DB.status_result
+      L     0; 
+      T     DID [AR2,P#10.0]; // --> R_DB.TotalWtTarget
+      T     DID [AR2,P#14.0]; // --> R_DB.TotalWtActual
+      +AR2  P#18.0; 
+      L     DBW  120; // ParNrOfRecords
+      L     DBW  122; // ParNrOfByPerRecord
+      *I    ; 
+      SRW   1; 
+LP12: T     DBW  394; // --> var_NrOfDWClear
+      L     0; 
+      <=I   ; 
+      BEB   ; 
+      T     DIW [AR2,P#0.0]; // save result
+      +AR2  P#2.0; // set pointer to next DW 
+      L     DBW  394; // Var_NrOfDW_clear
+      +     -1; 
+      SPA   LP12; // LOOP;
+NETWORK
+TITLE = Subroutine Registration Ingredient
+
+NX13: L     #InCode; 
+      L     B#(1, 4); // CODE= REGISTRATION_INGREDIENT
+      <>I   ; 
+      SPB   NX14; // NEXT;
+      TAR2  ; // <-- ADDRESS-RESULT-DB (first DW)
+      T     #tmpAddr; // --> var_address_header
+      L     DBD  312; //[1.7] Ingr.WtActual
+      L     0; //[1.7]
+      >=D   ; //[1.7]
+      SPB   X13P; //[1.7]
+      T     DBD  312; //[1.7]
+X13P: UN    M    193.2; // sta_singleIngrAc
+      SPB   J1; 
+      L     DIW [AR2,P#8.0]; // R_DB.statusResult
+      L     2#1; // sta_withModif
+      OW    ; 
+      T     DIW [AR2,P#8.0]; // --> R_DB.statusResult
+J1:   L     DBD  312; // Ingr.WtActual
+      U     M    188.3; // cmd_ModifReady
+      SPB   X01; 
+      L     DBD  308; // Ingr.WtTarget
+X01:  T     #tmpWt; 
+      L     DID [AR2,P#10.0]; // R_DB.TotalWtTarget
+      +D    ; 
+      T     DID [AR2,P#10.0]; // --> R_DB.TotalWtTarget
+      L     DBD  312; // Ingr.WtActual
+      L     DID [AR2,P#14.0]; // R_DB.TotalWtActual
+      +D    ; 
+      T     DID [AR2,P#14.0]; // --> R_DB.TotalWtActual
+      L     #tmpWt; 
+      L     DBD  274; // TotalWtTarget
+      +D    ; 
+      T     DBD  274; // TotalWtTarget
+      L     DBD  312; // Ingr.WtActual
+      L     DBD  278; // TotalWtActual
+      +D    ; 
+      T     DBD  278; // TotalWtActual
+      +AR2  P#18.0; // - Startadress search Bin -----
+      L     0; 
+      T     #tmpBinNr; // -->var_bin_nr
+      UN    DBX    9.2; // ParResultRecPerBin
+      SPB   FIND; 
+      L     DBW  306; // ingr.bin_nr
+      T     #tmpBinNr; 
+      UN    DBX    9.3; // ParResultRecSorted
+      SPB   FIND; 
+      L     DBW  332; // ingr.RelBinNr
+      L     DBW  120; // ParNrOfrecords
+      >=I   ; 
+      BEB   ; // --> no bin
+      L     DBW  332; // ingr.RelBinNr
+      L     DBW  122; // ParNrOfByPerRecord
+      *I    ; 
+      SLD   3; // bit-offset
+      +AR2  ; // --> AdrNextIngr
+      SPA   SAVE; 
+FIND: L     0; // --- search record -------------
+LP13: T     #Cnt; 
+      L     DBW  120; // ParNrOfrecords
+      >=I   ; 
+      SPB   ER13; // ER13;
+      L     0; 
+      L     DIW [AR2,P#0.0]; // --> last Ingredient
+      ==I   ; 
+      O(    ; 
+      L     #tmpBinNr; // -->var_bin_nr
+      ==I   ; 
+      )     ; 
+      SPB   SAVE; 
+      L     DBW  122; // ParNrOfByPerRecord
+      SLD   3; // bit-offset
+      +AR2  ; // --> adr_next_ingr
+      L     #Cnt; // var_record_Cnt
+      +     1; 
+      SPA   LP13; // LOOP;
+//--- SAVE ------------------------
+SAVE: L     DBW  306; // ingr.bin_nr
+      T     DIW [AR2,P#0.0]; // --> bin_nr
+      L     #tmpWt; // Ingr.WtActual
+      L     DID [AR2,P#2.0]; // REG_DB.value_target
+      +D    ; 
+      T     DID [AR2,P#2.0]; // --> REG_DB.TotalWtTarget
+      L     DBD  312; // Ingr.WtActual
+      L     DID [AR2,P#6.0]; // R_DB.TotalWtActual
+      +D    ; 
+      T     DID [AR2,P#6.0]; // --> REG_DB.TotalWtActual
+      UN    DBX    9.4; // ParResultRecFull
+      BEB   ; 
+      L     DBW  328; // dos_time
+      L     DIW [AR2,P#10.0]; // REG_DB.dos_time
+      +D    ; 
+      T     DIW [AR2,P#10.0]; // --> REG_DB.dos_time
+      L     DBD  338; // BIN.SwitchOverWt_F/S.var_CutoffWt
+      T     DID [AR2,P#12.0]; // --> REG_DB.SwitchOverWt_F/S.var_CutoffWt
+      BEA   ; 
+ER13: L     74; // --> Code: Result-DB full
+      T     DBW  246; // --> errCodeSW
+      LAR2  #tmpAddr; // Var_address_header
+      SET   ; 
+      S     DIX [AR2,P#9.1]; //R_DB.Status.OutOfMemory
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Test Recipe-DB
+
+NX14: L     #InCode; 
+      L     B#(2, 0); // CODE=for all recipe-DB function
+      UW    ; 
+      SPZ   NX15; // NEXT;
+      L     DBW  104; // ParNrOfingr
+      L     DBW  106; // ParNrOfByPerIngr
+      *I    ; 
+      L     DBW  102; // ParNrOfrecipe
+      *I    ; 
+      L     DBW  100; // ParDW_NrFirstRecipe
+      +I    ; 
+      T     DBW  392; // --> var_NrOfByForDB
+      AUF   DI [DBW 98]; // ParDB_Nr_recipe
+      L     DILG; // length DB (in BYTE)
+      L     DBW  392; // var_NrOfByForDB
+      <I    ; 
+      SPB   ER14; // --> recipe_DB to small
+      L     #InCode; 
+      L     B#(2, 1); // CODE= Test_Recipe_DB
+      ==I   ; 
+      BEB   ; 
+      L     DBW  104; // ParNrOfingr
+      L     DBW  106; // ParNrOfDW/ingr
+      *I    ; 
+      L     DBW   70; // inf_recipe_place
+      *I    ; 
+      L     DBW  100; // ParDWNRFirstRecipe
+      +I    ; // --> var_first_DW_active_recipe
+      SLD   3; // bit-offset
+      LAR2  ; // --> bit-adr: VarFirstDWActiveRecipe
+      SPA   NX15; // NEXT;
+ER14: L     52; // --> errCodeSW
+      T     DBW  246; // --> CfgFaultRecipeDB
+      S     DBX    3.1; // --> err_cfg_fault_SPS
+      S     M    190.4; 
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Count Component
+
+NX15: L     #InCode; 
+      L     B#(2, 2); // CODE= Count ingr
+      <>I   ; 
+      SPB   NX16; // NEXT;
+      L     0; 
+LP15: T     DBW  294; // IngrCntTotal
+      L     DBB   52; // Offset Ingr
+      +I    ; 
+      L     DBW  104; // ParNrOfingr
+      >=I   ; 
+      BEB   ; 
+      L     0; 
+      L     DIW [AR2,P#0.0]; // --> last ingredient
+      ==I   ; 
+      BEB   ; 
+      L     0; 
+      L     DBB   53; //Number of part ingredient
+      <>I   ; 
+      U(    ; 
+      L     DBW  294; //IngrCntTotal
+      L     DBB   53; //Number of part ingredient
+      >=I   ; 
+      )     ; 
+      BEB   ; 
+      L     DBW  106; // ParNrOfByPerIngr
+      SLD   3; // bit-offset
+      +AR2  ; // --> adr_next_ingr
+      L     DBW  294; // IngrCntTotal
+      +     1; 
+      SPA   LP15; // LOOP;
+NETWORK
+TITLE = Subroutine Read Recipe Component
+
+NX16: L     #InCode; 
+      L     B#(2, 4); // CODE= Read Recipe_ingr
+      <>I   ; 
+      SPB   NX17; // NEXT;
+      L     DBW  292; // IngrCnt (actual)
+      L     DBB   52; // Offset Ingr
+      +I    ; 
+      L     DBW  104; // ParNrOfingr
+      >I    ; 
+      SPB   EMPT; // --> Emptying scale
+      L     0; 
+      L     DBB   53; //Number of part ingredient
+      <>I   ; 
+      U(    ; 
+      L     DBW  292; //IngrCnt (actual)
+      L     DBB   53; //Number of part ingredient
+      >I    ; 
+      )     ; 
+      SPB   EMPT; // --> Emptying scale
+      L     DBW  292; // IngrCnt (actual)
+      L     DBB   52; // Offset Ingr
+      +I    ; 
+      +     -1; 
+      L     DBW  106; // ParNrOfByPerIngr
+      *I    ; 
+      SLD   3; // bit-offset
+      +AR2  ; // --> adr_ingr
+      L     DIW [AR2,P#0.0]; 
+      T     DBW  306; // --> ingr_bin_nr
+      L     DID [AR2,P#2.0]; // ingr.target_weight
+      UN    DBX    7.5; // ParIngrSizePc
+      SPB   JL16; 
+      DTR   ; 
+      L     1.000001e-004; // * 0.0001
+      *R    ; 
+      L     DBD  270; // batch_size_recipe
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+JL16: UN    DBX    7.4; // ParBatchSizePc
+      SPB   DIFF; 
+      DTR   ; 
+      L     DBW  268; // batch_size_%%
+      DTR   ; 
+      *R    ; 
+      L     1.000001e-003; // * 0.001
+      *R    ; 
+      RND   ; 
+DIFF: T     DBD  308; // --> ingr_target_value
+      L     0; 
+      T     DBD  312; // --> ingr.WtActual
+      TAK   ; 
+      -D    ; 
+      T     DBD  316; // --> ingr.WtDiff
+      BEA   ; 
+EMPT: L     0; 
+      T     DBW  306; // --> ingr_bin_nr
+      T     DBD  308; // --> ingr_target_value
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Modify Bin in Recipe
+
+NX17: L     B#(2, 8); // CODE= Modify Recipe
+      L     #InCode; 
+      <>I   ; 
+      SPB   NX18; 
+      L     0; 
+LP17: T     #Cnt; // IngrCntTotal
+      L     DBW  104; // ParNrOfingr
+      >=I   ; 
+      BEB   ; 
+      L     DBW  306; // ingr.bin_nr
+      L     DIW [AR2,P#0.0]; // --> last ingredient
+      <>I   ; 
+      SPB   INKR; 
+      L     DBW   90; // VarPreselectedBin
+      T     DIW [AR2,P#0.0]; // --> recipe.bin_nr
+INKR: L     DBW  106; // ParNrOfByPerIngr
+      SLD   3; // bit-offset
+      +AR2  ; // --> adr_next_ingr
+      L     #Cnt; // IngrCntTotal
+      +     1; 
+      SPA   LP17; 
+NETWORK
+TITLE = Subroutine Test Bin_Parameter_DB
+
+NX18: L     #InCode; 
+      L     B#(4, 0); // CODE=for all BIN-DB function
+      UW    ; 
+      SPZ   NX19; // NEXT;
+      L     DBW  108; // ParDB_NR_Bin_Data
+      L     0; 
+      ==I   ; 
+      BEB   ; // --> no bin_data_DB
+      L     DBW  114; // ParNrOfByPerBin
+      L     42; 
+      <I    ; 
+      SPB   OK1; 
+      T     DBW  114; // --> ParNrOfByPerBin
+OK1:  L     DBW  112; // ParNrOfbin
+      L     DBW  114; // ParNrOfByPerBin
+      *I    ; 
+      L     DBW  110; // ParDWNRFirst_bin
+      +I    ; 
+      T     DBW  392; // --> var_NrOfDW
+      AUF   DI [DBW 108]; // ParDB_Nr_Bin_Data
+      L     DILG; // length DB (in BYTE) 
+      L     DBW  392; 
+      <I    ; 
+      SPB   ER18; // --> recipe_DB to small
+      L     #InCode; 
+      L     B#(4, 1); // CODE= Test_Bin_DB
+      ==I   ; 
+      BEB   ; 
+      SPA   NX19; // --> OK; NEXT;
+ER18: L     57; // CODE:bin_data_DB to samll
+      T     DBW  246; // --> errCodeSW
+      S     DBX    3.2; // --> cfgFaultBinDataDB
+      S     M    190.4; // --> err_cfg_fault_SPS
+      S     M    199.3; // --> Output Fault
+      BEA   ; 
+NETWORK
+TITLE = Subroutine Bin's
+
+NX19: L     #InCode; 
+      T     MB   199; 
+      L     B#(4, 0); // CODE=for all BIN-DB function
+      UW    ; 
+      SPZ   NX20; // NEXT;
+      R     M    190.3; // --> err_illegel_ingr
+      U     M    199.0; // Test Bin-DB
+      BEB   ; 
+      L     DBW  306; // ingr.bin_nr
+      L     0; // NO_BIN
+      <=I   ; 
+      UN    M    199.3; // Mode =Test Bin
+      BEB   ; 
+      L     DBW  390; // var_preselected_bin
+      L     0; // NO_BIN
+      <=I   ; 
+      U     M    199.3; // Mode =Test Bin
+      SPB   OK_F; 
+      L     DBW  110; // ParDWNrFirstBin
+      SLD   3; // bit-offset
+      LAR2  ; // --> adr_first_bin
+      L     DBW  110; // ParDWNrFirstBin
+      T     DBW  394; // --> var_DW_nr_read
+      L     0; 
+LP19: T     DBW  396; // ingr.RelBinNr
+      L     DBW  112; // ParNrOfbin
+      >=I   ; 
+      SPB   ER19; // --> bin not found
+      L     DBW  306; // ingr.bin_nr
+      L     DIW [AR2,P#0.0]; // bin_DB.nin_nr
+      ==I   ; 
+      UN    M    199.3; // MODE =TEST_BIN
+      SPB   READ; 
+      L     DBW  390; // var_preselected_bin
+      ==I   ; 
+      U     M    199.3; // MODE =TEST_BIN
+      SPB   OK_F; //OK-F;
+      L     DBW  114; // ParNrOfDW/bin
+      SLD   3; // bit-offset
+      +AR2  ; // --> adr_next_bin
+      L     DBW  394; // var_DW_nr_read
+      L     DBW  114; // ParNrOfByPerBin
+      +I    ; 
+      T     DBW  394; // --> var_ByNrRead
+      L     DBW  396; // ingr.RelBinNr
+      +     1; 
+      SPA   LP19; // 
+READ: L     DBW  396; // var_relBinNr
+      T     DBW  332; // ingr.RelBinNr
+      U     M    199.2; // MODE =WRITE
+      SPB   WRIT; 
+//--Copy parameter to scale-DB --------
+      L     P#334.0; 
+      T     #TargetAddress; // --> VarDWNrTarget
+      L     DBW  394; // VarDWNrRead
+      SLD   3; // bit-offset
+      LAR2  ; // var_DWNrSource --> AR2
+      L     DBW  114; // ParNrOfBytePerBin
+COLP: T     #Cnt; // LOOP Counter
+      L     DIB [AR2,P#0.0]; 
+      T     DBB [#TargetAddress]; // Scale-DB
+      +AR2  P#1.0; // INC SourceAddress (2 Byte)
+      L     #TargetAddress; // INC TargetAddress (1 Word)
+      +     L#8; 
+      T     #TargetAddress; 
+      L     #Cnt; // LOOP Counter
+      LOOP  COLP; // COPY-LOOP
+      L     0; 
+      T     DBD   46; 
+      T     DBW   50; //--> activeBin[xx..1]
+      L     48; 
+      L     DBB  333; // ingr.RelBinNr
+      <=I   ; 
+      BEB   ; //[1.6]
+      LAR1  ; 
+      S     DBX [AR1,P#46.0]; //-->ActiveBin[x]
+      BEA   ; 
+ER19: L     58; // CODE: bin not found
+      T     DBW  246; // --> errCodeSW
+      UN    M    199.3; // MODE= Test_Bin
+      S     M    190.3; // --> err_illegal_ingr
+      BEA   ; 
+WRIT: L     DBW  114; // ParNrOfByPerBin
+      L     8; 
+      <I    ; 
+      BEB   ; 
+      L     DBD  338; // var_switchOver/var_cutoffWt
+      T     DID [AR2,P#4.0]; // --> Store
+      BEA   ; 
+OK_F: R     M    199.3; // Mode= Test_Bin
+      BEA   ; 
+NETWORK
+TITLE =
+
+NX20: BE    ; 
+
+END_FUNCTION
+

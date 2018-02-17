@@ -1,0 +1,642 @@
+FUNCTION_BLOCK "G175M_Code"
+TITLE =G175M INLET SLIDE GERM 4
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        INLET SLIDE GERM 4
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB275.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  DelayFan1Side : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2402_BZS13 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2402_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2402_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2402_MXZ01 : "GCS7_E_Motor";	// Motor 
+  A_2402_QYS21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2402_QYS22 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[175]; 
+      R     "GCS7_GrCtrlDB".ParWGR[175]; 
+      R     "GCS7_GrCtrlDB".ParGGR[175]; 
+      R     "GCS7_GrCtrlDB".ParFeed[175]; 
+      R     "GCS7_GrCtrlDB".ParShare[175]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[175]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[175]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[175]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[175]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[175]; 
+      R     "GCS7_GrCtrlDB".CmdNext[175]; 
+      S     #Gr.CmdNext; 
+//MW - Like Germ 3
+      U     "GCS7_GrCtrlDB".CmdManualOff[175]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[175]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[175]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[175]
+//      O     "GCS7_GrCtrlDB".OutOccupied[175]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[175]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[175]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[175]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[175]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+//BRT103010      CLR   
+      UN    #A_2402_BZS13.StTrue; //BRT100310
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+      U     #A_2402_BZS13.StTrue; 
+      O     #A_2402_BZS13.StCtoTrue; // parkposition
+      S     "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+
+      U     "MAL1S020".PCRead.Step.StActive; 
+      U     "MAL1S020Par".Par.FlagFunction_1.StepLoading; 
+      R     "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      =     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+
+      U     "MAL1S020".PCRead.Step.StActive; 
+      O     "MAL1S020".PCRead.Step.StReady; 
+      O     "MAL1S020".PCRead.Step.StEmptying; 
+      UN    "MAL1S020Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      =     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+// init direction
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+      UN    #A_2402_MXZ01.StStartedFwd; 
+      UN    #A_2402_MXZ01.StStartedRev; 
+      UN    #A_2402_MXZ01.StFault; 
+      U(    ; 
+      UN    #A_2402_BZS14.StTrue; // endposition fan 1 side
+      UN    #A_2402_BZS14.StCtoTrue; // endposition fan 1 side
+      UN    #A_2402_BZS15.StTrue; // endposition fan 2 side
+      UN    #A_2402_BZS15.StCtoTrue; // endposition fan 2 side
+      O     #A_2402_BZS13.StTrue; // parkposition
+      )     ; 
+      S     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+
+// endposition fan 2 side
+      U(    ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+      O     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+      UN    #A_2402_MXZ01.StStartedFwd; 
+      UN    #A_2402_MXZ01.StFault; 
+      U(    ; 
+      O(    ; 
+      U     #A_2402_BZS15.StTrue; // endposition fan 2 side
+      O     #A_2402_BZS15.StCtoTrue; // endposition fan 2 side
+      )     ; 
+      )     ; 
+      UN    #A_2402_BZS14.StTrue; // endposition fan 1 side
+      R     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+
+      U(    ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+      O     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+      U     #A_2402_BZS15.StTrue; // endposition fan 2 side
+      UN    #A_2402_BZS14.StTrue; // endposition fan 1 side
+      S     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+
+// endposition fan 1 side
+      U(    ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+      O     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      UN    #A_2402_MXZ01.StStartedRev; 
+      UN    #A_2402_MXZ01.StFault; 
+      UN    #A_2402_BZS15.StTrue; // endposition fan 2 side
+      U(    ; 
+      U     #A_2402_BZS14.StTrue; // endposition fan 1 side
+      O     #A_2402_BZS14.StCtoTrue; // endposition fan 1 side
+      )     ; 
+      R     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+
+      U(    ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingGermBox; 
+      O     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      U     #A_2402_BZS14.StTrue; // endposition fan 2 side
+      UN    #A_2402_BZS15.StTrue; // endposition fan 1 side
+      S     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+
+//BRT04032010 - Wagen fährt nach Loading Finished zur Parkposition!
+      U(    ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      O     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+      )     ; 
+      U     "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      R     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      R     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+//BRT100310      CLR   
+//BRT100310
+      UN    "G164M".Gr.OutAutostart; 
+      ON    "G162M".Gr.OutAutostart; 
+      ON    "G163M".Gr.OutAutostart; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_4; 
+//BRT100310 - HW-Stop nur bei NOT-AUS +C24 oder Customer, nicht bei NOT-AUS Maschine!
+      U(    ; 
+      O     "A_2499_SHE01_I1"; 
+      O     "A_2499_SHE02_I1"; 
+      O     "A_24_A097Z1_I1"; 
+      )     ; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[5].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G175M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 5,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-2402-BZS13 : DISCHARGE CHUTE PARKING POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2402_BZS13.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2402_BZS13.InMonTrue; 
+      CLR   ; 
+      =     #A_2402_BZS13.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2402_BZS13.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2402_BZS13.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2402_BZS13.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2402_BZS13_I1"; 
+      =     #A_2402_BZS13.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[43]; 
+      =     #A_2402_BZS13.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_BZS13 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2402-BZS14 : DISCHARGE CHUTE LEFT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2402_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2402_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_2402_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2402_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2402_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2402_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT103010      U     "A_2402_BZS14_I1"
+      UN    "A_2402_BZS14_I1"; 
+      =     #A_2402_BZS14.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[43]; 
+      =     #A_2402_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2402-BZS15 : DISCHARGE CHUTE RIGHT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2402_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2402_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_2402_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2402_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2402_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2402_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT100310      U     "A_2402_BZS15_I1"
+      UN    "A_2402_BZS15_I1"; 
+      =     #A_2402_BZS15.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[43]; 
+      =     #A_2402_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2402-MXZ01 : CHUTE DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+//BRT100310
+      U(    ; 
+      O     "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      ON    "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      =     #A_2402_MXZ01.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+//BRT100310
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingFWD; 
+      U     "G176M".A_2401_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_2402_MXZ01.InEnableFwd; // Richtung Ventilator 1
+
+      U     #Gr.OutEnableEl; 
+//BRT100310
+      U     "MAL1S020Par".Par.FlagMachine_0.LoadingREV; 
+      U     "G176M".A_2401_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_2402_MXZ01.InEnableRev; // Richtung Ventilator 2
+// 
+      U     #tmpCmdNext; 
+//BRT100310
+      O(    ; 
+      UN    "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      U     "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      S     #A_2402_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+//BRT100310
+      U(    ; 
+      O     "MAL1S020Par".Par.FlagMachine_0.UnloadingPosition; 
+      ON    "MAL1S020Par".Par.FlagMachine_0.RunToUNloadPosition; 
+      )     ; 
+      =     #A_2402_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2402_YMXZ01_I1"; 
+      =     #A_2402_MXZ01.InpRunFwd; 
+      U     "A_2402_YMXZ01_I2"; 
+      =     #A_2402_MXZ01.InpRunRev; 
+//BRT100310      U     "PLC_SystemDB".HardwareStop.Germinating_4
+      U     #tmpHWStop; //BRT100310
+      =     #A_2402_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[41]; 
+      =     #A_2402_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_MXZ01 ;
+// 
+//-Write outputs---
+      U     #A_2402_MXZ01.OutpRunFwd; 
+      =     "A_2402_MXZ01_O1"; 
+      U     #A_2402_MXZ01.OutpRunRev; 
+      =     "A_2402_MXZ01_O2"; 
+NETWORK
+TITLE ==A-2402-QYS21 : DISCHARGE CHUTE LEFT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2402_QYS21.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2402_QYS21.InMonTrue; 
+      CLR   ; 
+      =     #A_2402_QYS21.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2402_QYS21.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2402_QYS21.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2402_QYS21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT100310      U     "A_2402_QYS21_I1"
+      UN    "A_2402_QYS21_I1"; 
+      =     #A_2402_QYS21.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[41]; 
+      =     #A_2402_QYS21.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_QYS21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2402-QYS22 : DISCHARGE CHUTE RIGHT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2402_QYS22.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2402_QYS22.InMonTrue; 
+      CLR   ; 
+      =     #A_2402_QYS22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2402_QYS22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2402_QYS22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2402_QYS22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT100310      U     "A_2402_QYS22_I1"
+      UN    "A_2402_QYS22_I1"; 
+      =     #A_2402_QYS22.InpTrue; 
+      U     "PLC_DPInfo".Master[1].SlavesError[41]; 
+      =     #A_2402_QYS22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2402_QYS22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2402_BZS13.StFault; 
+      O     #A_2402_BZS14.StFault; 
+      O     #A_2402_BZS15.StFault; 
+      O     #A_2402_MXZ01.StFault; 
+      O     #A_2402_QYS21.StFault; 
+      O     #A_2402_QYS22.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//BRT100310      U     #A_2402_MXZ01.StStopped
+//BRT100310      UN    #Gr.VarFault
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+//BRT100310
+      U(    ; 
+      O     #A_2402_MXZ01.StStarting; 
+      O     #A_2402_MXZ01.StStartedFwd; 
+      O     #A_2402_MXZ01.StStopping; 
+      O     #A_2402_MXZ01.StStartedRev; 
+      O(    ; 
+      U     #Gr.InOccupied; 
+      U(    ; 
+      O     #A_2402_MXZ01.InEnableFwd; 
+      O     #A_2402_MXZ01.InEnableRev; 
+      O     #A_2402_BZS14.StCtoTrue; 
+      O     #A_2402_BZS14.StTrue; 
+      O     #A_2402_BZS15.StCtoTrue; 
+      O     #A_2402_BZS15.StTrue; 
+      )     ; 
+      )     ; 
+      )     ; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[175]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[175]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[175]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[175]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[175]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[175]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[175]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[175]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[175]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[175]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

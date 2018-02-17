@@ -1,0 +1,757 @@
+FUNCTION_BLOCK "G197M_Code"
+TITLE =G197M COOLING / HEATING GERM 5
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        COOLING / HEATING GERM 5
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB297.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2545_QXV21 : "GCS7_E_Motor";	// Motor 
+  A_2545_QXV21AI : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2545_QXV21AO : "GCS7_E_AnalogOutput";	// AnaOutp 
+  A_2545_QXV21I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2545_QXV21I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2545_QXV31 : "GCS7_E_Motor";	// Motor 
+  A_2545_QXV31AI : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2545_QXV31AO : "GCS7_E_AnalogOutput";	// AnaOutp 
+  A_2545_QXV31I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2545_QXV31I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2554_MXZ01 : "GCS7_E_Motor";	// Motor 
+  A_2555_MXZ01 : "GCS7_E_Motor";	// Motor 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[197]; 
+      R     "GCS7_GrCtrlDB".ParWGR[197]; 
+      R     "GCS7_GrCtrlDB".ParGGR[197]; 
+      R     "GCS7_GrCtrlDB".ParFeed[197]; 
+      R     "GCS7_GrCtrlDB".ParShare[197]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[197]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[197]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[197]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[197]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[197]; 
+      R     "GCS7_GrCtrlDB".CmdNext[197]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[197]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[197]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[197]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[197]
+//      O     "GCS7_GrCtrlDB".OutOccupied[197]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[197]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[197]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[197]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[197]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     "MAL1S021Par".StepAct.TemperaturBelowFloor; 
+      DTR   ; 
+//[2.0] 
+      L     1.000000e+001; 
+      /R    ; 
+      SPA   En06; 
+ILO6: NOP   0; 
+      L     "MAL1S021Par".Par.ParIntProcess.TargetTemperature_ILO; 
+      ITD   ; 
+      DTR   ; 
+En06: T     "RegDBKK5_1".SP_INT; // setpoint temperature
+      T     "RegDBKK5_2".SP_INT; // setpoint temperature
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+//BRT140310 - HW-Stop nur bei NOT-AUS +C25 oder Customer, nicht bei NOT-AUS Maschine!
+      U(    ; 
+      O     "A_2599_SHE01_I1"; 
+      O     "A_2599_SHE02_I1"; 
+      O     "A_25_A097Z1_I1"; 
+      O     "A_25_A106Z1_I1"; 
+      )     ; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2545-QXV21 : RUNNING COOLING UNIT 1 GERMINATING
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2545_QXV21.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_2545_QXV21.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2545_QXV21.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2545_QXV21.InSeqStop; 
+// 
+//-Read inputs---
+//      U     "A_2545_QXV21_I1"
+      U     #A_2545_QXV21.OutpRunFwd; 
+      =     #A_2545_QXV21.InpRunFwd; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV21.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV21.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV21 ;
+// 
+//-Write outputs---
+      U     #A_2545_QXV21.OutpRunFwd; 
+      =     "A_2545_QXV21_O1"; 
+NETWORK
+TITLE ==A-2545-QXV21AI : REGULATING VALVE 1 ACTUAL VALUE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV21AI.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2545_QXV21AI.InMonLL; 
+      CLR   ; 
+      =     #A_2545_QXV21AI.InMonL; 
+      CLR   ; 
+      =     #A_2545_QXV21AI.InMonMid; 
+      CLR   ; 
+      =     #A_2545_QXV21AI.InMonH; 
+      CLR   ; 
+      =     #A_2545_QXV21AI.InMonHH; 
+// 
+//-Read inputs---
+      L     27648; 
+      L     "A_2545_QXV21_AI1"; 
+      -I    ; 
+//MW 201.03.19
+      L     0; 
+      <I    ; 
+      SPB   v001; 
+      TAK   ; 
+v001: NOP   0; 
+      L     27648; 
+      >I    ; 
+      SPB   w001; 
+      TAK   ; 
+w001: T     #A_2545_QXV21AI.InpValue; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV21AI.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV21AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV21AI ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2545-QXV21AO : REGULATING VALVE 1 SET POINT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2545_QXV21AO.InLocal; 
+//
+//-Interlocking---
+      CLR   ; 
+      =     #A_2545_QXV21AO.InDisable; 
+//
+//-Values and parameters---
+      L     27648; 
+      L     "RegDBKK5_1".LMN_PER; // PID-Regler-Ausgang im OB37
+      -I    ; 
+      T     #A_2545_QXV21AO.InOutValuePc; 
+// 
+//-Read inputs---
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      CLR   ; 
+      =     #A_2545_QXV21AO.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV21AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV21AO ;
+// 
+//-Write outputs---
+      L     #A_2545_QXV21AO.OutpValue; 
+      T     "A_2545_QXV21_AO1"; 
+      UN    "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      SPB   PA0; 
+      T     AW   568; 
+PA0:  NOP   0; 
+NETWORK
+TITLE ==A-2545-QXV21I1 : REGULATING VALVE 1 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV21I1.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2545_QXV21I1.InMonTrue; 
+      CLR   ; 
+      =     #A_2545_QXV21I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2545_QXV21I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2545_QXV21I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2545_QXV21I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV21I1.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV21I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2545-QXV21I2 : REGULATING VALVE 1 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV21I2.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2545_QXV21I2.InMonTrue; 
+      CLR   ; 
+      =     #A_2545_QXV21I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2545_QXV21I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2545_QXV21I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2545_QXV21I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2545_QXV21I2.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV21I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2545-QXV31 : RUNNING COOLING UNIT 2 GERMINATING
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2545_QXV31.InLocal; 
+//
+//-Interlocking--- 
+//MW 201.03.19      U     #A_2545_QXV21.StStartedFwd
+//MW 201.03.19      UN    #A_2545_QXV21AO.StFault
+      U     #Gr.OutEnableEl; 
+      =     #A_2545_QXV31.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2545_QXV31.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2545_QXV31.InSeqStop; 
+// 
+//-Read inputs---
+//      U     "A_2545_QXV31_I1"
+      U     #A_2545_QXV31.OutpRunFwd; 
+      =     #A_2545_QXV31.InpRunFwd; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV31.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV31.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV31 ;
+// 
+//-Write outputs---
+      U     #A_2545_QXV31.OutpRunFwd; 
+      =     "A_2545_QXV31_O1"; 
+NETWORK
+TITLE ==A-2545-QXV31AI : REGULATING VALVE 2 ACTUAL VALUE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV31AI.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2545_QXV31AI.InMonLL; 
+      CLR   ; 
+      =     #A_2545_QXV31AI.InMonL; 
+      CLR   ; 
+      =     #A_2545_QXV31AI.InMonMid; 
+      CLR   ; 
+      =     #A_2545_QXV31AI.InMonH; 
+      CLR   ; 
+      =     #A_2545_QXV31AI.InMonHH; 
+// 
+//-Read inputs---
+      L     27648; 
+      L     "A_2545_QXV31_AI1"; 
+      -I    ; 
+//MW 201.03.19
+      L     0; 
+      <I    ; 
+      SPB   v002; 
+      TAK   ; 
+v002: NOP   0; 
+      L     27648; 
+      >I    ; 
+      SPB   w002; 
+      TAK   ; 
+w002: T     #A_2545_QXV31AI.InpValue; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV31AI.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV31AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV31AI ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2545-QXV31AO : REGULATING VALVE 2 SET POINT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2545_QXV31AO.InLocal; 
+//
+//-Interlocking---
+      CLR   ; 
+      =     #A_2545_QXV31AO.InDisable; 
+//
+//-Values and parameters---
+      L     27648; 
+      L     "RegDBKK5_2".LMN_PER; // PID-Regler-Ausgang im OB37
+      -I    ; 
+      T     #A_2545_QXV31AO.InOutValuePc; 
+// 
+//-Read inputs---
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      CLR   ; 
+      =     #A_2545_QXV31AO.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2545_QXV31AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV31AO ;
+// 
+//-Write outputs---
+      L     #A_2545_QXV31AO.OutpValue; 
+      T     "A_2545_QXV31_AO1"; 
+      UN    "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      SPB   PA1; 
+      T     AW   570; 
+PA1:  NOP   0; 
+NETWORK
+TITLE ==A-2545-QXV31I1 : REGULATING VALVE 2 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV31I1.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2545_QXV31I1.InMonTrue; 
+      CLR   ; 
+      =     #A_2545_QXV31I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2545_QXV31I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2545_QXV31I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2545_QXV31I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV31I1.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV31I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2545-QXV31I2 : REGULATING VALVE 2 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2545_QXV31I2.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2545_QXV31I2.InMonTrue; 
+      CLR   ; 
+      =     #A_2545_QXV31I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2545_QXV31I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2545_QXV31I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2545_QXV31I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2545_QXV31I2.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2545_QXV31I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2554-MXZ01 : WATER PUMP 1
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2554_MXZ01.InLocal; 
+//
+//-Interlocking--- 
+//MW 201.03.19      U     #A_2545_QXV31.StStartedFwd
+//MW 201.03.19      UN    #A_2545_QXV31AO.StFault
+      U     #Gr.OutEnableEl; 
+      =     #A_2554_MXZ01.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2554_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2554_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2554_MXZ01_I1"; 
+      =     #A_2554_MXZ01.InpRunFwd; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2554_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[58]; 
+      =     #A_2554_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2554_MXZ01 ;
+// 
+//-Write outputs---
+      U     #A_2554_MXZ01.OutpRunFwd; 
+      =     "A_2554_MXZ01_O1"; 
+NETWORK
+TITLE ==A-2555-MXZ01 : WATER PUMP 2
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2555_MXZ01.InLocal; 
+//
+//-Interlocking--- 
+//MW 201.03.19      U     #A_2554_MXZ01.StStartedFwd
+      U     #Gr.OutEnableEl; 
+      =     #A_2555_MXZ01.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2555_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2555_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2555_MXZ01_I1"; 
+      =     #A_2555_MXZ01.InpRunFwd; 
+//      U     "PLC_SystemDB".HardwareStop.Germinating_5
+      U     #tmpHWStop; 
+      =     #A_2555_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[58]; 
+      =     #A_2555_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2555_MXZ01 ;
+// 
+//-Write outputs---
+      U     #A_2555_MXZ01.OutpRunFwd; 
+      =     "A_2555_MXZ01_O1"; 
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2545_QXV21.StFault; 
+      O     #A_2545_QXV21AI.OutFaulted; 
+      O     #A_2545_QXV21AO.StFault; 
+      O     #A_2545_QXV21I1.StFault; 
+      O     #A_2545_QXV21I2.StFault; 
+      O     #A_2545_QXV31.StFault; 
+      O     #A_2545_QXV31AI.OutFaulted; 
+      O     #A_2545_QXV31AO.StFault; 
+      O     #A_2545_QXV31I1.StFault; 
+      O     #A_2545_QXV31I2.StFault; 
+//      O     #A_2554_MXZ01.StFault
+//      O     #A_2555_MXZ01.StFault
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2545_QXV21AI.OutWarning; 
+      O     #A_2545_QXV31AI.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//      U     #A_2545_QXV21.StStopped
+//      U     #A_2545_QXV31.StStopped
+//      U     #A_2554_MXZ01.StStopped
+//      U     #A_2555_MXZ01.StStopped
+//      UN    #Gr.VarFault
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_2545_QXV21.StStartedFwd; 
+      U     #A_2545_QXV31.StStartedFwd; 
+      U(    ; 
+      U     #A_2554_MXZ01.StStartedFwd; 
+      O     #A_2554_MXZ01.StFault; 
+      )     ; 
+      U(    ; 
+      U     #A_2555_MXZ01.StStartedFwd; 
+      O     #A_2555_MXZ01.StFault; 
+      )     ; 
+//      UN    #Gr.VarStopped
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[197]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[197]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[197]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[197]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[197]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[197]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[197]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[197]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[197]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[197]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

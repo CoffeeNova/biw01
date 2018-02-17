@@ -1,0 +1,605 @@
+FUNCTION_BLOCK "GCS7_E_MYFA_MOZD"
+TITLE =MYFA-MOZD
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control MYFA-MOZD or MOZD (Liquid Regulator)
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB39.3.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block
+//              MOZD or MYFA-MOZD  
+//FB39.2.1      A. Egli             CT3                         11-Oct-1999
+//              M12.2 "Gr.OutCmdNext removed
+//FB39.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB39.1A       A.Egli              AEE61                       25-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MYFxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0   stopped
+// 1   started
+// 9   fault cancelled
+//10   fault MYFA
+//11   fault analog input
+//12   fault set value
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32   StFault                 
+// 1   StStopped               
+//41   StStopped.HWStop           StStopped + InHWStop 
+//51   StStopped.DPFault          StStopped + DPFault
+// 3   StStarted               
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MYFAMOZD
+VERSION : 3.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run 
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  CmdNewJob : BOOL ;	//Pulse to erase OutWtTotalWater
+  InRemote : BOOL ;	//Target flowrate for MOZD from PLC
+  InpLcOk : BOOL ;	//Digital input 1=MOZD ok / 0=MOZD Alarm
+  CmdOff : BOOL ;	//Pulse to start in manual mode  
+  CmdOn : BOOL ;	//Pulse to stop in manual mode
+  CmdNext : BOOL ;	//Start next element (Automatic mode)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutFaultAI : BOOL ;	//Fault analog input
+  OutFaultSetValue : BOOL ;	//Set value out of range
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  OutpRemote : BOOL ;	//Digital output flowrate water from PLC 
+  spare0407 : BOOL ;	
+  StStopped : BOOL ;	//Element is stopped
+  spare0501 : BOOL ;	
+  StStarted : BOOL ;	//Element is started
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Element has a fault
+  InpFlowrateWater : INT ;	//Analog input actual flowrate water [digits]
+  MYFA : STRUCT 	//With MYFA
+   InMoisture : INT ;	//Moisture target value [0.1 %]
+   InpFlowrateProduct : INT ;	//Analog input actual flowrate product [digits]
+   InpMoisture : INT ;	//Analog input actual moisture [digits]
+   OutMoisture : INT ;	//Moisture actual value [0.1 %] 
+   OutFlowrateProduct : INT ;	//Flowrate product actual value in [kg/h]
+   OutpMoisture : INT ;	//Analog output to target moisture [digits]
+  END_STRUCT ;	
+  MOZD : STRUCT 	//Without MYFA
+   InOutFlowrateWaterPpm : INT ;	//Flowrate water target value [0.0 to 10.0%]
+   InOutFlowrateWater : INT ;	//Flowrate water target value [dl/h]
+   InFlowrateProduct : INT ;	//Flowrate product actual value in [kg/h]    
+   OutpFlowrateWater : INT ;	//Analog output target flowrate water
+   OutpFlowrateProduct : INT ;	//Analog output flowrate product
+  END_STRUCT ;	
+  OutFlowrateWater : INT ;	//Flowrate water actual value in [dl/h]
+  OutTotalWater : DINT ;	//Total feeded weight water   [dl]
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParWago : BOOL ;	//Wago analog module format
+   ParMYFA : BOOL ;	
+   ParInFlowrateWaterPc : BOOL ;	//Target value flowrate water from group in Pc
+   ParOutFlowrateWaterPc : BOOL ;	//Analog output flowrate water in [0.0 to 10.0%]
+   ParFlowrateWater100Pc : INT  := 20000;	//Flowrate water   by 100 % of analog value [dl/h]
+   ParFlowrateProduct100Pc : INT  := 30000;	//Flowrate product by 100 % of analog value [kg/h]
+   OutCorrectionWeight : REAL ;	//Correction weight for calcuation of OutWtTotalWater [kg]
+   spare16 : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnable : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpEndTime : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpFault : BOOL ;	
+  tmpFlowWater : REAL ;	
+  tmpMaxDigits : REAL ;	//ParWago=0: 27'648 / ParWago=1: 32'767
+  tmpLocalFault : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     58; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1039; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: NOP   0; 
+// Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8] =CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9] =CmdOn
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10] =CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14] =CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14] =CmdReportOff
+      R     #InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+Ctrl: U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//---Local---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Report is on---
+      U     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---tmpEnable---
+      U     #InEnable; 
+      UN    #InLocal; 
+      UN    #InManual; 
+      O(    ; 
+      U     #InEnable; 
+      O     #Par.ParManual; 
+      U     #InManual; 
+      )     ; 
+      UN    #CmdOff; 
+      =     #tmpEnable; 
+//---tmpFault---
+      L     #MOZD.InOutFlowrateWater; 
+      L     #Par.ParFlowrateWater100Pc; 
+      >D    ; 
+      O(    ; 
+      L     #MOZD.InFlowrateProduct; 
+      L     #Par.ParFlowrateProduct100Pc; 
+      >D    ; 
+      )     ; 
+      UN    #Par.ParMYFA; 
+      O(    ; 
+      L     #MYFA.InMoisture; 
+      L     200; 
+      >I    ; 
+      U     #Par.ParMYFA; 
+      )     ; 
+      =     #OutFaultSetValue; 
+      U     #OutFaultAI; //Overflow analog input
+      ON    #InpLcOk; 
+      O     #OutFaultSetValue; 
+      =     #tmpFault; 
+      U     #InRemote; 
+      =     #OutpRemote; 
+//---tmpMaxDigits
+      L     2.764800e+004; //Siemens fullrange MaxDigits
+      UN    #Par.ParWago; 
+      SPB   Ctr2; 
+      L     3.276700e+004; //Wago fullrange MaxDigits
+Ctr2: T     #tmpMaxDigits; 
+
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; // Init
+      SPA   S0; 
+NETWORK
+TITLE =StStopped
+// Any transition to StClosed
+xxS0: S     #StStopped; 
+      UN    #InReport; 
+      SPB   OUT; 
+      L     B#(4, 0); // Message ('stopped' )
+      SPA   LOG; 
+
+//=== Logic ====
+//Transition to StStarted 
+S0:   U     #CmdNext; 
+      UN    #InManual; 
+      U     #tmpEnable; 
+      O     ; 
+      U     #CmdOn; 
+      U     #InManual; 
+      U     #tmpEnable; 
+      R     #StStopped; 
+      SPB   xxS2; 
+//Transition to StFault 
+      U     #tmpFault; 
+      UN    #tmpLocal; 
+      R     #StStopped; 
+      SPB   xxS4; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+// Any transition to StStarted
+xxS2: S     #StStarted; 
+      S     #StStarted; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 1); // Message ('started')
+      SPA   LOG; 
+
+//=== Logic ====
+//Transition to StStopped
+S2:   UN    #tmpEnable; 
+      R     #StStarted; 
+      SPB   xxS0; 
+// Transition to StFault
+      U     #tmpFault; 
+      UN    #tmpLocal; 
+      R     #StStarted; 
+      SPB   xxS4; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      S     #StFault; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1039,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      U     #OutFaultAI; //Overflow analog input
+      L     B#(1, 11); // Message ('fault analag input' )
+      SPB   LOG; 
+      U     #OutFaultSetValue; 
+      L     B#(1, 12); //Message ('fault set value' )
+      SPB   LOG; 
+      L     B#(1, 10); // Message ('fault MYFA' )
+      SPA   LOG; 
+
+//=== Logic ====
+S4:   UN    #CmdFaultReset; 
+      UN    "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      UN    #tmpLocal; 
+      SPB   OUT; 
+// retry of fault message
+      U     #tmpFault; 
+      UN    #tmpLocal; 
+      SPB   xxS4; 
+      R     #StFault; 
+      S     #StStopped; 
+      L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG; 
+
+NETWORK
+TITLE =Log
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1039);
+OUT:  NOP   0; 
+      SET   ; 
+      R     #OutFaultAI; //--> Overflow analog input
+
+NETWORK
+TITLE =MOZD: Calculate target flowrate Water 
+
+      U     #Par.ParInFlowrateWaterPc; 
+      SPB   fwPc; 
+      L     #MOZD.InOutFlowrateWater; //[dl/h]
+      DTR   ; 
+      L     #MOZD.InFlowrateProduct; //[kg/h]
+      DTR   ; 
+      /R    ; 
+      L     1.000000e+002; //0.1 *1000                  
+      *R    ; 
+      RND   ; 
+      T     #MOZD.InOutFlowrateWaterPpm; //-->Target flowrate water in [0.1%] 
+      SPA   fwJ0; 
+fwPc: L     #MOZD.InFlowrateProduct; 
+      DTR   ; 
+      L     #MOZD.InOutFlowrateWaterPpm; 
+      DTR   ; 
+      *R    ; 
+      L     1.000000e+002; 
+      /R    ; 
+      RND   ; 
+      T     #MOZD.InOutFlowrateWater; //--> Target flowrate water
+
+NETWORK
+TITLE =MOZD: Calculate Analog Output value flow water
+
+fwJ0: L     0; 
+      UN    #StStarted; 
+      ON    #OutpRemote; 
+      SPB   fwJ1; 
+      UN    #Par.ParOutFlowrateWaterPc; 
+      SPB   fwJ2; 
+// Analog output: Unit = 0..10%
+      L     #MOZD.InOutFlowrateWaterPpm; // dl/h
+      DTR   ; // Integer to real
+      L     1.000000e+002; // 10.0% 
+      <=R   ; 
+      SPB   fwJ3; 
+      L     1.000000e+000; // 100%          
+      SPA   fwJ4; 
+// Analog output: Unit = dl/h
+fwJ2: L     #MOZD.InOutFlowrateWater; // dl/h
+      DTR   ; // Integer to real
+      L     #Par.ParFlowrateWater100Pc; 
+      DTR   ; // Integer to real
+      <=R   ; 
+      SPB   fwJ3; 
+      L     1.000000e+000; // 100%          
+      SPA   fwJ4; 
+fwJ3: /R    ; 
+fwJ4: L     #tmpMaxDigits; // Units maximum         
+      *R    ; 
+      RND   ; // Real to Integer
+fwJ1: T     #MOZD.OutpFlowrateWater; 
+
+NETWORK
+TITLE =MOZD:Calculate Analog Output flowrate product
+
+      L     0; 
+      UN    #StStarted; 
+      SPB   fpJ1; 
+      L     #MOZD.InFlowrateProduct; //  kg/h
+      DTR   ; // Integer to real
+      L     #Par.ParFlowrateProduct100Pc; 
+      DTR   ; // Integer to real
+      <=R   ; 
+      SPB   fpJ2; 
+      L     1.000000e+000; // 100%          
+      SPA   fpJ3; 
+fpJ2: /R    ; 
+fpJ3: L     #tmpMaxDigits; // Units maximum         
+      *R    ; 
+      RND   ; // Real to Integer
+fpJ1: T     #MOZD.OutpFlowrateProduct; 
+
+NETWORK
+TITLE =Calculate actual flowrate water
+
+      L     -32767; 
+      L     #InpFlowrateWater; //  kg/h
+      >=I   ; 
+      UN    #Par.ParWago; // Fault only with Siemens analog input
+      S     #OutFaultAI; //--> Overflow analog input
+      L     0.000000e+000; 
+      SPB   ai0; 
+      L     #InpFlowrateWater; //  kg/h
+      DTR   ; // Integer to real
+      L     #tmpMaxDigits; // Units maximum         
+      /R    ; 
+      L     #Par.ParFlowrateWater100Pc; 
+      DTR   ; // Integer to real
+      *R    ; 
+ai0:  T     #tmpFlowWater; 
+      RND   ; // Real to Integer
+      T     #OutFlowrateWater; 
+
+NETWORK
+TITLE =Calculate Analog Output moisture
+
+      L     0; 
+      UN    #StStarted; 
+      ON    #OutpRemote; 
+      SPB   msJ1; 
+      L     #MYFA.InMoisture; //[0.1%]
+      DTR   ; // Integer to real
+      L     2.000000e+002; 
+      <=R   ; 
+      SPB   msJ3; 
+      L     1.000000e+000; // 100%          
+      SPA   msJ4; 
+msJ3: /R    ; 
+msJ4: L     #tmpMaxDigits; // Units maximum         
+      *R    ; 
+      RND   ; // Real to Integer
+msJ1: T     #MYFA.OutpMoisture; 
+
+NETWORK
+TITLE =Calculate actual moisture
+
+      L     -32767; 
+      L     #MYFA.InpMoisture; //  
+      >=I   ; 
+      UN    #Par.ParWago; // Fault only with Siemens analog input
+      S     #OutFaultAI; //--> Overflow analog input
+      L     0.000000e+000; 
+      SPB   aim0; 
+      L     #MYFA.InpMoisture; //  
+      DTR   ; // Integer to real
+      L     #tmpMaxDigits; // Units maximum         
+      /R    ; 
+      L     2.000000e+002; 
+      *R    ; 
+aim0: RND   ; // Real to Integer
+      T     #MYFA.OutMoisture; 
+
+NETWORK
+TITLE =BOTH: Calculate actual flowrate product
+
+      L     -32767; 
+      L     #MYFA.InpFlowrateProduct; 
+      >=I   ; 
+      UN    #Par.ParWago; // Fault only with Siemens analog input
+      S     #OutFaultAI; //--> Overflow analog input
+      L     0.000000e+000; 
+      SPB   aip0; 
+      L     #MYFA.InpFlowrateProduct; 
+      DTR   ; // Integer to real
+      L     #tmpMaxDigits; // Units maximum         
+      /R    ; 
+      L     #Par.ParFlowrateProduct100Pc; 
+      DTR   ; // Integer to real
+      *R    ; 
+aip0: RND   ; // Real to Integer
+      T     #MYFA.OutFlowrateProduct; 
+
+NETWORK
+TITLE =BOTH: Calculate OutWtTotal
+
+      UN    #CmdNewJob; 
+      SPB   wtJ1; 
+      L     0; 
+      T     #OutTotalWater; 
+      L     0.000000e+000; 
+      T     #Par.OutCorrectionWeight; 
+      SPA   clJ1; 
+wtJ1: UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1s
+      SPB   clJ1; 
+      L     #tmpFlowWater; 
+      L     3.600000e+003; // [3600s]  
+      /R    ; 
+      L     #Par.OutCorrectionWeight; 
+      +R    ; 
+      T     #Par.OutCorrectionWeight; 
+      RND-  ; 
+      L     #OutTotalWater; 
+      +D    ; 
+      T     #OutTotalWater; 
+      L     #Par.OutCorrectionWeight; 
+      L     #Par.OutCorrectionWeight; 
+      RND-  ; 
+      DTR   ; // Integer to Real
+      -R    ; 
+      T     #Par.OutCorrectionWeight; //New rest 
+
+NETWORK
+TITLE =Global End
+//---Clear all commands
+clJ1: SET   ; 
+      R     #CmdOn; 
+      R     #CmdOff; 
+      R     #CmdNewJob; 
+      R     #CmdNext; 
+      R     #CmdFaultReset; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InHWStop"; 
+
+      U     #StFault; 
+      S     "GCS7_Gr_InFault"; // Gr.InFault
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; //Code: stopped
+      U     #StStopped; 
+      SPB   STC; 
+//===============
+STC2: L     3; // Code: started
+      U     #StStarted; 
+      SPB   STC; 
+      L     32; // Code: fault
+STC:  L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

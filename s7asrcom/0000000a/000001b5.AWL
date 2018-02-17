@@ -1,0 +1,39 @@
+	DATA_BLOCK DB 62
+	TITLE =ChangeBit-DB PC2
+	//
+	//COPYRIGHT:    (C) 2009 BY BUHLER LTD.
+	//                          CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        ChangeBit-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB062.1.0 K.Renz              CSB41             29.Okt.2009
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE:  
+	//
+	//MANUAL : CTRxxMAN
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : GCS7
+	NAME    : CBITDB
+	VERSION : 00.00
+	
+	
+	UDT 10020;
+	BEGIN
+	    ParPointer.B0001.DBNr:= 5;
+	    ParPointer.B0005.DBNr:= 40;
+	END_DATA_BLOCK

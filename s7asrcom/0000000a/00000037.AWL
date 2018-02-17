@@ -1,0 +1,879 @@
+FUNCTION_BLOCK "G278M_Code"
+TITLE =G278M WITHERING AIR KILN 1
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        WITHERING AIR KILN 1
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB378.1.0 K.Renz              CSB41                              30.Sep.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3145_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3145_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3145_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3146_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3146_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3146_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3145_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3145_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3146_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3146_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[278]; 
+      R     "GCS7_GrCtrlDB".ParWGR[278]; 
+      R     "GCS7_GrCtrlDB".ParGGR[278]; 
+      R     "GCS7_GrCtrlDB".ParFeed[278]; 
+      R     "GCS7_GrCtrlDB".ParShare[278]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[278]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[278]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[278]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[278]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[278]; 
+      R     "GCS7_GrCtrlDB".CmdNext[278]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[278]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[278]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[278]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[278]
+//      O     "GCS7_GrCtrlDB".OutOccupied[278]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[278]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[278]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[278]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[278]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      U     #A_3145_MXZ11.StNoPosition; 
+      U     #A_3146_MXZ11.StNoPosition; 
+      UN    #Gr.InOccupied; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     0; // 0.0%
+
+// Ein-Hordenbetrieb
+      U(    ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; // kilning Process finished
+      ON    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U(    ; //JV290710
+      O     "G271M".A_3125_MXZ01MA.Ma.StStopping; //JV290710
+      O     "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      U(    ; 
+      O     "G271M".A_3126_MXZ01MA.Ma.StStopping; //JV290710
+      O     "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      U(    ; 
+      L     "G271M".A_3125_TSC01_AF.OutValuePc; 
+      L     1000; 
+      <=I   ; 
+      )     ; 
+      U(    ; 
+      L     "G271M".A_3126_TSC01_AF.OutValuePc; 
+      L     1000; 
+      <=I   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+// Zwei-Hordenbetrieb
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+//MW 2010.04.29      U     "G273M".A_3135_MXZ11.StHN
+      U     "G273M".A_3136_MXZ11.StHN; 
+// Klappen im Mischkanal zwischen beden Darren
+      U(    ; 
+//MW 2010.04.29      UN    "G273M".A_3136_MXZ11.StLN
+//MW 2010.04.29      UN    "G299M".A_3236_MXZ11.StLN
+//MW 2010.04.29      O     "G273M".A_3136_MXZ11.StHN
+//MW 2010.04.29      O     "G299M".A_3236_MXZ11.StHN
+      UN    "G273M".A_3135_MXZ11.StLN; 
+      UN    "G299M".A_3235_MXZ11.StLN; 
+      O     "G273M".A_3135_MXZ11.StHN; 
+      O     "G299M".A_3235_MXZ11.StHN; 
+      )     ; 
+      )     ; 
+      L     0; 
+      SPB   PE; 
+//MW 2010.04.16      L     "MAL1S032Par".Par.ParIntProcess.PosWitheringAirFlapBasic    // setpoint from recipe
+//      L     "MAL1S032Par".Par.ParIntProcess.PosExhaustAirFlapBasic
+// Oeffnen der Withering Flaps bei Ueberdruck
+//BRT20100826 ====> gibt hier keine Überdruckmessung und bei Öffnen der Klappen entsteht Überdruck am Wärmetauscher!!!
+      L     1000; 
+//      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S032Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      -I    ; 
+//      U     "MAL1S032Par".Par.FlagProcess.ProcessActive
+//      UN    "G302M"._31_R271PE.StFault  // HEAT EXCHANGE PRESSURE < 15mbar
+//      SPB   PE
+//      L     1000                        // 100.0%
+//BRT20100826 <=====
+PE:   NOP   0; 
+//BRT20100827 ====> beide Darren fahren mit vermindeter Drehzahl und 100% Abluft, da Abdarr-Betrieb noch nicht erreicht!!!
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      UN    "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPBN  Kln1; 
+      L     1000; // 100% Abluft
+Kln1: NOP   0; 
+//BRT20100827 <=====
+
+//JV260710 =====>   Cooling kiln 1
+      U(    ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+//BRT20100826 ====> im 2 Darren-Betrieb darf auf keinen Fall die Abluft öffnen!!!
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; // 2 Darren - Betrieb
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      UN    M    373.0; //JV090810 Darre 2 kaputt  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      )     ; 
+      O(    ; 
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; // 2 Darren - Betrieb
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      )     ; 
+      SPBN  Col1; 
+//      L     1000
+//      L     "G299M".A_3235_MXZ11.InPositionMiddle    // Recycling air kiln 2
+//      -I    
+      L     0; //BRT20100825 - Abluft muss zu sein im 2 Darren Kühlschritt
+//BRT20100826 <====
+Col1: NOP   0; //JV260710 <=====
+      U     "G278M".A_3145_MXZ11.InManual; 
+      SPB   Man1; 
+      T     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+Man1: NOP   0; 
+
+      U     "G278M".A_3146_MXZ11.InManual; 
+      SPB   Man2; 
+      T     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+Man2: NOP   0; 
+      SPA   En06; 
+ILO6: NOP   0; 
+      L     "MAL1S032Par".Par.ParIntProcess.TarPos_ILO_WitheringAir; 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+      T     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+En06: NOP   0; 
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3145-MXZ11 : LOUVER WITHERING AIR 1
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3145_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      =     #A_3145_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3145_MXZ11.Par.ParManual; 
+      U     #A_3145_MXZ11.InManual; 
+      SPB   man1; 
+      U(    ; 
+      L     0; 
+      L     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3145_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3145_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3145_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_3145_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3145_MXZ11.CmdHN; 
+man1: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3145_BZS14_I1"; 
+      =     #A_3145_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3145_MXZ11.InpMiddle1; 
+      U     "A_3145_BZS15_I1"; 
+      =     #A_3145_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3145_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3145_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3145_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3145_MXZ11.OutpLN; 
+      =     "A_3145_MXZ11_O1"; 
+      U     #A_3145_MXZ11.OutpHN; 
+      =     "A_3145_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3145-MXZ11I1 : LOUVER WITHERING AIR 1 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3145_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3145_MXZ11.OutpLN; // closing 
+      =     #A_3145_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3145_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3145_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3145_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3145_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3145_MXZ11_I1"; 
+      =     #A_3145_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3145_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3145_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3145_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3145-MXZ11I2 : LOUVER WITHERING AIR 1 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3145_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3145_MXZ11.OutpHN; // opening
+      =     #A_3145_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3145_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3145_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3145_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3145_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3145_MXZ11_I2"; 
+      =     #A_3145_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3145_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3145_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3145_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3146-MXZ11 : LOUVER WITHERING AIR 2
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3146_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      =     #A_3146_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3146_MXZ11.Par.ParManual; 
+      U     #A_3146_MXZ11.InManual; 
+      SPB   man2; 
+      U(    ; 
+      L     0; 
+      L     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3146_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3146_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3146_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_3146_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3146_MXZ11.CmdHN; 
+      NOP   0; 
+man2: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3146_BZS14_I1"; 
+      =     #A_3146_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3146_MXZ11.InpMiddle1; 
+      U     "A_3146_BZS15_I1"; 
+      =     #A_3146_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3146_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3146_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3146_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3146_MXZ11.OutpLN; 
+      =     "A_3146_MXZ11_O1"; 
+      U     #A_3146_MXZ11.OutpHN; 
+      =     "A_3146_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3146-MXZ11I1 : LOUVER WITHERING AIR 2 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3146_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3146_MXZ11.OutpLN; // closing 
+      =     #A_3146_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3146_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3146_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3146_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3146_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3146_MXZ11_I1"; 
+      =     #A_3146_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3146_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3146_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3146_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3146-MXZ11I2 : LOUVER WITHERING AIR 2 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3146_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3146_MXZ11.OutpHN; // opening
+      =     #A_3146_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3146_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3146_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3146_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3146_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3146_MXZ11_I2"; 
+      =     #A_3146_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3146_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3146_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3146_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3145-BZS14 : LOUVER WITHERING AIR 1 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3145_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3145_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3145_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3145_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3145_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3145_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3145_BZS14_I1"; 
+      =     #A_3145_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3145_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3145_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3145_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3145-BZS15 : LOUVER WITHERING AIR 1 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3145_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3145_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3145_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3145_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3145_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3145_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3145_BZS15_I1"; 
+      =     #A_3145_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3145_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3145_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3145_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3146-BZS14 : LOUVER WITHERING AIR 2 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3146_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3146_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3146_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3146_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3146_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3146_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3146_BZS14_I1"; 
+      =     #A_3146_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3146_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3146_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3146_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3146-BZS15 : LOUVER WITHERING AIR 2 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3146_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3146_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3146_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3146_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3146_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3146_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3146_BZS15_I1"; 
+      =     #A_3146_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3146_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3146_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3146_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3145_MXZ11.StFault; 
+      O     #A_3145_MXZ11I1.StFault; 
+      O     #A_3145_MXZ11I2.StFault; 
+      O     #A_3146_MXZ11.StFault; 
+      O     #A_3146_MXZ11I1.StFault; 
+      O     #A_3146_MXZ11I2.StFault; 
+      O     #A_3145_BZS14.StFault; 
+      O     #A_3145_BZS15.StFault; 
+      O     #A_3146_BZS14.StFault; 
+      O     #A_3146_BZS15.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3145_MXZ11.StLN; 
+      U     #A_3146_MXZ11.StLN; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+//      UN    #A_3145_MXZ11.StLN
+//      UN    #A_3145_MXZ11.StFault
+//      UN    #A_3145_MXZ11.StNoPosition
+//      UN    #A_3146_MXZ11.StLN
+//      UN    #A_3146_MXZ11.StFault
+//      UN    #A_3146_MXZ11.StNoPosition
+//
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[278]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[278]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[278]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[278]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[278]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[278]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[278]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[278]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[278]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[278]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

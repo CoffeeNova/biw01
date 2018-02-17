@@ -1,0 +1,1821 @@
+FUNCTION_BLOCK "G297M_Code"
+TITLE =G297M FAN KILN 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        FAN KILN 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB397.1.0 K.Renz              CSB41                              20.Mai.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  FanStandstill : BOOL ;	//Data for user
+  FanSpeedReduced : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3225_KCU04AI1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_KCU04AI2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_BTE05 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_BTE06 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_TSC01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3225_MXZ01MA : "A_3225_MXZ01MA_Code";	// Motor+6DI 
+  A_3225_TSC01_AC : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_TSC01_AF : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_TSC01_AP : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_TSC01_AT : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3225_TSC01_COM : "SSA_ABB";	// FU_ABB
+  A_3226_KCU04AI1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_KCU04AI2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_BTE05 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_BTE06 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_MXZ01MA : "A_3226_MXZ01MA_Code";	// Motor+6DI 
+  A_3226_TSC01_AC : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_TSC01_AF : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_TSC01_AP : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_TSC01_AT : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3226_TSC01_COM : "SSA_ABB";	// FU_ABB 
+  A_3226_TSC01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3225_MXZ02MA : "A_3225_MXZ02MA_Code";	// Motor+6DI 
+  A_3226_MXZ02MA : "A_3226_MXZ02MA_Code";	// Motor+6DI 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[297]; 
+      R     "GCS7_GrCtrlDB".ParWGR[297]; 
+      R     "GCS7_GrCtrlDB".ParGGR[297]; 
+      R     "GCS7_GrCtrlDB".ParFeed[297]; 
+      R     "GCS7_GrCtrlDB".ParShare[297]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      A     "GCS7_GrCtrlDB".OutEnable[297]; 
+      =     #Gr.InEnableGr; 
+      A     "GCS7_GrCtrlDB".OutOccupied[297]; 
+      =     #Gr.InOccupied; 
+      A     "GCS7_GrCtrlDB".CmdFaultReset[297]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[297]; 
+      S     #Gr.CmdFaultReset; 
+      A     "GCS7_GrCtrlDB".CmdNext[297]; 
+      R     "GCS7_GrCtrlDB".CmdNext[297]; 
+      S     #Gr.CmdNext; 
+
+      A     "GCS7_GrCtrlDB".CmdManualOff[297]; 
+      AN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      A     "GCS7_GrCtrlDB".CmdManualOff[297]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[297]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[297]
+//      O     "GCS7_GrCtrlDB".OutOccupied[297]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[297]
+//      S     #Gr.CmdManualOff
+
+      A     "GCS7_GrCtrlDB".CmdContinue[297]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[297]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      A     "GCS7_GrCtrlDB".ParShare[297]; 
+      JCN   WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      JC    IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      A     #Gr.InManual; 
+      JC    ILO6; 
+
+// Drehzahlabsenkung wenn die andere Horde im Cooling ist
+// und die Temperatur unter der eigenen Horde 5°C > als T[Soll] 
+//      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ
+//      U     "G302M".USW8                // Temperatur unter der Horde 5°C > T[Soll]
+//      L     50                          // 50%
+//      SPB   En06
+//JV270710 ======>
+// Drehzahlabsenkung wenn die andere Horde gerade zugeschaltet wurde
+      A(    ; 
+      A     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      A(    ; 
+      O(    ; //JV290710 ======>
+      A     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      A     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      AN    "G304M".A_3245_MXZ11.StLN; // Abluftklappen zu
+      AN    "G304M".A_3246_MXZ11.StLN; // Abluftklappen zu
+      )     ; 
+      O(    ; 
+      A     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      AN    "G304M".A_3245_MXZ11.StHN; // Abluftklappen auf
+      AN    "G304M".A_3246_MXZ11.StHN; // Abluftklappen auf
+      )     ; 
+      )     ; //JV290710 <======
+      )     ; 
+//BRT20100827 ====> beide Prozesse gestartet, aber Darren nicht bereit für Verbund!!!
+      O(    ; 
+      A     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      AN    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      AN    "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      AN(   ; 
+      A     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      O     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      )     ; 
+//18.02.2015 IS special kilning mode check
+      AN    "MAL1S032Par".Par.FlagProcess.Inf06; //Special kilning mode first kiln 1=ON, 0=OFF
+      AN    "MAL1S033Par".Par.FlagProcess.Inf06; //Special kilning mode second kiln 1=ON, 0=OFF
+      )     ; 
+//BRT20100827 <====
+      L     60; // 60% Drehzahl bis Klappen richtig stehen
+      JC    En06; 
+//JV270710 <========
+
+//BRT20100826 ====> Ventilator geregelt während Kühlung und Lufttransfer Darre 1 nach 2!
+// 
+      A     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      A     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      L     "MAL1S033Par".Par.ProcessValue.Value15; // Sollwert Ventilator Kühlen
+      JC    En06; 
+//18.02.2015 IS for special kilning mode
+      A     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      A     "MAL1S033Par".Par.FlagProcess.Inf06; //Special kilning mode second kiln 1=ON, 0=OFF    
+      A     "G303M".A_3240_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G304M".A_3245_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G304M".A_3246_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G299M".A_3236_MXZ11.StHN; // Recycle Air 2 Kilnbox 2
+      A     "G299M".A_3235_MXZ11.StHN; // Recycle Air 1 Kilnbox 2
+      L     "MAL1S033Par".Par.ProcessValue.Value18; // Sollwert Ventilator Verbund
+      JC    En06; 
+//BRT20100826 <====
+//BRT20100902 ====> wegen Programmänderungen Regelung Verbund
+//      L     "MAL1S033Par".Par.ParIntProcess.SpeedVentilatorBasic
+      L     "MAL1S033Par".Par.ProcessValue.Value18; // Sollwert Ventilator Verbund
+//BRT20100902 <====
+      JU    En06; 
+ILO6: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntProcess.Speed_ILO_Fan; 
+En06: NOP   0; 
+      L     100; 
+      *I    ; 
+      T     #A_3225_TSC01_COM.OutValuePC; // xxx.xx%
+      T     #A_3226_TSC01_COM.OutValuePC; // xxx.xx%
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+//BRT08072010 - Interlocking für Schliessen der Jalousien!
+      A(    ; 
+      L     #A_3225_TSC01_COM.InValuePC; 
+      L     1000; // 10%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_3226_TSC01_COM.InValuePC; 
+      L     1000; // 10%
+      <I    ; 
+      )     ; 
+      =     #FanStandstill; 
+
+//JV290710 - Interlocking für Öffnen der Kaltluft-Jalousien!
+      A(    ; 
+      L     #A_3225_TSC01_COM.InValuePC; 
+      L     7500; // 75%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_3226_TSC01_COM.InValuePC; 
+      L     7500; // 75%
+      <I    ; 
+      )     ; 
+      =     "G297M".FanSpeedReduced; 
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      O     "G001G".G_FIRE.StFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      A(    ; 
+//--------------------- Ein-Hordenbetrieb ----------------------------//
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      AN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+//=> 18.02.2015   IS
+      AN    "MAL1S033Par".Par.FlagProcess.Inf06; //Special kilning mode second kiln 1=ON, 0=OFF     
+//<=
+// Luft-Eintritt
+      A(    ; 
+      A     "G303M".A_3240_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      O     ; 
+      AN    "G298M".A_3250_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3251_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3252_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3253_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      )     ; 
+// Luft-Austritt
+      A(    ; 
+      AN    "G304M".A_3245_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      AN    "G304M".A_3246_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      O     ; 
+      AN    "G299M".A_3235_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      AN    "G299M".A_3236_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      )     ; 
+      O     ; 
+//-------18.02.2015---------Special kilning mode -----------------------//
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      A(    ; 
+      A     "MAL1S033Par".Par.FlagProcess.Inf06; //Special kilning mode second kiln 1=ON, 0=OFF     
+      A     "G303M".A_3240_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G304M".A_3245_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G304M".A_3246_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G299M".A_3236_MXZ11.StHN; // Recycle Air 2 Kilnbox 2
+      A     "G299M".A_3235_MXZ11.StHN; // Recycle Air 1 Kilnbox 2
+      )     ; 
+      O     ; 
+//---------------------- Zwei-Hordenbetrieb --------------------------//
+      A     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      A     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+// Luft-Eintritt
+      A(    ; 
+      A     "G303M".A_3240_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      O     ; 
+      A     "G303M".A_3240_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G273M".A_3136_MXZ11.StHN; // Recycling Air Flap Kilningbox 1   ///JVXXXXXX
+      A     "G299M".A_3235_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      O     ; 
+      AN    "G298M".A_3250_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3251_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3252_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      AN    "G298M".A_3253_MXZ11.StLN; // Fresh Air Flap Kilningbox 2
+      )     ; 
+// Luft-Austritt
+      A(    ; 
+      A     "G304M".A_3245_MXZ11.StHN; // Exhaust Air Kilningbox 2
+      A     "G304M".A_3246_MXZ11.StHN; // Exhaust Air Kilningbox 2
+      O     ; 
+      AN    "G304M".A_3245_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      AN    "G304M".A_3246_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      AN    "G299M".A_3235_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      AN    "G299M".A_3236_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      O     ; 
+      A     "G299M".A_3236_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      AN    "G299M".A_3235_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      AN    "G273M".A_3135_MXZ11.StLN; // Recycling Air Flap Kilningbox 1
+      O     ; 
+// 100% Umluft-Betrieb
+      A     "G299M".A_3236_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      A(    ; 
+      O     "G273M".A_3135_MXZ11.StHN; // Recycling Air Flap Kilningbox 1
+      O     "G299M".A_3235_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      )     ; 
+      )     ; 
+      )     ; 
+      AN(   ; //JV080810 ========> 
+      A     "G304M".A_3245_MXZ11.StFault; // Exhaust Air Kilningbox 2
+      A     "G304M".A_3246_MXZ11.StFault; // Exhaust Air Kilningbox 2
+      A     "G299M".A_3235_MXZ11.StFault; // Recycling Air Flap Kilningbox 2
+      A     "G299M".A_3236_MXZ11.StFault; // Recycling Air Flap Kilningbox 2
+      )     ; //JV080810 <========
+      L     S5T#15S; 
+      SF    T    397; 
+
+      A     T    397; 
+      O(    ; 
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     4; 
+      ==I   ; 
+      A     #Gr.InManual; 
+      A     "G299M".A_3235_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      A     "G299M".A_3236_MXZ11.StHN; // Recycling Air Flap Kilningbox 2
+      )     ; 
+      O(    ; 
+      L     "MAL1S033Par".Ilo.ILOMode; 
+      L     5; 
+      ==I   ; 
+      A     #Gr.InManual; 
+      AN(   ; 
+      A     "G303M".A_3240_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G303M".A_3241_MXZ11.StLN; // Louver Air Heater Kilningbox 2
+      A     "G304M".A_3245_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G304M".A_3246_MXZ11.StLN; // Exhaust Air Kilningbox 2
+      A     "G299M".A_3235_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      A     "G299M".A_3236_MXZ11.StLN; // Recycling Air Flap Kilningbox 2
+      )     ; 
+      )     ; 
+      A     "G276M".A_3191_BPS21.StTrue; // HEAT EXCHANGE PRESSURE < 15mbar
+      A     #Gr.InEnableGr; 
+      AN    "G001G".G_FIRE.StFault; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      A     #Gr.CmdNext; 
+      A     #Gr.OutAutostart; 
+      AN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #tmpHWStop; 
+
+      A     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      A     #Gr.CmdFaultReset; 
+      A     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[11].CmdResetStartWarning; 
+//- Run Timer --
+      OPN   "G297M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 11,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      A     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      A     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-3225-KCU04AI1 : VIBRATION MONITOR FAN 1 CHANNEL 1
+//Alarm Level = 10.00mm/sec
+//Trip Level = 11.20mm/sec
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_KCU04AI1.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonLL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonMid; 
+      SET   ; 
+      =     #A_3225_KCU04AI1.InMonH; 
+      SET   ; 
+      =     #A_3225_KCU04AI1.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3225_KCU04_AI1"; 
+      L     0; 
+      <I    ; 
+      JC    v003; 
+      TAK   ; 
+v003: T     #A_3225_KCU04AI1.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_KCU04AI1.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_KCU04AI1.InDPFault; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#1000; // 20mA = 10,0mm/sec      
+      T     "G297M".A_3225_KCU04AI1.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_KCU04AI1.Par.ParUnitsBy100Pc; 
+      L     L#-1; // -0.01mm/sec
+      T     "G297M".A_3225_KCU04AI1.Par.ParLimitLL; 
+      L     L#0; // 0.00mm/sec
+      T     "G297M".A_3225_KCU04AI1.Par.ParLimitL; 
+      L     L#560; // 5,6mm/sec
+      T     "G297M".A_3225_KCU04AI1.Par.ParLimitH; 
+      L     L#890; // 8,9mm/sec
+      T     "G297M".A_3225_KCU04AI1.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParWarningLL; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParWarningL; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParWarningMid; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParWarningH; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParPreAlarmH; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3225_KCU04AI1.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3225_KCU04AI1 ;
+// 
+//-Write outputs---
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_3225_KCU04AI1.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonLL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonMid; 
+      CLR   ; 
+      =     #A_3225_KCU04AI1.InMonH; 
+      SET   ; 
+      =     #A_3225_KCU04AI1.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3225_KCU04_AI1"; 
+      T     #A_3225_KCU04AI1.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_KCU04AI1.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_KCU04AI1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_KCU04AI1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3225-KCU04AI2 : VIBRATION MONITOR FAN 1 CHANNEL 2
+//Alarm Level = 10.00mm/sec
+//Trip Level = 11.20mm/sec
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_KCU04AI2.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_KCU04AI2.InMonLL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI2.InMonL; 
+      CLR   ; 
+      =     #A_3225_KCU04AI2.InMonMid; 
+      SET   ; 
+      =     #A_3225_KCU04AI2.InMonH; 
+      SET   ; 
+      =     #A_3225_KCU04AI2.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3225_KCU04_AI2"; 
+      L     0; 
+      <I    ; 
+      JC    v004; 
+      TAK   ; 
+v004: T     #A_3225_KCU04AI2.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_KCU04AI2.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_KCU04AI2.InDPFault; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#1000; // 20mA = 10,0mm/sec      
+      T     "G297M".A_3225_KCU04AI2.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_KCU04AI2.Par.ParUnitsBy100Pc; 
+      L     L#-1; // -0.01mm/sec
+      T     "G297M".A_3225_KCU04AI2.Par.ParLimitLL; 
+      L     L#0; // 0.00mm/sec
+      T     "G297M".A_3225_KCU04AI2.Par.ParLimitL; 
+      L     L#560; // 5,6mm/sec
+      T     "G297M".A_3225_KCU04AI2.Par.ParLimitH; 
+      L     L#890; // 8,9mm/sec
+      T     "G297M".A_3225_KCU04AI2.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParWarningLL; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParWarningL; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParWarningMid; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParWarningH; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParPreAlarmH; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3225_KCU04AI2.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3225_KCU04AI2 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-BTE05 : TEMPERATURE BEARING TEMPERATUR SENSOR
+//Alarm Level = 100.00°C    
+//Trip Level = 110.00°C
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_BTE05.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_BTE05.InMonLL; 
+      CLR   ; 
+      =     #A_3225_BTE05.InMonL; 
+      CLR   ; 
+      =     #A_3225_BTE05.InMonMid; 
+      SET   ; 
+      =     #A_3225_BTE05.InMonH; 
+      SET   ; 
+      =     #A_3225_BTE05.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3225_BTE05_AI1"; 
+//L     2000
+      T     #A_3225_BTE05.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_BTE05.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_BTE05.InDPFault; 
+
+//To Block Problems with Sensor
+      L     600; 
+      T     "G297M".A_3225_BTE05.Par.ParMonTimeH; 
+      T     "G297M".A_3225_BTE05.Par.ParMonTimeHH; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // Temperature direkt      
+      T     "G297M".A_3225_BTE05.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_BTE05.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.00°C
+      T     "G297M".A_3225_BTE05.Par.ParLimitLL; 
+      L     L#100; // 1.00°C
+      T     "G297M".A_3225_BTE05.Par.ParLimitL; 
+      L     L#10000; // 100.00°C
+      T     "G297M".A_3225_BTE05.Par.ParLimitH; 
+      L     L#11000; // 110.00°C
+      T     "G297M".A_3225_BTE05.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3225_BTE05.Par.ParWarningLL; 
+      =     "G297M".A_3225_BTE05.Par.ParWarningL; 
+      =     "G297M".A_3225_BTE05.Par.ParWarningMid; 
+      =     "G297M".A_3225_BTE05.Par.ParWarningH; 
+      =     "G297M".A_3225_BTE05.Par.ParPreAlarmH; 
+      =     "G297M".A_3225_BTE05.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3225_BTE05.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3225_BTE05 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-BTE06 : TEMPERATURE BEARING TEMPERATUR SENSOR
+//Alarm Level = 100.00°C    
+//Trip Level = 110.00°C
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_BTE06.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_3225_BTE06.InMonLL; 
+      CLR   ; 
+      =     #A_3225_BTE06.InMonL; 
+      CLR   ; 
+      =     #A_3225_BTE06.InMonMid; 
+      SET   ; 
+      =     #A_3225_BTE06.InMonH; 
+      SET   ; 
+      =     #A_3225_BTE06.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3225_BTE06_AI1"; 
+// L     2000
+      T     #A_3225_BTE06.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_BTE06.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_BTE06.InDPFault; 
+
+//To Block Problems with Sensor
+      L     600; 
+      T     "G297M".A_3225_BTE06.Par.ParMonTimeH; 
+      T     "G297M".A_3225_BTE06.Par.ParMonTimeHH; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // Temperature direkt      
+      T     "G297M".A_3225_BTE06.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_BTE06.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.00°C
+      T     "G297M".A_3225_BTE06.Par.ParLimitLL; 
+      L     L#100; // 1.00°C
+      T     "G297M".A_3225_BTE06.Par.ParLimitL; 
+      L     L#10000; // 100.00°C
+      T     "G297M".A_3225_BTE06.Par.ParLimitH; 
+      L     L#11000; // 110.00°C
+      T     "G297M".A_3225_BTE06.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3225_BTE06.Par.ParWarningLL; 
+      =     "G297M".A_3225_BTE06.Par.ParWarningL; 
+      =     "G297M".A_3225_BTE06.Par.ParWarningMid; 
+      =     "G297M".A_3225_BTE06.Par.ParWarningH; 
+      =     "G297M".A_3225_BTE06.Par.ParPreAlarmH; 
+      =     "G297M".A_3225_BTE06.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3225_BTE06.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3225_BTE06 ;
+// 
+//-Write outputs---
+
+
+NETWORK
+TITLE ==A-3225-MXZ02MA : GETRIEBEÖLPUMPE FAN 1 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_MXZ02MA.Ma.InLocal; 
+
+//-Interlocking---
+//->24.01.2013 IS. made cooler fan to start and stop in a range to protect 
+//from contact bounce
+      A(    ; 
+      L     "G297M".A_3225_TSC01_AF.OutValuePc; 
+      L     5000; 
+      >=I   ; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     M     18.0; 
+      A(    ; 
+      L     "G297M".A_3225_TSC01_AF.OutValuePc; 
+      L     4500; 
+      <=I   ; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      R     M     18.0; 
+
+      A     M     18.0; 
+      A     #Gr.OutEnableEl; 
+      =     #A_3225_MXZ02MA.Ma.InEnableFwd; 
+//<-
+//      U     #tmpCmdNext
+      SET   ; 
+      S     #A_3225_MXZ02MA.Ma.CmdNext; 
+
+      A     #Gr.OutSeqStop; 
+      =     #A_3225_MXZ02MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-3225-BFT09---
+//      CLR
+//      S     #A_3225_MXZ02MA.A_3225_BFT09.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      A     "A_3225_BFT09_I1"; 
+      ON    #A_3225_MXZ02MA.A_3225_MXZ02.StStartedFwd; 
+      =     #A_3225_MXZ02MA.A_3225_BFT09.InpTrue; 
+      A     "A_3225_MXZ02_I1"; 
+      =     #A_3225_MXZ02MA.A_3225_MXZ02.InpRunFwd; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3225_MXZ02MA.A_3225_MXZ02.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3225_MXZ02MA.A_3225_MXZ02.InDPFault; 
+      SET   ; 
+      =     #A_3225_MXZ02MA.Mon2.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_MXZ02MA ;
+// 
+//-Write outputs---
+      A     #A_3225_MXZ02MA.A_3225_MXZ02.OutpRunFwd; 
+      =     "A_3225_MXZ02_O1"; 
+NETWORK
+TITLE ==A-3225-MXZ01MA : FAN 1
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_MXZ01MA.Ma.InLocal; 
+
+//-Interlocking---
+      AN    DB923.DBX 1569.0; // emergency regime without fan 1
+      A(    ; 
+      AN    #A_3226_MXZ01MA.Ma.StFault; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      AN    #A_3225_KCU04AI1.OutFaulted; // Vibrationswächter 1
+      AN    #A_3225_KCU04AI2.OutFaulted; // Vibrationswächter 2
+      AN    #A_3225_BTE05.OutFaulted; // Lager Temperatur 1
+      AN    #A_3225_BTE06.OutFaulted; // Lager Temperatur 2
+      AN    "G276M".A_3191_BPS21.StFault; // Differenzdruck hinter dem Waermetauscher
+      A     #Gr.OutEnableEl; 
+      =     #A_3225_MXZ01MA.Ma.InEnableFwd; 
+
+      A     #tmpCmdNext; 
+//      U     "MAL1S033Par".Par.FlagProcess2.Schaltp_5
+      S     #A_3225_MXZ01MA.Ma.CmdNext; 
+
+      A     #Gr.OutSeqStop; 
+      =     #A_3225_MXZ01MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-3225-KCU04---
+//      CLR
+//      S     #A_3225_MXZ01MA.A_3225_KCU04.CmdRunTimeOutTime
+//-=A-3225-MXZ01_SM---
+//      CLR
+//      S     #A_3225_MXZ01MA.A_3225_MXZ01_SM.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      A     "A_3225_KCU04_I1"; 
+      =     #A_3225_MXZ01MA.A_3225_KCU04.InpTrue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_MXZ01MA.A_3225_KCU04.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[103]; 
+      =     #A_3225_MXZ01MA.A_3225_KCU04.InDPFault; 
+      A     "A_3225_BSA07_I1"; 
+      =     #A_3225_MXZ01MA.A_3225_BSA07.InpTrue; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3225_MXZ01MA.A_3225_BSA07.InDPFault; 
+      A     #A_3225_TSC01_COM.OutRunningFwd; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; 
+      A     #A_3225_MXZ01MA.A_3225_MXZ01.OutpRunFwd; 
+      =     #A_3225_MXZ01MA.A_3225_MXZ01.InpRunFwd; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_MXZ01MA.A_3225_MXZ01.InHWStop; 
+      SET   ; 
+      =     #A_3225_MXZ01MA.Mon2.InpTrue; 
+// Überwachung Profibus-Kommunikation
+      A     "PLC_DPInfo".Master[1].SlavesError[104]; // FU  ?????
+      =     #A_3225_MXZ01MA.A_3225_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_MXZ01MA ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-TSC01_COM : FAN 1 FU KOMMUNIKATION
+
+      NOP   0; 
+      A     #A_3225_MXZ01MA.A_3225_MXZ01.OutpRunFwd; 
+      =     #A_3225_TSC01_COM.InEnableFwd; 
+//      U     #A_3225_MXZ01MA.A_3225_MXZ01.OutpRunRev
+      CLR   ; 
+      =     #A_3225_TSC01_COM.InEnableRev; 
+      A     #Gr.CmdFaultReset; 
+      O     #A_3225_MXZ01MA.A_3225_KCU04.OutpFaultReset; 
+      S     #A_3225_TSC01_COM.CmdFaultReset; 
+//
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_TSC01_COM ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3225-TSC01_AC : ACT. CURRENT FAN 1 FU 
+//20000Dez=100,0%=720,0A
+//Analog Input 20mA=27648Dez=995,3A
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_TSC01_AC.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_3225_TSC01_AC.InMonLL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AC.InMonL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AC.InMonMid; 
+      CLR   ; 
+      =     #A_3225_TSC01_AC.InMonH; 
+      CLR   ; 
+      =     #A_3225_TSC01_AC.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3225_TSC01_COM.Input.ActualValue02; 
+      T     #A_3225_TSC01_AC.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_TSC01_AC.InHWStop; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // Stromwert bei 27648Dez
+      T     "G297M".A_3225_TSC01_AC.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_TSC01_AC.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.0A
+      T     "G297M".A_3225_TSC01_AC.Par.ParLimitLL; 
+      L     L#4000; // 40.0A
+      T     "G297M".A_3225_TSC01_AC.Par.ParLimitL; 
+      L     L#7200; // 720.0A=100.0%
+      T     "G297M".A_3225_TSC01_AC.Par.ParLimitH; 
+      L     L#9360; // 936.0A=130.0%
+      T     "G297M".A_3225_TSC01_AC.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3225_TSC01_AC ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-TSC01_AF : ACT. FREQUENCY FAN 1 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_TSC01_AF.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_3225_TSC01_AF.InMonLL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AF.InMonL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AF.InMonMid; 
+      CLR   ; 
+      =     #A_3225_TSC01_AF.InMonH; 
+      CLR   ; 
+      =     #A_3225_TSC01_AF.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3225_TSC01_COM.InValuePC; // Umgerechnet in FU-FB
+      T     #A_3225_TSC01_AF.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_TSC01_AF.InHWStop; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // InpValue=Drehzahl direkt   
+      T     "G297M".A_3225_TSC01_AF.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3225_TSC01_AF.Par.ParUnitsBy100Pc; 
+      L     L#3900; // 40.00% ist untere Grenze
+      T     "G297M".A_3225_TSC01_AF.Par.ParLimitLL; 
+      L     L#3980; // 41.00%
+      T     "G297M".A_3225_TSC01_AF.Par.ParLimitL; 
+      L     L#8000; // 80.00%
+      T     "G297M".A_3225_TSC01_AF.Par.ParLimitH; 
+      L     L#10100; // 101.00%
+      T     "G297M".A_3225_TSC01_AF.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3225_TSC01_AF ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-TSC01_AP : ACT. POWER FAN 1 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_TSC01_AP.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_TSC01_AP.InMonLL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AP.InMonL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AP.InMonMid; 
+      CLR   ; 
+      =     #A_3225_TSC01_AP.InMonH; 
+      CLR   ; 
+      =     #A_3225_TSC01_AP.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3225_TSC01_COM.Input.ActualValue03; 
+      T     #A_3225_TSC01_AP.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_TSC01_AP.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_TSC01_AP ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-TSC01_AT : ACT. TORQUE FAN 1 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      =     #A_3225_TSC01_AT.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3225_TSC01_AT.InMonLL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AT.InMonL; 
+      CLR   ; 
+      =     #A_3225_TSC01_AT.InMonMid; 
+      CLR   ; 
+      =     #A_3225_TSC01_AT.InMonH; 
+      CLR   ; 
+      =     #A_3225_TSC01_AT.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3225_TSC01_COM.Input.ActualValue04; 
+      T     #A_3225_TSC01_AT.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3225_TSC01_AT.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_TSC01_AT ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-KCU04AI1 : VIBRATION MONITOR FAN 2 CHANNEL 1
+//Alarm Level = 10.00mm/sec
+//Trip Level = 11.20mm/sec
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_KCU04AI1.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_KCU04AI1.InMonLL; 
+      CLR   ; 
+      =     #A_3226_KCU04AI1.InMonL; 
+      CLR   ; 
+      =     #A_3226_KCU04AI1.InMonMid; 
+      SET   ; 
+      =     #A_3226_KCU04AI1.InMonH; 
+      SET   ; 
+      =     #A_3226_KCU04AI1.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3226_KCU04_AI1"; 
+      L     0; 
+      <I    ; 
+      JC    v013; 
+      TAK   ; 
+v013: T     #A_3226_KCU04AI1.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_KCU04AI1.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3226_KCU04AI1.InDPFault; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#1000; // 20mA = 25.40mm/sec       
+      T     "G297M".A_3226_KCU04AI1.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_KCU04AI1.Par.ParUnitsBy100Pc; 
+      L     L#-1; // -0.01mm/sec
+      T     "G297M".A_3226_KCU04AI1.Par.ParLimitLL; 
+      L     L#0; // 0.00mm/sec
+      T     "G297M".A_3226_KCU04AI1.Par.ParLimitL; 
+      L     L#560; // 5,6mm/sec
+      T     "G297M".A_3226_KCU04AI1.Par.ParLimitH; 
+      L     L#890; // 8,9mm/sec
+      T     "G297M".A_3226_KCU04AI1.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParWarningLL; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParWarningL; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParWarningMid; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParWarningH; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParPreAlarmH; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3226_KCU04AI1.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3226_KCU04AI1 ;
+// 
+//-Write outputs---
+      L     "G297M".A_3226_KCU04AI1.OutValuePc; 
+      T     "G297M".A_3226_KCU04AI1.OutValuePc; 
+NETWORK
+TITLE ==A-3226-KCU04AI2 : VIBRATION MONITOR FAN 2 CHANNEL 2
+//Alarm Level = 10.00mm/sec
+//Trip Level = 11.20mm/sec
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_KCU04AI2.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_KCU04AI2.InMonLL; 
+      CLR   ; 
+      =     #A_3226_KCU04AI2.InMonL; 
+      CLR   ; 
+      =     #A_3226_KCU04AI2.InMonMid; 
+      SET   ; 
+      =     #A_3226_KCU04AI2.InMonH; 
+      SET   ; 
+      =     #A_3226_KCU04AI2.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3226_KCU04_AI2"; 
+      L     0; 
+      <I    ; 
+      JC    v014; 
+      TAK   ; 
+v014: T     #A_3226_KCU04AI2.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_KCU04AI2.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3226_KCU04AI2.InDPFault; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#1000; // 20mA = 10,0mm/sec           
+      T     "G297M".A_3226_KCU04AI2.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_KCU04AI2.Par.ParUnitsBy100Pc; 
+      L     L#-1; // -0.01mm/sec
+      T     "G297M".A_3226_KCU04AI2.Par.ParLimitLL; 
+      L     L#0; // 0.00mm/sec
+      T     "G297M".A_3226_KCU04AI2.Par.ParLimitL; 
+      L     L#560; // 5,6mm/sec
+      T     "G297M".A_3226_KCU04AI2.Par.ParLimitH; 
+      L     L#890; // 8,9mm/sec
+      T     "G297M".A_3226_KCU04AI2.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParWarningLL; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParWarningL; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParWarningMid; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParWarningH; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParPreAlarmH; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3226_KCU04AI2.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3226_KCU04AI2 ;
+// 
+//-Write outputs---
+      L     "G297M".A_3226_KCU04AI2.OutValuePc; 
+      T     "G297M".A_3226_KCU04AI2.OutValuePc; 
+NETWORK
+TITLE ==A-3226-BTE05 : TEMPERATURE BEARING TEMPERATUR SENSOR
+//Alarm Level = 100.00°C    
+//Trip Level = 110.00°C
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_BTE05.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_BTE05.InMonLL; 
+      CLR   ; 
+      =     #A_3226_BTE05.InMonL; 
+      CLR   ; 
+      =     #A_3226_BTE05.InMonMid; 
+      SET   ; 
+      =     #A_3226_BTE05.InMonH; 
+      SET   ; 
+      =     #A_3226_BTE05.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3226_BTE05_AI1"; 
+//  L     2000
+      T     #A_3226_BTE05.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_BTE05.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3226_BTE05.InDPFault; 
+
+//To Block Problems with Sensor
+      L     600; 
+      T     "G297M".A_3226_BTE05.Par.ParMonTimeH; 
+      T     "G297M".A_3226_BTE05.Par.ParMonTimeHH; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // Temperature direkt      
+      T     "G297M".A_3226_BTE05.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_BTE05.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.00°C
+      T     "G297M".A_3226_BTE05.Par.ParLimitLL; 
+      L     L#100; // 1.00°C
+      T     "G297M".A_3226_BTE05.Par.ParLimitL; 
+      L     L#10000; // 100.00°C
+      T     "G297M".A_3226_BTE05.Par.ParLimitH; 
+      L     L#11000; // 110.00°C
+      T     "G297M".A_3226_BTE05.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3226_BTE05.Par.ParWarningLL; 
+      =     "G297M".A_3226_BTE05.Par.ParWarningL; 
+      =     "G297M".A_3226_BTE05.Par.ParWarningMid; 
+      =     "G297M".A_3226_BTE05.Par.ParWarningH; 
+      =     "G297M".A_3226_BTE05.Par.ParPreAlarmH; 
+      =     "G297M".A_3226_BTE05.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3226_BTE05.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3226_BTE05 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-BTE06 : TEMPERATURE BEARING TEMPERATUR SENSOR
+//Alarm Level = 100.00°C    
+//Trip Level = 110.00°C
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_BTE06.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_BTE06.InMonLL; 
+      CLR   ; 
+      =     #A_3226_BTE06.InMonL; 
+      CLR   ; 
+      =     #A_3226_BTE06.InMonMid; 
+      SET   ; 
+      =     #A_3226_BTE06.InMonH; 
+      SET   ; 
+      =     #A_3226_BTE06.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3226_BTE06_AI1"; 
+//  L     2000
+      T     #A_3226_BTE06.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_BTE06.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3226_BTE06.InDPFault; 
+
+//To Block Problems with Sensor
+      L     600; 
+      T     "G297M".A_3226_BTE06.Par.ParMonTimeH; 
+      T     "G297M".A_3226_BTE06.Par.ParMonTimeHH; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // Temperature direkt      
+      T     "G297M".A_3226_BTE06.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_BTE06.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.00°C
+      T     "G297M".A_3226_BTE06.Par.ParLimitLL; 
+      L     L#100; // 1.00°C
+      T     "G297M".A_3226_BTE06.Par.ParLimitL; 
+      L     L#10000; // 100.00°C
+      T     "G297M".A_3226_BTE06.Par.ParLimitH; 
+      L     L#11000; // 110.00°C
+      T     "G297M".A_3226_BTE06.Par.ParLimitHH; 
+      SET   ; 
+      =     "G297M".A_3226_BTE06.Par.ParWarningLL; 
+      =     "G297M".A_3226_BTE06.Par.ParWarningL; 
+      =     "G297M".A_3226_BTE06.Par.ParWarningMid; 
+      =     "G297M".A_3226_BTE06.Par.ParWarningH; 
+      =     "G297M".A_3226_BTE06.Par.ParPreAlarmH; 
+      =     "G297M".A_3226_BTE06.Par.ParPreAlarmHH; 
+      CLR   ; 
+      =     "G297M".A_3226_BTE06.Par.ParWarningHH; 
+// 
+//-Call object control---
+      CALL #A_3226_BTE06 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-MXZ02MA : GETRIEBEÖLPUMPE FAN 2 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_MXZ02MA.Ma.InLocal; 
+//
+//-Interlocking---
+//->24.01.2013 IS. made cooler fan to start and stop in a range to protect 
+//from contact bounce
+      A(    ; 
+      L     "G297M".A_3226_TSC01_AF.OutValuePc; 
+      L     5000; 
+      >=I   ; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     M     18.1; 
+      A(    ; 
+      L     "G297M".A_3226_TSC01_AF.OutValuePc; 
+      L     4500; 
+      <=I   ; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      R     M     18.1; 
+
+      A     M     18.1; 
+      A     #Gr.OutEnableEl; 
+      =     #A_3226_MXZ02MA.Ma.InEnableFwd; 
+//<-
+//
+//      U     #tmpCmdNext
+      SET   ; 
+      S     #A_3226_MXZ02MA.Ma.CmdNext; 
+//
+      A     #Gr.OutSeqStop; 
+      =     #A_3226_MXZ02MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-3226-BFT09---
+//      CLR
+//      S     #A_3226_MXZ02MA.A_3226_BFT09.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      A     "A_3226_BFT09_I1"; 
+      ON    #A_3226_MXZ02MA.A_3226_MXZ02.StStartedFwd; 
+      =     #A_3226_MXZ02MA.A_3226_BFT09.InpTrue; 
+      A     "A_3226_MXZ02_I1"; 
+      =     #A_3226_MXZ02MA.A_3226_MXZ02.InpRunFwd; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3226_MXZ02MA.A_3226_MXZ02.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3226_MXZ02MA.A_3226_MXZ02.InDPFault; 
+      SET   ; 
+      =     #A_3226_MXZ02MA.Mon2.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_MXZ02MA ;
+// 
+//-Write outputs---
+      A     #A_3226_MXZ02MA.A_3226_MXZ02.OutpRunFwd; 
+      =     "A_3226_MXZ02_O1"; 
+NETWORK
+TITLE ==A-3226-MXZ01MA : FAN 2
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_MXZ01MA.Ma.InLocal; 
+
+//-Interlocking---
+      AN    DB923.DBX 1569.1; // emergency regime without fan 2
+      A(    ; 
+      AN    #A_3225_MXZ01MA.Ma.StFault; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      AN    #A_3226_KCU04AI1.OutFaulted; // Vibrationswächter 1
+      AN    #A_3226_KCU04AI2.OutFaulted; // Vibrationswächter 2
+      AN    #A_3226_BTE05.OutFaulted; // Lager Temperatur 1
+      AN    #A_3226_BTE06.OutFaulted; // Lager Temperatur 2
+      AN    "G276M".A_3191_BPS21.StFault; // Differenzdruck hinter dem Waermetauscher
+      A     #Gr.OutEnableEl; 
+      =     #A_3226_MXZ01MA.Ma.InEnableFwd; 
+
+      A     #tmpCmdNext; 
+//      U     "MAL1S033Par".Par.FlagProcess2.Schaltp_5
+      S     #A_3226_MXZ01MA.Ma.CmdNext; 
+
+      A     #Gr.OutSeqStop; 
+      =     #A_3226_MXZ01MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-3226-KCU04---
+//      CLR
+//      S     #A_3226_MXZ01MA.A_3226_KCU04.CmdRunTimeOutTime
+//-=A-3226-MXZ01_SM---
+//      CLR
+//      S     #A_3226_MXZ01MA.A_3226_MXZ01_SM.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      A     "A_3226_KCU04_I1"; 
+      =     #A_3226_MXZ01MA.A_3226_KCU04.InpTrue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_MXZ01MA.A_3226_KCU04.InHWStop; 
+      A     "PLC_DPInfo".Master[1].SlavesError[103]; 
+      =     #A_3226_MXZ01MA.A_3226_KCU04.InDPFault; 
+      A     "A_3226_BSA07_I1"; 
+      =     #A_3226_MXZ01MA.A_3226_BSA07.InpTrue; 
+      A     "PLC_DPInfo".Master[1].SlavesError[102]; 
+      =     #A_3226_MXZ01MA.A_3226_BSA07.InDPFault; 
+      A     #A_3226_TSC01_COM.OutRunningFwd; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; 
+      A     #A_3226_MXZ01MA.A_3226_MXZ01.OutpRunFwd; 
+      =     #A_3226_MXZ01MA.A_3226_MXZ01.InpRunFwd; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_MXZ01MA.A_3226_MXZ01.InHWStop; 
+      SET   ; 
+      =     #A_3226_MXZ01MA.Mon2.InpTrue; 
+// Überwachung Profibus-Kommunikation
+      A     "PLC_DPInfo".Master[1].SlavesError[105]; // FU  ?????
+      =     #A_3226_MXZ01MA.A_3226_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_MXZ01MA ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-TSC01_COM : FAN 2 FU KOMMUNIKATION
+
+      NOP   0; 
+      A     #A_3226_MXZ01MA.A_3226_MXZ01.OutpRunFwd; 
+      =     #A_3226_TSC01_COM.InEnableFwd; 
+//      U     #A_3226_MXZ01MA.A_3226_MXZ01.OutpRunRev
+      CLR   ; 
+      =     #A_3226_TSC01_COM.InEnableRev; 
+      A     #Gr.CmdFaultReset; 
+      O     #A_3226_MXZ01MA.A_3226_KCU04.OutpFaultReset; 
+      S     #A_3226_TSC01_COM.CmdFaultReset; 
+//
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_TSC01_COM ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3226-TSC01_AC : ACT. CURRENT FAN 2 FU 
+//20000Dez=100,0%=720,0A
+//Analog Input 20mA=27648Dez=995,3A
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_TSC01_AC.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_TSC01_AC.InMonLL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AC.InMonL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AC.InMonMid; 
+      CLR   ; 
+      =     #A_3226_TSC01_AC.InMonH; 
+      CLR   ; 
+      =     #A_3226_TSC01_AC.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3226_TSC01_COM.Input.ActualValue02; 
+      T     #A_3226_TSC01_AC.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_TSC01_AC.InHWStop; 
+// 
+//-Set Parameters---
+      L     L#27648; // Stromwert bei 27648Dez
+      T     "G297M".A_3226_TSC01_AC.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_TSC01_AC.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.0A
+      T     "G297M".A_3226_TSC01_AC.Par.ParLimitLL; 
+      L     L#4000; // 40.0A
+      T     "G297M".A_3226_TSC01_AC.Par.ParLimitL; 
+      L     L#7200; // 720.0A=100.0%
+      T     "G297M".A_3226_TSC01_AC.Par.ParLimitH; 
+      L     L#9360; // 936.0A=130.0%
+      T     "G297M".A_3226_TSC01_AC.Par.ParLimitHH; 
+
+// 
+//-Call object control---
+      CALL #A_3226_TSC01_AC ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-TSC01_AF : ACT. FREQUENCY FAN 2 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_TSC01_AF.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_3226_TSC01_AF.InMonLL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AF.InMonL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AF.InMonMid; 
+      CLR   ; 
+      =     #A_3226_TSC01_AF.InMonH; 
+      CLR   ; 
+      =     #A_3226_TSC01_AF.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3226_TSC01_COM.InValuePC; // Umgerechnet in FU-FB  
+      T     #A_3226_TSC01_AF.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_TSC01_AF.InHWStop; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // InpValue=Drehzahl direkt   
+      T     "G297M".A_3226_TSC01_AF.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G297M".A_3226_TSC01_AF.Par.ParUnitsBy100Pc; 
+      L     L#3900; // 40.00% ist untere Grenze
+      T     "G297M".A_3226_TSC01_AF.Par.ParLimitLL; 
+      L     L#3980; // 41.00%
+      T     "G297M".A_3226_TSC01_AF.Par.ParLimitL; 
+      L     L#8000; // 80.00%
+      T     "G297M".A_3226_TSC01_AF.Par.ParLimitH; 
+      L     L#10100; // 101.00%
+      T     "G297M".A_3226_TSC01_AF.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3226_TSC01_AF ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-TSC01_AP : ACT. POWER FAN 2 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_TSC01_AP.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_TSC01_AP.InMonLL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AP.InMonL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AP.InMonMid; 
+      CLR   ; 
+      =     #A_3226_TSC01_AP.InMonH; 
+      CLR   ; 
+      =     #A_3226_TSC01_AP.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3226_TSC01_COM.Input.ActualValue03; 
+      T     #A_3226_TSC01_AP.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_TSC01_AP.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_TSC01_AP ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-TSC01_AT : ACT. TORQUE FAN 2 FU 
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      =     #A_3226_TSC01_AT.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3226_TSC01_AT.InMonLL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AT.InMonL; 
+      CLR   ; 
+      =     #A_3226_TSC01_AT.InMonMid; 
+      CLR   ; 
+      =     #A_3226_TSC01_AT.InMonH; 
+      CLR   ; 
+      =     #A_3226_TSC01_AT.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3226_TSC01_COM.Input.ActualValue04; 
+      T     #A_3226_TSC01_AT.InpValue; 
+      A     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3226_TSC01_AT.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_TSC01_AT ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3225-TSC01 : FAN 1 FU KOMMUNIKATION
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_3225_TSC01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3225_TSC01.InMonTrue; 
+      CLR   ; 
+      =     #A_3225_TSC01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3225_TSC01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3225_TSC01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3225_TSC01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     #A_3225_TSC01_COM.Input.StateWord_1.REMOTE; 
+      A     #A_3225_TSC01_COM.Input.StateWord_1.RDY_RUN; 
+      AN    #A_3225_TSC01_COM.Input.StateWord_1.TRIPPED; 
+      =     #A_3225_TSC01.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3225_TSC01 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-3226-TSC01 : FAN 2 FU KOMMUNIKATION
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_3226_TSC01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3226_TSC01.InMonTrue; 
+      CLR   ; 
+      =     #A_3226_TSC01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3226_TSC01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3226_TSC01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3226_TSC01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     #A_3226_TSC01_COM.Input.StateWord_1.REMOTE; 
+      A     #A_3226_TSC01_COM.Input.StateWord_1.RDY_RUN; 
+      AN    #A_3226_TSC01_COM.Input.StateWord_1.TRIPPED; 
+      =     #A_3226_TSC01.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3226_TSC01 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE =Test Fault
+
+      A     #A_3225_KCU04AI1.OutFaulted; 
+      O     #A_3225_KCU04AI2.OutFaulted; 
+      O     #A_3225_BTE05.OutFaulted; 
+      O     #A_3225_BTE06.OutFaulted; 
+      O     #A_3225_MXZ02MA.Ma.StFault; 
+      O     #A_3225_MXZ01MA.Ma.StFault; 
+      O     #A_3225_TSC01_AC.OutFaulted; 
+//      O     #A_3225_TSC01_AF.OutFaulted
+      O     #A_3225_TSC01_AP.OutFaulted; 
+      O     #A_3225_TSC01_AT.OutFaulted; 
+      O     #A_3226_KCU04AI1.OutFaulted; 
+      O     #A_3226_KCU04AI2.OutFaulted; 
+      O     #A_3226_BTE05.OutFaulted; 
+      O     #A_3226_BTE06.OutFaulted; 
+      O     #A_3226_MXZ02MA.Ma.StFault; 
+      O     #A_3226_MXZ01MA.Ma.StFault; 
+      O     #A_3226_TSC01_AC.OutFaulted; 
+//      O     #A_3226_TSC01_AF.OutFaulted
+      O     #A_3226_TSC01_AP.OutFaulted; 
+      O     #A_3226_TSC01_AT.OutFaulted; 
+      O     #A_3225_TSC01.StFault; 
+      O     #A_3226_TSC01.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      A     #A_3225_KCU04AI1.OutWarning; 
+      O     #A_3225_KCU04AI2.OutWarning; 
+      O     #A_3225_BTE05.OutWarning; 
+      O     #A_3225_BTE06.OutWarning; 
+      O     #A_3225_TSC01_AC.OutWarning; 
+      O     #A_3225_TSC01_AF.OutWarning; 
+      O     #A_3225_TSC01_AP.OutWarning; 
+      O     #A_3225_TSC01_AT.OutWarning; 
+      O     #A_3226_KCU04AI1.OutWarning; 
+      O     #A_3226_KCU04AI2.OutWarning; 
+      O     #A_3226_BTE05.OutWarning; 
+      O     #A_3226_BTE06.OutWarning; 
+      O     #A_3226_TSC01_AC.OutWarning; 
+      O     #A_3226_TSC01_AF.OutWarning; 
+      O     #A_3226_TSC01_AP.OutWarning; 
+      O     #A_3226_TSC01_AT.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//      U     #A_3225_MXZ02MA.Ma.StStopped
+//      U     #A_3225_MXZ01MA.Ma.StStopped
+//      U     #A_3226_MXZ02MA.Ma.StStopped
+//      U     #A_3226_MXZ01MA.Ma.StStopped
+//      UN    #Gr.VarFault
+      AN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      A(    ; 
+      A     #A_3225_MXZ02MA.Ma.StStartedFwd; 
+      A     #A_3225_MXZ01MA.Ma.StStartedFwd; 
+      O     DB923.DBX 1569.0; // emergency regime without fan 1
+      )     ; 
+      A(    ; 
+      A     #A_3226_MXZ02MA.Ma.StStartedFwd; 
+      A     #A_3226_MXZ01MA.Ma.StStartedFwd; 
+      O     DB923.DBX 1569.1; // emergency regime without fan 2
+      )     ; 
+//      UN    #Gr.VarStopped
+      AN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      A     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      A     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[297]; 
+      A     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[297]; 
+      A     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[297]; 
+      A     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[297]; 
+      A     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[297]; 
+      A     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[297]; 
+      A     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[297]; 
+      A     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[297]; 
+      A     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[297]; 
+      A     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[297]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

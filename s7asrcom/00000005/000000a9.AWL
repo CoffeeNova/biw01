@@ -1,0 +1,506 @@
+FUNCTION_BLOCK "GCS7_M_Discharger"
+TITLE =Bin discharger A
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 56 Machine Control:Bin discharger A 
+//              VLS or motor, vibro , LL and Flow
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB56.4.3      A. Egli             CT3                         13-Feb-2008
+//              Vibro: Interlock CmdNext with Ma.CmdNext
+//FB56.4.2      A. Egli             CT3                         22-Jun-2004
+//              Test Ma.Par.ParVibroOnTime <>0
+//FB56.4.1      A. Egli             CT3                         12-Sep-2003
+//              Vibro.CmdNext only when vibro is enabled 
+//FB56.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//              Fast pulsing if Flow is uncovered an LL is covered
+//              Flowmonitor handling corrected (3.7)
+//FB56.3.5      A. Egli             CT3                         29-Oct-2001
+//              LL.InLocal moved to last segment
+//FB56.3.4      A. Egli             CT3                         04-Jan-2001
+//              Handling of flowmonitor corrected without vibro
+//FB56.3.3      Ph. Engler          MU664                       07-Dec-2000
+//              Handling of flowmonitor corrected
+//FB56.3.2      A. Egli             CT3                         26-Jan-2000
+//              BinEmpty
+//FB56.3.1      A. Egli             CT3                         21-Jan-2000
+//              CmdNext of Discharger adapted
+//FB56.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB56.2C       A. Egli             CT3                         26-Apr-1999
+//              Check ParWithVibro
+//FB56.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB56.2C       A. Egli             CT3                         20-Oct-1998
+//              InDisableVibro
+//FB56.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB56.1A       A.Egli              AEE61                       05-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.DSAxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Discharg
+VERSION : 4.3
+
+
+VAR
+  Ma : "GCS7_M_FB56_Data";	
+  Discharger : "GCS7_E_Motor";	//Element for VLS(FB13) or Motor(FB12)
+  Vibro : "GCS7_E_Motor";	//Element
+  Flow : "GCS7_E_DigInput";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpStoreAR2 : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     22; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2056; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+aPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParVibroOnTime; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParVibroOffTime; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Ma.Par.ParRestDischargeTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; //Cmd1[6]=SlowOn
+      U     #Ma.Par.ParDischargerIsMotor; 
+      S     #Discharger.InOutManSlow; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[6]; //Cmd2[6]=SlowOff
+      U     #Ma.Par.ParDischargerIsMotor; 
+      R     #Discharger.InOutManSlow; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdRestDischargeOn
+      S     #Ma.InRestDischarge; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //Cmd2[1]=CmdRestDischargeOff
+      R     #Ma.InRestDischarge; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //Cmd1[1]=CmdDisableVibroOn
+      S     #Ma.InDisableVibro; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[2]; //Cmd2[1]=CmdDisableVibroOff
+      R     #Ma.InDisableVibro; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+//---- Low level 
+      U     #Ma.InUncovered; //[4.0]
+      ON    #Ma.Par.ParWithLL; 
+      U(    ; 
+      U     #Flow.StFalse; //[3.2]
+      O     #Flow.StCtoTrue; //[3.2]
+      O     #Flow.StFault; //[3.2]
+      ON    #Ma.Par.ParWithFlow; //[3.2]
+      )     ; 
+      =     #Ma.OutUncovered; 
+      U     #Ma.OutRestDischarged; 
+      U     #Ma.OutUncovered; 
+      O     ; 
+      U     #Ma.OutUncovered; 
+      UN    #Ma.InRestDischarge; 
+      =     #Ma.OutEmpty; 
+//--- Fault----
+      U     #Flow.StFault; 
+      O     #Discharger.StFault; 
+      O     #Vibro.StFault; 
+      =     #tmpFaultSum; 
+// 
+//--- Interlocking Discharger 
+      U     #Ma.InEnable; 
+      U     #tmpNext; 
+      S     #Discharger.InEnableFwd; //Discharger.InEnableHN; 
+      UN    #Ma.InEnable; 
+      O     #Ma.CmdOff; 
+      R     #Discharger.InEnableFwd; //Discharger.InEnableHN; 
+
+      U     #Ma.Par.ParDischargerIsMotor; 
+      SPB   inJ1; 
+      UN    #Discharger.InEnableFwd; //Discharger.InEnableHN; 
+      =     #Discharger.InEnableRev; //=Discharger.InEnableLN 
+      S     #Discharger.CmdNext; 
+      SPA   inJ2; 
+inJ1: CLR   ; 
+      =     #Discharger.InEnableRev; 
+inJ2: U     #tmpNext; // 3.1:
+      S     #Discharger.CmdNext; // 3.1:
+
+// 
+//--- Interlocking Vibro
+//      U     #Ma.Par.ParWithFlow         //[3.6]
+//      UN    #Flow.StTrue                //[3.6]
+//      U(                                //[3.6]
+//      U     #Ma.InCovered               //[3.6]
+//      U     #Ma.Par.ParWithLL           //[3.6]
+//      )     
+      O     #Ma.OutPulseVibroOn; 
+      O     #Ma.Par.ParContinuous; 
+      U     #Discharger.InEnableFwd; //Discharger.InEnableHN; 
+      U     #Discharger.StStartedFwd; //Discharger.StHN; 
+      UN    #Ma.InDisableVibro; 
+      UN    #Flow.StFault; 
+      =     #Vibro.InEnableFwd; 
+
+      U     #Vibro.InEnableFwd; //[4.1]
+      U     #tmpNext; //[4.3]
+      S     #Vibro.CmdNext; 
+// 
+//--- Monitoring Flow
+      U     #Discharger.StStartedFwd; //Discharger.StHN; 
+      O     #Flow.StFalse; //[3.7]
+      U(    ; //[3.7]
+      U     #Ma.InCovered; //[3.7]  [4.0]
+      ON    #Ma.Par.ParWithLL; //[3.7]
+      )     ; //[3.7]
+      UN    #Flow.StFault; //[3.7]
+      =     #Flow.InMonTrue; //[3.7]
+      U(    ; //[3.7]
+      O     #Discharger.StStopped; //[3.7]
+      O     #Discharger.StStarting; //[3.7]
+      )     ; //[3.7]
+      UN    #Flow.StTrue; //[3.7]
+      UN    #Flow.StCtoFalse; //[3.7]
+      S     #Flow.CmdRunTimeoutTime; //[3.7]
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Vibro.InLocal; 
+      =     #Flow.InLocal; 
+
+      U     #Ma.Par.ParDischargerIsMotor; 
+      ON    #Discharger.StStopped; //Discharger.StLN;
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Discharger.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Discharger.CmdFaultReset; 
+      S     #Vibro.CmdFaultReset; 
+      S     #Flow.CmdFaultReset; 
+
+//== Timer rest discharge
+      U     #Ma.OutUncovered; 
+      SPB   T1J1; 
+      R     #Ma.OutRestDischarged; 
+      L     0; 
+      T     #Ma.Par.OutRestDischargeTime; 
+      SPA   T1J2; 
+T1J1: UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      ON    #Ma.StStarted; 
+      O     #Ma.OutRestDischarged; 
+      SPB   T1J2; 
+      L     #Ma.Par.OutRestDischargeTime; 
+      +     2; 
+      T     #Ma.Par.OutRestDischargeTime; 
+      L     #Ma.Par.ParRestDischargeTime; 
+      >I    ; 
+      S     #Ma.OutRestDischarged; 
+T1J2: NOP   0; 
+NETWORK
+TITLE =Call Discharger
+
+      U     #Ma.Par.ParDischargerIsMotor; 
+      SPB   D_M; 
+      TAR2  #tmpStoreAR2; 
+      L     P##Discharger; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      +AR2  ; 
+      UC    "GCS7_E_ValveControl"; //VLS FB13
+      LAR2  #tmpStoreAR2; 
+      SPA   DVLS; 
+D_M:  CALL #Discharger ;
+DVLS: NOP   0; 
+NETWORK
+TITLE =Call Vibro
+
+      UN    #Ma.Par.ParWithVibro; 
+      SPB   el4; 
+      CALL #Vibro ;
+
+NETWORK
+TITLE =Call Digital Input: Flow
+
+el4:  UN    #Ma.Par.ParWithFlow; 
+      SPB   StJ0; 
+      CALL #Flow ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #Vibro.StStopped; 
+      U     #Ma.Par.ParWithVibro; 
+      ON    #Discharger.StStopped; //Discharger.StLN;
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Discharger.StStartedFwd; //Discharger.StHN; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #Discharger.StStarting; //Discharger.StCtoHN;
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+      S     #Ma.OutPulseVibroOn; 
+      L     0; 
+      T     #Ma.Par.OutDelayTime; 
+      T     #Ma.Par.OutRestDischargeTime; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #Discharger.StStartedFwd; //Discharger.StHN;
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+//== timer Vibro
+//Start Vibro immediatly at negativ flag of
+      U     #Ma.Par.ParWithFlow; //[3.6]
+      U     #Flow.StTrue; //[3.6]
+      U     #Ma.InCovered; //[3.6]
+      U     #Ma.Par.ParWithLL; //[3.6]
+      FN    #Ma.OutEdgeFlowCovered; //[3.6]
+      SPBN  S2J1; //[3.6]
+      L     0; //[3.6]
+      T     #Ma.Par.OutDelayTime; //[3.6]
+      S     #Ma.OutPulseVibroOn; //[3.6]
+S2J1: UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   OUT; 
+      L     #Ma.Par.OutDelayTime; 
+      +     2; 
+      T     #Ma.Par.OutDelayTime; 
+      U     #Ma.OutPulseVibroOn; 
+      SPB   S2On; 
+//Vibro off time
+      U     #Ma.Par.ParWithFlow; //[3.6]
+      UN    #Flow.StTrue; //[3.6]
+      U     #Ma.InCovered; //[3.6]
+      U     #Ma.Par.ParWithLL; //[3.6]
+      L     #Ma.Par.ParVibroOnTime; //[3.6]
+      SRW   1; //[3.6]
+      SPB   S2F2; //[3.6]
+      L     #Ma.Par.ParVibroOffTime; 
+S2F2: L     #Ma.Par.OutDelayTime; 
+      >=I   ; 
+      SPB   OUT; 
+      S     #Ma.OutPulseVibroOn; 
+      SPA   S2J0; 
+//Vibro on time
+S2On: L     #Ma.Par.ParVibroOnTime; 
+      <I    ; 
+      SPB   OUT; 
+      R     #Ma.OutPulseVibroOn; 
+S2J0: L     0; 
+      T     #Ma.Par.OutDelayTime; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+      R     #Ma.OutPulseVibroOn; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Vibro.StStopped; 
+      ON    #Ma.Par.ParWithVibro; 
+      U     #Discharger.StStopped; //Discharger.StLN; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      UN    #Discharger.StStopping; //Discharger.StCtoLN;
+      UN    #Discharger.StStopped; //Discharger.StLN;
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS0; //-->StStopping 
+
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted    3
+// StStopping  7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      UN    #Discharger.OutpRunSlow; 
+      U     #Ma.Par.ParDischargerIsMotor; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStartedSlow
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     4; //Code=StStartedFast
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+
+      L     #Ma.Par.ParVibroOnTime; //[4.2]
+      L     0; //[4.2]
+      ==I   ; //[4.2]
+      R     #Ma.OutPulseVibroOn; //[4.2]
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,242 @@
+DATA_BLOCK DB 10
+TITLE =GCS7: PC direct control interface default DB
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : PCCtrl
+VERSION : 0.0
+
+
+  STRUCT 	
+   Spare0 : WORD ;	
+   Spare2 : WORD ;	
+   Spare4 : WORD ;	
+   Spare6 : DWORD ;	
+   Spare10 : DWORD ;	
+   ParAnswerTime : INT  := 10;	//Maximum time for answer
+   VarActControlDB : INT ;	//DB from actual communication
+   VarAnswerTime : INT ;	//Actual answer time
+   GC : STRUCT 	//=== Working memory 
+    InDBNr : INT ;	
+    InDynLen : INT ;	
+    InDynAddr : DINT ;	
+    InParaLen : INT ;	
+    InParaAddr : DINT ;	
+    Set11Done : BOOL ;	
+    InObjectNo : INT ;	
+    InLCAddr : INT ;	
+   END_STRUCT ;	
+   ChangeBit : STRUCT 	//Change Bit
+    Spare : BYTE ;	
+    CBit1 : BOOL ;	//Function done
+    CBit2 : BOOL ;	
+    CBit3 : BOOL ;	
+    CBit4 : BOOL ;	
+   END_STRUCT ;	
+   PC : STRUCT 	//== PC: Read/Write
+    Hsk : STRUCT 	// Handshake
+     Spare0 : BYTE ;	
+     FDefineCmd : BOOL ;	
+     FDefinePara : BOOL ;	
+     FDefineValue : BOOL ;	
+     FExamine : BOOL ;	
+     FExamineFirst : BOOL ;	
+     FExamineNext : BOOL ;	
+     F06 : BOOL ;	
+     F07 : BOOL ;	
+    END_STRUCT ;	
+    ErrObj : INT ;	//Spare
+    ErrCode : INT ;	//Fault reason: 0=No Fault
+    ObjectType : INT ;	//Type of addressed object
+    ObjectNo : INT ;	//Addressd object
+    Cmd1 : ARRAY  [0 .. 15 ] OF BOOL ;	
+    Cmd2 : ARRAY  [0 .. 15 ] OF BOOL ;	
+    Cmd3 : ARRAY  [0 .. 15 ] OF BOOL ;	
+    Value : ARRAY  [1 .. 100 ] OF //Data from or for actual object
+    WORD ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+BEGIN
+   Spare0 := W#16#0; 
+   Spare2 := W#16#0; 
+   Spare4 := W#16#0; 
+   Spare6 := DW#16#0; 
+   Spare10 := DW#16#0; 
+   ParAnswerTime := 10; 
+   VarActControlDB := 0; 
+   VarAnswerTime := 0; 
+   GC.InDBNr := 0; 
+   GC.InDynLen := 0; 
+   GC.InDynAddr := L#0; 
+   GC.InParaLen := 0; 
+   GC.InParaAddr := L#0; 
+   GC.Set11Done := FALSE; 
+   GC.InObjectNo := 0; 
+   GC.InLCAddr := 0; 
+   ChangeBit.Spare := B#16#0; 
+   ChangeBit.CBit1 := FALSE; 
+   ChangeBit.CBit2 := FALSE; 
+   ChangeBit.CBit3 := FALSE; 
+   ChangeBit.CBit4 := FALSE; 
+   PC.Hsk.Spare0 := B#16#0; 
+   PC.Hsk.FDefineCmd := FALSE; 
+   PC.Hsk.FDefinePara := FALSE; 
+   PC.Hsk.FDefineValue := FALSE; 
+   PC.Hsk.FExamine := FALSE; 
+   PC.Hsk.FExamineFirst := FALSE; 
+   PC.Hsk.FExamineNext := FALSE; 
+   PC.Hsk.F06 := FALSE; 
+   PC.Hsk.F07 := FALSE; 
+   PC.ErrObj := 0; 
+   PC.ErrCode := 0; 
+   PC.ObjectType := 0; 
+   PC.ObjectNo := 0; 
+   PC.Cmd1[0] := FALSE; 
+   PC.Cmd1[1] := FALSE; 
+   PC.Cmd1[2] := FALSE; 
+   PC.Cmd1[3] := FALSE; 
+   PC.Cmd1[4] := FALSE; 
+   PC.Cmd1[5] := FALSE; 
+   PC.Cmd1[6] := FALSE; 
+   PC.Cmd1[7] := FALSE; 
+   PC.Cmd1[8] := FALSE; 
+   PC.Cmd1[9] := FALSE; 
+   PC.Cmd1[10] := FALSE; 
+   PC.Cmd1[11] := FALSE; 
+   PC.Cmd1[12] := FALSE; 
+   PC.Cmd1[13] := FALSE; 
+   PC.Cmd1[14] := FALSE; 
+   PC.Cmd1[15] := FALSE; 
+   PC.Cmd2[0] := FALSE; 
+   PC.Cmd2[1] := FALSE; 
+   PC.Cmd2[2] := FALSE; 
+   PC.Cmd2[3] := FALSE; 
+   PC.Cmd2[4] := FALSE; 
+   PC.Cmd2[5] := FALSE; 
+   PC.Cmd2[6] := FALSE; 
+   PC.Cmd2[7] := FALSE; 
+   PC.Cmd2[8] := FALSE; 
+   PC.Cmd2[9] := FALSE; 
+   PC.Cmd2[10] := FALSE; 
+   PC.Cmd2[11] := FALSE; 
+   PC.Cmd2[12] := FALSE; 
+   PC.Cmd2[13] := FALSE; 
+   PC.Cmd2[14] := FALSE; 
+   PC.Cmd2[15] := FALSE; 
+   PC.Cmd3[0] := FALSE; 
+   PC.Cmd3[1] := FALSE; 
+   PC.Cmd3[2] := FALSE; 
+   PC.Cmd3[3] := FALSE; 
+   PC.Cmd3[4] := FALSE; 
+   PC.Cmd3[5] := FALSE; 
+   PC.Cmd3[6] := FALSE; 
+   PC.Cmd3[7] := FALSE; 
+   PC.Cmd3[8] := FALSE; 
+   PC.Cmd3[9] := FALSE; 
+   PC.Cmd3[10] := FALSE; 
+   PC.Cmd3[11] := FALSE; 
+   PC.Cmd3[12] := FALSE; 
+   PC.Cmd3[13] := FALSE; 
+   PC.Cmd3[14] := FALSE; 
+   PC.Cmd3[15] := FALSE; 
+   PC.Value[1] := W#16#0; 
+   PC.Value[2] := W#16#0; 
+   PC.Value[3] := W#16#0; 
+   PC.Value[4] := W#16#0; 
+   PC.Value[5] := W#16#0; 
+   PC.Value[6] := W#16#0; 
+   PC.Value[7] := W#16#0; 
+   PC.Value[8] := W#16#0; 
+   PC.Value[9] := W#16#0; 
+   PC.Value[10] := W#16#0; 
+   PC.Value[11] := W#16#0; 
+   PC.Value[12] := W#16#0; 
+   PC.Value[13] := W#16#0; 
+   PC.Value[14] := W#16#0; 
+   PC.Value[15] := W#16#0; 
+   PC.Value[16] := W#16#0; 
+   PC.Value[17] := W#16#0; 
+   PC.Value[18] := W#16#0; 
+   PC.Value[19] := W#16#0; 
+   PC.Value[20] := W#16#0; 
+   PC.Value[21] := W#16#0; 
+   PC.Value[22] := W#16#0; 
+   PC.Value[23] := W#16#0; 
+   PC.Value[24] := W#16#0; 
+   PC.Value[25] := W#16#0; 
+   PC.Value[26] := W#16#0; 
+   PC.Value[27] := W#16#0; 
+   PC.Value[28] := W#16#0; 
+   PC.Value[29] := W#16#0; 
+   PC.Value[30] := W#16#0; 
+   PC.Value[31] := W#16#0; 
+   PC.Value[32] := W#16#0; 
+   PC.Value[33] := W#16#0; 
+   PC.Value[34] := W#16#0; 
+   PC.Value[35] := W#16#0; 
+   PC.Value[36] := W#16#0; 
+   PC.Value[37] := W#16#0; 
+   PC.Value[38] := W#16#0; 
+   PC.Value[39] := W#16#0; 
+   PC.Value[40] := W#16#0; 
+   PC.Value[41] := W#16#0; 
+   PC.Value[42] := W#16#0; 
+   PC.Value[43] := W#16#0; 
+   PC.Value[44] := W#16#0; 
+   PC.Value[45] := W#16#0; 
+   PC.Value[46] := W#16#0; 
+   PC.Value[47] := W#16#0; 
+   PC.Value[48] := W#16#0; 
+   PC.Value[49] := W#16#0; 
+   PC.Value[50] := W#16#0; 
+   PC.Value[51] := W#16#0; 
+   PC.Value[52] := W#16#0; 
+   PC.Value[53] := W#16#0; 
+   PC.Value[54] := W#16#0; 
+   PC.Value[55] := W#16#0; 
+   PC.Value[56] := W#16#0; 
+   PC.Value[57] := W#16#0; 
+   PC.Value[58] := W#16#0; 
+   PC.Value[59] := W#16#0; 
+   PC.Value[60] := W#16#0; 
+   PC.Value[61] := W#16#0; 
+   PC.Value[62] := W#16#0; 
+   PC.Value[63] := W#16#0; 
+   PC.Value[64] := W#16#0; 
+   PC.Value[65] := W#16#0; 
+   PC.Value[66] := W#16#0; 
+   PC.Value[67] := W#16#0; 
+   PC.Value[68] := W#16#0; 
+   PC.Value[69] := W#16#0; 
+   PC.Value[70] := W#16#0; 
+   PC.Value[71] := W#16#0; 
+   PC.Value[72] := W#16#0; 
+   PC.Value[73] := W#16#0; 
+   PC.Value[74] := W#16#0; 
+   PC.Value[75] := W#16#0; 
+   PC.Value[76] := W#16#0; 
+   PC.Value[77] := W#16#0; 
+   PC.Value[78] := W#16#0; 
+   PC.Value[79] := W#16#0; 
+   PC.Value[80] := W#16#0; 
+   PC.Value[81] := W#16#0; 
+   PC.Value[82] := W#16#0; 
+   PC.Value[83] := W#16#0; 
+   PC.Value[84] := W#16#0; 
+   PC.Value[85] := W#16#0; 
+   PC.Value[86] := W#16#0; 
+   PC.Value[87] := W#16#0; 
+   PC.Value[88] := W#16#0; 
+   PC.Value[89] := W#16#0; 
+   PC.Value[90] := W#16#0; 
+   PC.Value[91] := W#16#0; 
+   PC.Value[92] := W#16#0; 
+   PC.Value[93] := W#16#0; 
+   PC.Value[94] := W#16#0; 
+   PC.Value[95] := W#16#0; 
+   PC.Value[96] := W#16#0; 
+   PC.Value[97] := W#16#0; 
+   PC.Value[98] := W#16#0; 
+   PC.Value[99] := W#16#0; 
+   PC.Value[100] := W#16#0; 
+END_DATA_BLOCK
+

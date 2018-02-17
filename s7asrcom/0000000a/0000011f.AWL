@@ -1,0 +1,998 @@
+FUNCTION_BLOCK "G210M_Code"
+TITLE =G210M FAN AND VALVE SRAY AIR GERM 6
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        FAN AND VALVE SRAY AIR GERM 6
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB310.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2631_QXV12 : "GCS7_E_ValveControl";	// VLS 
+  A_2631_QXV22 : "GCS7_E_ValveControl";	// VLS 
+  A_2660_MXZ01 : "GCS7_E_Motor";	// Motor 
+  A_2660_MXZ02 : "GCS7_E_Motor";	// Motor 
+  A_2660_TSC01_COM : "SSA_SEW_MOVIDRIVE";	// FU_Siemens 
+  A_2660_TSC01_PD1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC01_PD2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC01_PD3 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC01_PD4 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC02_COM : "SSA_SEW_MOVIDRIVE";	// FU_Siemens 
+  A_2660_TSC02_PD1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC02_PD2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC02_PD3 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2660_TSC02_PD4 : "GCS7_E_AnalogInput";	// AnaInp 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[210]; 
+      R     "GCS7_GrCtrlDB".ParWGR[210]; 
+      R     "GCS7_GrCtrlDB".ParGGR[210]; 
+      R     "GCS7_GrCtrlDB".ParFeed[210]; 
+      R     "GCS7_GrCtrlDB".ParShare[210]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[210]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[210]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[210]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[210]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[210]; 
+      R     "GCS7_GrCtrlDB".CmdNext[210]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[210]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[210]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[210]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[210]
+//      O     "GCS7_GrCtrlDB".OutOccupied[210]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[210]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[210]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[210]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[210]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+//-Target speed fan---
+// If both louvers are closed, the fan speed must reduce  
+      L     "G211M".A_2651_MXZ01.OutPosition; //Fresh Air Flap
+      L     "G212M".A_2650_MXZ01.OutPosition; //Exhaust Air Flap
+      +I    ; 
+      L     200; //20.0%
+      <I    ; 
+      L     50; //50% fan speed
+      SPB   En06; 
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     "MAL1S022Par".Par.ParIntMachine.TargetSpeedGermFan; 
+      SPA   En06; 
+ILO6: NOP   0; 
+      L     "MAL1S022Par".Par.ParIntProcess.Speed_ILO_Fan; 
+En06: NOP   0; 
+      L     100; 
+      *I    ; 
+      T     #A_2660_TSC01_COM.OutValuePC; // xxx.xx%  
+
+// If both louvers are closed, the fan speed must reduce  
+      L     "G211M".A_2652_MXZ01.OutPosition; //Fresh Air Flap
+      L     "G212M".A_2650_MXZ01.OutPosition; //Exhaust Air Flap
+      +I    ; 
+      L     200; //20.0%
+      <I    ; 
+      L     50; //50% fan speed
+      SPB   En07; 
+      U     #Gr.InManual; 
+      SPB   ILO7; 
+      L     "MAL1S022Par".Par.ParIntMachine.TargetSpeedGermFan; 
+      SPA   En07; 
+ILO7: NOP   0; 
+      L     "MAL1S022Par".Par.ParIntProcess.Speed_ILO_Fan; 
+En07: NOP   0; 
+      L     100; 
+      *I    ; 
+      T     #A_2660_TSC02_COM.OutValuePC; // xxx.xx%  
+
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+      L     "G211M".A_2651_MXZ01.OutPosition; //Fresh Air Flap
+      L     "G212M".A_2650_MXZ01.OutPosition; //Exhaust Air Flap
+      +I    ; 
+      L     200; // 20%
+      >=I   ; // opened more than min
+      =     "G210M".USW8; 
+
+      L     "G211M".A_2652_MXZ01.OutPosition; //Fresh Air Flap
+      L     "G212M".A_2650_MXZ01.OutPosition; //Exhaust Air Flap
+      +I    ; 
+      L     200; // 20%
+      >=I   ; // opened more than min
+      =     "G210M".USW8; 
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[7].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G210M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 7,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-2660-MXZ01 : GERM FAN 1
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2660_MXZ01.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+// and air-louvers are min opened
+      U     "G210M".USW8; 
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      =     #A_2660_MXZ01.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2660_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2660_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2660_TSC01_COM.OutRunningFwd; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U     "A_2660_MXZ01_I1"; 
+      U     #A_2660_MXZ01.OutpRunFwd; 
+      =     #A_2660_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[68]; 
+      =     #A_2660_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_MXZ01 ;
+// 
+//-Write outputs---
+      U     #A_2660_MXZ01.OutpRunFwd; 
+
+// Netzschuetz "EIN"
+      UN    #A_2660_MXZ01.InSeqStop; 
+      O     "G210M".A_2660_MXZ01.InManual; 
+      O     #Gr.InManual; 
+      =     "A_2660_MXZ01_O1"; 
+
+NETWORK
+TITLE ==A-2631-QXV12 : VALVE HUMIDIFICATION 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2631_QXV12.InLocal; 
+
+//-Interlocking---
+      U(    ; 
+//      L     "MAL1S022Par".StepAct.AirMoisten
+      L     DB912.DBB 1540; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      U     #A_2660_TSC01_PD1.OutL; 
+//      U     "MAL1S022Par".Par.FlagProcess.AirHumidificationValve1    // air humifidication valve 1 on
+      U     #A_2660_MXZ01.StStartedFwd; 
+      =     #A_2631_QXV12.InEnableHN; 
+      NOT   ; 
+      =     #A_2631_QXV12.InEnableLN; 
+
+      SET   ; 
+      S     #A_2631_QXV12.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      =     #A_2631_QXV12.InSeqStop; 
+// 
+//-Read inputs---
+      UN    #A_2631_QXV12.OutpHN; 
+      =     #A_2631_QXV12.InpLN; 
+      U     #A_2631_QXV12.OutpHN; 
+      =     #A_2631_QXV12.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2631_QXV12.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[63]; 
+      =     #A_2631_QXV12.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2631_QXV12 ;
+// 
+//-Write outputs---
+      U     #A_2631_QXV12.OutpHN; 
+      =     "A_2631_QXV12_O1"; 
+
+NETWORK
+TITLE ==A-2660-TSC01_COM : FREQUENCY. INVERTER GERM FAN 1
+
+      NOP   0; 
+      U     #A_2660_MXZ01.OutpRunFwd; 
+      =     #A_2660_TSC01_COM.InEnableFwd; 
+//      U     #A_2660_MXZ01.OutpRunRev
+      CLR   ; 
+      =     #A_2660_TSC01_COM.InEnableRev; 
+
+      U     #Gr.CmdFaultReset; 
+      S     #A_2660_TSC01_COM.CmdFaultReset; 
+
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPB   NCo1; 
+//-Call object control---
+      CALL #A_2660_TSC01_COM ;
+// 
+//-Write outputs---
+NCo1: NOP   0; 
+// Simu
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U     #A_2660_MXZ01.StStartedFwd; 
+      SPBN  ACT1; 
+      L     #A_2660_TSC01_COM.OutValuePC; // xxx.xx%
+      L     6; 
+      /I    ; 
+      L     10; 
+      *I    ; 
+      T     #A_2660_TSC01_COM.Output.SetpointValue01; 
+
+      L     190; // 190A
+      T     #A_2660_TSC01_COM.Output.SetpointValue02; 
+ACT1: NOP   0; 
+
+NETWORK
+TITLE ==A-2660-TSC01_PD1 : FREQUENCY FREQ. GERM FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2660_TSC01_PD1.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC01_PD1.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD1.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD1.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD1.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD1.InMonHH; 
+// 
+// Simu
+      U     #A_2660_MXZ01.OutpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  M160; 
+      L     #A_2660_TSC01_COM.OutValuePC; // xxx.xx%  
+      T     #A_2660_TSC01_COM.InValuePC; // Umgerechnet in FU-FB
+M160: NOP   0; 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.InValuePC; // Umgerechnet in FU-FB
+      T     #A_2660_TSC01_PD1.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC01_PD1.InHWStop; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // InpValue=Drehzahl direkt   
+      T     "G210M".A_2660_TSC01_PD1.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G210M".A_2660_TSC01_PD1.Par.ParUnitsBy100Pc; 
+      L     L#4000; // 40.00% ist untere Grenze
+      T     "G210M".A_2660_TSC01_PD1.Par.ParLimitLL; 
+      L     L#4500; // 45.00%
+      T     "G210M".A_2660_TSC01_PD1.Par.ParLimitL; 
+      L     L#10000; // 100.00%
+      T     "G210M".A_2660_TSC01_PD1.Par.ParLimitH; 
+      L     L#10100; // 101.00%
+      T     "G210M".A_2660_TSC01_PD1.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_2660_TSC01_PD1 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2660-TSC01_PD2 : CURRENT FREQ. GERM FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2660_TSC01_PD2.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC01_PD2.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD2.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD2.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD2.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD2.InMonHH; 
+// 
+// Simu
+      U     #A_2660_MXZ01.OutpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  M170; 
+      L     900; 
+      T     #A_2660_TSC01_COM.Input.ActualValue02; 
+M170: NOP   0; 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.Input.ActualValue02; 
+      L     10; 
+      *I    ; 
+      T     #A_2660_TSC01_PD2.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC01_PD2.InHWStop; 
+// 
+//-Set Parameters---
+//--> Erläuterung
+      L     L#2666; // Stromwert bei 27648Dez
+      T     "G210M".A_2660_TSC01_PD2.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G210M".A_2660_TSC01_PD2.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.0A
+      T     "G210M".A_2660_TSC01_PD2.Par.ParLimitLL; 
+      L     L#400; // 40.00A
+      T     "G210M".A_2660_TSC01_PD2.Par.ParLimitL; 
+      L     L#1580; // 158.0A=100.0%
+      T     "G210M".A_2660_TSC01_PD2.Par.ParLimitH; 
+      L     L#2000; // 200.00A=130.0%
+      T     "G210M".A_2660_TSC01_PD2.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_2660_TSC01_PD2 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2660-TSC01_PD3 : TORQUE FREQ. INVERTER GERM FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_2660_TSC01_PD3.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC01_PD3.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD3.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD3.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD3.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD3.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.Output.SetpointValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      RND   ; 
+      T     #A_2660_TSC01_PD3.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC01_PD3.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_TSC01_PD3 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2660-TSC01_PD4 : PERFORMENCE FREQ. INVERTER GERM FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_2660_TSC01_PD4.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC01_PD4.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD4.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD4.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD4.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC01_PD4.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.Output.SetpointValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      RND   ; 
+      T     #A_2660_TSC01_PD4.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC01_PD4.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_TSC01_PD4 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2660-MXZ02 : GERM FAN 2
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2660_MXZ02.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+// and air-louvers are min opened
+      U     "G210M".USW9; 
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      =     #A_2660_MXZ02.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2660_MXZ02.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2660_MXZ02.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2660_TSC02_COM.OutRunningFwd; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U     "A_2660_MXZ02_I1"; 
+      U     #A_2660_MXZ02.OutpRunFwd; 
+      =     #A_2660_MXZ02.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_MXZ02.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[68]; 
+      =     #A_2660_MXZ02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_MXZ02 ;
+// 
+//-Write outputs---
+//      U     #A_2660_MXZ02.OutpRunFwd
+
+      UN    #A_2660_MXZ02.InSeqStop; 
+      O     "G210M".A_2660_MXZ02.InManual; 
+      O     #Gr.InManual; 
+      =     "A_2660_MXZ02_O1"; 
+
+NETWORK
+TITLE ==A-2631-QXV22 : VALVE HUMIDIFICATION 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2631_QXV22.InLocal; 
+
+//-Interlocking---
+      U(    ; 
+//      L     "MAL1S021Par".StepAct.AirMoisten
+      L     DB912.DBB 1540; 
+      L     1; 
+      ==I   ; 
+      )     ; 
+      U     #A_2660_TSC02_PD1.OutL; 
+//      U     "MAL1S022Par".Par.FlagProcess.AirHumidificationValve1    // air humifidication valve 1 on
+      U     #A_2660_MXZ02.StStartedFwd; 
+      =     #A_2631_QXV22.InEnableHN; 
+      NOT   ; 
+      =     #A_2631_QXV22.InEnableLN; 
+
+      SET   ; 
+      S     #A_2631_QXV22.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      =     #A_2631_QXV22.InSeqStop; 
+// 
+//-Read inputs---
+      UN    #A_2631_QXV22.OutpHN; 
+      =     #A_2631_QXV22.InpLN; 
+      U     #A_2631_QXV22.OutpHN; 
+      =     #A_2631_QXV22.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2631_QXV22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[63]; 
+      =     #A_2631_QXV22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2631_QXV22 ;
+// 
+//-Write outputs---
+      U     #A_2631_QXV22.OutpHN; 
+      =     "A_2631_QXV22_O1"; 
+
+NETWORK
+TITLE ==A-2660-TSC02_COM : FREQUENCY. INVERTER GERM FAN 2
+
+      NOP   0; 
+      U     #A_2660_MXZ02.OutpRunFwd; 
+      =     #A_2660_TSC02_COM.InEnableFwd; 
+//      U     #A_2660_MXZ02.OutpRunRev
+      CLR   ; 
+      =     #A_2660_TSC02_COM.InEnableRev; 
+
+      U     #Gr.CmdFaultReset; 
+      S     #A_2660_TSC02_COM.CmdFaultReset; 
+
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPB   NCo2; 
+//-Call object control---
+      CALL #A_2660_TSC02_COM ;
+// 
+//-Write outputs---
+NCo2: NOP   0; 
+// Simu
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U     #A_2660_MXZ02.StStartedFwd; 
+      SPBN  ACT2; 
+      L     #A_2660_TSC02_COM.OutValuePC; // xxx.xx%
+      L     6; 
+      /I    ; 
+      L     10; 
+      *I    ; 
+      T     #A_2660_TSC02_COM.Output.SetpointValue01; 
+
+      L     190; // 190A
+      T     #A_2660_TSC02_COM.Output.SetpointValue02; 
+ACT2: NOP   0; 
+
+NETWORK
+TITLE ==A-2660-TSC02_PD1 : FREQUENCY FREQ. GERM FAN 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2660_TSC02_PD1.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC02_PD1.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD1.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD1.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD1.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD1.InMonHH; 
+// 
+// Simu
+      U     #A_2660_MXZ02.OutpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  M230; 
+      L     #A_2660_TSC02_COM.OutValuePC; // xxx.xx%  
+      T     #A_2660_TSC02_COM.InValuePC; // Umgerechnet in FU-FB
+M230: NOP   0; 
+//-Read inputs---
+      L     #A_2660_TSC02_COM.InValuePC; 
+      T     #A_2660_TSC02_PD1.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC02_PD1.InHWStop; 
+// 
+//-Set Parameters---
+// --> Erläuterung
+      L     L#27648; // InpValue=Drehzahl direkt   
+      T     "G210M".A_2660_TSC02_PD1.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G210M".A_2660_TSC02_PD1.Par.ParUnitsBy100Pc; 
+      L     L#4000; // 40.00% ist untere Grenze
+      T     "G210M".A_2660_TSC02_PD1.Par.ParLimitLL; 
+      L     L#4500; // 45.00%
+      T     "G210M".A_2660_TSC02_PD1.Par.ParLimitL; 
+      L     L#10000; // 100.00%
+      T     "G210M".A_2660_TSC02_PD1.Par.ParLimitH; 
+      L     L#10100; // 101.00%
+      T     "G210M".A_2660_TSC02_PD1.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_2660_TSC02_PD1 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2660-TSC02_PD2 : CURRENT FREQ. GERM FAN 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2660_TSC02_PD2.InLocal; 
+
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC02_PD2.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD2.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD2.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD2.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD2.InMonHH; 
+// 
+// Simu
+      U     #A_2660_MXZ02.OutpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  M240; 
+      L     900; 
+      T     #A_2660_TSC02_COM.Input.ActualValue02; 
+M240: NOP   0; 
+//-Read inputs---
+      L     #A_2660_TSC02_COM.Input.ActualValue02; 
+      L     10; 
+      *I    ; 
+      T     #A_2660_TSC02_PD2.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC02_PD2.InHWStop; 
+// 
+//-Set Parameters---
+//--> Erläuterung
+      L     L#2666; // Stromwert bei 27648Dez
+      T     "G210M".A_2660_TSC02_PD2.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G210M".A_2660_TSC02_PD2.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.0A
+      T     "G210M".A_2660_TSC02_PD2.Par.ParLimitLL; 
+      L     L#400; // 40.00A
+      T     "G210M".A_2660_TSC02_PD2.Par.ParLimitL; 
+      L     L#1580; // 158.0A=100.0%
+      T     "G210M".A_2660_TSC02_PD2.Par.ParLimitH; 
+      L     L#2000; // 200.00A=130.0%
+      T     "G210M".A_2660_TSC02_PD2.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_2660_TSC02_PD2 ;
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2660-TSC02_PD3 : TORQUE FREQ. INVERTER GERM FAN 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_2660_TSC02_PD3.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC02_PD3.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD3.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD3.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD3.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD3.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.Output.SetpointValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      RND   ; 
+      T     #A_2660_TSC02_PD3.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC02_PD3.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_TSC02_PD3 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2660-TSC02_PD4 : PERFORMENCE FREQ. INVERTER GERM FAN 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_2660_TSC02_PD4.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2660_TSC02_PD4.InMonLL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD4.InMonL; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD4.InMonMid; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD4.InMonH; 
+      CLR   ; 
+      =     #A_2660_TSC02_PD4.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2660_TSC01_COM.Output.SetpointValue01; 
+      ITD   ; 
+      DTR   ; 
+      ABS   ; 
+      RND   ; 
+      T     #A_2660_TSC02_PD4.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+      =     #A_2660_TSC02_PD4.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2660_TSC02_PD4 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2660_MXZ01.StFault; 
+      O     #A_2631_QXV12.StFault; 
+      O     #A_2660_TSC01_PD1.OutFaulted; 
+      O     #A_2660_TSC01_PD2.OutFaulted; 
+      O     #A_2660_TSC01_PD3.OutFaulted; 
+      O     #A_2660_TSC01_PD4.OutFaulted; 
+      O     #A_2660_MXZ02.StFault; 
+      O     #A_2631_QXV22.StFault; 
+      O     #A_2660_TSC02_PD1.OutFaulted; 
+      O     #A_2660_TSC02_PD2.OutFaulted; 
+      O     #A_2660_TSC02_PD3.OutFaulted; 
+      O     #A_2660_TSC02_PD4.OutFaulted; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2660_TSC01_PD1.OutWarning; 
+      O     #A_2660_TSC01_PD2.OutWarning; 
+      O     #A_2660_TSC01_PD3.OutWarning; 
+      O     #A_2660_TSC01_PD4.OutWarning; 
+      O     #A_2660_TSC02_PD1.OutWarning; 
+      O     #A_2660_TSC02_PD2.OutWarning; 
+      O     #A_2660_TSC02_PD3.OutWarning; 
+      O     #A_2660_TSC02_PD4.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_2660_MXZ01.StStopped; 
+      U     #A_2660_MXZ02.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_2631_QXV12.StHN; 
+      U     #A_2631_QXV22.StHN; 
+      ON    DB912.DBX 1540.0; // air humifidication valve 1 + 2 on
+      U     #A_2660_MXZ01.StStartedFwd; 
+      U     #A_2660_MXZ02.StStartedFwd; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[210]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[210]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[210]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[210]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[210]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[210]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[210]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[210]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[210]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[210]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

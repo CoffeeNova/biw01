@@ -1,0 +1,484 @@
+FUNCTION_BLOCK FB 46
+TITLE =Roll stand with 8 
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 46 Machine roll stand with 8 rolls
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB46.4.2      A. Egli             CT3                         05-Mai-2004
+//              CmdOff in manual mode
+//FB46.4.1      A. Egli             CT3                         23-Sep-2003
+//              InEnable=0 must stop motor when ParManual=1 and InManual=0
+//FB46.4.0      A. Egli             CT3                         18-Oct-2002
+//              New Release with one block 
+//FB46.3.2      A. Egli             CT3                         18-Okt-2002
+//              Condition tmpStarted with ParMa.Par4Rolls=0 
+//FB46.3.1      A. Egli             CT3                         08-Feb-2000
+//              Condition Monitoring HL 
+//FB46.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB46.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB46.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB46.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.RL8xxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Rolls8
+VERSION : 4.2
+
+
+VAR
+  Ma : UDT 20460;	
+  RollsLowLeft : FB 12;	//Element
+  RollsLowRight : FB 12;	//Element
+  SpeedLeft : FB 14;	//Element
+  SpeedRight : FB 14;	//Element
+  HLInletLeft : FB 14;	//Element
+  HLInletRight : FB 14;	//Element
+  HLMidLeft : FB 14;	//Element
+  HLMidRight : FB 14;	//Element
+  RollsUpLeft : FB 12;	//Element
+  RollsUpRight : FB 12;	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpSeqStop : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     10; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo    
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2046; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   aExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      O     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+
+
+aCmd: U     DB3.DBX   52.1; //Cmd1[1]=CmdEnableLeft
+      R     #Ma.InDisableLeft; 
+      U     DB3.DBX   54.1; //Cmd2[1]=CmdDisableLeft
+      S     #Ma.InDisableLeft; 
+
+      U     DB3.DBX   52.2; //Cmd1[2]=CmdEnableRight
+      R     #Ma.InDisableRight; 
+      U     DB3.DBX   54.2; //Cmd2[2]=CmdDisableRight
+      S     #Ma.InDisableRight; 
+
+      U     DB3.DBX   52.3; //Cmd1[3]=CmdOverwriteHLOn
+      S     #Ma.InOverwriteHL; 
+      U     DB3.DBX   54.3; //Cmd2[3]=CmdOverwriteHLOff
+      R     #Ma.InOverwriteHL; 
+
+      U     DB3.DBX   53.0; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+
+      U     DB3.DBX   53.1; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+
+      U     DB3.DBX   53.2; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   55.5; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+
+      UN    DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManual
+
+// temporare
+      UN    #Ma.StStarting; 
+      ON    #Ma.InManual; 
+      O     #Ma.CmdOff; //[4.2]
+      R     #Ma.OutStartMan; 
+      O     #Ma.CmdOn; 
+      S     #Ma.OutStartMan; 
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.OutStartMan; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U(    ; 
+      U     #Ma.Par.ParManual; //[4.1]
+      U     #Ma.InManual; 
+      O     #Ma.InEnable; 
+      )     ; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #tmpSeqStop; 
+
+//--- Fault----
+      U     #RollsLowLeft.StFault; 
+      O     #RollsUpLeft.StFault; 
+      O     #RollsLowRight.StFault; 
+      O     #RollsUpRight.StFault; 
+      =     #tmpWarning; 
+
+      U     #tmpWarning; 
+      UN    #Ma.Par.ParWarning; 
+      O     #HLMidLeft.StFault; 
+      O     #HLInletLeft.StFault; 
+      O     #SpeedLeft.StFault; 
+      O     #HLMidRight.StFault; 
+      O     #HLInletRight.StFault; 
+      O     #SpeedRight.StFault; 
+      =     #tmpFaultSum; 
+
+//--- Next
+      U     #tmpNext; 
+      S     #RollsLowLeft.CmdNext; 
+      S     #RollsUpLeft.CmdNext; 
+      U     #RollsLowLeft.StStartedFwd; 
+      U     #Ma.Par.Par4Rolls; 
+      O     #RollsUpLeft.StStartedFwd; 
+      O     #Ma.InDisableLeft; 
+      U     #tmpNext; 
+      S     #RollsLowRight.CmdNext; 
+      S     #RollsUpRight.CmdNext; 
+
+//--- Interlocking Motors
+//RollsLowLeft
+      U     #tmpEnable; 
+      UN    #Ma.InDisableLeft; 
+      =     #RollsLowLeft.InEnableFwd; 
+// 
+      U     #tmpSeqStop; 
+      =     #RollsLowLeft.InSeqStop; 
+
+//RollsUpLeft
+      U     #RollsLowLeft.StStartedFwd; 
+      UN    #Ma.InDisableLeft; 
+      U     #tmpEnable; 
+      =     #RollsUpLeft.InEnableFwd; 
+
+      U     #tmpSeqStop; 
+      =     #RollsUpLeft.InSeqStop; 
+//RollsLowRight
+      U     #tmpEnable; 
+      UN    #Ma.InDisableRight; 
+      =     #RollsLowRight.InEnableFwd; 
+// 
+      U     #tmpSeqStop; 
+      =     #RollsLowRight.InSeqStop; 
+
+//RollsUpRight
+      U     #RollsLowRight.StStartedFwd; 
+      UN    #Ma.InDisableRight; 
+      U     #tmpEnable; 
+      =     #RollsUpRight.InEnableFwd; 
+
+      U     #tmpSeqStop; 
+      =     #RollsUpRight.InSeqStop; 
+
+
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #RollsLowLeft.InLocal; 
+      =     #RollsUpLeft.InLocal; 
+      =     #HLMidLeft.InLocal; 
+      =     #SpeedLeft.InLocal; 
+      =     #RollsLowRight.InLocal; 
+      =     #RollsUpRight.InLocal; 
+      =     #HLMidRight.InLocal; 
+      =     #SpeedRight.InLocal; 
+      =     #HLInletLeft.InLocal; 
+      =     #HLInletRight.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #RollsLowLeft.CmdFaultReset; 
+      S     #RollsUpLeft.CmdFaultReset; 
+      S     #HLMidLeft.CmdFaultReset; 
+      S     #HLInletLeft.CmdFaultReset; 
+      S     #SpeedLeft.CmdFaultReset; 
+
+      S     #RollsLowRight.CmdFaultReset; 
+      S     #RollsUpRight.CmdFaultReset; 
+      S     #HLMidRight.CmdFaultReset; 
+      S     #HLInletRight.CmdFaultReset; 
+      S     #SpeedRight.CmdFaultReset; 
+
+// 
+//--- Monitoring 
+      SET   ; 
+      S     #HLMidLeft.InMonFalse; 
+      S     #HLMidRight.InMonFalse; 
+
+      UN    #Ma.InOverwriteHL; //[3.1]
+      =     #HLInletLeft.InMonFalse; //[3.1]
+      =     #HLInletRight.InMonFalse; //[3.1]
+
+      U     #Ma.InpPressureLeft; 
+      =     #SpeedLeft.InMonTrue; 
+
+      U     #Ma.InpPressureRight; 
+      =     #SpeedRight.InMonTrue; 
+
+//Startup done
+      U     #RollsLowLeft.StStartedFwd; 
+      O     #RollsLowLeft.StFault; 
+      U(    ; 
+      U     #RollsUpLeft.StStartedFwd; 
+      O     #RollsUpLeft.StFault; 
+      O     #Ma.Par.Par4Rolls; 
+      )     ; 
+      O     #Ma.InDisableLeft; 
+      U(    ; 
+      O     #RollsLowRight.StStartedFwd; 
+      O     #RollsLowRight.StFault; 
+      O     #Ma.InDisableRight; 
+      )     ; 
+      U(    ; 
+      O     #RollsUpRight.StStartedFwd; 
+      O     #RollsUpRight.StFault; 
+      O     #Ma.InDisableRight; 
+      O     #Ma.Par.Par4Rolls; 
+      )     ; 
+      =     #Ma.OutStartupDone; 
+
+
+      U     #RollsUpLeft.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; 
+      U     #RollsLowLeft.StStartedFwd; 
+      O     #Ma.InDisableLeft; 
+      U(    ; 
+      U     #RollsUpRight.StStartedFwd; 
+      O     #Ma.Par.Par4Rolls; //[3.2]
+      U     #RollsLowRight.StStartedFwd; 
+      O     #Ma.InDisableRight; 
+      )     ; 
+      U(    ; 
+      ON    #Ma.InDisableLeft; 
+      ON    #Ma.InDisableRight; 
+      )     ; 
+      =     #tmpStarted; 
+
+NETWORK
+TITLE =Call RollsLowLeft
+
+      CALL #RollsLowLeft ;
+
+NETWORK
+TITLE =Call RollsUpLeft
+
+      U     #Ma.Par.Par4Rolls; 
+      SPB   elL3; 
+      CALL #RollsUpLeft ;
+
+NETWORK
+TITLE =Call Digital Input: HLMidLeft
+
+elL3: U     #Ma.Par.Par4Rolls; 
+      SPB   elL4; 
+      CALL #HLMidLeft ;
+
+NETWORK
+TITLE =Call Digital Input: HLInletLeft
+
+elL4: UN    #Ma.Par.ParWithHLInletLeft; 
+      SPB   elL5; 
+      CALL #HLInletLeft ;
+
+NETWORK
+TITLE =Call Digital Input: SMLeft
+
+elL5: UN    #Ma.Par.ParWithSMLeft; 
+      SPB   elL7; 
+      CALL #SpeedLeft ;
+
+NETWORK
+TITLE =Call RollsLowRight
+
+elL7: CALL #RollsLowRight ;
+
+NETWORK
+TITLE =Call RollsUpRight
+
+      U     #Ma.Par.Par4Rolls; 
+      SPB   elR3; 
+      CALL #RollsUpRight ;
+
+NETWORK
+TITLE =Call Digital Input: HLMidRight
+
+elR3: U     #Ma.Par.Par4Rolls; 
+      SPB   elR4; 
+      CALL #HLMidRight ;
+
+NETWORK
+TITLE =Call Digital Input: HLInletRight
+
+elR4: UN    #Ma.Par.ParWithHLInletRight; 
+      SPB   elR5; 
+      CALL #HLInletRight ;
+
+NETWORK
+TITLE =Call Digital Input: SMRight
+
+elR5: UN    #Ma.Par.ParWithSMRight; 
+      SPB   StJ0; 
+      CALL #SpeedRight ;
+
+NETWORK
+TITLE =Actual State
+// StFault
+StJ0: U     #tmpFaultSum; 
+      =     #Ma.StFault; 
+// StWarning
+      U     #tmpWarning; 
+      U     #Ma.Par.ParWarning; 
+      UN    #Ma.StFault; 
+      =     #Ma.StWarning; 
+// StStopped
+      U     #RollsUpLeft.StStopped; 
+      O     #Ma.Par.Par4Rolls; 
+      U(    ; 
+      U     #RollsUpRight.StStopped; 
+      O     #Ma.Par.Par4Rolls; 
+      )     ; 
+      U     #RollsLowLeft.StStopped; 
+      U     #RollsLowRight.StStopped; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStopped; 
+// StStarted
+      U     #tmpStarted; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StStopped; 
+      =     #Ma.StStarted; 
+// StStopping
+      U     #RollsLowLeft.InSeqStop; 
+      O     #RollsLowRight.InSeqStop; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopped; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StWarning; 
+      =     #Ma.StStopping; 
+// StStarting
+      UN    #Ma.StStopped; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopping; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StWarning; 
+      =     #Ma.StStarting; 
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted   3
+// StStopping  7
+// StWarning8
+      U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StWarning; 
+      L     8; //Code=StWarning 
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    FC     2; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+
+END_FUNCTION_BLOCK
+

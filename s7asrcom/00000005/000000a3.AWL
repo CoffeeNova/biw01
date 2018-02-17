@@ -1,0 +1,392 @@
+FUNCTION_BLOCK "GCS7_M_DischargerMZAx"
+TITLE =Bin discharger with MZAF
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 59 Machine Control:Bin discharger with MZAF 
+//              MZAF, LL and LS
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB59.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB59.3.1      E.Hanselmann/A.Egli MU664/CT3                   29-Jan-2001
+//              Condition for Ma.OutEmpty corrected 
+//FB59.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB59.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB59.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB59.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MA.MZAxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MA_MZAF
+VERSION : 4.0
+
+
+VAR
+  Ma : "GCS7_M_FB59_Data";	
+  MZAF : "GCS7_E_MZAF";	//Element 
+  LS : "GCS7_E_DigInput";	//Element 
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpEmpty : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     16; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2059; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdRestDischargeOn
+      S     #Ma.InRestDischarge; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //Cmd2[1]=CmdRestDischargeOff
+      R     #Ma.InRestDischarge; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+//---- Low level 
+      U     #Ma.InUncovered; 
+      ON    #Ma.Par.ParWithLL; 
+      U(    ; 
+      O     #LS.StFalse; 
+      O     #LS.StCtoTrue; //[3.1]old=#LS.StCtoFalse
+      )     ; 
+      S     #Ma.OutEmpty; 
+
+      U     #LS.StTrue; 
+      UN    #Ma.Par.ParWithLL; 
+      O     #Ma.InCovered; 
+      R     #Ma.OutEmpty; 
+
+      U     #Ma.OutEmpty; 
+      UN    #Ma.InRestDischarge; 
+      U     #Ma.Par.ParWithLL; 
+      =     #tmpEmpty; 
+
+//--- Fault----
+      U     #LS.StFault; 
+      O     #MZAF.StFault; 
+      =     #tmpFaultSum; 
+// 
+//--- Interlocking MZAF
+      U     #Ma.StWaiting; 
+      UN    #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      O     #tmpNext; 
+      S     #MZAF.CmdNext; 
+      S     #MZAF.InEnable; 
+
+      U     #tmpEmpty; 
+      UN    #Ma.InRestDischarge; 
+      UN    #Ma.InManual; 
+      ON    #tmpEnable; 
+      O     #tmpFaultSum; 
+      R     #MZAF.InEnable; 
+
+//New job 
+      U     #Ma.CmdNewJob; 
+      S     #MZAF.CmdNewJob; 
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #MZAF.InLocal; 
+      =     #LS.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #MZAF.CmdFaultReset; 
+      S     #LS.CmdFaultReset; 
+
+// 
+//--- Monitoring LS
+      U     #Ma.InCovered; 
+      U     #Ma.Par.ParWithLL; 
+      O     #Ma.InMonLSFault; 
+      U     #MZAF.StStarted; 
+      UN    #Ma.InManual; 
+      =     #LS.InMonTrue; 
+      SET   ; 
+      R     #LS.InMonFalse; 
+NETWORK
+TITLE =Call MZAF
+
+      CALL #MZAF ;
+
+NETWORK
+TITLE =Call Digital Input: LS
+
+      CALL #LS ;
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+      U     #Ma.StWaiting; 
+      SPB   S5; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #MZAF.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+// Condition for StWaiting
+      U     #tmpNext; 
+      U     #tmpEnable; 
+      U     #tmpEmpty; 
+      UN    #Ma.InRestDischarge; 
+      R     #Ma.StStopped; 
+      SPB   xxS5; //--> StWaiting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #MZAF.StStarted; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #MZAF.StAdjusting; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StWaiting
+      U     #tmpEmpty; 
+      UN    #Ma.InRestDischarge; 
+      UN    #MZAF.StStarted; 
+      UN    #MZAF.StAdjusting; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //-->StWaiting
+// Condition for StStopping
+      UN    #MZAF.StStarted; 
+      UN    #MZAF.StAdjusting; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #MZAF.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      U     #MZAF.StStarted; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS0; //-->StStopping 
+
+
+NETWORK
+TITLE =StWaiting
+//any Transition 
+xxS5: S     #Ma.StWaiting; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StWaiting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #MZAF.StStarted; 
+      R     #Ma.StWaiting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #tmpEnable; 
+      R     #Ma.StWaiting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StWaiting    3
+// StStarted    4
+// StStopping  7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StWaiting; 
+      L     3; //Code=StWaiting
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     4; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNewJob; 
+
+END_FUNCTION_BLOCK
+

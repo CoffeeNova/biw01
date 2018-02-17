@@ -1,0 +1,375 @@
+FUNCTION_BLOCK FB 50
+TITLE =Motor with 4 digital input 
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 50 MACHINE-CONTROL:Motor with 4 Digital input 
+//              GCPROVB Revision >=5
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB50.6.1      A. Egli             CT3                         16-Mai-2003
+//              Interlocking if Mon1 is HL
+//              Send CmdOff to Motor
+//FB50.6.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//              Interlocking if Mon1 is HL
+//FB50.5.0      A. Egli             CT3                          1-Feb-2002
+//              -HLInlet renamed as Mon4
+//              -ParMon4StopByFault,ParMon4IsLS
+//FB50.4.0      A. Egli             CT3                         15-Jan-2002
+//              HLIntet as Warning Element
+//FB50.3.1      A. Egli             CT3                         23-Oct-2001
+//              Manual Mode: no interlocking with InSeqStop
+//FB50.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB50.2C       A. Egli             CT3                         03-Juni-1999
+//              Manual Mode
+//FB50.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB50.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB50.1A       A.Egli              AEE61                       5-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.M4IxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//              GCPROVB Revision >=5
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : M_4DI
+VERSION : 6.1
+
+
+VAR
+  Ma : UDT 20500;	
+  Mon1 : FB 14;	//Element
+  Mon2 : FB 14;	//Element
+  Mon3 : FB 14;	//Element
+  Motor : FB 12;	//Element
+  Mon4 : FB 14;	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     10; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2050; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   aExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      O     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     DB3.DBX   53.0; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   52.6; //Cmd1[6]=CmdManSlowOn
+      S     #Motor.InOutManSlow; 
+      U     DB3.DBX   52.7; //Cmd1[7]=CmdManRevOn
+      S     #Motor.InOutManRev; 
+      U     DB3.DBX   55.5; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     DB3.DBX   54.6; //Cmd2[6]=CmdManSlowOff
+      R     #Motor.InOutManSlow; 
+      U     DB3.DBX   54.7; //Cmd2[7]=CmdManRevOff
+      R     #Motor.InOutManRev; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManual
+//--- Fault----
+      U     #Ma.Par.ParMon1StopByFault; 
+      U     #Mon1.StFault; 
+      O     #Mon2.StFault; 
+      O     #Mon3.StFault; 
+      O(    ; //[5.0]
+      U     #Ma.Par.ParMon4StopByFault; //[5.0]
+      U     #Mon4.StFault; //[5.0]
+      )     ; //[5.0]
+      =     #tmpFaultStop; 
+      U     #Mon4.StFault; //[4.0]
+      UN    #Ma.Par.ParMon4AsWarning; //[4.0]
+      O     #Mon1.StFault; 
+      O     #Motor.StFault; 
+      O     #tmpFaultStop; 
+      =     #tmpFaultSum; 
+
+      U     #Mon4.StFault; //[4.0]
+      U     #Ma.Par.ParMon4AsWarning; //[4.0]
+      =     #Ma.OutWarning; //[4.0]
+//--- Motor----
+      U     #Ma.CmdOff; 
+      S     #Motor.CmdOff; 
+//  
+      U     #Mon1.StTrue; 
+      O     #Mon1.StCtoFalse; 
+      ON    #Ma.Par.ParMon1IsLS; //[6.1]
+      ON    #Ma.Par.ParMon1StopByFault; 
+      U(    ; //[6.0]
+      O     #Mon1.StFalse; //[6.0]
+      O     #Mon1.StCtoTrue; //[6.0]
+      ON    #Ma.Par.ParMon1IsHL; //[6.0]
+      O     #Ma.InOverrideHLOutlet; //[6.0]
+      )     ; 
+      U(    ; 
+      O     #Mon2.StTrue; 
+      O     #Mon2.StCtoFalse; 
+      ON    #Ma.Par.ParMon2IsLS; 
+      )     ; 
+      U(    ; 
+      O     #Mon3.StTrue; 
+      O     #Mon3.StCtoFalse; 
+      ON    #Ma.Par.ParWithMon3; 
+      ON    #Ma.Par.ParMon3IsLS; 
+      )     ; 
+      U(    ; 
+      O     #Mon4.StTrue; 
+      O     #Mon4.StCtoFalse; 
+      ON    #Ma.Par.ParWithMon4; 
+      ON    #Ma.Par.ParMon4StopByFault; 
+      ON    #Ma.Par.ParMon4IsLS; 
+      )     ; 
+      =     #tmpEnable; //[4.0]
+//Set speed if manual mode without interlocking                   
+      UN    #Motor.Par.ParManual; 
+      ON    #Ma.InManual; 
+      O     #Motor.InManual; 
+      SPB   inJo; 
+      U     #Motor.InOutManSlow; 
+      =     #Motor.InSlow; 
+inJo: U(    ; 
+      UN    #Motor.Par.ParManual; 
+      UN    #Motor.InOutManRev; 
+      ON    #Ma.InManual; 
+      U     #Ma.InEnableFwd; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Motor.Par.ParManual; 
+      UN    #Motor.InOutManRev; 
+      )     ; 
+      UN    #Ma.InpLocked; 
+      UN    #tmpFaultStop; 
+      UN    #Ma.CmdOff; 
+      U     #tmpEnable; //[4.0]
+      =     #Motor.InEnableFwd; 
+      U(    ; 
+      UN    #Motor.Par.ParManual; 
+      U     #Motor.InOutManRev; 
+      ON    #Ma.InManual; 
+      U     #Ma.InEnableRev; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Motor.Par.ParManual; 
+      U     #Motor.InOutManRev; 
+      )     ; 
+      UN    #Ma.InpLocked; 
+      UN    #tmpFaultStop; 
+      UN    #Ma.CmdOff; 
+      U     #tmpEnable; //[4.0]
+      =     #Motor.InEnableRev; 
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.CmdOn; 
+      S     #Motor.CmdNext; 
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; // [3.1]
+      =     #Motor.InSeqStop; 
+
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+      U     #tmpLocal; 
+      =     #Motor.InLocal; 
+      =     #Mon4.InLocal; 
+      U     #tmpLocal; 
+      U     #Motor.StStopped; 
+      =     #Mon1.InLocal; 
+      =     #Mon2.InLocal; 
+      =     #Mon3.InLocal; 
+//--- Monitoring
+      U     #Ma.Par.ParMon1IsLS; 
+      O     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      UN    #Ma.Par.ParMon1IsHL; 
+      =     #Mon1.InMonTrue; 
+      U     #Ma.Par.ParMon1IsHL; 
+      UN    #Ma.InOverrideHLOutlet; 
+      =     #Mon1.InMonFalse; 
+
+      U     #Ma.Par.ParMon2IsLS; 
+      O     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      =     #Mon2.InMonTrue; 
+
+      U     #Ma.Par.ParMon3IsLS; 
+      O     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      =     #Mon3.InMonTrue; 
+
+      U     #Ma.Par.ParMon4AsWarning; //[4.0]
+      O     #Ma.Par.ParMon4IsLS; //[5.0]
+      =     #Mon4.InMonTrue; //[4.0]
+      NOT   ; 
+      =     #Mon4.InMonFalse; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Mon4.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+      S     #Mon1.CmdFaultReset; 
+      S     #Mon2.CmdFaultReset; 
+      S     #Mon3.CmdFaultReset; 
+NETWORK
+TITLE =Call Digital Input: Monitor B1
+
+      CALL #Mon1 ;
+
+NETWORK
+TITLE =Call Digital Input: Monitor B2
+
+      CALL #Mon2 ;
+
+NETWORK
+TITLE =Call Digital Input: Monitor B3
+
+      UN    #Ma.Par.ParWithMon3; 
+      SPB   Mo; 
+      CALL #Mon3 ;
+
+NETWORK
+TITLE =Call Motor
+
+Mo:   CALL #Motor ;
+
+NETWORK
+TITLE =Call Digital Input: Mon4
+
+      UN    #Ma.Par.ParWithMon4; 
+      SPB   StJ0; 
+      CALL #Mon4 ;
+
+NETWORK
+TITLE =State
+// Stopped
+StJ0: U     #Motor.StStopped; 
+      UN    #tmpFaultSum; 
+      UN    #Ma.InpLocked; 
+      =     #Ma.StStopped; 
+// Locked 
+      U     #Motor.StStopped; 
+      UN    #tmpFaultSum; 
+      U     #Ma.InpLocked; 
+      =     #Ma.StLocked; 
+// Starting
+      U     #Motor.StStarting; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StStarting; 
+// StartedFwd
+      U     #Motor.StStartedFwd; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StStartedFwd; 
+// StartedRev
+      U     #Motor.StStartedRev; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StStartedRev; 
+// Stopping
+      U     #Motor.StStopping; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StStopping; 
+// Fault
+      U     #tmpFaultSum; 
+      =     #Ma.StFault; 
+
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+NETWORK
+TITLE =State Code
+// Same as motor
+      U     #Ma.StLocked; 
+      L     8; //  StCode=Locked
+      SPB   Code; 
+      L     #Motor.StCode; // StCode=Motor
+      UN    #Ma.StFault; 
+      SPB   Code; 
+      L     32; // StCode=Fault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    FC     2; //Set change bit
+
+END_FUNCTION_BLOCK
+

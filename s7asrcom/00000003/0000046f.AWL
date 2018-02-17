@@ -1,0 +1,584 @@
+	DATA_BLOCK DB195
+	TITLE =DBG095M  BELT CONVEYOR 4500 GERM
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        BELT CONVEYOR 4500 GERM
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB195.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG095M 
+	VERSION : 00.00
+	
+	FB195
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=9500; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter =A-1941-BFT17 : STOWING DETECTOR DISCHARGE 1
+	      #A_1941_BFT17.Par.ParObjectNo                             :=9506;
+	      #A_1941_BFT17.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT17.Par.ParHornCode                             :=0;
+	      #A_1941_BFT17.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT17.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT17.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT17.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT17.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT17.Par.ParLogOff                               :=False;
+	      #A_1941_BFT17.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT17.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT17.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT18 : STOWING DETECTOR DISCHARGE 2
+	      #A_1941_BFT18.Par.ParObjectNo                             :=9507;
+	      #A_1941_BFT18.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT18.Par.ParHornCode                             :=0;
+	      #A_1941_BFT18.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT18.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT18.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT18.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT18.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT18.Par.ParLogOff                               :=False;
+	      #A_1941_BFT18.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT18.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT18.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT19 : STOWING DETECTOR DISCHARGE 3
+	      #A_1941_BFT19.Par.ParObjectNo                             :=9508;
+	      #A_1941_BFT19.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT19.Par.ParHornCode                             :=0;
+	      #A_1941_BFT19.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT19.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT19.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT19.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT19.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT19.Par.ParLogOff                               :=False;
+	      #A_1941_BFT19.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT19.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT19.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT20 : STOWING DETECTOR DISCHARGE 4
+	      #A_1941_BFT20.Par.ParObjectNo                             :=9509;
+	      #A_1941_BFT20.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT20.Par.ParHornCode                             :=0;
+	      #A_1941_BFT20.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT20.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT20.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT20.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT20.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT20.Par.ParLogOff                               :=False;
+	      #A_1941_BFT20.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT20.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT20.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT21 : STOWING DETECTOR DISCHARGE 5
+	      #A_1941_BFT21.Par.ParObjectNo                             :=9510;
+	      #A_1941_BFT21.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT21.Par.ParHornCode                             :=0;
+	      #A_1941_BFT21.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT21.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT21.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT21.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT21.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT21.Par.ParLogOff                               :=False;
+	      #A_1941_BFT21.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT21.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT21.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT22 : STOWING DETECTOR DISCHARGE 6
+	      #A_1941_BFT22.Par.ParObjectNo                             :=9511;
+	      #A_1941_BFT22.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT22.Par.ParHornCode                             :=0;
+	      #A_1941_BFT22.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT22.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT22.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT22.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT22.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT22.Par.ParLogOff                               :=False;
+	      #A_1941_BFT22.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT22.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT22.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT23 : STOWING DETECTOR DISCHARGE 7
+	      #A_1941_BFT23.Par.ParObjectNo                             :=9512;
+	      #A_1941_BFT23.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT23.Par.ParHornCode                             :=0;
+	      #A_1941_BFT23.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT23.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT23.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT23.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT23.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT23.Par.ParLogOff                               :=False;
+	      #A_1941_BFT23.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT23.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT23.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-BFT24 : STOWING DETECTOR DISCHARGE 8
+	      #A_1941_BFT24.Par.ParObjectNo                             :=9513;
+	      #A_1941_BFT24.Par.ParMsgType                              :=7165;
+	      #A_1941_BFT24.Par.ParHornCode                             :=0;
+	      #A_1941_BFT24.Par.ParDelayChange                          :=20;
+	      #A_1941_BFT24.Par.ParDelayCovered                         :=10;
+	      #A_1941_BFT24.Par.ParDelayUncovered                       :=30;
+	      #A_1941_BFT24.Par.ParTimeoutCovered                       :=0;
+	      #A_1941_BFT24.Par.ParTimeoutUncovered                     :=0;
+	      #A_1941_BFT24.Par.ParLogOff                               :=False;
+	      #A_1941_BFT24.Par.Par2WorkingCond                         :=False;
+	      #A_1941_BFT24.Par.ParFaultRetry                           :=False;
+	      #A_1941_BFT24.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1941-MXZ01MA : BELT CONVEYOR 4500
+	      #A_1941_MXZ01MA.Ma.Par.ParObjectNo                                     :=9501;
+	      #A_1941_MXZ01MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_1941_MXZ01MA.Ma.Par.ParWithMon4                                     :=True;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon1IsLS                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon1StopByFault                              :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon4StopByFault                              :=True;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParWithMon1                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParEBM                                          :=False;
+	      #A_1941_MXZ01MA.Ma.Par.ParMon4IsSM                                     :=True;
+	//
+	//Parameter A_1941_MXZ01MA.=A-1941-BSA13 : SPEED CONTROL
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParObjectNo                             :=9504;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParMsgType                              :=7135;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParHornCode                             :=0;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParDelayChange                          :=0;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParDelayTrue                            :=10;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParDelayFalse                           :=0;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParTimeoutTrue                          :=50;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParTimeoutFalse                         :=0;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParLogOff                               :=False;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.Par2WorkingCond                         :=True;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParFaultRetry                           :=False;
+	      #A_1941_MXZ01MA.A_1941_BSA13.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_1941_MXZ01MA.=A-1941-BZS31/32 : BELT MONITOR 
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParObjectNo                             :=9502;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParMsgType                              :=7135;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParHornCode                             :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParDelayChange                          :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParDelayTrue                            :=10;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParDelayFalse                           :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParTimeoutTrue                          :=50;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParTimeoutFalse                         :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParLogOff                               :=False;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.Par2WorkingCond                         :=True;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParFaultRetry                           :=False;
+	      #A_1941_MXZ01MA.A_1941_BZS31_32.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_1941_MXZ01MA.=A-1941-BZS33/34 : BELT MONITOR
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParObjectNo                             :=9503;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParMsgType                              :=7135;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParHornCode                             :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParDelayChange                          :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParDelayTrue                            :=10;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParDelayFalse                           :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParTimeoutTrue                          :=50;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParTimeoutFalse                         :=0;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParLogOff                               :=False;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.Par2WorkingCond                         :=True;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParFaultRetry                           :=False;
+	      #A_1941_MXZ01MA.A_1941_BZS33_34.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_1941_MXZ01MA.=A-1941-MXZ01 : BELT CONVEYOR 4500
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParObjectNo                             :=9505;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParHornCode                             :=0;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParMonTime                              :=20;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParLogOff                               :=False;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParManual                               :=True;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.Par2Speed                               :=False;
+	      #A_1941_MXZ01MA.A_1941_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-1942-BZS12 : DISCHARGE CHUTE LEFT SIDE
+	      #A_1942_BZS12.Par.ParObjectNo                             :=9515;
+	      #A_1942_BZS12.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS12.Par.ParHornCode                             :=0;
+	      #A_1942_BZS12.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS12.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS12.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS12.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS12.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS12.Par.ParLogOff                               :=False;
+	      #A_1942_BZS12.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS12.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS12.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS13 : DISCHARGE CHUTE RIGHT SIDE
+	      #A_1942_BZS13.Par.ParObjectNo                             :=9516;
+	      #A_1942_BZS13.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS13.Par.ParHornCode                             :=0;
+	      #A_1942_BZS13.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS13.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS13.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS13.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS13.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS13.Par.ParLogOff                               :=False;
+	      #A_1942_BZS13.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS13.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS13.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-MXZ0MA : CHUTE DRIVE
+	      #A_1942_MXZ0MA.Ma.Par.ParObjectNo                                     :=9514;
+	      #A_1942_MXZ0MA.Ma.Par.ParWithMon3                                     :=True;
+	      #A_1942_MXZ0MA.Ma.Par.ParWithMon4                                     :=True;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon1IsLS                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon1StopByFault                              :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon3IsLS                                     :=True;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon4StopByFault                              :=True;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon4IsLS                                     :=True;
+	      #A_1942_MXZ0MA.Ma.Par.ParWithMon1                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParEBM                                          :=False;
+	      #A_1942_MXZ0MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_1942_MXZ0MA.=A-1942-QYS31 : DISCHARGE CHUTE LEFT SIDE
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParObjectNo                             :=9517;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParMsgType                              :=7163;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParHornCode                             :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParDelayChange                          :=20;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParDelayTrue                            :=10;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParDelayFalse                           :=30;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParLogOff                               :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.Par2WorkingCond                         :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParFaultRetry                           :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS31.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_1942_MXZ0MA.=A-1942-QYS32 : DISCHARGE CHUTE RIGHT SIDE
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParObjectNo                             :=9518;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParMsgType                              :=7163;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParHornCode                             :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParDelayChange                          :=20;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParDelayTrue                            :=10;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParDelayFalse                           :=30;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParLogOff                               :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.Par2WorkingCond                         :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParFaultRetry                           :=False;
+	      #A_1942_MXZ0MA.A_1942_QYS32.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_1942_MXZ0MA.=A-1942-MXZ01 : CHUTE DRIVE
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParObjectNo                             :=9519;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParMsgType                              :=7051;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParHornCode                             :=0;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParMonTime                              :=20;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParStoppingTime                         :=50;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParLogOff                               :=False;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParManual                               :=True;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.Par2Speed                               :=True;
+	      #A_1942_MXZ0MA.A_1942_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-1942-BZS11 : DISCHARGE CHUTE PARKING POSITION
+	      #A_1942_BZS11.Par.ParObjectNo                             :=9520;
+	      #A_1942_BZS11.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS11.Par.ParHornCode                             :=0;
+	      #A_1942_BZS11.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS11.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS11.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS11.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS11.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS11.Par.ParLogOff                               :=False;
+	      #A_1942_BZS11.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS11.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS11.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS14 : DISCHARGE CHUTE G1A LOW ROTARY SPEED
+	      #A_1942_BZS14.Par.ParObjectNo                             :=9521;
+	      #A_1942_BZS14.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS14.Par.ParHornCode                             :=0;
+	      #A_1942_BZS14.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS14.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS14.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS14.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS14.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS14.Par.ParLogOff                               :=False;
+	      #A_1942_BZS14.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS14.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS14.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS15 : DISCHARGE CHUTE G1B IN POSITION
+	      #A_1942_BZS15.Par.ParObjectNo                             :=9522;
+	      #A_1942_BZS15.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS15.Par.ParHornCode                             :=0;
+	      #A_1942_BZS15.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS15.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS15.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS15.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS15.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS15.Par.ParLogOff                               :=False;
+	      #A_1942_BZS15.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS15.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS15.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS16 : DISCHARGE CHUTE G2A LOW ROTARY SPEED
+	      #A_1942_BZS16.Par.ParObjectNo                             :=9523;
+	      #A_1942_BZS16.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS16.Par.ParHornCode                             :=0;
+	      #A_1942_BZS16.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS16.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS16.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS16.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS16.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS16.Par.ParLogOff                               :=False;
+	      #A_1942_BZS16.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS16.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS16.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS17 : DISCHARGE CHUTE G2B IN POSITION
+	      #A_1942_BZS17.Par.ParObjectNo                             :=9524;
+	      #A_1942_BZS17.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS17.Par.ParHornCode                             :=0;
+	      #A_1942_BZS17.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS17.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS17.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS17.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS17.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS17.Par.ParLogOff                               :=False;
+	      #A_1942_BZS17.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS17.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS17.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS18 : DISCHARGE CHUTE G3A LOW ROTARY SPEED
+	      #A_1942_BZS18.Par.ParObjectNo                             :=9525;
+	      #A_1942_BZS18.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS18.Par.ParHornCode                             :=0;
+	      #A_1942_BZS18.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS18.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS18.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS18.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS18.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS18.Par.ParLogOff                               :=False;
+	      #A_1942_BZS18.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS18.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS18.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS19 : DISCHARGE CHUTE G3B IN POSITION
+	      #A_1942_BZS19.Par.ParObjectNo                             :=9526;
+	      #A_1942_BZS19.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS19.Par.ParHornCode                             :=0;
+	      #A_1942_BZS19.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS19.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS19.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS19.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS19.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS19.Par.ParLogOff                               :=False;
+	      #A_1942_BZS19.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS19.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS19.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS20 : DISCHARGE CHUTE G4A LOW ROTARY SPEED
+	      #A_1942_BZS20.Par.ParObjectNo                             :=9527;
+	      #A_1942_BZS20.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS20.Par.ParHornCode                             :=0;
+	      #A_1942_BZS20.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS20.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS20.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS20.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS20.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS20.Par.ParLogOff                               :=False;
+	      #A_1942_BZS20.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS20.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS20.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS21 : DISCHARGE CHUTE G4B  IN POSITION
+	      #A_1942_BZS21.Par.ParObjectNo                             :=9528;
+	      #A_1942_BZS21.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS21.Par.ParHornCode                             :=0;
+	      #A_1942_BZS21.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS21.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS21.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS21.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS21.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS21.Par.ParLogOff                               :=False;
+	      #A_1942_BZS21.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS21.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS21.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS22 : DISCHARGE CHUTE G5A LOW ROTARY SPEED
+	      #A_1942_BZS22.Par.ParObjectNo                             :=9529;
+	      #A_1942_BZS22.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS22.Par.ParHornCode                             :=0;
+	      #A_1942_BZS22.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS22.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS22.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS22.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS22.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS22.Par.ParLogOff                               :=False;
+	      #A_1942_BZS22.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS22.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS22.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS23 : DISCHARGE CHUTE G5B IN POSITION
+	      #A_1942_BZS23.Par.ParObjectNo                             :=9530;
+	      #A_1942_BZS23.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS23.Par.ParHornCode                             :=0;
+	      #A_1942_BZS23.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS23.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS23.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS23.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS23.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS23.Par.ParLogOff                               :=False;
+	      #A_1942_BZS23.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS23.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS23.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS24 : DISCHARGE CHUTE G6A LOW ROTARY SPEED
+	      #A_1942_BZS24.Par.ParObjectNo                             :=9531;
+	      #A_1942_BZS24.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS24.Par.ParHornCode                             :=0;
+	      #A_1942_BZS24.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS24.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS24.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS24.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS24.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS24.Par.ParLogOff                               :=False;
+	      #A_1942_BZS24.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS24.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS24.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS25 : DISCHARGE CHUTE G6B IN POSITION
+	      #A_1942_BZS25.Par.ParObjectNo                             :=9532;
+	      #A_1942_BZS25.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS25.Par.ParHornCode                             :=0;
+	      #A_1942_BZS25.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS25.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS25.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS25.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS25.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS25.Par.ParLogOff                               :=False;
+	      #A_1942_BZS25.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS25.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS25.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS26 : DISCHARGE CHUTE G7A LOW ROTARY SPEED
+	      #A_1942_BZS26.Par.ParObjectNo                             :=9533;
+	      #A_1942_BZS26.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS26.Par.ParHornCode                             :=0;
+	      #A_1942_BZS26.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS26.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS26.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS26.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS26.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS26.Par.ParLogOff                               :=False;
+	      #A_1942_BZS26.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS26.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS26.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS27 : DISCHARGE CHUTE G7B  IN POSITION
+	      #A_1942_BZS27.Par.ParObjectNo                             :=9534;
+	      #A_1942_BZS27.Par.ParMsgType                              :=7163;
+	      #A_1942_BZS27.Par.ParHornCode                             :=0;
+	      #A_1942_BZS27.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS27.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS27.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS27.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS27.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS27.Par.ParLogOff                               :=False;
+	      #A_1942_BZS27.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS27.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS27.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS28 : DISCHARGE CHUTE G8A LOW ROTARY SPEED
+	      #A_1942_BZS28.Par.ParObjectNo                             :=9535;
+	      #A_1942_BZS28.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS28.Par.ParHornCode                             :=0;
+	      #A_1942_BZS28.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS28.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS28.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS28.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS28.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS28.Par.ParLogOff                               :=False;
+	      #A_1942_BZS28.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS28.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS28.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-1942-BZS29 : DISCHARGE CHUTE G8B IN POSITION
+	      #A_1942_BZS29.Par.ParObjectNo                             :=9536;
+	      #A_1942_BZS29.Par.ParMsgType                              :=7147;
+	      #A_1942_BZS29.Par.ParHornCode                             :=0;
+	      #A_1942_BZS29.Par.ParDelayChange                          :=20;
+	      #A_1942_BZS29.Par.ParDelayTrue                            :=10;
+	      #A_1942_BZS29.Par.ParDelayFalse                           :=30;
+	      #A_1942_BZS29.Par.ParTimeoutTrue                          :=0;
+	      #A_1942_BZS29.Par.ParTimeoutFalse                         :=0;
+	      #A_1942_BZS29.Par.ParLogOff                               :=False;
+	      #A_1942_BZS29.Par.Par2WorkingCond                         :=False;
+	      #A_1942_BZS29.Par.ParFaultRetry                           :=False;
+	      #A_1942_BZS29.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

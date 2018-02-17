@@ -1,0 +1,706 @@
+FUNCTION_BLOCK "GCS7_GrpCtrlSub"
+TITLE =Group Help Function
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD
+//                          CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB10  Group help function
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB10.3.7       A. Egli             CT3                        20-Jan-2005
+//              Methode 12: Store Chnagebit in Group
+//FB10.3.6       A. Egli             CT3                        16-Nov-2004
+//              Methode 12: Set Changebit
+//FB10.3.5       A. Egli             CT3                        06-Okt-2004
+//              12=Methode State Virtuell Group GCS90
+//FB10.3.4       A. Egli             CT3                        17-Jun-2004
+//              Reset Autostart as long OutHWStop or OutDPFault
+//FB10.3.3       A. Egli             CT3                        12-Sep-2003
+//              VarFlag1s , Reset delay for command CmdContinue of 1s
+//FB10.3.2       A. Egli             CT3                        12-Sep-2003
+//              Reset Autostart bits with CmdFaultReset when faulted
+//FB10.3.1       A. Egli             CT3                        22-Jul-2003
+//              Transition to StFault: Reset Autostart bits
+//FB10.3.0       A. Egli             CT3                        09-Jan-2003
+//              New release
+//FB10.2.6       A. Egli             CT3                        23-Mar-2002
+//              Examine: Call FC2  Methode 1 not 2
+//FB10.2.5       A. Egli             CT3                        09-Feb-2001
+//              GGR: Transition StStopping-->StStopped
+//FB10.2E       A. Egli             CT3                         04-Aug-1999
+//              GGR: Transition StStopped-->StStarted
+//FB10.2D       S. Kalberer         CT3                         12-Jul-1999
+//              CBIT in StStarting corrected
+//FB10.2C       A. Egli             CT3                         19-Oct-1998
+//              InSeqStop
+//FB10.2B       S. Kalberer         CT3                         14-Oct-1998
+//              R  M 13.6 (InHeavyStartup) deleted
+//FB10.2A       A.Egli              CT3                         08-Jun-1998
+//              StFault = StCode 32
+//FB10.1B       A.Egli              AEE61                       29-Aug-1997
+//              Code 2 for PC Direct Control
+//FB10.1A       A.Egli              AEE61                        5-Jun-1996
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GRxxMAN.DOC             
+//
+//RESTRICTIONS: Before calling this FB, you have to select the requested
+//              function code in the input variable 'tmpCode'.
+//-------------------------------------------------------------------------
+//
+//Function Code:= tmpCode
+//=============
+//              1=Methode Control
+//              2=Methode State
+//             12=Methode State Virtuell Group GCS90   
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : GrHlpFnc
+VERSION : 3.7
+
+
+VAR_INPUT
+  FcCode : INT ;	//FunctionCode
+END_VAR
+VAR
+  Spare2 : INT ;	
+  Spare4 : INT ;	
+  Spare6 : INT ;	
+  OutEmptyingTime : INT ;	//FB10: Actual Value Emptying Timer [s] (*NEW*)
+  ChangeBit : STRUCT 	
+   spare : BYTE ;	
+   CBit1 : BOOL ;	
+   CBit2 : BOOL ;	
+   CBit3 : BOOL ;	
+   CBit4 : BOOL ;	
+  END_STRUCT ;	
+  StCode : INT ;	
+  InEnableGr : BOOL ;	//Enable to run elemets of the group
+  CmdContinue : BOOL ;	//Tick to restart after fault, Tick to start startwarning time (*NEW*)
+  CmdRestartIdling : BOOL ;	//Restart idling time
+  InReleaseEmptyingTime : BOOL ;	//ASW to FB10: Condiditon to run emptying time (*New*)
+  InFeeding : BOOL ;	//ASW to FB10: Is used to set OutLoaded  (*NEW*)
+  InOutAutostartMan : BOOL ;	//Autostart in manual mode: Whole machine starts
+  InPreStart : BOOL ;	//ASW
+  CmdManualOff : BOOL ;	//Switch off manual mode
+  CmdOff : BOOL ;	//Tick to stop in manual mode
+  CmdOn : BOOL ;	//Tick to start in manual mode
+  CmdNext : BOOL ;	//Tick to start next element
+  CmdFaultReset : BOOL ;	//Tick to rest fault
+  InOccupied : BOOL ;	//Group is used in automatic mode
+  InManual : BOOL ;	//Group is used in manual mode
+  InLoadedSec : BOOL ;	//Loaded from section
+  InSeqStop : BOOL ;	//Stop automatically after idling time
+  ModePassive : BOOL ;	//Group is stopped AND not used
+  ModeActive : BOOL ;	//Group is used
+  ModeIdling : BOOL ;	//Group is not used, idling time running
+  spare163 : BOOL ;	
+  spare164 : BOOL ;	
+  spare165 : BOOL ;	
+  spare166 : BOOL ;	
+  spare167 : BOOL ;	
+  StStopped : BOOL ;	//FB10:
+  StStarting : BOOL ;	//FB10:
+  StStarted : BOOL ;	//FB10:
+  StStopping : BOOL ;	//FB10:
+  StFault : BOOL ;	//FB10:
+  OutLoaded : BOOL ;	//FB10: Is set by ASW, is reset by SSW  (*NEW*)
+  OutWarning : BOOL ;	//ASW: 
+  OutFeeding : BOOL ;	//ASW:
+  OutEnableEl : BOOL ;	//ASW: General condition to run element
+  OutEnable1 : BOOL ;	//ASW:
+  OutHWStop : BOOL ;	//FB10: Any used element has InHWStop (Copy of M15.0) (*NEW*)
+  OutDPFault : BOOL ;	//FB10: Any used element has InDPFault(Copy of M15.1) (*NEW*)
+  OutAutostart : BOOL ;	//FB10: Is set with command CmdStart , is reset with new fault (*NEW*)
+  OutManual : BOOL ;	//FB10: Any object is in manual mode (Copy of M13.5)
+  OutHornOn : BOOL ;	//FB10: Fault flag is set (Is set if M13.4 is true)
+  OutEnablePrevGr : BOOL ;	//ASW:Enable to run previous group
+  VarStopped : BOOL ;	//ASW to FB10: All relevant elements stopped
+  VarStarted : BOOL ;	//ASW to FB10: All relevant elements started
+  VarFault : BOOL ;	//ASW to FB10: A relevant element has fault
+  VarStartwarning : BOOL ;	//ASW to FB10: Startwarning time is running
+  VarFlag1s : BOOL ;	
+  OutEmptyingTimeDone : BOOL ;	//FB10 to ASW: (*New*)
+  OutNewWay : BOOL ;	//FB10 to ASW:Read new pattern
+  OutSeqStop : BOOL ;	//FB10 to ASW:Idling time end, Stop element
+  OutIdlingTime : INT ;	//Actual idling time
+  InCodePreselect : INT ;	//Free for user
+  InLine : INT ;	//Line nr which use the line
+  InCode : INT ;	//Target way or function
+  OutCode : INT ;	//Actual way or function	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	
+   ParMgr : BOOL ;	//1=Machine group 0=Way group or general group
+   ParWgr : BOOL ;	//1=Way group     0=Machine group or general group
+   ParGgr : BOOL ;	//1=General group
+   ParHornCode : INT ;	//Is used by horn module
+   ParIdling : INT ;	
+   ParEmptyingTime : INT ;	
+   Para1_0 : BOOL ;	
+   Para1_1 : BOOL ;	
+   Para1_2 : BOOL ;	
+   Para1_3 : BOOL ;	
+   Para1_4 : BOOL ;	
+   Para1_5 : BOOL ;	
+   Para1_6 : BOOL ;	
+   Para1_7 : BOOL ;	
+   Para1_8 : BOOL ;	
+   Para1_9 : BOOL ;	
+   Para1_10 : BOOL ;	
+   Para1_11 : BOOL ;	
+   Para1_12 : BOOL ;	
+   Para1_13 : BOOL ;	
+   Para1_14 : BOOL ;	
+   Para1_15 : BOOL ;	
+   Para2 : INT ;	
+   Para3 : INT ;	
+   Para4 : INT ;	
+   Para5 : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddr : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =CODE 3: Emptying Time [3.0]
+
+      L     #FcCode; 
+      L     3; 
+      <>I   ; 
+      SPB   eEnd; 
+//------------------------------------
+//Loaded
+//------------------------------------
+      U     #InFeeding; 
+      SPBN  eJ0; 
+      S     #OutLoaded; 
+      R     #OutEmptyingTimeDone; 
+      L     0; 
+      T     #OutEmptyingTime; 
+      BEB   ; 
+//------------------------------------
+//Check emptying time
+//------------------------------------
+eJ0:  L     #OutEmptyingTime; 
+      L     #Par.ParEmptyingTime; 
+      >=I   ; 
+      U     #InReleaseEmptyingTime; 
+      =     #OutEmptyingTimeDone; 
+      R     #OutLoaded; 
+      BEB   ; 
+//------------------------------------
+//Run emptying time
+//------------------------------------
+      UN    #InReleaseEmptyingTime; 
+      ON    "GCS7_Gr_OutTick1s"; 
+      BEB   ; 
+      L     #OutEmptyingTime; 
+      +     1; 
+      T     #OutEmptyingTime; 
+      BEA   ; 
+eEnd: NOP   0; 
+NETWORK
+TITLE =CODE 4: Startwarning [3.0]
+
+      L     #FcCode; 
+      L     4; 
+      <>I   ; 
+      SPB   sEnd; 
+      BEA   ; 
+sEnd: NOP   0; 
+NETWORK
+TITLE =Methode control: PC interface
+
+      L     #FcCode; 
+      L     1; 
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //Diag.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     3000; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //Diag.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#30.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Par.ParIdling; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParEmptyingTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     DIW [AR2,P#40.0]; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.Para2; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.Para3; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.Para4; 
+      L     DBW [AR1,P#18.0]; 
+      T     #Par.Para5; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //InEnableGr.On
+      S     #InEnableGr; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[0]; //InEnableGr.Off
+      R     #InEnableGr; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //CmdOn
+      S     #CmdContinue; 
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //CmdNext
+      S     #CmdContinue; 
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[12]; //InOccupied.On
+      S     #InOccupied; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[12]; //InOccupied.Off
+      R     #InOccupied; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //CmdManualOff
+      S     #CmdManualOff; 
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefineCmd
+      SPB   aIni; 
+      L     "SYS_DirectCtrlDB".PC.Value[23]; //Value[23]
+      T     #Par.ParIdling; 
+      SPA   aIni; 
+aExa: L     P##StCode; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.tmpDynAddr
+      L     38; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.tmpDynLen
+      L     P##Par; // Address Parameters
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.tmpParaAddr
+      L     10; // Lenth Parameter
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.tmpParaLen
+      L     1; // Code FcExamine  [2.6]
+      UC    "SYS_DirectCtrl"; 
+aEnd: NOP   0; 
+NETWORK
+TITLE =Methode control : Part Mode 
+//
+//
+      L     #FcCode; 
+      L     1; 
+      <>I   ; 
+      SPB   bEnd; 
+      R     "GCS7_Gr_InCBit1"; // Global.CBit1
+      R     "GCS7_Gr_InCBit2"; // Global.CBit1
+      R     "GCS7_Gr_InCBit3"; // Global.CBit1
+      R     "GCS7_Gr_InCBit4"; // Global.CBit1
+      R     "GCS7_Gr_InFault"; // Global.InFault
+      R     "GCS7_Gr_InManual"; // Global.InManual
+      R     "GCS7_Gr_InHWStop"; // Global.InHWStop"
+      R     "GCS7_Gr_InDPFault"; // Global.InDPFault"
+
+// Global.InHeavyStartup
+      R     "GCS7_Gr_InFaultFlag"; // Global.InFaultFlag
+      U     #CmdFaultReset; 
+      =     "GCS7_Gr_OutFaultReset"; // Global.OutFaultReset
+//Autostart manual mode
+      U     #InManual; 
+      U     #CmdOn; 
+      S     #InOutAutostartMan; 
+      UN    #InManual; 
+      O     #CmdOff; 
+      R     #InOutAutostartMan; 
+//CmdNext
+      U     #InManual; 
+      R     #CmdNext; 
+      U     #InOutAutostartMan; 
+      O     #CmdOn; 
+      U     #InManual; 
+      S     #CmdNext; 
+      S     #InEnableGr; 
+      U     #CmdNext; 
+      =     "GCS7_Gr_OutNext"; // Global.OutNext
+//InEnableGr
+      UN    #InManual; 
+      SPB   bJ1; 
+// Manual
+      UN    #CmdOff; 
+      =     #InEnableGr; 
+//=====================
+bJ1:  U     #CmdOff; 
+      R     #InEnableGr; 
+      U     #CmdManualOff; 
+      R     #InManual; 
+      =     "GCS7_Gr_OutManualOff"; // Global.OutManualOff
+      L     #InLine; 
+      T     "GCS7_Gr_OutLine"; 
+      L     #Par.ParHornCode; 
+      T     "Gr_ParHornCode"; 
+      U     #ModeIdling; 
+      SPB   MoId; //  )=>ModeIdling 
+      U     #ModeActive; 
+      SPB   MoAc; //  )=>ModeActive
+//==Mode Passive ======================
+      S     #ModePassive; 
+      S     #OutSeqStop; 
+      U     #InOccupied; 
+      O     #InManual; 
+      SPB   TXAC; //  )->Transition Active 
+      SPA   WAY; 
+//==Mode Idling  ======================
+MoId: U     #InOccupied; 
+      O     #InManual; 
+      SPB   TXAC; 
+      UN    #CmdRestartIdling; 
+      SPB   ID1; 
+      L     #Par.ParIdling; 
+      T     #OutIdlingTime; 
+ID1:  UN    "GCS7_Gr_OutTick1s"; 
+      L     #OutIdlingTime; 
+      SPB   ID2; 
+      +     -1; 
+      T     #OutIdlingTime; 
+ID2:  L     0; 
+      <=I   ; 
+      =     #OutSeqStop; 
+      SPBN  ID3; 
+      T     #OutIdlingTime; 
+ID3:  U     #StFault; 
+      O     #Par.ParWgr; 
+      U     #OutSeqStop; 
+      O     #StStopped; 
+      SPBN  WAY; 
+//-- Transition to Passive----
+      R     #ModeIdling; 
+      S     #ModePassive; 
+      L     0; // )
+      T     #OutIdlingTime; 
+      SPA   CBit; 
+//=== ModeActive ================
+MoAc: U     #InSeqStop; 
+      UN    #CmdRestartIdling; 
+      UN    #InManual; 
+      SPB   ac1; 
+      L     #Par.ParIdling; 
+      T     #OutIdlingTime; 
+ac1:  UN    "GCS7_Gr_OutTick1s"; 
+      O     #OutSeqStop; 
+      L     #OutIdlingTime; 
+      SPB   ac2; 
+      +     -1; 
+      T     #OutIdlingTime; 
+ac2:  L     0; 
+      <=I   ; 
+      U     #InSeqStop; 
+      =     #OutSeqStop; 
+      SPBN  ac3; 
+      T     #OutIdlingTime; 
+ac3:  U     #InOccupied; 
+      O     #InManual; 
+      SPB   WAY; 
+//-- Transition to Idling -------
+      S     #ModeIdling; 
+      R     #ModePassive; 
+      R     #ModeActive; 
+      L     #Par.ParIdling; 
+      T     #OutIdlingTime; 
+      SPA   CBIT; // 
+//-- Transition to Active -------
+TXAC: S     #ModeActive; 
+      R     #ModePassive; 
+      R     #ModeIdling; 
+      S     #OutNewWay; 
+      S     #OutAutostart; //[3.0]
+      R     #OutSeqStop; 
+      L     0; 
+      T     #OutIdlingTime; 
+CBit: SET   ; 
+      S     "GCS7_Gr_InCBit1"; // InChangeBit  
+//Autostart
+WAY:  U     #CmdContinue; //[3.0]
+      O     #ModePassive; 
+      S     #OutAutostart; //[3.0]
+//Reset OutAutostart                    //[3.2]
+      U     #CmdFaultReset; //[3.2]
+      UN    #CmdContinue; //[3.2]
+      U     #VarFault; //[3.2]
+      R     #OutAutostart; //[3.2]
+      R     #InOutAutostartMan; //[3.2]
+
+      L     #OutCode; 
+      L     #InCode; 
+      T     #OutCode; 
+      <>I   ; 
+      S     #OutNewWay; 
+      BEA   ; 
+bEnd: NOP   0; 
+NETWORK
+TITLE = Methode State
+//Interface to group:
+//
+//Inputs:
+//- VarStopped
+//- VarStarted
+//- VarFault
+//- VarEnableEl
+//Outputs:
+//-State
+      L     #FcCode; 
+      L     2; 
+      <>I   ; 
+      SPB   cEnd; //3.5
+      U     #StStarted; 
+      SPB   ST2; 
+      U     #StStopping; 
+      SPB   ST3; 
+      U     #StStarting; 
+      SPB   ST1; 
+      U     #StFault; 
+      SPB   ST4; 
+      U     #StStopped; 
+      SPB   ST0; 
+      SPA   NEWS; 
+// ===StStopped =========
+ST0:  U     #VarFault; // )
+      SPB   TX_4; // )--> Transition to StFault
+      U     #ModeActive; 
+      U     #OutEnableEl; 
+      U     #Par.ParWgr; 
+      O     ; 
+      UN    #VarStopped; 
+      U     #Par.ParMgr; 
+      O     ; //[2E]
+      U     #VarStarted; //[2E]
+      UN    #OutSeqStop; 
+      U     #OutEnableEl; 
+      UN    #Par.ParMgr; //[2E]
+      UN    #Par.ParWgr; //[2E]
+      SPB   TX_1; // )--> Transition to StStarting
+      SPA   Init; // )
+// == StStarting ==========================
+ST1:  U     #VarFault; 
+      SPB   TX_4; // )--> transition to st_fault
+      U     #VarStarted; 
+      SPB   TX_2; // )--> transition to st_started
+      U(    ; //  )
+      U     #OutSeqStop; 
+      ON    #OutEnableEl; 
+      O     ; // )
+      U     #VarStopped; 
+      U     #Par.ParMgr; 
+      )     ; // )
+      UN    #InManual; 
+      SPB   TX_3; //  )--> transition to st_stopping
+      SPA   Init; // 2D: CBIT -> Init
+// == StStarted ===========================
+ST2:  U     #VarFault; 
+      SPB   TX_4; // )--> transition to st_fault
+      U     #OutSeqStop; 
+      ON    #OutEnableEl; 
+      UN    #Par.ParMgr; 
+      ON    #VarStarted; 
+      SPB   TX_3; // )--> transition to st_stopping
+      SPA   Init; // )
+// == StStopping ============================
+ST3:  U     #VarFault; 
+      SPB   TX_4; //  --> transition to st_fault
+      UN    #Par.ParMgr; //[2.5]
+      UN    #Par.ParWgr; //[2.5]
+      O     #VarStopped; 
+      SPB   TX_0; // )--> transition to st_stopped
+      UN    #OutSeqStop; 
+      U     #OutEnableEl; 
+      O     #InManual; 
+      SPB   TX_1; // )--> transition to st_starting
+      SPA   Init; 
+// == StFault   ============================
+ST4:  U     #VarFault; 
+      SPB   Init; 
+      SPA   TX_3; // --> transition to st_stopping
+//=== Test Init State ===========
+NEWS: U     #VarFault; 
+      SPB   TX_4; // --> transition to st_fault
+      U     #VarStarted; 
+      SPB   TX_2; // --> transition to st_started
+      U     #VarStopped; 
+      SPB   TX_0; // --> transition to st_stopped
+      SPA   TX_3; // --> transition to st_stopping
+//==== Transition ===============
+TX_0: S     #StStopped; 
+      R     #StStopping; 
+      SPA   CBIT; 
+// --> StStarting
+TX_1: S     #StStarting; 
+      R     #StStopped; 
+      R     #StStopping; 
+      SPA   CBIT; 
+// --> StStarted
+TX_2: S     #StStarted; 
+      R     #StStarting; 
+      SPA   CBIT; 
+// --> StStopping
+TX_3: S     #StStopping; 
+      R     #StStarting; 
+      R     #StStarted; 
+      R     #StFault; 
+      SPA   CBIT; 
+// -->StFault
+TX_4: S     #StFault; 
+      R     #StStopped; 
+      R     #StStarting; 
+      R     #StStarted; 
+      R     #StStopping; 
+      R     #OutAutostart; //[3.1]
+      R     #InOutAutostartMan; //[3.1]
+CBIT: S     "GCS7_Gr_InCBit1"; // Global.InCBit1 
+Init: NOP   0; 
+cEnd: NOP   0; 
+NETWORK
+TITLE =State Virtuel Group GCS90S7 Part 1
+
+      L     #FcCode; //[3.5]
+      L     12; //[3.5]
+      <>I   ; //[3.5]
+      SPB   dEnd; //[3.5] 
+      R     "GCS7_Gr_InCBit1"; //[3.7] 
+      R     "GCS7_Gr_InCBit2"; //[3.7] 
+      R     "GCS7_Gr_InCBit3"; //[3.7] 
+      R     "GCS7_Gr_InCBit4"; //[3.7] 
+      L     #StCode; //[3.5]
+      L     32; //[3.5]
+      <>I   ; //[3.5]
+      U     #StFault; //[3.5]
+      O     ; //[3.5]
+      U     #CmdFaultReset; //[3.5]
+      UN    #CmdContinue; //[3.5]
+      U     #StFault; //[3.5]
+      R     #OutAutostart; //[3.5]
+      R     #InOutAutostartMan; //[3.5]
+      U     #CmdContinue; //[3.5]
+      ON    #InOccupied; //[3.5]
+      S     #OutAutostart; //[3.5]
+
+      SET   ; 
+      R     #CmdContinue; //[3.5]
+dEnd: NOP   0; 
+NETWORK
+TITLE =State Code
+// State                    StCode       Codetext
+// ----------------------------------------------
+// StFault                    32        fault
+// StStopped                  1         stopped 
+// StStarting                 2         starting
+// StStarted                  3         started
+// StStopping                 7         stopping
+// StStoppedLocal            17         stopped 
+//
+      L     2; 
+      L     #FcCode; 
+      <>I   ; 
+      U(    ; //3.5
+      L     12; //3.5
+      <>I   ; //3.5
+      )     ; //3.5
+      BEB   ; //3.5
+      U     #StStopped; 
+      U     #ModePassive; 
+      L     17; // Code: stopped+Passive
+      SPB   STC; 
+      U     #StStopped; 
+      U     #VarStartwarning; 
+      L     11; //Code: stopped.StartWarning
+      SPB   STC; 
+      U     #StStopped; 
+      L     1; // Code: stopped
+      SPB   STC; 
+      U     #StStarting; 
+      L     2; // Code: starting
+      SPB   STC; 
+      U     #StStarted; 
+      L     3; // Code: started
+      SPB   STC; 
+      U     #StStopping; 
+      L     7; // Code: stopping
+      SPB   STC; 
+      L     32; // Code: fault
+STC:  L     #StCode; //[3.6]
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      S     "GCS7_Gr_InCBit1"; //[3.6] Global.InCBit1   
+NETWORK
+TITLE =Init
+
+      L     #FcCode; //[3.7]
+      L     12; //[3.7]
+      ==I   ; //[3.7]
+      SPB   M12C; 
+      L     #FcCode; //[3.5]
+      L     2; //[3.5]
+      <>I   ; //[3.5]
+      BEB   ; //[3.5]
+//Reset OutAutostart   [3.0]
+      U     #CmdFaultReset; 
+      UN    #CmdContinue; //[3.0]
+      O     "GCS7_Gr_InFaultFlag"; //Global.InFaultFlag 
+      U     #VarFault; 
+      O     "GCS7_Gr_InHWStop"; //Global.InHWStop" [3.4]
+      O     "GCS7_Gr_InDPFault"; //Global.InDPFault" [3.4]
+      R     #OutAutostart; //[3.0]
+      R     #InOutAutostartMan; 
+//Horn On
+      U     "GCS7_Gr_InFaultFlag"; // Global.InFaultFlag 
+      S     #OutHornOn; 
+//OutManual
+      U     "GCS7_Gr_InManual"; // Global.InManual 
+      O     #InManual; 
+      =     #OutManual; 
+//HWStop DPFault
+      U     "GCS7_Gr_InHWStop"; // Global.InHWStop" [3.0]
+      =     #OutHWStop; //[3.0]
+      U     "GCS7_Gr_InDPFault"; // Global.InDPFault" [3.0]
+      =     #OutDPFault; //[3.0]
+//Reset command
+      SET   ; 
+      R     #CmdRestartIdling; 
+      R     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+      R     #CmdFaultReset; 
+      R     #CmdManualOff; 
+      R     #OutNewWay; 
+//Store CmdContinue for 1s
+      U     "GCS7_Gr_OutTick1s"; //[3.3]
+      U     #VarFlag1s; //[3.3]
+      R     #VarFlag1s; //[3.3]
+      R     #CmdContinue; //[3.3]
+      U     "GCS7_Gr_OutTick1s"; //[3.3]
+      U     #CmdContinue; //[3.3]
+      S     #VarFlag1s; //[3.3]
+//Change bit
+M12C: U     "GCS7_Gr_InCBit1"; // Global.InCBit1 
+      S     #ChangeBit.CBit1; 
+      U     "GCS7_Gr_InCBit2"; // Global.InCBit2 
+      S     #ChangeBit.CBit2; 
+      U     "GCS7_Gr_InCBit3"; // Global.InCBit3 
+      S     #ChangeBit.CBit3; 
+      U     "GCS7_Gr_InCBit4"; // Global.InCBit4 
+      S     #ChangeBit.CBit4; 
+END_FUNCTION_BLOCK
+

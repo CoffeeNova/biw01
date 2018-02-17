@@ -1,0 +1,102 @@
+FUNCTION_BLOCK "GCS7_E_Level"
+TITLE =DigInpCont
+//
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Digital Input Continuous: SubType BinLevel
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB84.1.0      A. Egli             CT3                         30-Oct-2002
+//              SubType of FB14 Version 4.0
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DICxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS90LL
+NAME : DICLevel
+VERSION : 1.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InMonCovered : BOOL ;	//After t4 must be in StCovered, otherwise it is a process fault
+  InMonUncovered : BOOL ;	//After t5 must be in StUncovered, otherwise it is a process fault
+  InPreAlarmCovered : BOOL ;	//LOG Pre-alarm if level is not covered
+  InPreAlarmUncovered : BOOL ;	//LOG Pre-alarm if level is not uncovered
+  InStopCoveredTime : BOOL ;	//Stop delay time t2
+  InStopUncoveredTime : BOOL ;	//Stop delay time t3
+  InpCovered : BOOL ;	//Digital input: 1=Covered , 0=Uncovered
+  InpFaultDev : BOOL ;	//Digital input: fault device
+  CmdRstCoveredTime : BOOL ;	//Restart delay time changing from Uncovered to Covered (t2)
+  CmdRstUncoveredTime : BOOL ;	//Restart delay time changing from Covered to Uncovered (t3)
+  CmdRunTimeoutTime : BOOL ;	//Run timeout time (only 1 working condition)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (automatic fault reset)
+  spare0305 : BOOL ;	
+  InReport : BOOL ;	//Report of all state transitions
+  OutTimeoutTime : BOOL ;	//Timeout time 1 working condition active
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutPreAlarmCovered : BOOL ;	//Flag PreAlarmCovered is done
+  OutPreAlarmUncovered : BOOL ;	//Flag PreAlarmUnCovered is done
+  OutFlagPos : BOOL ;	//Positive flag InpCovered
+  OutFlagNeg : BOOL ;	//Negative flag InpCovered
+  OutpFaultReset : BOOL ;	//Reset alarm
+  OutCovered : BOOL ;	//Copy of input signal
+  StUncovered : BOOL ;	//Level is uncovered, delay time finished, monitoring is off
+  StCtoCovered : BOOL ;	//Changing to Covered
+  StCovered : BOOL ;	//Level is Covered, delay time finished
+  StCtoUncovered : BOOL ;	//Changing to Uncovered
+  StFault : BOOL ;	//Signal has not requested value, monitoring is active
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   spare0401 : BOOL ;	
+   Par2WorkingCond : BOOL ;	//Element has 2 defined working conditions
+   ParFaultRetry : BOOL ;	//Retry after fault with monitoring- and delay-time
+   ParBinLevel : BOOL ;	//Hold old state, if HWStop of DPFault
+   ParDelayChange : INT ;	//Delay time, if the input changes, until the element changes its state
+   ParDelayCovered : INT ;	//Time to change from StUncovered to StCovered
+   ParDelayUncovered : INT ;	//Time to change from StCovered to StUncovered
+   ParTimeoutCovered : INT ;	//If InMonCovered: after this time state has to be 'StCovered', otherwise StFault
+   ParTimeoutUncovered : INT ;	//If InMonUncovered: after this time state has to be 'StUnCovered'
+   OutMonTime : INT ;	//Actual time: monitoring
+   OutTransitionTime : INT ;	//Actual time: changing state
+   OutMonCovered : BOOL ;	//Monitoring time "Covered" is running
+   OutMonUncovered : BOOL ;	//Monitoring time "Uncovered" is running
+   OutFlagFaultDev : BOOL ;	//Flag InpFaultDev
+   OutDelayTime : INT ;	//Actual time: DelayTime
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpAddrPara : DWORD ;	//store the Instance Pointer
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpMonFault : BOOL ;	//Global monitor fault
+  tmpMonOver : BOOL ;	//Monitoring time over
+  tmp2WorkingCond : BOOL ;	//Monitoring time over
+  tmpOutDelayDone : BOOL ;	//ParDelayTime Done
+  tmpLocalFault : BOOL ;	
+  tmpLocal : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      UC    "GCS7_E_DigInput"; 
+
+END_FUNCTION_BLOCK
+

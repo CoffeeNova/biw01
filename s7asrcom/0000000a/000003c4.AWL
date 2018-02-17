@@ -1,0 +1,433 @@
+FUNCTION_BLOCK "G306M_Code"
+TITLE =G306M DMBG DISCHARGER KILN MALT TRANSFER
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        DMBG DISCHARGER KILN MALT TRANSFER
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB406.1.0 K.Renz              CSB41                              19.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3952_MXZ01 : "GCS7_E_Motor";	// Motor 
+  A_3952_XCJ20_V1 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3952_XCJ20_V2 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+//MW 2010.04.21      S     "GCS7_GrCtrlDB".ParMGR[306]
+      R     "GCS7_GrCtrlDB".ParMGR[306]; 
+      R     "GCS7_GrCtrlDB".ParWGR[306]; 
+      R     "GCS7_GrCtrlDB".ParGGR[306]; 
+//MW 2010.04.21      R     "GCS7_GrCtrlDB".ParFeed[306]
+      S     "GCS7_GrCtrlDB".ParFeed[306]; 
+      R     "GCS7_GrCtrlDB".ParShare[306]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[306]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[306]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[306]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[306]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[306]; 
+      R     "GCS7_GrCtrlDB".CmdNext[306]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[306]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[306]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[306]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[306]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[306]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[306]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+//MW 2010.04.21
+      UN    #A_3952_XCJ20_V1.StLN; 
+      UN    #A_3952_XCJ20_V2.StLN; 
+      UN    #A_3952_XCJ20_V1.StFault; 
+      UN    #A_3952_XCJ20_V2.StFault; 
+      =     #staWayOk; 
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      U     "G307M".Gr.OutEnablePrevGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[12].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G306M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 12,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-3952-MXZ01 : DISCHARGER DMBG DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_3952_MXZ01.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+//MW 2010.04.21
+      U     #staWayOk; 
+      =     #A_3952_MXZ01.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_3952_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_3952_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_3952_MXZ01_I1"; 
+      =     #A_3952_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3952_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3952_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3952_MXZ01 ;
+// 
+//-Write outputs---
+      U     #A_3952_MXZ01.OutpRunFwd; 
+      =     "A_3952_MXZ01_O1"; 
+NETWORK
+TITLE ==A-3952-XCJ20_V1 : VALVE 1 DMBG LINAK
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3952_XCJ20_V1.InLocal; 
+//
+//-Interlocking---
+      UN    #Gr.OutEnableEl; 
+      =     #A_3952_XCJ20_V1.InLN; 
+      U     #Gr.OutEnableEl; 
+//MW 2010.04.21 - Leistung vor Ort festlegen
+//MW 2010.04.21      S     #A_3952_XCJ20_V1.CmdMiddle1
+//MW 2010.04.21      S     #A_3952_XCJ20_V1.CmdMiddle2
+      S     #A_3952_XCJ20_V1.CmdHN; 
+
+//MW 2010.04.21 - Leistung vor Ort festlegen
+//    L     1000                        // 100.0%
+//    T     #A_3952_XCJ20_V1.InPositionMiddle
+// 
+//-Read inputs---
+      U     "A_3952_XCJ20_I1"; 
+      =     #A_3952_XCJ20_V1.InpLN; 
+      CLR   ; 
+      =     #A_3952_XCJ20_V1.InpMiddle1; 
+//    CLR   
+//MW 2010.04.21 - Wenn mit Endposition HN
+//      U     "A_3952_XCJ20_I2"
+      U     E   1137.6; 
+      =     #A_3952_XCJ20_V1.InpHN; 
+//MW 2010.04.21 - Wenn ohne Endposition HN
+      U     "A_3952_XCJ20_I2"; 
+      =     #A_3952_XCJ20_V1.InpPulse; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3952_XCJ20_V1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3952_XCJ20_V1.InDPFault; 
+// 
+//-Set Parameters---
+//MW 2010.04.21
+      SET   ; 
+      =     "G306M".A_3952_XCJ20_V1.Par.ParLinak; 
+//MW 2010.04.21 - Wenn ohne Endposition HN
+//    SET   
+//    =     "G306M".A_3952_XCJ20_V1.Par.ParNoLSHN
+// 
+//-Call object control---
+      CALL #A_3952_XCJ20_V1 ;
+// 
+//-Write outputs---
+      U     #A_3952_XCJ20_V1.OutpLN; 
+      =     "A_3952_XCJ20_O1"; 
+      U     #A_3952_XCJ20_V1.OutpHN; 
+      =     "A_3952_XCJ20_O2"; 
+NETWORK
+TITLE ==A-3952-XCJ20_V2 : VALVE 2 DMBG LINAK
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3952_XCJ20_V2.InLocal; 
+//-Interlocking---
+      UN    #Gr.OutEnableEl; 
+      =     #A_3952_XCJ20_V2.InLN; 
+      U     #Gr.OutEnableEl; 
+//MW 2010.04.21 - Leistung vor Ort festlegen
+//MW 2010.04.21      S     #A_3952_XCJ20_V2.CmdMiddle1
+//MW 2010.04.21      S     #A_3952_XCJ20_V2.CmdMiddle2
+      S     #A_3952_XCJ20_V2.CmdHN; 
+
+//MW 2010.04.21 - Leistung vor Ort festlegen
+//    L     1000                        // 100.0%
+//    T     #A_3952_XCJ20_V2.InPositionMiddle
+// 
+//-Read inputs---
+      U     "A_3952_XCJ20_I3"; 
+//      O     M    250.0                  // Linak ausgebaut
+      =     #A_3952_XCJ20_V2.InpLN; 
+      CLR   ; 
+      =     #A_3952_XCJ20_V2.InpMiddle1; 
+//    CLR   
+//MW 2010.04.21 - Wenn mit Endposition HN
+//      U     "A_3952_XCJ20_I4"
+      U     E   1137.7; 
+//      O     M    250.1                  // Linak ausgebaut
+      =     #A_3952_XCJ20_V2.InpHN; 
+//MW 2010.04.21 - Wenn ohne Endposition HN
+      U     "A_3952_XCJ20_I4"; 
+      =     #A_3952_XCJ20_V2.InpPulse; 
+      U     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+      =     #A_3952_XCJ20_V2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[114]; 
+      =     #A_3952_XCJ20_V2.InDPFault; 
+// 
+//-Set Parameters---
+//MW 2010.04.21
+      SET   ; 
+      =     "G306M".A_3952_XCJ20_V2.Par.ParLinak; 
+//MW 2010.04.21 - Wenn ohne Endposition HN
+//    SET   
+//    =     "G306M".A_3952_XCJ20_V2.Par.ParNoLSHN
+// 
+//-Call object control---
+      CALL #A_3952_XCJ20_V2 ;
+// 
+//-Write outputs---
+      U     #A_3952_XCJ20_V2.OutpLN; 
+      =     "A_3952_XCJ20_O3"; 
+//      S     M    250.0                  // Linak ausgebaut
+//      R     M    250.1                  // Linak ausgebaut
+      U     #A_3952_XCJ20_V2.OutpHN; 
+      =     "A_3952_XCJ20_O4"; 
+//      S     M    250.1                  // Linak ausgebaut
+//      R     M    250.0                  // Linak ausgebaut
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3952_MXZ01.StFault; 
+      O     #A_3952_XCJ20_V1.StFault; 
+      O     #A_3952_XCJ20_V2.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3952_MXZ01.StStopped; 
+      U     #A_3952_XCJ20_V1.StLN; 
+      U     #A_3952_XCJ20_V2.StLN; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_3952_MXZ01.StStartedFwd; 
+      UN    #A_3952_XCJ20_V1.StLN; 
+      UN    #A_3952_XCJ20_V1.StFault; 
+      UN    #A_3952_XCJ20_V1.StNoPosition; 
+      UN    #A_3952_XCJ20_V2.StLN; 
+      UN    #A_3952_XCJ20_V2.StFault; 
+      UN    #A_3952_XCJ20_V2.StNoPosition; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[306]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[306]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[306]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[306]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[306]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[306]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[306]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[306]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[306]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[306]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

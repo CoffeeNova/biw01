@@ -1,0 +1,312 @@
+ORGANIZATION_BLOCK "SYS_PROG_ERR"
+TITLE =
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        OB121 
+//              
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//OB121.2.0     A.Egli              CT3                               13-Jul-2004
+//              1st Release
+//OB121.1A      TIK                 MU664                             13-Apr-99
+//              1st Release
+//OB121.1B      Tho                 FU53                              16-Dez-99
+//              FU-Version erstellt 
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : ASW
+VERSION : 2.0
+
+
+VAR_TEMP
+  OB121_EV_CLASS : BYTE ;	//16#25, Event class 2, Entering event state, Internal fault event
+  OB121_SW_FLT : BYTE ;	//16#XX Software programming fault
+  OB121_PRIORITY : BYTE ;	//X = Priority of OB where fault occured (Priority of 1 is lowest)
+  OB121_OB_NUMBR : BYTE ;	//121 (Organization block 121, OB121)
+  OB121_BLK_TYPE : BYTE ;	//16#88/8A/8B/8C/8E Type of block fault occured in
+  OB121_RESERVED_1 : BYTE ;	//Reserved for system
+  OB121_FLT_REG : WORD ;	//16#XX Specific register that caused fault
+  OB121_BLK_NUM : WORD ;	//Number of block that programming fault occured in
+  OB121_PRG_ADDR : WORD ;	//Address in block where programming fault occured
+  OB121_DATE_TIME : DATE_AND_TIME ;	//Date and time OB121 started
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	//Reserved 1 for system
+  tmpPara4 : WORD ;	//Input module (01010100), Output module (01010101)
+  tmpPara5 : WORD ;	//Base address of module with point fault
+  tmpPara6 : WORD ;	//Module type with point fault
+  tmpPara7 : WORD ;	//Module type with point fault
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+  tmpNoStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Log Message: Header
+
+      U(    ; 
+      L     #OB121_EV_CLASS; 
+      L     B#16#38; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//--System Message---
+      L     121; 
+      T     #tmpObjNo; 
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB121_SW_FLT; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB121_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: OB_NUMBR
+      L     #OB121_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para4: OB121_FLT_REG
+      L     #OB121_FLT_REG; 
+      T     #tmpPara4; 
+
+//Para5: OB121_BLK_TYPE
+      L     #OB121_BLK_TYPE; 
+      T     #tmpPara5; 
+
+//Para6: Number of block that programming fault occured in
+      L     #OB121_BLK_NUM; 
+      T     #tmpPara6; 
+
+//Para7: Address in block where programming fault occured
+      L     #OB121_PRG_ADDR; 
+      T     #tmpPara7; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB121_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+NETWORK
+TITLE =Faults without STOP
+//// alle auskommentierten Einträge führen in STOP 
+//
+      CLR   ; //init.VKE  
+// 21 BCD conversion error
+      O(    ; 
+      L     #OB121_SW_FLT; 
+      L     B#16#21; // 
+      ==I   ; 
+      )     ; 
+// 22 Area length error when reading
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#22                     // 
+//      ==I   
+//      )     
+// 23 Range error when writing
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#23                     // 
+//      ==I   
+//      )     
+// 24 Range access with pointer
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#24                     // 
+//      ==I   
+//      )     
+// 25 Writing access with pointer
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#25                     // 
+//      ==I   
+//      )     
+// 26 Error for timer number
+//     O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#26                     // 
+//      ==I   
+//      )     
+// 27 Error for Counter
+//      O(           
+//      L     #OB121_SW_FLT
+//      L     B#16#27                     // 
+//      ==I   
+//      )     
+// 28  Reading access with pointer Bit<>0
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#28                     // 
+//      ==I   
+//      )     
+// 29  Reading access with pointer Bit<>0
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#29                     // 
+//      ==I   
+//      )     
+// 30 Write access GlobalDB
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#30                     // 
+//      ==I   
+//      )     
+// 31 Write access InstanzDB
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#31                     // 
+//     ==I   
+//     )     
+// 32 DB number GlobalDB
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#32                     // 
+//      ==I   
+//      )     
+// 33 DB number InstanzDB
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#33                     // 
+//      ==I   
+//      )     
+// 34 FC Number
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#34                     // 
+//      ==I   
+//      )     
+// 35 FB Number
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#35                     // 
+//      ==I   
+//      )     
+// 3A DB not loaded
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#3A                     // 
+//      ==I   
+//      )     
+// 3C FC not loaded
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#3C                     // 
+//      ==I   
+//      )     
+// 3D SFC not loaded
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#3D                     // 
+//      ==I   
+//      )     
+// 3E FB not loaded
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#3E                     // 
+//      ==I   
+//      )     
+// 3F SFB not loaded
+//      O(    
+//      L     #OB121_SW_FLT
+//      L     B#16#3F                     // 
+//      ==I   
+//      )     
+      =     #tmpNoStop; 
+NETWORK
+TITLE =Log Message: Entry
+
+//Log Meldung eintragen
+      L     "SYS_LOG_Queue".VarNrOfMsgInQueue; 
+      L     5; 
+      >I    ; 
+      U     #tmpNoStop; 
+      SPB   LOG0; 
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := #tmpPara4,//Para4: FLT_REG
+           Para5                    := #tmpPara5,//Para5: BLK_TYPE
+           Para6                    := #tmpPara6,//Para6: BLK_NUM
+           Para7                    := #tmpPara7,//Para7: PGR_ADDR
+           Para8                    := W#16#0,//Para8: 
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+LOG0: NOP   0; 
+NETWORK
+TITLE =Stop PLC
+
+      U     #tmpNoStop; 
+      BEB   ; 
+//**********************
+//Read Log Message to PC Interface
+      CALL "SYS_LOG_CtrlQueue" (
+           DBNumber                 := 5);
+
+//**********************
+// CPU auf Stop bringen
+      CALL "SIEMENS_STP" ;
+//**********************
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

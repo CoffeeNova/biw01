@@ -1,0 +1,35 @@
+TYPE "CWA_UDT_BinParaShort"
+
+
+  STRUCT 	//UDT for Binparameter short
+   BinNr : INT ;	
+   BinType : STRUCT 	
+    spare0 : BOOL ;	
+    spare1 : BOOL ;	
+    spare2 : BOOL ;	
+    spare3 : BOOL ;	
+    spare4 : BOOL ;	
+    spare5 : BOOL ;	
+    VarBinLL : BOOL ;	
+    ParModeDosWt : BOOL ;	
+    ParManualAdd : BOOL ;	
+    Par1Speed : BOOL ;	
+    Par2Speed : BOOL ;	
+    ParFrequency : BOOL ;	
+   END_STRUCT ;	
+   VarSwitchOverWtFs : INT ;	
+   VarCutoffWt : INT ;	
+   ParTolPosWt : INT  := 15;	
+   ParTolNegWt : INT  := 10;	
+   ParCutoffWtCorrMax : INT  := 50;	
+   ParDosingTimeSlow : INT  := 40;	
+   ParSwitchOverTime_f_s : INT  := 30;	
+   ParTipPulseLen : INT  := 5;	
+   ParDosingTimeMax : INT  := 300;	
+   ParTolPosPc : INT  := 500;	// (%)
+   ParTolNegPc : INT  := 500;	// (%)
+   ParTolAutoPosWt : INT ;	
+   ParTolAutoPosPc : INT ;	// (%)
+  END_STRUCT ;	
+END_TYPE
+

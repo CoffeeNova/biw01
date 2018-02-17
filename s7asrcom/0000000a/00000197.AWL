@@ -1,0 +1,410 @@
+	DATA_BLOCK DB 9
+	TITLE =DB Group Control
+	//COPYRIGHT:    (C) 2009 BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//                           
+	//PRODUCT:      Gruppenverwaltung mit 320 Gruppen
+	//              Group Control with 320 groups
+	//
+	//TITLE:        Call Group FB
+	//              
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P01_DB009.2.0 K.Renz              CSB41                              21.Okt.2009
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	{ GCPRO_Revision := '2' }
+	AUTHOR  : KR      
+	FAMILY  : GCSS7
+	NAME    : ObjDB
+	VERSION : 2.0
+	  STRUCT 	
+	   ParByteNoSecDB : INT  := 1012;	//Pointer to configuration of section DBs
+	   ParMaxGroupCnt : INT  := 10;	//1=32 Groups, 2=64 Groups,.. , 10= 320 Groups,
+	   OutManualAny : BOOL ;    //Any object of the plant in manual mode
+	   OutFaultAny : BOOL ; //Any object of the plant has faull
+	   Spare4 : WORD ;	
+	   Spare5 : WORD ;	
+	   ParFeed : ARRAY  [1 .. 320 ] OF //Objects are feed groups
+	   BOOL ;	
+	   ParMGR : ARRAY  [1 .. 320 ] OF //Objects are MGR
+	   BOOL ;	
+	   ParWGR : ARRAY  [1 .. 320 ] OF //Objects are WGR
+	   BOOL ;	
+	   ParGGR : ARRAY  [1 .. 320 ] OF //Objects are GGR
+	   BOOL ;	
+	   ParShare : ARRAY  [1 .. 320 ] OF //Objects are possible to share
+	   BOOL ;	
+	   OutShared : ARRAY  [1 .. 320 ] OF //Objects are shared at the moment
+	   BOOL ;	
+	   OutOccupied : ARRAY  [1 .. 320 ] OF //Objects are occupied by any section
+	   BOOL ;	
+	   OutEnable : ARRAY  [1 .. 320 ] OF //Enable for objects 
+	   BOOL ;	
+	   CmdNext : ARRAY  [1 .. 320 ] OF //Next command for objects 
+	   BOOL ;	
+	   CmdFaultReset : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   CmdManualOff : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InStopped : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InStarted : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InFault : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InWarning : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InManual : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   InLocked : ARRAY  [1 .. 320 ] OF //Waiting until real group 
+	   BOOL ;	
+	   InExternal : ARRAY  [1 .. 320 ] OF //Is at the moment external used
+	   BOOL ;	
+	   CmdContinue : ARRAY  [1 .. 320 ] OF //Is used as condition to set OutAutoStart
+	   BOOL ;	
+	   InLoaded : ARRAY  [1 .. 320 ] OF //Group is loaded with product
+	   BOOL ;	
+	   InDPFault : ARRAY  [1 .. 320 ] OF //Any element has DPFault
+	   BOOL ;	
+	   InHWStop : ARRAY  [1 .. 320 ] OF //Any element has HWStop
+	   BOOL ;	
+	   InAutoStart : ARRAY  [1 .. 320 ] OF //OutAutoStart is on
+	   BOOL ;	
+	   InStartWarning : ARRAY  [1 .. 320 ] OF //InStartWarning is on
+	   BOOL ;	
+	   OutConflictObj : ARRAY  [1 .. 320 ] OF BOOL ;	
+	   OutConflictSecDB : INT ;	
+	   Section : ARRAY  [1 .. 100 ] OF STRUCT 	
+	    DBNr : INT ;	
+	    DBB : INT ;	
+	   END_STRUCT ;	
+	  END_STRUCT ;	
+	BEGIN
+	
+	   ParGGR[1] := TRUE; //G001G
+	   ParGGR[2] := TRUE; //G002G
+	   ParGGR[3] := TRUE; //G003G
+	   ParGGR[10] := TRUE; //G010G
+	   ParGGR[11] := TRUE; //G011G
+	   ParGGR[15] := TRUE; //G015G
+	   ParGGR[16] := TRUE; //G016G
+	   ParGGR[17] := TRUE; //G017G
+	   ParGGR[18] := TRUE; //G018G
+	   ParGGR[19] := TRUE; //G019G
+	   ParGGR[20] := TRUE; //G020G
+	   ParGGR[26] := TRUE; //G026G
+	   ParGGR[29] := TRUE; //G029G
+	   ParGGR[30] := TRUE; //G030G
+	   ParGGR[31] := TRUE; //G031G
+	   ParMGR[32] := TRUE; //G032M
+	   ParMGR[33] := TRUE; //G033M
+	   ParMGR[34] := TRUE; //G034M
+	   ParMGR[35] := TRUE; //G035M
+	   ParMGR[36] := TRUE; //G036M
+	   ParMGR[37] := TRUE; //G037M
+	   ParMGR[38] := TRUE; //G038M
+	   ParMGR[39] := TRUE; //G039M
+	   ParMGR[40] := TRUE; //G040M
+	   ParMGR[41] := TRUE; //G041M
+	   ParMGR[42] := TRUE; //G042M
+	   ParMGR[43] := TRUE; //G043M
+	   ParMGR[44] := TRUE; //G044M
+	   ParMGR[45] := TRUE; //G045M
+	   ParMGR[46] := TRUE; //G046M
+	   ParMGR[47] := TRUE; //G047M
+	   ParMGR[48] := TRUE; //G048M
+	   ParMGR[49] := TRUE; //G049M
+	   ParMGR[50] := TRUE; //G050M
+	   ParMGR[51] := TRUE; //G051M
+	   ParMGR[52] := TRUE; //G052M
+	   ParMGR[53] := TRUE; //G053M
+	   ParMGR[54] := TRUE; //G054M
+	   ParMGR[55] := TRUE; //G055M
+	   ParMGR[56] := TRUE; //G056M
+	   ParMGR[57] := TRUE; //G057M
+	   ParMGR[58] := TRUE; //G058M
+	   ParMGR[59] := TRUE; //G059M
+	   ParMGR[60] := TRUE; //G060M
+	   ParMGR[61] := TRUE; //G061M
+	   ParMGR[62] := TRUE; //G062M
+	   ParMGR[63] := TRUE; //G063M
+	   ParMGR[64] := TRUE; //G064M
+	   ParMGR[65] := TRUE; //G065M
+	   ParMGR[66] := TRUE; //G066M
+	   ParMGR[67] := TRUE; //G067M
+	   ParMGR[68] := TRUE; //G068M
+	   ParMGR[69] := TRUE; //G069M
+	   ParMGR[70] := TRUE; //G070M
+	   ParMGR[71] := TRUE; //G071M
+	   ParMGR[72] := TRUE; //G072M
+	   ParMGR[73] := TRUE; //G073M
+	   ParMGR[74] := TRUE; //G074M
+	   ParMGR[75] := TRUE; //G075M
+	   ParMGR[76] := TRUE; //G076M
+	   ParMGR[77] := TRUE; //G077M
+	   ParMGR[78] := TRUE; //G078M
+	   ParMGR[79] := TRUE; //G079M
+	   ParMGR[80] := TRUE; //G080M
+	   ParMGR[81] := TRUE; //G081M
+	   ParMGR[82] := TRUE; //G082M
+	   ParMGR[83] := TRUE; //G083M
+	   ParMGR[84] := TRUE; //G084M
+	   ParMGR[85] := TRUE; //G085M
+	   ParMGR[86] := TRUE; //G086M
+	   ParMGR[87] := TRUE; //G087M
+	   ParGGR[90] := TRUE; //G090G
+	   ParMGR[91] := TRUE; //G091M
+	   ParMGR[92] := TRUE; //G092M
+	   ParMGR[93] := TRUE; //G093M
+	   ParMGR[94] := TRUE; //G094M
+	   ParMGR[95] := TRUE; //G095M
+	   ParMGR[97] := TRUE; //G097M
+	   ParMGR[98] := TRUE; //G098M
+	   ParMGR[99] := TRUE; //G099M
+	   ParMGR[100] := TRUE; //G100M
+	   ParMGR[101] := TRUE; //G101M
+	   ParMGR[102] := TRUE; //G102M
+	   ParMGR[103] := TRUE; //G103M
+	   ParMGR[104] := TRUE; //G104M
+	   ParMGR[105] := TRUE; //G105M
+	   ParMGR[106] := TRUE; //G106M
+	   ParMGR[107] := TRUE; //G107M
+	   ParMGR[108] := TRUE; //G108M
+	   ParMGR[109] := TRUE; //G109M
+	   ParMGR[110] := TRUE; //G110M
+	   ParMGR[111] := TRUE; //G111M
+	   ParMGR[112] := TRUE; //G112M
+	   ParMGR[113] := TRUE; //G113M
+	   ParMGR[114] := TRUE; //G114M
+	   ParGGR[120] := TRUE; //G120G
+	   ParMGR[121] := TRUE; //G121M
+	   ParMGR[122] := TRUE; //G122M
+	   ParMGR[123] := TRUE; //G123M
+	   ParMGR[124] := TRUE; //G124M
+	   ParMGR[125] := TRUE; //G125M
+	   ParMGR[126] := TRUE; //G126M
+	   ParMGR[127] := TRUE; //G127M
+	   ParMGR[128] := TRUE; //G128M
+	   ParMGR[129] := TRUE; //G129M
+	   ParMGR[130] := TRUE; //G130M
+	   ParMGR[131] := TRUE; //G131M
+	   ParMGR[132] := TRUE; //G132M
+	   ParMGR[133] := TRUE; //G133M
+	   ParMGR[134] := TRUE; //G134M
+	   ParMGR[135] := TRUE; //G135M
+	   ParMGR[136] := TRUE; //G136M
+	   ParMGR[137] := TRUE; //G137M
+	   ParGGR[140] := TRUE; //G140G
+	   ParMGR[141] := TRUE; //G141M
+	   ParMGR[142] := TRUE; //G142M
+	   ParMGR[143] := TRUE; //G143M
+	   ParMGR[144] := TRUE; //G144M
+	   ParMGR[145] := TRUE; //G145M
+	   ParMGR[146] := TRUE; //G146M
+	   ParMGR[147] := TRUE; //G147M
+	   ParMGR[148] := TRUE; //G148M
+	   ParMGR[149] := TRUE; //G149M
+	   ParMGR[150] := TRUE; //G150M
+	   ParMGR[151] := TRUE; //G151M
+	   ParMGR[152] := TRUE; //G152M
+	   ParMGR[153] := TRUE; //G153M
+	   ParMGR[154] := TRUE; //G154M
+	   ParMGR[155] := TRUE; //G155M
+	   ParMGR[156] := TRUE; //G156M
+	   ParMGR[157] := TRUE; //G157M
+	   ParMGR[158] := TRUE; //G158M
+	   ParGGR[160] := TRUE; //G160G
+	   ParMGR[161] := TRUE; //G161M
+	   ParMGR[162] := TRUE; //G162M
+	   ParMGR[163] := TRUE; //G163M
+	   ParMGR[164] := TRUE; //G164M
+	   ParMGR[165] := TRUE; //G165M
+	   ParMGR[166] := TRUE; //G166M
+	   ParMGR[167] := TRUE; //G167M
+	   ParMGR[168] := TRUE; //G168M
+	   ParMGR[169] := TRUE; //G169M
+	   ParMGR[170] := TRUE; //G170M
+	   ParMGR[171] := TRUE; //G171M
+	   ParMGR[172] := TRUE; //G172M
+	   ParMGR[173] := TRUE; //G173M
+	   ParMGR[174] := TRUE; //G174M
+	   ParMGR[175] := TRUE; //G175M
+	   ParMGR[176] := TRUE; //G176M
+	   ParMGR[177] := TRUE; //G177M
+	   ParGGR[180] := TRUE; //G180G
+	   ParMGR[181] := TRUE; //G181M
+	   ParMGR[182] := TRUE; //G182M
+	   ParMGR[183] := TRUE; //G183M
+	   ParMGR[184] := TRUE; //G184M
+	   ParMGR[185] := TRUE; //G185M
+	   ParMGR[186] := TRUE; //G186M
+	   ParMGR[187] := TRUE; //G187M
+	   ParMGR[188] := TRUE; //G188M
+	   ParMGR[189] := TRUE; //G189M
+	   ParMGR[190] := TRUE; //G190M
+	   ParMGR[191] := TRUE; //G191M
+	   ParMGR[192] := TRUE; //G192M
+	   ParMGR[193] := TRUE; //G193M
+	   ParMGR[194] := TRUE; //G194M
+	   ParMGR[195] := TRUE; //G195M
+	   ParMGR[196] := TRUE; //G196M
+	   ParMGR[197] := TRUE; //G197M
+	   ParMGR[198] := TRUE; //G198M
+	   ParGGR[200] := TRUE; //G200G
+	   ParMGR[201] := TRUE; //G201M
+	   ParMGR[202] := TRUE; //G202M
+	   ParMGR[203] := TRUE; //G203M
+	   ParMGR[204] := TRUE; //G204M
+	   ParMGR[205] := TRUE; //G205M
+	   ParMGR[206] := TRUE; //G206M
+	   ParMGR[207] := TRUE; //G207M
+	   ParMGR[208] := TRUE; //G208M
+	   ParMGR[209] := TRUE; //G209M
+	   ParMGR[210] := TRUE; //G210M
+	   ParMGR[211] := TRUE; //G211M
+	   ParMGR[212] := TRUE; //G212M
+	   ParMGR[213] := TRUE; //G213M
+	   ParMGR[214] := TRUE; //G214M
+	   ParMGR[215] := TRUE; //G215M
+	   ParMGR[216] := TRUE; //G216M
+	   ParMGR[217] := TRUE; //G217M
+	   ParGGR[220] := TRUE; //G220G
+	   ParMGR[221] := TRUE; //G221M
+	   ParMGR[222] := TRUE; //G222M
+	   ParMGR[223] := TRUE; //G223M
+	   ParMGR[224] := TRUE; //G224M
+	   ParMGR[225] := TRUE; //G225M
+	   ParMGR[226] := TRUE; //G226M
+	   ParMGR[227] := TRUE; //G227M
+	   ParMGR[228] := TRUE; //G228M
+	   ParMGR[229] := TRUE; //G229M
+	   ParMGR[230] := TRUE; //G230M
+	   ParMGR[231] := TRUE; //G231M
+	   ParMGR[232] := TRUE; //G232M
+	   ParMGR[233] := TRUE; //G233M
+	   ParMGR[234] := TRUE; //G234M
+	   ParMGR[235] := TRUE; //G235M
+	   ParMGR[236] := TRUE; //G236M
+	   ParMGR[237] := TRUE; //G237M
+	   ParMGR[238] := TRUE; //G238M
+	   ParGGR[240] := TRUE; //G240G
+	   ParMGR[241] := TRUE; //G241M
+	   ParMGR[242] := TRUE; //G242M
+	   ParMGR[243] := TRUE; //G243M
+	   ParMGR[244] := TRUE; //G244M
+	   ParMGR[245] := TRUE; //G245M
+	   ParMGR[246] := TRUE; //G246M
+	   ParMGR[247] := TRUE; //G247M
+	   ParMGR[248] := TRUE; //G248M
+	   ParMGR[249] := TRUE; //G249M
+	   ParMGR[250] := TRUE; //G250M
+	   ParMGR[251] := TRUE; //G251M
+	   ParMGR[252] := TRUE; //G252M
+	   ParMGR[253] := TRUE; //G253M
+	   ParMGR[254] := TRUE; //G254M
+	   ParMGR[255] := TRUE; //G255M
+	   ParMGR[256] := TRUE; //G256M
+	   ParMGR[257] := TRUE; //G257M
+	   ParGGR[260] := TRUE; //G260G
+	   ParMGR[261] := TRUE; //G261M
+	   ParMGR[262] := TRUE; //G262M
+	   ParMGR[263] := TRUE; //G263M
+	   ParMGR[264] := TRUE; //G264M
+	   ParMGR[265] := TRUE; //G265M
+	   ParMGR[266] := TRUE; //G266M
+	   ParMGR[267] := TRUE; //G267M
+	   ParMGR[268] := TRUE; //G268M
+	   ParMGR[269] := TRUE; //G269M
+	   ParMGR[270] := TRUE; //G270M
+	   ParMGR[271] := TRUE; //G271M
+	   ParMGR[272] := TRUE; //G272M
+	   ParMGR[273] := TRUE; //G273M
+	   ParMGR[274] := TRUE; //G274M
+	   ParMGR[275] := TRUE; //G275M
+	   ParMGR[276] := TRUE; //G276M
+	   ParMGR[277] := TRUE; //G277M
+	   ParMGR[278] := TRUE; //G278M
+	   ParMGR[279] := TRUE; //G279M
+	   ParMGR[280] := TRUE; //G280M
+	   ParMGR[281] := TRUE; //G281M
+	   ParMGR[282] := TRUE; //G282M
+	   ParMGR[283] := TRUE; //G283M
+	   ParMGR[284] := TRUE; //G284M
+	   ParGGR[290] := TRUE; //G290G
+	   ParMGR[291] := TRUE; //G291M
+	   ParMGR[292] := TRUE; //G292M
+	   ParMGR[293] := TRUE; //G293M
+	   ParMGR[294] := TRUE; //G294M
+	   ParMGR[295] := TRUE; //G295M
+	   ParMGR[296] := TRUE; //G296M
+	   ParMGR[297] := TRUE; //G297M
+	   ParMGR[298] := TRUE; //G298M
+	   ParMGR[299] := TRUE; //G299M
+	   ParMGR[300] := TRUE; //G300M
+	   ParMGR[301] := TRUE; //G301M
+	   ParMGR[302] := TRUE; //G302M
+	   ParMGR[303] := TRUE; //G303M
+	   ParMGR[304] := TRUE; //G304M
+	   ParMGR[305] := TRUE; //G305M
+	   ParGGR[306] := TRUE; //G306G
+	   ParMGR[306] := TRUE; //G306M
+	   ParMGR[307] := TRUE; //G307M
+	   ParMGR[308] := TRUE; //G308M
+	   ParMGR[309] := TRUE; //G309M
+	   ParMGR[310] := TRUE; //G310M
+	   ParMGR[311] := TRUE; //G311M
+	   ParShare[1] := TRUE; //G001G
+	   ParShare[2] := TRUE; //G002G
+	   ParShare[3] := TRUE; //G003G
+	   ParShare[10] := TRUE; //G010G
+	   ParShare[11] := TRUE; //G011G
+	   ParShare[15] := TRUE; //G015G
+	   ParShare[16] := TRUE; //G016G
+	   ParShare[17] := TRUE; //G017G
+	   ParShare[18] := TRUE; //G018G
+	   ParShare[19] := TRUE; //G019G
+	   ParShare[20] := TRUE; //G020G
+	   ParShare[26] := TRUE; //G026G
+	   ParShare[29] := TRUE; //G029G
+	   ParShare[30] := TRUE; //G030G
+	   ParShare[31] := TRUE; //G031G
+	   ParShare[90] := TRUE; //G090G
+	   ParShare[120] := TRUE; //G120G
+	   ParShare[140] := TRUE; //G140G
+	   ParShare[160] := TRUE; //G160G
+	   ParShare[180] := TRUE; //G180G
+	   ParShare[200] := TRUE; //G200G
+	   ParShare[220] := TRUE; //G220G
+	   ParShare[240] := TRUE; //G240G
+	   ParShare[260] := TRUE; //G260G
+	   ParShare[290] := TRUE; //G290G
+	   ParShare[306] := TRUE; //G306G
+	   Section[1].DBNr:= 805; //MAL1S001
+	   Section[1].DBB := 12500;
+	   Section[2].DBNr:= 805; //MAL1S005
+	   Section[2].DBB := 12500;
+	   Section[3].DBNr:= 806; //MAL1S006
+	   Section[3].DBB := 12500;
+	   Section[4].DBNr:= 807; //MAL1S007
+	   Section[4].DBB := 12500;
+	   Section[5].DBNr:= 817; //MAL1S017
+	   Section[5].DBB := 12500;
+	   Section[6].DBNr:= 818; //MAL1S018
+	   Section[6].DBB := 12500;
+	   Section[7].DBNr:= 819; //MAL1S019
+	   Section[7].DBB := 12500;
+	   Section[8].DBNr:= 820; //MAL1S020
+	   Section[8].DBB := 12500;
+	   Section[9].DBNr:= 821; //MAL1S021
+	   Section[9].DBB := 12500;
+	   Section[10].DBNr:= 822; //MAL1S022
+	   Section[10].DBB := 12500;
+	   Section[11].DBNr:= 823; //MAL1S023
+	   Section[11].DBB := 12500;
+	   Section[12].DBNr:= 824; //MAL1S024
+	   Section[12].DBB := 12500;
+	   Section[13].DBNr:= 832; //MAL1S032
+	   Section[13].DBB := 12500;
+	   Section[14].DBNr:= 833; //MAL1S033
+	   Section[14].DBB := 12500;
+	   Section[15].DBNr:= 834; //MAL1S034
+	   Section[15].DBB := 12500;
+	   Section[16].DBNr:= -1; // End of configuration
+	END_DATA_BLOCK

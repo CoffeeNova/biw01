@@ -1,0 +1,61 @@
+TYPE "DANFOSS_VLT5000"
+AUTHOR : MW
+VERSION : 0.1
+
+
+  STRUCT 	
+   DANFOSS : STRUCT 	
+    Input : STRUCT 	
+     StateWord1 : STRUCT 	//Statuswort VLT 5000
+      _ACT_VALUE : BOOL ;	//0=Set <> act                                  1=set==act value
+      _MODE : BOOL ;	//0=local mode                                  1=Profibus mode
+      _FREQUENZ_OK : BOOL ;	//0=Frequenz out of limits                      1=act Frequenz ok 
+      _RUNNING : BOOL ;	//0=Motor stopped                               1=motor running
+      _OVERLOAD : BOOL ;	//0=no overload                                 1=FU overload 
+      _FU_VOLTAGE_OK : BOOL ;	//0=FU Voltage ok                               1=FU voltage out of limits
+      _FU_MOMENT_OK : BOOL ;	//0=FU moment ok                                1=FU moment out of limits
+      _FU_THERMIC_OVERLOAD : BOOL ;	//0=FU thermic overload ok                      1=FU thermic overload  
+      _CONTROL_SYSTEM : BOOL ;	//0=Control System fault                        1=control System OK
+      _VLT_OK : BOOL ;	//0=VLT not ok (incl.power)                     1=VLT ok (incl.power)
+      _FREILAUF : BOOL ;	//0=Freilauf, FU hat abgeschaltet               1=kein Freilauf = ok
+      _FAULT : BOOL ;	//0=No Fault                                    1=Fault, Reset required
+      _RESERVE0_4 : BOOL ;	//not used
+      _RESERVE0_5 : BOOL ;	//not used
+      _RESERVE0_6 : BOOL ;	//not used
+      _WARNUNG : BOOL ;	//0=ok                                          1=warning FU
+     END_STRUCT ;	
+     ActualValue01 : INT ;	//Hauptistwert / Prozessdaten PZD2
+     ActualValue02 : INT ;	//Prozessdaten PZD3
+     ActualValue03 : INT ;	//Prozessdaten PZD4
+     ActualValue04 : INT ;	//Prozessdaten PZD5
+     ActualValue05 : INT ;	//Prozessdaten PZD6
+    END_STRUCT ;	
+    output : STRUCT 	
+     ControlWord1 : STRUCT 	//Steuerwort VLT 5000
+      _BETRIEBSART : BOOL ;	//0=normalbetrieb                    1=Jog (motor läuft mit Festdrehzahl)
+      _RAMPE1_2 : BOOL ;	//0=Rampe 1 aktiv                    0=Rampe 2 aktiv
+      _PROFIBUS : BOOL ;	//1=Daten über Profibus !!!          0=lokalbetrieb
+      _RELAIS1 : BOOL ;	//0=Relais1 nicht aktiv              1=Relais1 aktiv
+      _RELAIS4 : BOOL ;	//0=Relais4 nicht aktiv              1=Relais4 aktiv 
+      _PARAMETERSATZ1 : BOOL ;	//0-3 = Selection Parametersatz 1-4
+      _PARAMETERSATZ4 : BOOL ;	//0-3 = Selection Parametersatz 1-4
+      _NORMALLAUF : BOOL ;	//0=Normallauf                       1=Reversierung
+      _AUS1 : BOOL ;	//0-3 = Selection Parameter 215-218 fix set Value
+      _AUS2 : BOOL ;	//0-3 = Selection Parameter 215-218 fix set Value
+      _RAMPE : BOOL ;	//1=Rampe                            0=Bremsen
+      _NORMALBETRIEB : BOOL ;	//1=normalbetrieb                    0=Stopp mit Freilauf
+      _SCHNELLSTOPP : BOOL ;	//1=Rampe                            0=SchnellStopp mit Rampe
+      _SET1 : BOOL ;	//1=Rampe möglich (muss immer 1 sein!)
+      _START : BOOL ;	//1=Start                            0=normaler Rampenstopp
+      _RESET : BOOL ;	//1-Flanke =Reset nach Abschaltung   0=keine Funktion  
+     END_STRUCT ;	
+     SetpointValue01 : INT ;	//Hauptsollwert / Prozessdaten PZD2
+     SetpointValue02 : INT ;	//Prozessdaten PZD3
+     SetpointValue03 : INT ;	//Prozessdaten PZD4
+     SetpointValue04 : INT ;	//Prozessdaten PZD5
+     SetpointValue05 : INT ;	//Prozessdaten PZD6
+    END_STRUCT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

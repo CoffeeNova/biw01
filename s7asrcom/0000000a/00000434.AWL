@@ -1,0 +1,45 @@
+	FUNCTION_BLOCK FB 1081
+	TITLE =A_6161_MXZ01_MA CHAIN CONV. 6161
+	//COPYRIGHT:     (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:       WinCoS_BIW01_09
+	//
+	//TITLE:         CHAIN CONV. 6161
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:         AUTHOR:             DEPT:                             DATE:
+	// 
+	//P01_FB1081.1.0 K.Renz              CSB41                             18.Dez.2011
+	//               1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 0.0
+	
+	
+	VAR
+	         Ma :  UDT 20500  ;  // Machine
+	         A_6161_BQS06 : FB84;  // Mon1: DigInpCont
+	         Mon2  : FB14 ;   // Mon2: DigInpCont
+	         A_6161_BSA11 : FB14;  // Mon3: DigInpCont
+	         Mon4  : FB14 ;  // spare
+	         Mon5  : FB14 ;   // spare
+	         Mon6  : FB14 ;   // spare
+	         A_6161_MXZ01 : FB12; // Motor: Motor
+	END_VAR
+	
+	BEGIN
+	NETWORK
+	TITLE =Call SSW
+	   UC  FB50
+	END_FUNCTION_BLOCK

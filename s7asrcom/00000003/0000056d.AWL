@@ -1,0 +1,410 @@
+	DATA_BLOCK DB327
+	TITLE =DBG227M  LOCAL COMMAND BUTTON / LAMPS GERM 7
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        LOCAL COMMAND BUTTON / LAMPS GERM 7
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB327.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG227M 
+	VERSION : 00.00
+	
+	FB327
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=22700; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=8;
+	//Parameter =A-2711-KCL01I1 : SCREW ON BUTTON
+	      #A_2711_KCL01I1.Par.ParObjectNo                             :=22701;
+	      #A_2711_KCL01I1.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I1.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I1.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I1.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I1.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I1.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I1.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I1.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I1.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I1.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01I2 : SCREW OFF BUTTON
+	      #A_2711_KCL01I2.Par.ParObjectNo                             :=22702;
+	      #A_2711_KCL01I2.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I2.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I2.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I2.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I2.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I2.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I2.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I2.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I2.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I2.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I2.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01I3 : DRIVE FORWARD SLOWLY BUTTON
+	      #A_2711_KCL01I3.Par.ParObjectNo                             :=22703;
+	      #A_2711_KCL01I3.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I3.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I3.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I3.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I3.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I3.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I3.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I3.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I3.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I3.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I3.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01I4 : DRIVE BACKWARD SLOWLY BUTTON
+	      #A_2711_KCL01I4.Par.ParObjectNo                             :=22704;
+	      #A_2711_KCL01I4.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I4.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I4.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I4.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I4.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I4.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I4.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I4.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I4.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I4.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I4.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01I5 : DRIVE FORWARD FASTER BUTTON
+	      #A_2711_KCL01I5.Par.ParObjectNo                             :=22705;
+	      #A_2711_KCL01I5.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I5.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I5.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I5.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I5.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I5.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I5.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I5.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I5.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I5.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I5.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01I6 : DRIVE BACKWARD FASTER BUTTON
+	      #A_2711_KCL01I6.Par.ParObjectNo                             :=22706;
+	      #A_2711_KCL01I6.Par.ParMsgType                              :=7154;
+	      #A_2711_KCL01I6.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01I6.Par.ParDelayChange                          :=0;
+	      #A_2711_KCL01I6.Par.ParDelayTrue                            :=0;
+	      #A_2711_KCL01I6.Par.ParDelayFalse                           :=0;
+	      #A_2711_KCL01I6.Par.ParTimeoutTrue                          :=0;
+	      #A_2711_KCL01I6.Par.ParTimeoutFalse                         :=0;
+	      #A_2711_KCL01I6.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01I6.Par.Par2WorkingCond                         :=False;
+	      #A_2711_KCL01I6.Par.ParFaultRetry                           :=False;
+	      #A_2711_KCL01I6.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01O1 : ALARM FLASHER
+	      #A_2711_KCL01O1.Par.ParObjectNo                             :=22707;
+	      #A_2711_KCL01O1.Par.ParMsgType                              :=7002;
+	      #A_2711_KCL01O1.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01O1.Par.ParOnTime                               :=10;
+	      #A_2711_KCL01O1.Par.ParOffTime                              :=0;
+	      #A_2711_KCL01O1.Par.ParIdlingTime                           :=0;
+	      #A_2711_KCL01O1.Par.ParDelayTime                            :=0;
+	      #A_2711_KCL01O1.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01O1.Par.ParManual                               :=True;
+	      #A_2711_KCL01O1.Par.ParContinuous                           :=True;
+	      #A_2711_KCL01O1.Par.ParPulse                                :=False;
+	      #A_2711_KCL01O1.Par.ParPulsing                              :=False;
+	      #A_2711_KCL01O1.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2711-KCL01O2 : SPARE
+	      #A_2711_KCL01O2.Par.ParObjectNo                             :=22708;
+	      #A_2711_KCL01O2.Par.ParMsgType                              :=7002;
+	      #A_2711_KCL01O2.Par.ParHornCode                             :=8;
+	      #A_2711_KCL01O2.Par.ParOnTime                               :=10;
+	      #A_2711_KCL01O2.Par.ParOffTime                              :=0;
+	      #A_2711_KCL01O2.Par.ParIdlingTime                           :=0;
+	      #A_2711_KCL01O2.Par.ParDelayTime                            :=0;
+	      #A_2711_KCL01O2.Par.ParLogOff                               :=False;
+	      #A_2711_KCL01O2.Par.ParManual                               :=True;
+	      #A_2711_KCL01O2.Par.ParContinuous                           :=True;
+	      #A_2711_KCL01O2.Par.ParPulse                                :=False;
+	      #A_2711_KCL01O2.Par.ParPulsing                              :=False;
+	      #A_2711_KCL01O2.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I1 : BACKWALL LIFTING BUTTON
+	      #A_2715_KCL01I1.Par.ParObjectNo                             :=22709;
+	      #A_2715_KCL01I1.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I1.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I1.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I1.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I1.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I1.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I1.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I1.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I1.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I1.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I2 : BACKWALL LOWERING BUTTON
+	      #A_2715_KCL01I2.Par.ParObjectNo                             :=22710;
+	      #A_2715_KCL01I2.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I2.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I2.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I2.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I2.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I2.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I2.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I2.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I2.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I2.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I2.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I3 : UNCOUPLE BUTTON
+	      #A_2715_KCL01I3.Par.ParObjectNo                             :=22711;
+	      #A_2715_KCL01I3.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I3.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I3.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I3.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I3.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I3.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I3.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I3.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I3.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I3.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I3.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I4 : COUPLE BUTTON
+	      #A_2715_KCL01I4.Par.ParObjectNo                             :=22712;
+	      #A_2715_KCL01I4.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I4.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I4.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I4.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I4.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I4.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I4.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I4.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I4.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I4.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I4.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I5 : WALL LOCKING BUTTON
+	      #A_2715_KCL01I5.Par.ParObjectNo                             :=22713;
+	      #A_2715_KCL01I5.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I5.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I5.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I5.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I5.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I5.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I5.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I5.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I5.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I5.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I5.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I6 : WALL UNLOCKING BUTTON
+	      #A_2715_KCL01I6.Par.ParObjectNo                             :=22714;
+	      #A_2715_KCL01I6.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I6.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I6.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I6.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I6.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I6.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I6.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I6.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I6.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I6.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I6.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I7 : HORIZONTAL SCREW ON BUTTON
+	      #A_2715_KCL01I7.Par.ParObjectNo                             :=22715;
+	      #A_2715_KCL01I7.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I7.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I7.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I7.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I7.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I7.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I7.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I7.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I7.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I7.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I7.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I8 : DIAGONAL SCREW ON BUTTON
+	      #A_2715_KCL01I8.Par.ParObjectNo                             :=22716;
+	      #A_2715_KCL01I8.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I8.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I8.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I8.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I8.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I8.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I8.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I8.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I8.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I8.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I8.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01I9 : SCREW STOP BUTTON
+	      #A_2715_KCL01I9.Par.ParObjectNo                             :=22717;
+	      #A_2715_KCL01I9.Par.ParMsgType                              :=7154;
+	      #A_2715_KCL01I9.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01I9.Par.ParDelayChange                          :=0;
+	      #A_2715_KCL01I9.Par.ParDelayTrue                            :=0;
+	      #A_2715_KCL01I9.Par.ParDelayFalse                           :=0;
+	      #A_2715_KCL01I9.Par.ParTimeoutTrue                          :=0;
+	      #A_2715_KCL01I9.Par.ParTimeoutFalse                         :=0;
+	      #A_2715_KCL01I9.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01I9.Par.Par2WorkingCond                         :=False;
+	      #A_2715_KCL01I9.Par.ParFaultRetry                           :=False;
+	      #A_2715_KCL01I9.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O1 : BACKWALL LIFTED
+	      #A_2715_KCL01O1.Par.ParObjectNo                             :=22718;
+	      #A_2715_KCL01O1.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O1.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O1.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O1.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O1.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O1.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O1.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O1.Par.ParManual                               :=True;
+	      #A_2715_KCL01O1.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O1.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O1.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O1.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O2 : BACKWALL LOWERED
+	      #A_2715_KCL01O2.Par.ParObjectNo                             :=22719;
+	      #A_2715_KCL01O2.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O2.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O2.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O2.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O2.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O2.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O2.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O2.Par.ParManual                               :=True;
+	      #A_2715_KCL01O2.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O2.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O2.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O2.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O3 : UNCOUPLED
+	      #A_2715_KCL01O3.Par.ParObjectNo                             :=22720;
+	      #A_2715_KCL01O3.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O3.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O3.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O3.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O3.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O3.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O3.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O3.Par.ParManual                               :=True;
+	      #A_2715_KCL01O3.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O3.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O3.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O3.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O4 : COUPLED
+	      #A_2715_KCL01O4.Par.ParObjectNo                             :=22721;
+	      #A_2715_KCL01O4.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O4.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O4.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O4.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O4.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O4.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O4.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O4.Par.ParManual                               :=True;
+	      #A_2715_KCL01O4.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O4.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O4.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O4.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O5 : WALL LOCKED
+	      #A_2715_KCL01O5.Par.ParObjectNo                             :=22722;
+	      #A_2715_KCL01O5.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O5.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O5.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O5.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O5.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O5.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O5.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O5.Par.ParManual                               :=True;
+	      #A_2715_KCL01O5.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O5.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O5.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O5.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O6 : WALL UNLOCKED
+	      #A_2715_KCL01O6.Par.ParObjectNo                             :=22723;
+	      #A_2715_KCL01O6.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O6.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O6.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O6.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O6.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O6.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O6.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O6.Par.ParManual                               :=True;
+	      #A_2715_KCL01O6.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O6.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O6.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O6.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-2715-KCL01O7 : CLEANING FLAP 1/2
+	      #A_2715_KCL01O7.Par.ParObjectNo                             :=22724;
+	      #A_2715_KCL01O7.Par.ParMsgType                              :=7002;
+	      #A_2715_KCL01O7.Par.ParHornCode                             :=8;
+	      #A_2715_KCL01O7.Par.ParOnTime                               :=10;
+	      #A_2715_KCL01O7.Par.ParOffTime                              :=0;
+	      #A_2715_KCL01O7.Par.ParIdlingTime                           :=0;
+	      #A_2715_KCL01O7.Par.ParDelayTime                            :=0;
+	      #A_2715_KCL01O7.Par.ParLogOff                               :=False;
+	      #A_2715_KCL01O7.Par.ParManual                               :=True;
+	      #A_2715_KCL01O7.Par.ParContinuous                           :=True;
+	      #A_2715_KCL01O7.Par.ParPulse                                :=False;
+	      #A_2715_KCL01O7.Par.ParPulsing                              :=False;
+	      #A_2715_KCL01O7.Par.ParFilter                               :=False;
+	//
+	//
+	END_DATA_BLOCK

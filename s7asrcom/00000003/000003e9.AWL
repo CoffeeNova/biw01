@@ -1,0 +1,796 @@
+	FUNCTION_BLOCK FB 126
+	TITLE =G026G Alarm horns
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Alarm horns
+	//                General group control
+	//                Allgemeine Gruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB126.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #G_ALARM_FLASHER : FB11;   // DigOut
+	     #G_ALARM_HORN_STEEPS : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM1 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM2 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM3 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM4 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM5 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM6 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM7 : FB11;   // DigOut
+	     #G_ALARM_HORN_GERM8 : FB11;   // DigOut
+	     #G_ALARM_HORN_KILN1 : FB11;   // DigOut
+	     #G_ALARM_HORN_UNL_KILN : FB11;   // DigOut
+	     #G_ALARM_HORN_KILN2 : FB11;   // DigOut
+	     #G_ALARM_HORN_13 : FB11;   // DigOut
+	     #G_ALARM_HORN_14 : FB11;   // DigOut
+	     #G_ALARM_HORN_15 : FB11;   // DigOut
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      R   GCS7_GrCtrlDB.ParMGR[26];
+	      R   GCS7_GrCtrlDB.ParWGR[26];
+	      S   GCS7_GrCtrlDB.ParGGR[26];
+	      R   GCS7_GrCtrlDB.ParFeed[26];
+	      S   GCS7_GrCtrlDB.ParShare[26];
+	      R   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      S   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[26];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[26];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[26];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[26];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[26];
+	      R   #GCS7_GrCtrlDB.CmdNext[26];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[26];
+	      O   #GCS7_GrCtrlDB.OutOccupied[26];
+	      R   GCS7_GrCtrlDB.CmdManualOff[26];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[26];
+	      R   GCS7_GrCtrlDB.CmdContinue[26];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[26];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    PLC_SystemDB.HardwareStop.General;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =G_ALARM_FLASHER : Alarm flasher
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_FLASHER.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_FLASHER.CmdHornOff;
+	      =     #G_ALARM_FLASHER.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_FLASHER.CmdHornOn;
+	      S     #G_ALARM_FLASHER.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_FLASHER.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_FLASHER.CmdHornOff;
+	      R     #G_ALARM_FLASHER.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_FLASHER.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_FLASHER;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_ALARM_HORN_STEEPS : Alarm horn STEEPS
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_STEEPS.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOff;
+	      =     #G_ALARM_HORN_STEEPS.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOn;
+	      S     #G_ALARM_HORN_STEEPS.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_STEEPS.CmdHornOff;
+	      R     #G_ALARM_HORN_STEEPS.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_STEEPS.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[4];
+	       =       #G_ALARM_HORN_STEEPS.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_STEEPS;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_STEEPS.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_STEEPS.OutpRun; 
+	      =     A 016.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM1 : Alarm horn GERM 1
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM1.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM1.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM1.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM1.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM1.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM1.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[13];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM1.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM1;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM1.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM1.OutpRun; 
+	      =     A 118.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM2 : Alarm horn GERM 2
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM2.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM2.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM2.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM2.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM2.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM2.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[23];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM2.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM2;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM2.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM2.OutpRun; 
+	      =     A 218.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM3 : Alarm horn GERM 3
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM3.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM3.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM3.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM3.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM3.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM3.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[33];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM3.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM3;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM3.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM3.OutpRun; 
+	      =     A 318.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM4 : Alarm horn GERM 4
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM4.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM4.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM4.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM4.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM4.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM4.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[43];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM4.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM4;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM4.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM4.OutpRun; 
+	      =     A 418.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM5 : Alarm horn GERM 5
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM5.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM5.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM5.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM5.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM5.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM5.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[53];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM5.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM5;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM5.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM5.OutpRun; 
+	      =     A 518.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM6 : Alarm horn GERM 6
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM6.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM6.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM6.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM6.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM6.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM6.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[63];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM6.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM6;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM6.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM6.OutpRun; 
+	      =     A 618.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM7 : Alarm horn GERM 7
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM7.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM7.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM7.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM7.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM7.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM7.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[73];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM7.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM7;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM7.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM7.OutpRun; 
+	      =     A 718.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_GERM8 : Alarm horn GERM 8
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_GERM8.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOff;
+	      =     #G_ALARM_HORN_GERM8.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOn;
+	      S     #G_ALARM_HORN_GERM8.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_GERM8.CmdHornOff;
+	      R     #G_ALARM_HORN_GERM8.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_GERM8.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[83];
+	       O     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #G_ALARM_HORN_GERM8.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_GERM8;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_GERM8.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_GERM8.OutpRun; 
+	      =     A 818.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_KILN1 : Alarm horn KILN 1
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_KILN1.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOff;
+	      =     #G_ALARM_HORN_KILN1.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOn;
+	      S     #G_ALARM_HORN_KILN1.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_KILN1.CmdHornOff;
+	      R     #G_ALARM_HORN_KILN1.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_KILN1.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[93];
+	       O     PLC_DPInfo.Master[1].SlavesError[112];
+	       =       #G_ALARM_HORN_KILN1.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_KILN1;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_KILN1.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_KILN1.OutpRun; 
+	      =     A 924.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_KILN2 : Alarm horn KILN 2
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_KILN2.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOff;
+	      =     #G_ALARM_HORN_KILN2.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOn;
+	      S     #G_ALARM_HORN_KILN2.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_KILN2.CmdHornOff;
+	      R     #G_ALARM_HORN_KILN2.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_KILN2.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[112];
+	      //KR14012010 O     PLC_DPInfo.Master[10].SlavesError[103];
+	       =       #G_ALARM_HORN_KILN2.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_KILN2;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_KILN2.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_KILN2.OutpRun; 
+	      =     A 1024.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_UNL_KILN : Alarm horn UNL KILN
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_UNL_KILN.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOff;
+	      =     #G_ALARM_HORN_UNL_KILN.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOn;
+	      S     #G_ALARM_HORN_UNL_KILN.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_UNL_KILN.CmdHornOff;
+	      R     #G_ALARM_HORN_UNL_KILN.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_UNL_KILN.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[114];
+	       =       #G_ALARM_HORN_UNL_KILN.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_UNL_KILN;
+	// 
+	//-Write outputs---
+	      U    "SYS_HornDB".G_ALARM_HORN_UNL_KILN.Startwarning;
+	      U    M 9.4; //1000ms
+	      O      #G_ALARM_HORN_UNL_KILN.OutpRun; 
+	      =     A 1137.0; 
+	NETWORK
+	TITLE =G_ALARM_HORN_13 : Alarm horn 13
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_13.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_13.CmdHornOff;
+	      =     #G_ALARM_HORN_13.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_13.CmdHornOn;
+	      S     #G_ALARM_HORN_13.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_13.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_13.CmdHornOff;
+	      R     #G_ALARM_HORN_13.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_13.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_13;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_ALARM_HORN_14 : Alarm horn 14
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_14.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_14.CmdHornOff;
+	      =     #G_ALARM_HORN_14.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_14.CmdHornOn;
+	      S     #G_ALARM_HORN_14.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_14.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_14.CmdHornOff;
+	      R     #G_ALARM_HORN_14.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_14.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_14;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =G_ALARM_HORN_15 : Alarm horn 15
+	NOP 0;
+	//-InLocal--- 
+	      CLR; 
+	      =     #G_ALARM_HORN_15.InLocal; 
+	//
+	//-Interlocking--- 
+	      UN   "SYS_HornDB".G_ALARM_HORN_15.CmdHornOff;
+	      =     #G_ALARM_HORN_15.InEnable; 
+	//
+	      U   "SYS_HornDB".G_ALARM_HORN_15.CmdHornOn;
+	      S     #G_ALARM_HORN_15.CmdNext; 
+	//
+	      SET; 
+	      R     "SYS_HornDB".G_ALARM_HORN_15.CmdHornOn;
+	      R     "SYS_HornDB".G_ALARM_HORN_15.CmdHornOff;
+	      R     #G_ALARM_HORN_15.InSeqStop;
+	// 
+	//-Read inputs---
+	      CLR;
+	      =     #G_ALARM_HORN_15.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #G_ALARM_HORN_15;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      CLR;   
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      CLR;   
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      U     #G_ALARM_FLASHER.StStopped; 
+	      U     #G_ALARM_HORN_STEEPS.StStopped; 
+	      U     #G_ALARM_HORN_GERM1.StStopped; 
+	      U     #G_ALARM_HORN_GERM2.StStopped; 
+	      U     #G_ALARM_HORN_GERM3.StStopped; 
+	      U     #G_ALARM_HORN_GERM4.StStopped; 
+	      U     #G_ALARM_HORN_GERM5.StStopped; 
+	      U     #G_ALARM_HORN_GERM6.StStopped; 
+	      U     #G_ALARM_HORN_GERM7.StStopped; 
+	      U     #G_ALARM_HORN_GERM8.StStopped; 
+	      U     #G_ALARM_HORN_KILN1.StStopped; 
+	      U     #G_ALARM_HORN_KILN2.StStopped; 
+	      U     #G_ALARM_HORN_UNL_KILN.StStopped; 
+	      U     #G_ALARM_HORN_13.StStopped; 
+	      U     #G_ALARM_HORN_14.StStopped; 
+	      U     #G_ALARM_HORN_15.StStopped; 
+	      SET;
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U     #G_ALARM_FLASHER.StStarted; 
+	      U     #G_ALARM_HORN_STEEPS.StStarted; 
+	      U     #G_ALARM_HORN_GERM1.StStarted; 
+	      U     #G_ALARM_HORN_GERM2.StStarted; 
+	      U     #G_ALARM_HORN_GERM3.StStarted; 
+	      U     #G_ALARM_HORN_GERM4.StStarted; 
+	      U     #G_ALARM_HORN_GERM5.StStarted; 
+	      U     #G_ALARM_HORN_GERM6.StStarted; 
+	      U     #G_ALARM_HORN_GERM7.StStarted; 
+	      U     #G_ALARM_HORN_GERM8.StStarted; 
+	      U     #G_ALARM_HORN_KILN1.StStarted; 
+	      U     #G_ALARM_HORN_KILN2.StStarted; 
+	      U     #G_ALARM_HORN_UNL_KILN.StStarted; 
+	      U     #G_ALARM_HORN_13.StStarted; 
+	      U     #G_ALARM_HORN_14.StStarted; 
+	      U     #G_ALARM_HORN_15.StStarted; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[26];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[26];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[26];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[26];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[26];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[26];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[26];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[26];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[26];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[26];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

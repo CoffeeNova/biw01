@@ -1,0 +1,37 @@
+TYPE "GCS7_FB14_Communication"
+VERSION : 0.1
+
+
+  STRUCT 	
+   InMonTrue : BOOL ;	//After t4 must be StTrue, otherwise it is a process fault
+   InMonFalse : BOOL ;	//After t5 must be StFalse, otherwise it is a process fault
+   InPreAlarmTrue : BOOL ;	//LOG Pre-alarm if state is not StTrue
+   InPreAlarmFalse : BOOL ;	//LOG Pre-alarm if state is not StFalse
+   InStopTrueTime : BOOL ;	//Stop delay time t2
+   InStopFalseTime : BOOL ;	//Stop delay time t3
+   InpTrue : BOOL ;	//Digital input: signal 'True'; target state is StTrue
+   InpFaultDev : BOOL ;	//Digital input: fault device
+   CmdRstTrueTime : BOOL ;	//Restart delay time changing from StFalse to StTrue (t2)
+   CmdRstFalseTime : BOOL ;	//Restart delay time changing from StTrue to StFalse (t3)
+   CmdRunTimeoutTime : BOOL ;	//Run timeout time (only 1 working condition)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (automatic fault reset)
+   spare0305 : BOOL ;	//Copy of InMonTrue to detect change form InMonTrue to InMonFalse
+   InReport : BOOL ;	//Report of all state transitions
+   OutTimeoutTime : BOOL ;	//Timeout time 1 working condition active
+   InHWStop : BOOL ;	//HW stop is detected, no fault
+   InDPFault : BOOL ;	//DP-Fault is detected, no fault
+   OutPreAlarmTrue : BOOL ;	//Flag PreAlarmTrue is done
+   OutPreAlarmFalse : BOOL ;	//Flag PreAlarmFalse is done
+   OutFlagPos : BOOL ;	//Positive flag InpTrue
+   OutFlagNeg : BOOL ;	//Negative flag InpTrue
+   OutpFaultReset : BOOL ;	//Reset alarm
+   OutTrue : BOOL ;	//Copy of input signal
+   StFalse : BOOL ;	//Signal is 'False', delay time finished, monitoring is off
+   StCtoTrue : BOOL ;	//Changing to 'True', signal is 'True'
+   StTrue : BOOL ;	//Signal is 'True', delay time finished
+   StCtoFalse : BOOL ;	//Changing to 'False', signal is 'False'
+   StFault : BOOL ;	//Signal has not requested value, monitoring is active
+  END_STRUCT ;	
+END_TYPE
+

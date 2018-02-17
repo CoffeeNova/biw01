@@ -1,0 +1,271 @@
+	DATA_BLOCK DB212
+	TITLE =DBG112M  COOLING / HEATING GERM 1
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        COOLING / HEATING GERM 1
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB212.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG112M 
+	VERSION : 00.00
+	
+	FB212
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=11200; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=2;
+	//Parameter =A-2145-QXV21 : RUNNING COOLING UNIT 1 GERMINATING
+	      #A_2145_QXV21.Par.ParObjectNo                             :=11201;
+	      #A_2145_QXV21.Par.ParMsgType                              :=7053;
+	      #A_2145_QXV21.Par.ParHornCode                             :=2;
+	      #A_2145_QXV21.Par.ParMonTime                              :=20;
+	      #A_2145_QXV21.Par.ParStartingTime                         :=20;
+	      #A_2145_QXV21.Par.ParStoppingTime                         :=0;
+	      #A_2145_QXV21.Par.ParIdlingTime                           :=0;
+	      #A_2145_QXV21.Par.ParDelayTime                            :=10;
+	      #A_2145_QXV21.Par.ParLogOff                               :=False;
+	      #A_2145_QXV21.Par.ParManual                               :=True;
+	      #A_2145_QXV21.Par.ParRestartDelay                         :=False;
+	      #A_2145_QXV21.Par.Par2Speed                               :=False;
+	      #A_2145_QXV21.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2145-QXV21AI : REGULATING VALVE 1 ACTUAL VALUE
+	      #A_2145_QXV21AI.Par.ParObjectNo                             :=11202;
+	      #A_2145_QXV21AI.Par.ParHornCode                             :=2;
+	      #A_2145_QXV21AI.Par.ParMsgType                              :=7252;
+	      #A_2145_QXV21AI.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2145_QXV21AI.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2145_QXV21AI.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2145_QXV21AI.Par.ParDelayTimeDown                        :=10;
+	      #A_2145_QXV21AI.Par.ParDelayTimeUp                          :=10;
+	      #A_2145_QXV21AI.Par.ParDelayTime                            :=0;
+	      #A_2145_QXV21AI.Par.ParLimitLL                              :=L#0;
+	      #A_2145_QXV21AI.Par.ParLimitL                               :=L#2000;
+	      #A_2145_QXV21AI.Par.ParLimitH                               :=L#8000;
+	      #A_2145_QXV21AI.Par.ParLimitHH                              :=L#10000;
+	      #A_2145_QXV21AI.Par.ParMonTimeLL                            :=0;
+	      #A_2145_QXV21AI.Par.ParMonTimeL                             :=50;
+	      #A_2145_QXV21AI.Par.ParMonTimeMid                           :=0;
+	      #A_2145_QXV21AI.Par.ParMonTimeH                             :=30;
+	      #A_2145_QXV21AI.Par.ParMonTimeHH                            :=0;
+	      #A_2145_QXV21AI.Par.ParLogOff                               :=False;
+	      #A_2145_QXV21AI.Par.ParValueByUser                          :=False;
+	      #A_2145_QXV21AI.Par.ParLimitsPc                             :=True;
+	      #A_2145_QXV21AI.Par.ParWago                                 :=False;
+	      #A_2145_QXV21AI.Par.ParNoHornByWarning                      :=False;
+	      #A_2145_QXV21AI.Par.ParWarningLL                            :=False;
+	      #A_2145_QXV21AI.Par.ParWarningL                             :=False;
+	      #A_2145_QXV21AI.Par.ParWarningMid                           :=False;
+	      #A_2145_QXV21AI.Par.ParWarningH                             :=False;
+	      #A_2145_QXV21AI.Par.ParWarningHH                            :=False;
+	      #A_2145_QXV21AI.Par.ParPreAlarmLL                           :=False;
+	      #A_2145_QXV21AI.Par.ParPreAlarmL                            :=False;
+	      #A_2145_QXV21AI.Par.ParPreAlarmMid                          :=False;
+	      #A_2145_QXV21AI.Par.ParPreAlarmH                            :=False;
+	      #A_2145_QXV21AI.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2145-QXV21AO : REGULATING VALVE 1 SET POINT
+	      #A_2145_QXV21AO.Par.ParObjectNo                             :=11203;
+	      #A_2145_QXV21AO.Par.ParMsgType                              :=7241;
+	      #A_2145_QXV21AO.Par.ParHornCode                             :=2;
+	      #A_2145_QXV21AO.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2145_QXV21AO.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2145_QXV21AO.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2145_QXV21AO.Par.ParLimitMin                             :=L#0;
+	      #A_2145_QXV21AO.Par.ParLimitMax                             :=L#27648;
+	      #A_2145_QXV21AO.Par.ParDelayTime                            :=30;
+	      #A_2145_QXV21AO.Par.ParLogOff                               :=False;
+	      #A_2145_QXV21AO.Par.ParValuePc                              :=True;
+	      #A_2145_QXV21AO.Par.ParLimitsPc                             :=True;
+	      #A_2145_QXV21AO.Par.ParWago                                 :=False;
+	      #A_2145_QXV21AO.Par.ParFU                                   :=False;
+	//
+	//
+	//Parameter =A-2145-QXV21I1 : REGULATING VALVE 1 CLOSED
+	      #A_2145_QXV21I1.Par.ParObjectNo                             :=11204;
+	      #A_2145_QXV21I1.Par.ParMsgType                              :=7163;
+	      #A_2145_QXV21I1.Par.ParHornCode                             :=2;
+	      #A_2145_QXV21I1.Par.ParDelayChange                          :=20;
+	      #A_2145_QXV21I1.Par.ParDelayTrue                            :=10;
+	      #A_2145_QXV21I1.Par.ParDelayFalse                           :=0;
+	      #A_2145_QXV21I1.Par.ParTimeoutTrue                          :=0;
+	      #A_2145_QXV21I1.Par.ParTimeoutFalse                         :=0;
+	      #A_2145_QXV21I1.Par.ParLogOff                               :=False;
+	      #A_2145_QXV21I1.Par.Par2WorkingCond                         :=False;
+	      #A_2145_QXV21I1.Par.ParFaultRetry                           :=False;
+	      #A_2145_QXV21I1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2145-QXV21I2 : REGULATING VALVE 1 OPENED
+	      #A_2145_QXV21I2.Par.ParObjectNo                             :=11205;
+	      #A_2145_QXV21I2.Par.ParMsgType                              :=7163;
+	      #A_2145_QXV21I2.Par.ParHornCode                             :=2;
+	      #A_2145_QXV21I2.Par.ParDelayChange                          :=20;
+	      #A_2145_QXV21I2.Par.ParDelayTrue                            :=10;
+	      #A_2145_QXV21I2.Par.ParDelayFalse                           :=0;
+	      #A_2145_QXV21I2.Par.ParTimeoutTrue                          :=0;
+	      #A_2145_QXV21I2.Par.ParTimeoutFalse                         :=0;
+	      #A_2145_QXV21I2.Par.ParLogOff                               :=False;
+	      #A_2145_QXV21I2.Par.Par2WorkingCond                         :=False;
+	      #A_2145_QXV21I2.Par.ParFaultRetry                           :=False;
+	      #A_2145_QXV21I2.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2145-QXV31 : RUNNING COOLING UNIT 2 GERMINATING
+	      #A_2145_QXV31.Par.ParObjectNo                             :=11206;
+	      #A_2145_QXV31.Par.ParMsgType                              :=7053;
+	      #A_2145_QXV31.Par.ParHornCode                             :=2;
+	      #A_2145_QXV31.Par.ParMonTime                              :=20;
+	      #A_2145_QXV31.Par.ParStartingTime                         :=20;
+	      #A_2145_QXV31.Par.ParStoppingTime                         :=0;
+	      #A_2145_QXV31.Par.ParIdlingTime                           :=0;
+	      #A_2145_QXV31.Par.ParDelayTime                            :=10;
+	      #A_2145_QXV31.Par.ParLogOff                               :=False;
+	      #A_2145_QXV31.Par.ParManual                               :=True;
+	      #A_2145_QXV31.Par.ParRestartDelay                         :=False;
+	      #A_2145_QXV31.Par.Par2Speed                               :=False;
+	      #A_2145_QXV31.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2145-QXV31AI : REGULATING VALVE 2 ACTUAL VALUE
+	      #A_2145_QXV31AI.Par.ParObjectNo                             :=11207;
+	      #A_2145_QXV31AI.Par.ParHornCode                             :=2;
+	      #A_2145_QXV31AI.Par.ParMsgType                              :=7252;
+	      #A_2145_QXV31AI.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2145_QXV31AI.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2145_QXV31AI.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2145_QXV31AI.Par.ParDelayTimeDown                        :=10;
+	      #A_2145_QXV31AI.Par.ParDelayTimeUp                          :=10;
+	      #A_2145_QXV31AI.Par.ParDelayTime                            :=0;
+	      #A_2145_QXV31AI.Par.ParLimitLL                              :=L#0;
+	      #A_2145_QXV31AI.Par.ParLimitL                               :=L#2000;
+	      #A_2145_QXV31AI.Par.ParLimitH                               :=L#8000;
+	      #A_2145_QXV31AI.Par.ParLimitHH                              :=L#10000;
+	      #A_2145_QXV31AI.Par.ParMonTimeLL                            :=0;
+	      #A_2145_QXV31AI.Par.ParMonTimeL                             :=50;
+	      #A_2145_QXV31AI.Par.ParMonTimeMid                           :=0;
+	      #A_2145_QXV31AI.Par.ParMonTimeH                             :=30;
+	      #A_2145_QXV31AI.Par.ParMonTimeHH                            :=0;
+	      #A_2145_QXV31AI.Par.ParLogOff                               :=False;
+	      #A_2145_QXV31AI.Par.ParValueByUser                          :=False;
+	      #A_2145_QXV31AI.Par.ParLimitsPc                             :=True;
+	      #A_2145_QXV31AI.Par.ParWago                                 :=False;
+	      #A_2145_QXV31AI.Par.ParNoHornByWarning                      :=False;
+	      #A_2145_QXV31AI.Par.ParWarningLL                            :=False;
+	      #A_2145_QXV31AI.Par.ParWarningL                             :=False;
+	      #A_2145_QXV31AI.Par.ParWarningMid                           :=False;
+	      #A_2145_QXV31AI.Par.ParWarningH                             :=False;
+	      #A_2145_QXV31AI.Par.ParWarningHH                            :=False;
+	      #A_2145_QXV31AI.Par.ParPreAlarmLL                           :=False;
+	      #A_2145_QXV31AI.Par.ParPreAlarmL                            :=False;
+	      #A_2145_QXV31AI.Par.ParPreAlarmMid                          :=False;
+	      #A_2145_QXV31AI.Par.ParPreAlarmH                            :=False;
+	      #A_2145_QXV31AI.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2145-QXV31AO : REGULATING VALVE 2 SET POINT
+	      #A_2145_QXV31AO.Par.ParObjectNo                             :=11208;
+	      #A_2145_QXV31AO.Par.ParMsgType                              :=7241;
+	      #A_2145_QXV31AO.Par.ParHornCode                             :=2;
+	      #A_2145_QXV31AO.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2145_QXV31AO.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2145_QXV31AO.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2145_QXV31AO.Par.ParLimitMin                             :=L#0;
+	      #A_2145_QXV31AO.Par.ParLimitMax                             :=L#27648;
+	      #A_2145_QXV31AO.Par.ParDelayTime                            :=30;
+	      #A_2145_QXV31AO.Par.ParLogOff                               :=False;
+	      #A_2145_QXV31AO.Par.ParValuePc                              :=True;
+	      #A_2145_QXV31AO.Par.ParLimitsPc                             :=True;
+	      #A_2145_QXV31AO.Par.ParWago                                 :=False;
+	      #A_2145_QXV31AO.Par.ParFU                                   :=False;
+	//
+	//
+	//Parameter =A-2145-QXV31I1 : REGULATING VALVE 2 CLOSED
+	      #A_2145_QXV31I1.Par.ParObjectNo                             :=11209;
+	      #A_2145_QXV31I1.Par.ParMsgType                              :=7163;
+	      #A_2145_QXV31I1.Par.ParHornCode                             :=2;
+	      #A_2145_QXV31I1.Par.ParDelayChange                          :=20;
+	      #A_2145_QXV31I1.Par.ParDelayTrue                            :=10;
+	      #A_2145_QXV31I1.Par.ParDelayFalse                           :=0;
+	      #A_2145_QXV31I1.Par.ParTimeoutTrue                          :=0;
+	      #A_2145_QXV31I1.Par.ParTimeoutFalse                         :=0;
+	      #A_2145_QXV31I1.Par.ParLogOff                               :=False;
+	      #A_2145_QXV31I1.Par.Par2WorkingCond                         :=False;
+	      #A_2145_QXV31I1.Par.ParFaultRetry                           :=False;
+	      #A_2145_QXV31I1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2145-QXV31I2 : REGULATING VALVE 2 OPENED
+	      #A_2145_QXV31I2.Par.ParObjectNo                             :=11210;
+	      #A_2145_QXV31I2.Par.ParMsgType                              :=7163;
+	      #A_2145_QXV31I2.Par.ParHornCode                             :=2;
+	      #A_2145_QXV31I2.Par.ParDelayChange                          :=20;
+	      #A_2145_QXV31I2.Par.ParDelayTrue                            :=10;
+	      #A_2145_QXV31I2.Par.ParDelayFalse                           :=0;
+	      #A_2145_QXV31I2.Par.ParTimeoutTrue                          :=0;
+	      #A_2145_QXV31I2.Par.ParTimeoutFalse                         :=0;
+	      #A_2145_QXV31I2.Par.ParLogOff                               :=False;
+	      #A_2145_QXV31I2.Par.Par2WorkingCond                         :=False;
+	      #A_2145_QXV31I2.Par.ParFaultRetry                           :=False;
+	      #A_2145_QXV31I2.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-2154-MXZ01 : WATER PUMP 1
+	      #A_2154_MXZ01.Par.ParObjectNo                             :=11211;
+	      #A_2154_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_2154_MXZ01.Par.ParHornCode                             :=2;
+	      #A_2154_MXZ01.Par.ParMonTime                              :=20;
+	      #A_2154_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_2154_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_2154_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_2154_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_2154_MXZ01.Par.ParLogOff                               :=False;
+	      #A_2154_MXZ01.Par.ParManual                               :=True;
+	      #A_2154_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_2154_MXZ01.Par.Par2Speed                               :=False;
+	      #A_2154_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2155-MXZ01 : WATER PUMP 2
+	      #A_2155_MXZ01.Par.ParObjectNo                             :=11212;
+	      #A_2155_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_2155_MXZ01.Par.ParHornCode                             :=2;
+	      #A_2155_MXZ01.Par.ParMonTime                              :=20;
+	      #A_2155_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_2155_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_2155_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_2155_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_2155_MXZ01.Par.ParLogOff                               :=False;
+	      #A_2155_MXZ01.Par.ParManual                               :=True;
+	      #A_2155_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_2155_MXZ01.Par.Par2Speed                               :=False;
+	      #A_2155_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,100 @@
+	DATA_BLOCK DB411
+	TITLE =DBG311M  CENTRAL ASPIRATION UNLOAD KILN
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        CENTRAL ASPIRATION UNLOAD KILN
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB411.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG311M 
+	VERSION : 00.00
+	
+	FB411
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=31100; 
+	      #Gr.Par.ParIdling      	:=30; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=12;
+	//Parameter =A-3960-MXZ01MA : FAN DRIVE CENTRAL ASPIRATION
+	      #A_3960_MXZ01MA.Ma.Par.ParObjectNo                                     :=31101;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithAirlock                                  :=True;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithFan                                      :=True;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithFilter                                   :=False;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithARF                                      :=False;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithLSDoor                                   :=False;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithPressure                                 :=False;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithHLAirlock                                :=False;
+	      #A_3960_MXZ01MA.Ma.Par.ParWithDischarger                               :=True;
+	      #A_3960_MXZ01MA.Ma.Par.ParVibroOnTime                                  :=0;
+	      #A_3960_MXZ01MA.Ma.Par.ParVibroOffTime                                 :=0;
+	//
+	//Parameter A_3960_MXZ01MA.=A-3965-MXZ01 : AIRLOCK 1 CENTRAL ASPIRATION
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParObjectNo                             :=31102;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParHornCode                             :=12;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParMonTime                              :=20;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParLogOff                               :=False;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParManual                               :=True;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.Par2Speed                               :=False;
+	      #A_3960_MXZ01MA.A_3965_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//Parameter A_3960_MXZ01MA.=A-3960-MXZ01 : FAN DRIVE CENTRAL ASPIRATION
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParObjectNo                             :=31103;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParHornCode                             :=12;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParMonTime                              :=20;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParLogOff                               :=False;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParManual                               :=True;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.Par2Speed                               :=False;
+	      #A_3960_MXZ01MA.A_3960_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//Parameter A_3960_MXZ01MA.=A-3970-MXZ01 : AIRLOCK 2 CENTRAL ASPIRATION
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParObjectNo                             :=31104;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParHornCode                             :=12;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParMonTime                              :=20;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParStartingTime                         :=20;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParStoppingTime                         :=0;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParLogOff                               :=False;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParManual                               :=True;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.Par2Speed                               :=False;
+	      #A_3960_MXZ01MA.A_3970_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	END_DATA_BLOCK

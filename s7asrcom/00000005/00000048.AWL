@@ -1,0 +1,191 @@
+FUNCTION "SYS_LOG_CtrlQueue" : VOID
+TITLE =Log: Read Queue Message
+//COPYRIGHT:    (C) 1996 BY  BUEHLER LTD. 
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        READ from QUEUE for GCS90-Upper-Level
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:              DEPT:                       DATE:
+//
+//FC47.1A       S. Kalberer         AEE61                       4-Dec-1996
+//              1st Release in S7, converted from FB47.2A
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [CTRxxMAN]
+//              This function reads 1 .. max. 4 print-orders out of the 
+//              waiting-queue to set ready at the PC-Interface
+//
+//RESTRICTIONS: S7
+//              Only for message administration on PC
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : MESSFORM
+VERSION : 1.0
+
+
+VAR_INPUT
+  DBNumber : INT ;	//Queue DB-Number
+END_VAR
+VAR_TEMP
+  tmpDBNumber : WORD ;	//Input Queue-DB
+  tmpCnt : WORD ;	//temp loop counter
+  tmpSourceAddress : DWORD ;	//temp Source Address
+  tmpDestAddress : DWORD ;	//temp Target Address
+  tmpTxtBufferPtr : DWORD ;	//ASA Textbuffer Pointer
+  tmpBlockLength : WORD ;	//temp Message BlockLength
+  tmpEndOfQueue : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = MESSAGE-FORM
+
+
+
+NETWORK
+TITLE = ADDRESS/LENGTH QUEUE
+
+      L     #DBNumber; 
+      T     #tmpDBNumber; 
+      AUF   DB [#tmpDBNumber]; //>> CALL QUEUE-DB
+      L     24; 
+      T     #tmpBlockLength; 
+NETWORK
+TITLE = CONFIGURATION TEST
+
+      UN    DBX   46.7; // CmdResetLog
+      SPB   L002; // 
+      R     DBX   46.7; // CmdResetLog
+      L     DBW    2; // ParDWstartQueue
+      T     DBW   10; // -> varDWwrite
+      T     DBW   12; // -> varDWread
+      L     0; // 
+      T     DBW    8; // VarNrOfMsgInQueue
+      T     DBW   56; // HskPLCtoPC
+L002: L     DBW   10; // varDWwrite
+      L     DBW    2; // ParDWstartQueue
+      >I    ; 
+      SPB   T2; 
+      T     DBW   10; // -> varDWwrite
+T2:   L     DBW   12; // varDWread
+      L     DBW    2; // ParDWstartQueue
+      >I    ; 
+      SPB   T3; 
+      T     DBW   12; // -> varDWread
+T3:   L     DBW    6; // ParMaxNrOfMsg
+      L     #tmpBlockLength; 
+      *I    ; 
+      L     DBW    2; // ParDWstartQueue
+      +I    ; // --> Address end of queue
+      T     #tmpEndOfQueue; 
+      L     DBLG; 
+      >I    ; 
+      SPB   ERRO; //-->(ERROR= DB to small)
+      L     #tmpEndOfQueue; 
+      L     #tmpBlockLength; 
+      -I    ; 
+      L     DBW   12; //  
+      <I    ; // varDWread
+      SPB   ERRO; // -->ERROR= Read Pointer
+      SPA   NX04; 
+ERRO: BEA   ; // ERROR QUEUE
+NETWORK
+TITLE = TEST HANDSHAKE
+
+NX04: L     DBW   44; //---par_PC_connection[2..1]
+      L     DBW   56; // HskPLCtoPC
+      UW    ; 
+      L     DBW   46; // inf_control (PC Off-Line)
+      INVI  ; // Complement 1
+      UW    ; 
+      T     DBW   56; // HskPLCtoPC
+      U     DBX   49.0; // HskPC1toPLC.MsgDone
+      R     DBX   49.0; // HskPC1toPLC.MsgDone
+      R     DBX   57.0; // HskPLCtoPC.MsgForPC1
+      U     DBX   51.0; // HskPC2toPLC.MsgDone
+      R     DBX   51.0; // HskPC2toPLC.MsgDone
+      R     DBX   57.1; // HskPLCtoPC.MsgForPC2
+      U     DBX   53.0; // HskPC3toPLC.MsgDone
+      R     DBX   53.0; // HskPC3toPLC.MsgDone
+      R     DBX   57.2; // HskPLCtoPC.MsgForPC3
+      U     DBX   55.0; // HskPC4toPLC.MsgDone
+      R     DBX   55.0; // HskPC4toPLC.MsgDone
+      R     DBX   57.3; // HskPLCtoPC.MsgForPC4
+      L     0; //---Handshake is read
+      L     DBW   56; // HskPLCtoPC
+      <>I   ; // message not read
+      BEB   ; 
+NETWORK
+TITLE = READ MESSAGE
+
+      L     DBW    8; // VarNoOfMsgInQueue
+      L     0; 
+      ==I   ; 
+      BEB   ; 
+      T     DBW   58; //-->PC.NrOfMessage
+      L     P#60.0; // Address PC.Msg[1]
+      T     #tmpTxtBufferPtr; 
+LOOP: L     DBW   12; // varDWread 
+      SLD   3; 
+      T     #tmpSourceAddress; 
+      L     #tmpTxtBufferPtr; 
+      T     #tmpDestAddress; 
+//--- Copy one msg to PC interface ----
+      L     #tmpBlockLength; 
+      SRW   2; // /4
+RDLP: T     #tmpCnt; 
+      L     DBD [#tmpSourceAddress]; //  SOURCE: AEA-ReadPointer
+      T     DBD [#tmpDestAddress]; //  TARGET: AEA-WorkingMemory
+      L     #tmpSourceAddress; // INC Source address
+      +     L#32; // + 32 Bit
+      T     #tmpSourceAddress; 
+      L     #tmpDestAddress; // INC Target address
+      +     L#32; // + 32 Bit
+      T     #tmpDestAddress; 
+      L     #tmpCnt; 
+      LOOP  RDLP; 
+//--- End Loop copy ----
+//--- Increment address
+      L     DBW   58; // PC.NrOfMessage
+      +     1; 
+      T     DBW   58; //-->PC.NrOfMessage
+      L     DBW   12; // VarDWread
+      L     #tmpBlockLength; 
+      +D    ; 
+      T     DBW   12; //-->VarDWread
+      L     #tmpTxtBufferPtr; //---TARGET : Msg[n]
+      L     #tmpBlockLength; 
+      SLD   3; 
+      +D    ; 
+      T     #tmpTxtBufferPtr; // -->TARGET : Msg[n+1]
+      L     #tmpEndOfQueue; 
+      L     DBW   12; // varDWread
+      >I    ; 
+      SPB   L001; 
+      L     DBW    2; // ParDWstartQueue
+      T     DBW   12; //--> varDWread
+L001: L     DBW    8; // VarNrOfMsgInQueue
+      +     -1; 
+      T     DBW    8; //-->VarNoOrMsgInQueue
+      L     DBW   58; // PC.NoOfMessage
+      L     DBW   42; // ParNrOfMsgMemory
+      >=I   ; 
+      SPB   SEND; 
+      L     DBW    8; // VarNoOfMsgInQueue
+      L     0; 
+      >I    ; 
+      SPB   LOOP; 
+//---Send to PC -----
+SEND: L     DBW   44; // ParPCconnection
+      L     DBW   56; // HskPLCtoPC
+      OW    ; 
+      T     DBW   56; // HskPLCtoPC
+      S     DBX   41.0; //---Set change-bit
+END_FUNCTION
+

@@ -1,0 +1,122 @@
+FUNCTION "ASW_PlantParFunction" : VOID
+TITLE =Plant parameters and date/time setting
+//
+//COPYRIGHT:      (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:        GEN_MU664
+//
+//TITLE:          Plant parameters and date/time setting
+//
+//                Anlagen parameter und Datum/Uhrzeit-Einstellung
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:          AUTOR:            DEPT:                              DATE:
+//
+//GEN_FC081.2.0   Ph. Engler        MU664                              06-Jan-2004
+//                - Time setting changed: Seconds instead of Milliseconds
+//GEN_FC081.1.0   Ph. Engler        MU664                              05-Mar-2003
+//                1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+AUTHOR : CE
+FAMILY : GEN
+VERSION : 0.0
+
+
+VAR_TEMP
+  tmpDateTime : DATE_AND_TIME ;	
+  tmpPafe : INT ;	
+  tmpDATE : DATE ;	
+  tmpTOD : TIME_OF_DAY ;	
+  tmpBool : BOOL ;	
+  tmpDWORD : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =DT Copy date and time from PCS to PLC
+//
+//
+//
+      L     DB81.DBW   10; 
+      L     0; 
+      ==I   ; 
+      SPB   DT00; 
+// 
+//-Create Any-Pointer---
+      L     DB81.DBW   10; 
+      T     #tmpDATE; 
+      L     DB81.DBW   12; 
+      L     L#60000; 
+      *D    ; 
+      T     #tmpTOD; 
+      L     DB81.DBW   14; 
+      L     L#1000; 
+      *D    ; 
+      L     #tmpTOD; 
+      +D    ; 
+      T     #tmpTOD; 
+// 
+      CALL "SIEMENS.IECFC3.TOD_DT" (
+           IN1                      := #tmpDATE,
+           IN2                      := #tmpTOD,
+           RET_VAL                  := #tmpDateTime);
+// 
+// Set CPU time
+      CALL SFC    0 (
+           PDT                      := #tmpDateTime,
+           RET_VAL                  := #tmpPafe);
+// 
+// reset Data from PCS
+      L     0; 
+      T     DB81.DBW   10; 
+      T     DB81.DBW   12; 
+      T     DB81.DBW   14; 
+DT00: NOP   0; 
+NETWORK
+TITLE =PP Plant specific commands and parameters
+
+      NOP   0; 
+//-Commands 1 with pulse------------------
+      CALL "STD_OnOffSignals32" (
+           InCodeNo                 := 1,// Fkt.pulse
+           MaskUsedBits             := DW#16#FFFF,// 
+           cmdOn                    := DB81.DBD  230,// USW_TargetValue
+           cmdOff                   := #tmpDWORD,// 
+           staOn                    := DB81.DBD  250,// USW_ActualValue
+           cmdChanged               := #tmpBool);
+// 
+//-Commands 2 with status-----------------
+      CALL "STD_OnOffSignals32" (
+           InCodeNo                 := 2,// Fkt.status
+           MaskUsedBits             := DW#16#FFFF,// 
+           cmdOn                    := DB81.DBD  234,// USW_TargetValue
+           cmdOff                   := DB81.DBD  238,// USW_TargetValue
+           staOn                    := DB81.DBD  254,// USW_ActualValue
+           cmdChanged               := #tmpBool);// 
+// 
+//-Commands 3 with status-----------------
+      CALL "STD_OnOffSignals32" (
+           InCodeNo                 := 2,// Fkt.status
+           MaskUsedBits             := DW#16#FFFF,// 
+           cmdOn                    := DB81.DBD  242,// USW_TargetValue
+           cmdOff                   := DB81.DBD  246,// USW_TargetValue
+           staOn                    := DB81.DBD  258,// USW_ActualValue
+           cmdChanged               := #tmpBool);// 
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION
+

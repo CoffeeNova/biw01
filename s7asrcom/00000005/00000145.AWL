@@ -1,0 +1,309 @@
+FUNCTION_BLOCK "COM_PLCSend"
+TITLE =
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      Project
+//
+//TITLE:        Send Data PLC --> PLC
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB1701.1.2     A.Egli              CT3                        24-Nov-2004
+//              Monitoring timeout send
+//FB701.1.1     A.Egli              CT3                         4-Mar-2002
+//              Slow down communication
+//FB701.1A      A.Egli              AEE61                       7-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      In a loop this modul send data blocks form one PLC
+//              to a remote PLC.
+//              On the remote PLC you must call the FB702 to read the data.
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//
+//
+//ID        : Communication ID            
+//
+AUTHOR : EA
+FAMILY : PLCCom
+NAME : SendPLC
+VERSION : 1.2
+
+
+VAR_INPUT
+  ID : WORD ;	//Communication ID
+  DB_SendData : INT ;	//DB Number
+  DBB_SendData : INT ;	//1st byte
+  Len_SendData : INT ;	//Lenght in byte
+  ParMaxTimeOutSnd : INT ;	//[s]
+  ParAutoSendIntervall : INT ;	//[s]
+  ParMaxCycleTime : INT ;	//[ms]
+  ParNoTimeOut : INT ;	//[number]]
+END_VAR
+VAR_IN_OUT
+  SndOwnCounter : DINT ;	
+  SndPartnerCounterCopy : DINT ;	
+  RcvPartnerCounter : DINT ;	
+  RcvOwnCounterCopy : DINT ;	
+END_VAR
+VAR
+  CmdSend : BOOL ;	
+  InComSimulation : BOOL ;	
+  spare2 : BOOL ;	
+  spare3 : BOOL ;	
+  spare4 : BOOL ;	
+  spare5 : BOOL ;	
+  spare6 : BOOL ;	
+  CmdErrorSaved : BOOL ;	
+  CmdDone : BOOL ;	
+  CmdError : BOOL ;	
+  OutCfgFault : BOOL ;	
+  CmdCopied : BOOL ;	
+  OutChange : BOOL ;	//Send data has changed
+  OutComRunning : BOOL ;	
+  PulseComPlcRunning : BOOL ;	
+  OutTimeOut : INT ;	
+  OutSendIntervall : INT ;	
+  Watchdog : STRUCT 	
+   infCycleTimeOk : BOOL ;	
+   outCommRunning : BOOL ;	
+   EdgeComPlcRunning : BOOL ;	
+   intActCycleTime : INT ;	
+   intActNoTimeOut : INT ;	
+   intDelayTimeComOK : INT ;	
+  END_STRUCT ;	
+  BSND : "SIEMENS_BSEND";	
+  SndDataBuffer : ARRAY  [1 .. 512 ] OF INT ;	
+END_VAR
+VAR_TEMP
+  tmpDB : INT ;	
+  tmpByte : INT ;	
+  tmpLen : INT ;	
+  tmpAddrRead : DWORD ;	
+  tmpAddrWrite : DWORD ;	
+  tmpCompare : BOOL ;	
+  tmpLenConvert : WORD ;	
+  tmpFlagSend : BOOL ;	
+  tmpCnt : INT ;	
+  tmpCycleTimeOk : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =WD Watchdog: Copy counter
+//Receiverd Counter must be copied to send data
+      L     #RcvPartnerCounter; 
+      T     #SndPartnerCounterCopy; 
+NETWORK
+TITLE =WD Watchdog (1)
+
+      UN    "SYS_Scan0_Tick100ms"; 
+      SPB   WD00; 
+// 
+//-Calculate cycle time [ms]---
+      L     #SndOwnCounter; 
+      L     #RcvOwnCounterCopy; 
+      -D    ; 
+      L     L#100; 
+      *D    ; 
+      T     #Watchdog.intActCycleTime; 
+      L     #ParMaxCycleTime; 
+      <=D   ; 
+      =     #tmpCycleTimeOk; 
+// 
+//-Increment counter---
+      L     #SndOwnCounter; 
+      +     L#1; 
+      T     #SndOwnCounter; 
+      L     0; 
+      <D    ; 
+      SPBN  WD01; 
+      L     0; 
+      T     #SndOwnCounter; 
+      SPA   WD01; 
+// 
+//-Check cycle time---
+WD01: U     #tmpCycleTimeOk; 
+      SPBN  WD02; 
+      L     0; 
+      T     #Watchdog.intActNoTimeOut; 
+      SPA   WD03; 
+// 
+//-Increment time out counter---
+WD02: U     #Watchdog.infCycleTimeOk; 
+      SPBN  WD03; 
+      L     #Watchdog.intActNoTimeOut; 
+      +     1; 
+      T     #Watchdog.intActNoTimeOut; 
+// 
+//-Check if number of retrys are exeeded---
+WD03: L     #ParNoTimeOut; 
+      L     #Watchdog.intActNoTimeOut; 
+      >=I   ; 
+      =     #Watchdog.infCycleTimeOk; 
+// 
+//-Delay reset of intCycleTimeOut---
+      U     #Watchdog.infCycleTimeOk; 
+      SPB   WD04; 
+      R     #Watchdog.outCommRunning; 
+      L     0; 
+      T     #Watchdog.intDelayTimeComOK; 
+      SPA   WD05; 
+WD04: L     2000; //[ms]
+      L     #Watchdog.intDelayTimeComOK; 
+      <=I   ; 
+      S     #Watchdog.outCommRunning; 
+      SPB   WD05; 
+      UN    "SYS_Scan0_Tick100ms"; 
+      SPB   WD05; 
+      +     100; //100ms
+      T     #Watchdog.intDelayTimeComOK; 
+//-----------------------------------  
+//OutCommRunning 
+WD05: U     #Watchdog.outCommRunning; 
+      O     #InComSimulation; 
+      =     #OutComRunning; 
+//-Edges---
+      U     #OutComRunning; 
+      FP    #Watchdog.EdgeComPlcRunning; 
+      =     #PulseComPlcRunning; 
+WD00: NOP   0; 
+NETWORK
+TITLE =Simulation
+
+      U     #InComSimulation; 
+      BEB   ; 
+NETWORK
+TITLE =ParMaxTimeOutSnd [1.2]
+//[1.2] This function is moved to this netzwerk
+      UN    "SYS_Tick1s"; //[1.2]
+      ON    #BSND.REQ; //[1.2]
+      SPB   MOJ0; //[1.2]
+      L     #OutTimeOut; //[1.2]
+      +     1; //[1.2]
+      T     #OutTimeOut; //[1.2]
+      L     #ParMaxTimeOutSnd; //[1.2]
+      <I    ; //[1.2]
+      SPB   MOJ0; //[1.2]
+      R     #BSND.REQ; //[1.2]
+      S     #CmdSend; //[1.2]
+MOJ0: NOP   0; //[1.2] 
+NETWORK
+TITLE =SendIntevall
+
+      UN    "SYS_Tick1s"; 
+      SPB   X1; 
+      L     #OutSendIntervall; 
+      +     1; 
+      T     #OutSendIntervall; 
+      L     #ParAutoSendIntervall; 
+      >=I   ; 
+      S     #CmdSend; 
+X1:   NOP   0; 
+      UN    "GCS7_Gr_OutTick500ms"; 
+      BEB   ; 
+NETWORK
+TITLE =Test Telegramm Done
+//Set address send buffer
+      CLR   ; 
+      =     #tmpFlagSend; 
+Send: L     #Len_SendData; 
+      T     #tmpLenConvert; 
+      L     #ID; 
+      T     #BSND.ID; 
+      CALL #BSND (
+           SD_1                     := #SndDataBuffer,
+           LEN                      := #tmpLenConvert);
+
+// Check answer
+      U     #BSND.DONE; 
+      S     #CmdDone; 
+      R     #CmdError; 
+      R     #BSND.REQ; 
+      BEB   ; 
+      U     #BSND.ERROR; 
+      R     #BSND.ERROR; 
+      R     #BSND.REQ; 
+      S     #CmdError; 
+      S     #CmdErrorSaved; // [1.1]
+      R     #CmdDone; 
+      S     #CmdCopied; 
+      BEB   ; 
+      U     #BSND.REQ; // [1.2]
+      BEB   ; // [1.2]
+NETWORK
+TITLE =Prepare Send Telegram
+
+      U     #CmdCopied; 
+      R     #CmdCopied; 
+//[1.1]      S     #BSND.REQ; 
+      SPB   Do; 
+      U     #CmdSend; 
+      R     #CmdSend; 
+      SPB   Copy; 
+      L     #DB_SendData; 
+      T     #tmpDB; 
+      AUF   DB [#tmpDB]; 
+      L     #DBB_SendData; 
+      SLD   3; 
+      T     #tmpAddrRead; 
+      L     P##SndDataBuffer; 
+      T     #tmpAddrWrite; 
+      L     #Len_SendData; 
+      T     #tmpCnt; 
+LOOP: L     DBW [#tmpAddrRead]; 
+      L     DIW [#tmpAddrWrite]; 
+      <>I   ; 
+      SPB   Copy; 
+      L     #tmpAddrRead; 
+      +     L#16; 
+      T     #tmpAddrRead; 
+      L     #tmpAddrWrite; 
+      +     L#16; 
+      T     #tmpAddrWrite; 
+      L     #tmpCnt; 
+      +     -2; 
+      T     #tmpCnt; 
+      L     0; 
+      >I    ; 
+      SPB   LOOP; 
+      BEB   ; 
+//Copy Send Data 
+Copy: L     DINO; 
+      T     #tmpDB; 
+      L     P##SndDataBuffer; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      SRD   3; 
+      T     #tmpByte; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := #DB_SendData,
+           ByteSource               := #DBB_SendData,
+           DBDest                   := #tmpDB,
+           ByteDest                 := #tmpByte,
+           NoOfByte                 := #Len_SendData,
+           Fault                    := #OutCfgFault);
+      SET   ; 
+      S     #CmdCopied; 
+Do:   L     0; 
+      T     #OutTimeOut; 
+      T     #OutSendIntervall; 
+      SET   ; 
+      U     "GCS7_Gr_OutTick500ms"; //[1.1]
+      S     #BSND.REQ; //[1.1]
+      UN    #tmpFlagSend; 
+      S     #tmpFlagSend; 
+      SPB   Send; 
+NETWORK
+TITLE =Save
+
+      NOP   0; 
+
+END_FUNCTION_BLOCK
+

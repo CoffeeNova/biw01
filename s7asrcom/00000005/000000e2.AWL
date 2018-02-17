@@ -1,0 +1,661 @@
+FUNCTION_BLOCK "GCS7_M_MYFA"
+TITLE =Machine MYFA
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 41 Machine  Control:Dampening with  MYFA/MOZD 
+//                                     Produktbenetzung mit MYFA/MOZD
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB41.5.2      A. Egli             CT3                         25-Jul-2007
+//              Condition ParWithAirValue 
+//FB41.5.1      A. Egli             CT3                         20-Feb-2006
+//              For delay timer check ParWithAirValue
+//FB41.5.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB41.4.0      A.Egli              CT3                         06-Nov-2001
+//              - ParOffDelayFeed ; -ParOnDelayWater             
+//              !!! GCPROVB: Revision 40
+//FB41.3.4      A.Egli              CT3                         05-Nov-2001
+//              FlowWaterMin.InLocal
+//              The ASW can program FlowWaterMin.InMonTrue if necessary.
+//FB41.3.3      E.Hanselmann/A.Egli MU664/CT3                   25-Jan-2001
+//              AirValve.InSeqStop correction
+//              Transition StStarting-->StWait
+//              Condition FlowProd.CmdRunTimeoutTime
+//FB41.3.2      A.Egli              CT3                         09-Oct-2000
+//              FlowProd.CmdRunTimeoutTime, 1 working condition for FlowProd
+//FB41.3.1      S. Kalberer         CT3                         02-Oct-2000
+//              ParFlowProdLocal added
+//FB41.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB41.2D       A. Egli             CT3                         13-Sep-1999
+//              Possibility to monitor FlowProd
+//FB41.2C       A. Egli             CT3                         27-Aug-1999
+//              tmpStarted: Check if AirValve is used,tmpStopWater
+//FB41.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB41.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB41.1A       A.Egli              AEE61                       15-Oct-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MZDxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+{ GCPROVB_REVISON := '40' }
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MOZDMYFA
+VERSION : 5.2
+
+
+VAR
+  Ma : "GCS7_M_FB41_Data";	
+  MYFAMOZD : "GCS7_E_MYFA_MOZD";	//Element 
+  FlowWaterMin : "GCS7_E_DigInput";	//Element 
+  FlowWaterMax : "GCS7_E_DigInput";	//Element 
+  FlowProd : "GCS7_E_DigInput";	//Element 
+  HLInlet : "GCS7_E_DigInput";	//Element 
+  AirValve : "GCS7_E_ValveControl";	//Element 
+  WaterValve : "GCS7_E_ValveControl";	//Element 
+  BypassFlap : "GCS7_E_ValveControl";	//Element 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFault : BOOL ;	
+  tmpRemoteWaterControl : BOOL ;	
+  tmpManualWaterControl : BOOL ;	
+  tmpLocalWaterControl : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpStopWater : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpStoreAR2 : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     24; 
+      T     #tmpLenDyn; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2041; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParOffDelayFeed; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParOnDelayWater; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //Cmd1[2]=CmdLocalWaterControl
+      S     #Ma.InLocalWaterControl; 
+      R     #Ma.InRemoteWaterControl; 
+      R     #Ma.InManualWaterControl; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; //Cmd1[3]=CmdRemoteWaterControl
+      R     #Ma.InLocalWaterControl; 
+      S     #Ma.InRemoteWaterControl; 
+      R     #Ma.InManualWaterControl; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[4]=CmdManualWaterControl
+      R     #Ma.InLocalWaterControl; 
+      R     #Ma.InRemoteWaterControl; 
+      S     #Ma.InManualWaterControl; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE = Timer switch off feed and switch on water  
+//Timer switch off delay feed
+//[4.0 --->
+      U     #WaterValve.StHN; 
+      O     #AirValve.StHN; 
+      U     #Ma.OutReadyFeeding; 
+      UN    #Ma.InFeeding; 
+      SPB   TiF0; 
+      R     #Ma.OutOffDelayFeedRun; 
+      L     0; //Reset timervalue to zero
+      T     #Ma.Par.OutOffDelayFeed; 
+      SPA   TiW; 
+TiF0: U     #Ma.OutOffDelayFeedDone; 
+      SPB   TiW; 
+      U     #Ma.OutOffDelayFeedRun; 
+      SPB   TiF1; 
+      S     #Ma.OutOffDelayFeedRun; 
+      L     #Ma.Par.ParOffDelayFeed; 
+      T     #Ma.Par.OutOffDelayFeed; 
+TiF1: UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      L     #Ma.Par.OutOffDelayFeed; 
+      SPB   TiF2; 
+      +     -10; 
+      T     #Ma.Par.OutOffDelayFeed; 
+TiF2: L     0; 
+      <=I   ; 
+      R     #Ma.OutOffDelayFeedRun; 
+      S     #Ma.OutOffDelayFeedDone; 
+TiW:  U     #FlowProd.StTrue; 
+      O     #FlowProd.StCtoTrue; 
+      O     #FlowProd.InLocal; 
+      U(    ; 
+      U     #AirValve.StLN; //[5.2]
+      ON    #Ma.Par.ParWithAirValve; //[5.2][5.1]
+      U     #WaterValve.StLN; //[5.2]
+      )     ; 
+      U     #Ma.OutReadyFeeding; 
+      U     #Ma.InFeeding; 
+      SPB   TiW0; 
+      R     #Ma.OutOnDelayWaterRun; 
+      L     0; //Reset timervalue to zero
+      T     #Ma.Par.OutOnDelayWater; 
+      SPA   TiE; 
+//Timer swtich on delay water
+TiW0: U     #Ma.OutOnDelayWaterDone; 
+      SPB   TiE; 
+      U     #Ma.OutOnDelayWaterRun; 
+      SPB   TiW1; 
+      S     #Ma.OutOnDelayWaterRun; 
+      L     #Ma.Par.ParOnDelayWater; 
+      T     #Ma.Par.OutOnDelayWater; 
+TiW1: UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1S
+      L     #Ma.Par.OutOnDelayWater; 
+      SPB   TiW2; 
+      +     -10; 
+      T     #Ma.Par.OutOnDelayWater; 
+TiW2: L     0; 
+      <=I   ; 
+      R     #Ma.OutOnDelayWaterRun; 
+      S     #Ma.OutOnDelayWaterDone; 
+//---Reset timer Done bit
+TiE:  U     #FlowProd.StFalse; 
+      UN    #FlowProd.InLocal; 
+      ON    #Ma.InFeeding; 
+      R     #Ma.OutOnDelayWaterDone; 
+      U     #Ma.InFeeding; 
+      R     #Ma.OutOffDelayFeedDone; 
+// <-- 4.0]
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; ///Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+
+      UN    #Ma.InLocalWaterControl; 
+      U     #Ma.InRemoteWaterControl; 
+      UN    #Ma.InManualWaterControl; 
+      UN    #Ma.InLocalWaterControl; 
+      =     #tmpRemoteWaterControl; 
+      U     #Ma.InLocalWaterControl; 
+      UN    #Ma.InRemoteWaterControl; 
+      UN    #Ma.InManualWaterControl; 
+      =     #tmpLocalWaterControl; 
+      UN    #Ma.InLocalWaterControl; 
+      UN    #Ma.InRemoteWaterControl; 
+      U     #Ma.InManualWaterControl; 
+      =     #tmpManualWaterControl; 
+
+//Local
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+      U     #tmpLocal; 
+      =     #MYFAMOZD.InLocal; 
+      =     #HLInlet.InLocal; 
+      =     #FlowWaterMax.InLocal; 
+      =     #WaterValve.InLocal; 
+      =     #AirValve.InLocal; 
+      =     #BypassFlap.InLocal; 
+      =     #FlowWaterMin.InLocal; //[4.0]
+      U     #Ma.Par.ParFlowProdLocal; //[3.1]
+      UN    #tmpManualWaterControl; //[3.1]
+      O     #tmpLocal; //[3.1]
+      =     #FlowProd.InLocal; //[2D]
+//Enable 
+      UN    #Ma.InLocal; 
+      O     #Ma.InManual; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+      U     #tmpRemoteWaterControl; 
+      =     #MYFAMOZD.InRemote; 
+
+//New Job 
+      U     #Ma.CmdNewJob; 
+      S     #MYFAMOZD.CmdNewJob; 
+
+
+      U     #MYFAMOZD.StFault; 
+      O     #FlowWaterMax.StFault; 
+      O     #FlowWaterMin.StFault; 
+      O     #HLInlet.StFault; 
+      O     #AirValve.StFault; 
+      O     #BypassFlap.StFault; 
+      O     #WaterValve.StFault; 
+      O     #FlowProd.StFault; //[2D]
+      =     #tmpFault; 
+
+      U     #tmpRemoteWaterControl; 
+      U     #MYFAMOZD.StStarted; 
+      U     #WaterValve.StLN; 
+      U(    ; 
+      O     #AirValve.StHN; 
+      ON    #Ma.Par.ParWithAirValve; 
+      )     ; 
+      O     ; 
+      U     #tmpLocalWaterControl; 
+      U     #MYFAMOZD.StStopped; 
+      U     #WaterValve.StLN; 
+      U(    ; //[2C]
+      U     #AirValve.StHN; //[2C]
+      ON    #Ma.Par.ParWithAirValve; //[2C] 
+      )     ; //[2C]
+      O     ; 
+      U     #tmpManualWaterControl; 
+      U(    ; 
+      O     #MYFAMOZD.StStopped; 
+      ON    #MYFAMOZD.Par.ParMYFA; 
+      )     ; 
+      U     #WaterValve.StHN; 
+      U(    ; 
+      O     #AirValve.StLN; 
+      ON    #Ma.Par.ParWithAirValve; 
+      )     ; 
+      =     #tmpStarted; 
+
+//General stopping condition
+      CLR   ; //[4.0]
+      =     #WaterValve.InSeqStop; 
+      CLR   ; //[4.0]
+      =     #AirValve.InSeqStop; 
+
+      U     #FlowProd.StFalse; 
+      O     #FlowProd.StCtoFalse; //[2C]
+      O     #FlowProd.StFault; //[2D]
+      U(    ; 
+      O     #tmpManualWaterControl; 
+      ON    #Ma.Par.ParFlowProdLocal; //[4.0]
+//[4.0]   ON    #Ma.Par.ParWithMYFA      
+      )     ; 
+      ON    #tmpEnable; 
+      O     #MYFAMOZD.StFault; 
+      O     #FlowWaterMax.StFault; 
+      O     #FlowWaterMin.StFault; //[4.0]
+      O     #WaterValve.StFault; 
+      O     #AirValve.StFault; 
+      O     #BypassFlap.StFault; 
+      O(    ; 
+      UN    #Ma.OutOnDelayWaterDone; //[4.0]
+      UN    #AirValve.StHN; //[4.0]
+      UN    #WaterValve.StHN; //[4.0]
+      )     ; 
+      O     #Ma.OutOffDelayFeedDone; //[4.0]
+      =     #tmpStopWater; 
+// Enable MOZD
+      U     #tmpRemoteWaterControl; 
+      UN    #tmpStopWater; 
+      =     #MYFAMOZD.InEnable; 
+
+// Enable Water
+      U     #tmpManualWaterControl; 
+      UN    #tmpStopWater; 
+      =     #WaterValve.InEnableHN; 
+
+// Enable Air
+      U     #tmpRemoteWaterControl; 
+      O     #tmpLocalWaterControl; 
+      UN    #tmpStopWater; 
+      =     #AirValve.InEnableHN; 
+
+// Set manual flap
+      U     #tmpManualWaterControl; 
+      =     #BypassFlap.InEnableHN; 
+
+//Set low position
+      UN    #AirValve.InEnableHN; 
+      =     #AirValve.InEnableLN; 
+      UN    #WaterValve.InEnableHN; 
+      =     #WaterValve.InEnableLN; 
+      UN    #BypassFlap.InEnableHN; 
+      =     #BypassFlap.InEnableLN; 
+//Next
+//[4.0]      U     #Ma.InFeeding
+//[4.0]      U     #FlowProd.StTrue
+//[4.0]      O(    
+//[4.0]      UN    #tmpManualWaterControl
+//[4.0]      U     #Ma.Par.ParWithMYFA
+//[4.0]      )     
+      UN    #Ma.StStopped; 
+      UN    #Ma.StFault; 
+      S     #MYFAMOZD.CmdNext; 
+      S     #BypassFlap.CmdNext; 
+      S     #AirValve.CmdNext; 
+      S     #WaterValve.CmdNext; 
+
+//Monitoring
+      SET   ; 
+      S     #HLInlet.InMonFalse; 
+      S     #FlowWaterMax.InMonTrue; 
+
+      UN    #FlowProd.InMonTrue; //[3.3]
+      U     #Ma.InFeeding; //[3.2][3.3]
+      S     #FlowProd.CmdRunTimeoutTime; //[3.2]      
+      U     #Ma.InFeeding; //[2D]
+      =     #FlowProd.InMonTrue; //[2D]
+NETWORK
+TITLE =Call MOZD
+
+      CALL #MYFAMOZD ;//FB39
+
+NETWORK
+TITLE =Call FlowWaterMin
+
+      CALL #FlowWaterMin ;
+
+NETWORK
+TITLE =Call FlowWaterMax
+
+      CALL #FlowWaterMax ;
+
+NETWORK
+TITLE =Call FlowProd
+
+      CALL #FlowProd ;
+
+NETWORK
+TITLE =Call HLInlet
+
+      UN    #Ma.Par.ParWithHLInlet; 
+      SPB   E6; 
+      CALL #HLInlet ;
+
+NETWORK
+TITLE =Call WaterValve
+
+E6:   CALL #WaterValve ;
+
+NETWORK
+TITLE =Call AirValve
+
+      UN    #Ma.Par.ParWithAirValve; 
+      SPB   E8; 
+      CALL #AirValve ;
+
+NETWORK
+TITLE =Call BypassFlap (MYFA)
+
+E8:   UN    #Ma.Par.ParWithBypassFlap; 
+      SPB   StJ0; 
+      CALL #BypassFlap ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StStarting; 
+      SPB   S1; 
+      U     #Ma.StStarted; 
+      SPB   S2; 
+      U     #Ma.StWaiting; 
+      SPB   S6; 
+      U     #Ma.StFault; 
+      SPB   S4; 
+      U     #Ma.StStopping; 
+      SPB   S3; 
+
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+      SPA   OUT; 
+//=== Logic
+//Condition to StFault
+S0:   U     #tmpFault; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> StFault
+//Condition to StStarting
+      UN    #MYFAMOZD.StStopped; 
+      ON    #WaterValve.StLN; 
+      O(    ; //[2C]
+      UN    #AirValve.StLN; 
+      U     #Ma.Par.ParWithAirValve; //[2C] 
+      )     ; //[2C]
+      U     #Ma.InFeeding; //[3.3]
+      R     #Ma.StStopped; 
+      SPB   xxS1; //-->StStarting
+//Condition to StWaiting
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      U     #tmpEnable; 
+      R     #Ma.StStopped; 
+      SPB   xxS6; //-->StWaiting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+//=== Logic
+//Condition to StFault
+S1:   U     #tmpFault; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+//Condition to StStarted
+      U     #tmpStarted; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //--> StStarted
+//Condition to StStopping
+      UN    #MYFAMOZD.StStarted; 
+      UN    #WaterValve.StHN; 
+      UN    #AirValve.StHN; 
+      ON    #tmpEnable; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+      UN    #Ma.InFeeding; //[3.3]
+      R     #Ma.StStarting; //[3.3]
+      SPB   xxS6; //--> StWaiting [3.3]
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+//=== Logic
+//Condition to StFault
+S2:   U     #tmpFault; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+//Condition to StStopping
+      UN    #tmpStarted; 
+      UN    #tmpEnable; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //--> StStopping
+//Condition to StWaiting
+      UN    #tmpStarted; 
+      R     #Ma.StStarted; 
+      SPB   xxS6; //--> StWaiting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StWaiting
+//any Transition 
+xxS6: S     #Ma.StWaiting; 
+//=== Logic
+//Condition to StFault
+S6:   U     #tmpFault; 
+      R     #Ma.StWaiting; 
+      SPB   xxS4; //--> StFault
+//Condition to StStarted
+      U     #tmpStarted; 
+      R     #Ma.StWaiting; 
+      SPB   xxS2; //--> StStarted
+//Condition to StStopped
+      UN    #tmpEnable; 
+      R     #Ma.StWaiting; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =StStopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+
+//=== Logic
+//Condition to StFault
+S3:   U     #tmpFault; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+
+//Condition to StStopped
+      UN    #MYFAMOZD.StStarted; 
+      UN    #WaterValve.StHN; 
+      UN    #AirValve.StHN; 
+      O(    ; 
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      U     #tmpEnable; 
+      )     ; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+      SPA   OUT; 
+
+NETWORK
+TITLE =StFault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+//=== Logic
+//Condition to StStopping
+S4:   UN    #tmpFault; 
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =State Code
+// State           StCode
+// ----------------------
+// StFault           32
+// StStopped          1
+// StStarting         2
+// StStarted          3
+// StWaiting          4
+// StStopping         7
+OUT:  U     #Ma.StFault; 
+      L     32; //Code=Fault
+      SPB   Code; 
+      U     #Ma.StStopped; 
+      L     1; //Code=Stopped
+      SPB   Code; 
+      L     2; //Code=Starting
+      U     #Ma.StStarting; 
+      SPB   Code; 
+      L     3; //Code=Started
+      U     #Ma.StStarted; 
+      SPB   Code; 
+      L     4; //Code=Feeding
+      U     #Ma.StWaiting; 
+      SPB   Code; 
+      L     7; //Code=Stopping
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+// 
+NETWORK
+TITLE =Global End
+
+      U     #Ma.CmdFaultReset; 
+      S     #MYFAMOZD.CmdFaultReset; 
+      S     #FlowWaterMin.CmdFaultReset; 
+      S     #FlowWaterMax.CmdFaultReset; 
+      S     #AirValve.CmdFaultReset; 
+      S     #BypassFlap.CmdFaultReset; 
+      S     #HLInlet.CmdFaultReset; 
+      S     #FlowProd.CmdFaultReset; 
+
+//---Output commands
+      UN    #HLInlet.StFault; 
+      UN    #BypassFlap.StFault; 
+      =     #Ma.OutReadyFeeding; 
+//---Clear all commands
+      CLR   ; 
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNewJob; 
+
+END_FUNCTION_BLOCK
+

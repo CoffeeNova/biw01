@@ -1,0 +1,865 @@
+FUNCTION_BLOCK "GCS7_E_DigInput"
+TITLE =DigInpCont
+//
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Digital Input Continuous
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB14.4.5      A. Egli             CT3                         04-Oct-2007
+//              Send OutpFaultReset also if element is not monitoried
+//FB14.4.4      A. Egli             CT3                         16-Mai-2006
+//              Transition StFalse to StTrue
+//FB14.4.3      A. Egli             CT3                         24-Nov-2004
+//              Local Mode: No prealarm as long InLocal
+//FB14.4.2      A. Egli             CT3                         24-Nov-2003
+//              Local Mode: Pulse length OutpFaultReset  = 1s
+//FB14.4.1      A. Egli             CT3                         18-Nov-2003
+//              Transition StTrue to StFault, when 
+//                ParDelayChange=0 and ParDelayFalse=0
+//FB14.4.0      A. Egli             CT3                          7-Nov-2002
+//              New Release with one block 
+//              OutpFaultReset in Local mode (3.5)
+//FB14.3.4      A. Egli             CT3                         22-Mai-2002
+//              Count par.OutMonTime only if monitoring is active
+//FB14.3.3      A. Egli             CT3                         12-Apr-2002
+//              Reset CmdFaultReset if no StFaultStFault
+//FB14.3.2      A. Egli             CT3                         18-Mar-2002
+//              Set OutpFaultReset only in StFault
+//FB14.3.1      A. Egli             CT3                         19-Jan-2002
+//              Length OutpFaultReset = 1s
+//              Timebase 200ms for monitoring function
+//FB14.3.0      A. Egli             CT3                         29-Okt-2001
+//              StCode 30: InpFaultDev=1 and InLocal=1              
+//              StCode 31: InpFaultDev=1 and InLocal=0              
+//              StCode 11: StFalse.Warning  , StCode 13: StTrue.Warning           
+//              StCode 12: StCtoTrue.Warning, StCode 14: StCtoFalse.Warning       
+//FB14.2.10     A. Egli             CT3                         29-Okt-2001
+//              InLocal: StFault-->StTrue; StFault-->StFalse;
+//FB14.2.9      A. Egli             CT3                         04-Okt-2001
+//              1 working Condition:  
+//                No monitoring fault during StCToTrue or StCToFalse
+//FB14.2.8      A. Egli             CT3                         21-Jun-2000
+//              Detect immediately change from InMonTrue to InMonFalse
+//FB14.2.7      A. Egli             CT3                          2-Mai-2000
+//              - Restart monitoring time only with positv edge InMonXxxx
+//              - Transition StCtoTrue --> StFalse without hysteresis           
+//              - Transition StCtoFalse--> StTrue  without hysteresis
+//              - Length OutpFaultReset = 500ms
+//              - CmdRunTimeoutTime
+//FB14.2.6      S. Kalberer         CT3                         26-Jan-2000
+//              2-WorkCond.: run out monitoring time
+//FB14.2.5      S. Kalberer         CT3                         11-Jan-2000
+//              2-WorkCond.: No hysteresis anymore           
+//FB14.2.4      S. Kalberer         CT3                         02-Nov-1999
+//              2-WorkCond.: No restart of monitoring time
+//FB14.2D       A. Egli             CT3                         11-Jan-1999
+//              PC Direct Control: Init is code 2 not 4
+//FB14.2C       A. Egli             CT3                          5-Jan-1999
+//              OutFlagPos, OutFlagNeg, OutTrue
+//FB14.2B       A. Egli             CT3                          5-Jan-1999
+//              OutpFaultReset
+//FB14.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB14.1A       S. Kalberer         AEE61                       11-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DICxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  false
+// 2  true
+// 9  fault cancelled
+//10  fault device
+//11  fault true
+//12  fault false
+//13  prealarm true
+//14  prealarm false
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault                  StFault+InpFaultDev=0 
+//31  StFault.DEV              StFault+InpFaultDev=1 
+// 1  StFalse               
+//11  StFalse.Warning          StFalse+OutWarning
+//41  StFalse.HWStop           StFalse+HWStop 
+//51  StFalse.DPFault          StFalse+DPFault
+//61  StFalse.FaultDev         InLocal=1 +InpFaultDef +InpTrue=0
+// 2  StCtoTrue             
+//12  StCtoTrue.Warning     
+// 3  StTrue                
+//13  StTrue.Warning           StTrue+OutWarning
+//43  StTrue.HWStop            StTrue+InHWStop
+//53  StTrue.DPFault           StTrue+InDPFault
+//63  StTrue.FaultDev          InLocal=1 +InpFaultDef +InpTrue=1
+// 4  StCtoFalse             
+//14  StCtoFalse.Warning       StCtoFalse+OutWarning
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DIC
+VERSION : 4.5
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InMonTrue : BOOL ;	//After t4 must be StTrue, otherwise it is a process fault
+  InMonFalse : BOOL ;	//After t5 must be StFalse, otherwise it is a process fault
+  InPreAlarmTrue : BOOL ;	//LOG Pre-alarm if state is not StTrue
+  InPreAlarmFalse : BOOL ;	//LOG Pre-alarm if state is not StFalse
+  InStopTrueTime : BOOL ;	//Stop delay time t2
+  InStopFalseTime : BOOL ;	//Stop delay time t3
+  InpTrue : BOOL ;	//Digital input: signal 'True'; target state is StTrue
+  InpFaultDev : BOOL ;	//Digital input: fault device
+  CmdRstTrueTime : BOOL ;	//Restart delay time changing from StFalse to StTrue (t2)
+  CmdRstFalseTime : BOOL ;	//Restart delay time changing from StTrue to StFalse (t3)
+  CmdRunTimeoutTime : BOOL ;	//Run timeout time (only 1 working condition)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (automatic fault reset)
+  spare0305 : BOOL ;	//Copy of InMonTrue to detect change form InMonTrue to InMonFalse
+  InReport : BOOL ;	//Report of all state transitions
+  OutTimeoutTime : BOOL ;	//Timeout time 1 working condition active
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutPreAlarmTrue : BOOL ;	//Flag PreAlarmTrue is done
+  OutPreAlarmFalse : BOOL ;	//Flag PreAlarmFalse is done
+  OutFlagPos : BOOL ;	//Positive flag InpTrue
+  OutFlagNeg : BOOL ;	//Negative flag InpTrue
+  OutpFaultReset : BOOL ;	//Reset alarm
+  OutTrue : BOOL ;	//Copy of input signal
+  StFalse : BOOL ;	//Signal is 'False', delay time finished, monitoring is off
+  StCtoTrue : BOOL ;	//Changing to 'True', signal is 'True'
+  StTrue : BOOL ;	//Signal is 'True', delay time finished
+  StCtoFalse : BOOL ;	//Changing to 'False', signal is 'False'
+  StFault : BOOL ;	//Signal has not requested value, monitoring is active
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   spare0401 : BOOL ;	
+   Par2WorkingCond : BOOL ;	//Element has 2 defined working conditions
+   ParFaultRetry : BOOL ;	//Retry after fault with monitoring- and delay-time
+   ParBinLevel : BOOL ;	//Hold old state, if HWStop of DPFault
+   ParDelayChange : INT ;	//Delay time, if the input changes, until the element changes its state
+   ParDelayTrue : INT ;	//Time to change from StFalse to StTrue
+   ParDelayFalse : INT ;	//Time to change from StTrue to StFalse
+   ParTimeoutTrue : INT ;	//If InMonTrue: after this time state has to be 'StTrue', otherwise StFault
+   ParTimeoutFalse : INT ;	//If InMonFalse: after this time state has to be 'StFalse', otherwise StFault
+   OutMonTime : INT ;	//Actual time: monitoring
+   OutTransitionTime : INT ;	//Actual time: changing state
+   OutMonTrue : BOOL ;	//Monitoring time true is running
+   OutMonFalse : BOOL ;	//Monitoring time false is running
+   OutFlagFaultDev : BOOL ;	//Flag InpFaultDev
+   OutDelayTime : INT ;	//Actual time: DelayTime
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpAddrPara : DWORD ;	//store the Instance Pointer
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpMonFault : BOOL ;	//Global monitor fault
+  tmpMonOver : BOOL ;	//Monitoring time over
+  tmp2WorkingCond : BOOL ;	//Monitoring time over
+  tmpOutDelayDone : BOOL ;	//ParDelayTime Done
+  tmpLocalFault : BOOL ;	
+  tmpLocal : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     32; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1014; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit  [2D]
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write new commands from PC to Interface object
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParDelayChange; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParDelayTrue; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParDelayFalse; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParTimeoutTrue; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.ParTimeoutFalse; 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[2]; // CmdPreAlarmTrueOn
+      S     #InPreAlarmTrue; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; // CmdPreAlarmFalseOn
+      S     #InPreAlarmFalse; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdRstTrueTime
+      S     #CmdRstTrueTime; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdRstFalseTime
+      S     #CmdRstFalseTime; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[12]; // CmdFaultReset
+      S     #CmdRunTimeoutTime; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[2]; // CmdPreAlarmTrueOff
+      R     #InPreAlarmTrue; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[3]; // CmdPreAlarmFalseOff
+      R     #InPreAlarmFalse; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable, when nessecary
+Ctrl: U     "GCS7_Gr_OutFaultReset"; // Gr.OutFaultReset
+      S     #CmdFaultReset; 
+
+      UN    #InpTrue; 
+      U     #OutTrue; 
+      =     #OutFlagNeg; 
+      U     #InpTrue; 
+      FP    #OutTrue; 
+      =     #OutFlagPos; 
+//Local
+      U     #InLocal; 
+      =     #tmpLocalFault; //[4.0]
+      U     #tmpLocalFault; //[4.0]
+      O     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      =     #tmpLocal; 
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+
+      U     #CmdRunTimeoutTime; 
+      S     #OutTimeoutTime; 
+      R     #Par.OutMonTrue; 
+      R     #Par.OutMonFalse; 
+
+      U     #Par.Par2WorkingCond; 
+      O     #OutTimeoutTime; 
+      =     #tmp2WorkingCond; 
+NETWORK
+TITLE =Monitoring Time 2 working conditions
+
+      UN    #tmp2WorkingCond; 
+      R     #tmpMonFault; 
+      R     #Par.OutMonTrue; 
+      R     #Par.OutMonFalse; 
+      SPB   TiJ0; 
+//Positiv flag of monitoring function => Start Delay time?
+      U     #InMonTrue; 
+      FP    #Par.OutMonTrue; 
+      L     #Par.ParTimeoutTrue; 
+      SPB   M021; 
+      U     #InMonFalse; 
+      FP    #Par.OutMonFalse; 
+      O     #CmdRunTimeoutTime; 
+      L     #Par.ParTimeoutFalse; 
+      SPB   M021; 
+      SPA   M022; 
+M021: T     #Par.OutMonTime; 
+M022: L     0; 
+      L     #Par.OutMonTime; // Monitoring time over
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; // Gr.OutTick200ms  [3.1]
+      O     ; 
+      UN    #Par.OutMonTrue; //[3.4]
+      UN    #Par.OutMonFalse; //[3.4]
+      O     ; //[3.4]
+      U     #CmdRunTimeoutTime; //[3.4]
+      UN    #Par.Par2WorkingCond; //[3.4]
+//      UN    #InMonTrue              //[3.4]
+//      UN    #InMonFalse             //[3.4]
+//      UN    #OutTimeoutTime         //[3.4]
+      L     #Par.OutMonTime; 
+      SPB   MO23; 
+      +     -2; // Decrement all 200ms  [3.1]
+      T     #Par.OutMonTime; 
+MO23: L     0; 
+      <=I   ; // Check t4/t5 over
+      =     #tmpMonOver; 
+//---Condition for monitoring fault 
+      U     #InMonTrue; 
+      U     #tmpMonOver; 
+      UN    #StTrue; 
+      U(    ; //[2.9]
+      UN    #StCtoFalse; //[2.9]
+      O     #Par.Par2WorkingCond; //[2.9]
+      )     ; //[2.9]
+      O     ; 
+      U     #InMonFalse; 
+      U     #tmpMonOver; 
+      UN    #StFalse; 
+      U(    ; //[2.9]
+      UN    #StCtoTrue; //[2.9]
+      O     #Par.Par2WorkingCond; //[2.9]
+      )     ; //[2.9]
+      =     #tmpMonFault; 
+
+//--- CmdRunTimeout is Done by 1 working condition
+      U     #tmpMonOver; 
+      O     #Par.Par2WorkingCond; 
+      R     #OutTimeoutTime; 
+NETWORK
+TITLE =TransitionTime
+//--- Start DelayTime:
+TiJ0: UN    #OutFlagPos; 
+      SPB   TiJ1; 
+      L     #Par.ParDelayTrue; 
+      SPA   TiJ2; 
+TiJ1: UN    #OutFlagNeg; 
+      SPB   TiDo; 
+      L     #Par.ParDelayFalse; 
+TiJ2: L     #Par.ParDelayChange; 
+      +I    ; 
+      T     #Par.OutTransitionTime; // Set delay time and bit
+
+//--- Run DelayTime:
+TiDo: L     0; //  and time
+      L     #Par.OutTransitionTime; // Check delay time on zero
+      >=I   ; 
+      SPB   TiT2; 
+      U     #InStopTrueTime; //---Stop time: delay monitoring
+      U     #InpTrue; 
+      UN    #StFalse; 
+      UN    #StTrue; 
+      O     ; 
+      U     #InStopFalseTime; 
+      UN    #InpTrue; 
+      UN    #StFalse; 
+      UN    #StTrue; 
+      ON    "GCS7_Gr_OutTick200ms"; // Gr.OutTick200ms  [3.1]
+      SPB   TiT2; 
+      +     -2; // Decrement all 200ms  [3.1]
+      T     #Par.OutTransitionTime; // Set DelayTime
+TiT2: NOP   0; 
+
+NETWORK
+TITLE =Delay Time
+
+      U     #StFalse; 
+      U     #InpTrue; 
+      O     ; 
+      U     #StTrue; 
+      UN    #InpTrue; 
+      O     ; 
+      U     #InpFaultDev; //1+2 Working Condition
+      SPB   DTJ1; 
+      R     #tmpOutDelayDone; 
+      L     #Par.ParDelayChange; 
+      T     #Par.OutDelayTime; 
+      L     0; //[4.1]
+      >I    ; //[4.1]
+      SPB   DTJ0; //[4.1]
+DTJ1: UN    "GCS7_Gr_OutTick200ms"; // Gr.OutTick200ms  [3.1]
+      SPB   DTJ2; 
+      L     #Par.OutDelayTime; 
+      +     -2; // Decrement all 200ms  [3.1]
+      T     #Par.OutDelayTime; 
+DTJ2: L     #Par.OutDelayTime; 
+      L     0; 
+      <=I   ; // Check t4/t5 over
+      =     #tmpOutDelayDone; 
+      SPBN  DTJ0; 
+      T     #Par.OutDelayTime; 
+DTJ0: NOP   0; 
+NETWORK
+TITLE =States
+
+STAT: U     #StFalse; //===State machine===
+      R     #OutPreAlarmFalse; 
+      SPB   S0; 
+      U     #StCtoTrue; 
+      SPB   S1R; 
+      U     #StTrue; 
+      R     #OutPreAlarmTrue; 
+      SPB   S2; 
+      U     #StCtoFalse; 
+      SPB   S3A; 
+      U     #StFault; 
+      SPB   S4T; 
+//Initialise: goto StFalse or StTrue
+      UN    #InpTrue; 
+      S     #StFalse; 
+      NOT   ; 
+      S     #StTrue; 
+      SPA   STAT; 
+
+NETWORK
+TITLE =StFalse
+//---Condition for StFault 
+S0:   U     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      U     #Par.ParBinLevel; //[4.0]
+      SPB   SAVE; //[4.0]
+      U     #InMonTrue; //1Working Condition
+      UN    #InpTrue; //1Working Condition
+      UN    #tmp2WorkingCond; //1Working Condition
+      O     ; 
+      U     #InpFaultDev; //1+2 Working Condition
+      U     #tmpOutDelayDone; //[4.0]
+      O     #tmpMonFault; //2 Working Condition
+      UN    #tmpLocal; 
+      SPB   S0S4; 
+//---Condition for StTrue
+      L     #Par.ParDelayTrue; //[4.4]
+      L     0; //[4.4]
+      ==I   ; //[4.4]
+      UN    #InMonFalse; //[4.4]
+      U     #InpTrue; //[4.4]
+      R     #StFalse; //[4.4]
+      S     #StTrue; //[4.4]
+      SPB   SAVE; //[4.4]
+//---Condition for StFalse
+      UN    #InpTrue; // and InpTrue
+      ON    #tmpOutDelayDone; //[4.0]
+      SPB   SAVE; 
+//---Transition -> StCtoTrue
+      R     #StFalse; 
+      S     #StCtoTrue; 
+      SPA   SAVE; 
+//---Transition -> StFault
+S0S4: R     #StFalse; 
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StCtoTrue
+//---Condition for StFalse
+S1R:  U     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      U     #Par.ParBinLevel; //[4.0]
+      SPB   SAVE; //[4.0]
+      UN    #InpTrue; //2.5, 2.7: No hysteresis
+      SPB   S1S0; 
+//---Restart delay time
+      UN    #CmdRstTrueTime; 
+      SPB   S1R1; 
+      L     #Par.ParDelayTrue; 
+      T     #Par.OutTransitionTime; 
+//---Condition for StFault : 1 WorkCondition
+S1R1: L     #Par.OutTransitionTime; 
+      L     0; 
+      <=I   ; // Check t2 over
+      UN    #tmp2WorkingCond; 
+      U     #InMonFalse; 
+      UN    #tmpLocal; 
+      SPB   S1S4; 
+//---Condition for StFalse
+      <=I   ; // Check t2 over
+      SPB   S1S2; //-->StTrue 
+//---Condition for StFault 
+      U     #InpFaultDev; //1+2 Working Condition 
+      U     #tmpOutDelayDone; //[4.0]
+      O     #tmpMonFault; //2 Working Condition
+      UN    #tmpLocal; 
+      SPB   S1S4; 
+      SPA   SAVE; 
+//---Transition -> StTrue
+S1S2: R     #StCtoTrue; 
+      S     #StTrue; 
+      SPA   LOG1; 
+//---Transition -> StFalse
+S1S0: R     #StCtoTrue; 
+      S     #StFalse; 
+      SPA   LOG1; 
+//---Transition -> StFault
+S1S4: R     #StCtoTrue; 
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StTrue
+//---Condition for StFault 
+S2:   U     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      U     #Par.ParBinLevel; //[4.0]
+      SPB   SAVE; //[4.0]
+      U     #InMonFalse; //1Working Condition
+      U     #InpTrue; //1Working Condition
+      UN    #tmp2WorkingCond; //1Working Condition
+      O     ; 
+      U     #InpFaultDev; //1+2 Working Condition
+      U     #tmpOutDelayDone; //[4.0]
+      O     #tmpMonFault; //2 Working Condition
+      UN    #tmpLocal; 
+      SPB   S2S4; 
+//---Condition for StTrue
+      U     #InpTrue; 
+      ON    #tmpOutDelayDone; //[4.0]
+      SPB   SAVE; 
+//---Condition directly change to StFault //[4.1]
+      L     #Par.ParDelayChange; //[4.1]
+      L     0; //[4.1]
+      ==I   ; //[4.1]
+      U(    ; //[4.1]
+      L     #Par.ParDelayFalse; //[4.1]
+      ==I   ; //[4.1]
+      )     ; //[4.1]
+      U     #InMonTrue; //[4.1]
+      UN    #tmp2WorkingCond; //[4.1]
+      UN    #InLocal; //[4.1]
+      SPB   S2S4; //[4.1]
+//---Condition for StCtoFalse
+      R     #StTrue; //---Transition -> StCtoFalse
+      S     #StCtoFalse; //---Transition -> StCtoFalse
+      SPA   SAVE; 
+S2S4: R     #StTrue; //---Transition -> StFault
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StCtoFalse
+//---Condition for StFault , only 2work. condition
+//Condition for StTrue
+S3A:  U     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      U     #Par.ParBinLevel; //[4.0]
+      SPB   SAVE; //[4.0]
+      U     #InpTrue; 
+      SPB   S3A7; 
+//---Restart delay time
+      UN    #CmdRstFalseTime; 
+      SPB   S3A1; 
+      L     #Par.ParDelayFalse; // Set actual value of timer
+      T     #Par.OutTransitionTime; 
+//---Condition StFault by 1WorkCond
+S3A1: L     #Par.OutTransitionTime; 
+      L     0; 
+      <=I   ; // Check t2 over
+      UN    #tmp2WorkingCond; 
+      U     #InMonTrue; 
+      UN    #tmpLocal; 
+      SPB   S3S4; 
+//---Condition StFalse
+      <=I   ; // Check t2 over
+      SPB   S3S1; 
+//---Condition for StFault : 1+2 WorkCondition
+      U     #InpFaultDev; 
+      U     #tmpOutDelayDone; //[4.0]
+      O     #tmpMonFault; 
+      UN    #tmpLocal; 
+      SPB   S3S4; 
+      SPA   SAVE; 
+
+//---Transition -> StFalse
+S3S1: R     #StCtoFalse; 
+      S     #StFalse; 
+      SPA   LOG1; 
+//2.5:---Transition -> StTrue
+S3A7: R     #StCtoFalse; 
+      S     #StTrue; 
+      SPA   LOG1; 
+//---Transition -> StFault
+S3S4: R     #StCtoFalse; 
+      SPA   xxS4; 
+
+NETWORK
+TITLE = StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1014,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      SPA   LOG4; 
+//==Logic====
+//---Transition -> StCtoTrue            
+S4T:  U     #tmpLocalFault; 
+      U     #InpTrue; 
+      R     #StFault; 
+      S     #StTrue; //[3.10]
+      SPB   S4M; //[3.9] SPB S4S1
+//---Transition -> StCtoFalse           
+      U     #tmpLocalFault; 
+      R     #StFault; 
+      S     #StFalse; //[3.10]
+      SPB   S4M; //[3.9] SPB S4S3
+      U     #InpFaultDev; 
+      U     #tmpOutDelayDone; 
+      UN    #Par.OutFlagFaultDev; //[4.0]
+      SPB   LOG4; 
+//---Condition for StFault retry
+      UN    "GCS7_Gr_OutTick1s"; // Gr.OutTick1s [3.1]
+      ON    #OutpFaultReset; 
+      SPB   SAVE; 
+      R     #OutpFaultReset; 
+// Retry message InpFaultDev
+      U     #InpFaultDev; 
+      SPB   LOG4; 
+// Retry message Monitoring true
+      UN    #InMonTrue; 
+      SPB   S4T3; 
+      U     #InpTrue; 
+      U     #tmp2WorkingCond; 
+      SPB   S4S2; 
+      U     #InpTrue; 
+      SPB   S4S1; 
+      U     #OutTimeoutTime; 
+      O     #Par.ParFaultRetry; 
+      U     #tmp2WorkingCond; //   RetryFault only with 2WorkCondition
+      SPB   S4S3; 
+      SPA   LOG4; // by monitoring true
+
+// Retry message Monitoring false
+S4T3: UN    #InMonFalse; 
+      SPB   S4T4; 
+      UN    #InpTrue; // Input = false
+      U     #tmp2WorkingCond; 
+      SPB   S4S0; 
+      UN    #InpTrue; // Input = false
+      SPB   S4S3; 
+      U     #OutTimeoutTime; 
+      O     #Par.ParFaultRetry; 
+      U     #tmp2WorkingCond; //   RetryFault only with 2WorkCondition
+      SPB   S4S1; 
+      SPA   LOG4; // by monitoring false
+
+//---Transition -> StFalse
+S4S0: R     #StFault; 
+      S     #StCtoFalse; 
+      SPA   S4M; 
+
+//---Transition -> StTrue
+S4S2: R     #StFault; 
+      S     #StCtoTrue; 
+      SPA   S4M; 
+
+// If no monitoring function, transition to StCtoFalse 
+S4T4: UN    #InpTrue; 
+      SPB   S4S3; //-->StCtoFalse
+// If no monitoring function, transition to StCtoTrue
+//---Transition -> StCtoTrue
+S4S1: R     #StFault; 
+      S     #StCtoTrue; 
+      SPA   S4M; 
+//---Transition -> StCtoFalse
+S4S3: R     #StFault; 
+      S     #StCtoFalse; 
+//---Any Transition 
+S4M:  U     #Par.ParFaultRetry; //---Condition for Retrigger monitoring time:
+      R     #Par.OutMonTrue; 
+      R     #Par.OutMonFalse; 
+      SPA   LOG0; //   without retriggering monitoring time
+NETWORK
+TITLE =LOG Message
+
+//LOG transition to StFalse/StTrue
+LOG1: UN    #tmpReport; // Report all?
+      SPB   SAVE; 
+      U     #StTrue; 
+      L     B#(4, 2); // MessageClass Info true
+      SPB   LOG; 
+      U     #StFalse; 
+      L     B#(4, 0); // MessageClass Info flase
+      SPB   LOG; 
+      SPB   SAVE; 
+//LOG transition to fault
+LOG4: L     B#(1, 10); // MessageClass Error fault device
+      U     #InpFaultDev; 
+      =     #Par.OutFlagFaultDev; 
+      SPB   LOG; 
+      L     B#(1, 12); // MessageClass Error fault false
+      U     #InMonTrue; // by monitoring true
+      SPB   LOG; 
+      L     B#(1, 11); // MessageClass Error fault true
+      SPA   LOG; 
+//Log fault cancelled
+LOG0: L     B#(3, 9); // MessageClass Operate fault cancelled
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1014);
+
+NETWORK
+TITLE =Global End
+//===Check PreAlarm
+//---Condition for PreAlarm
+SAVE: UN    #InPreAlarmTrue; 
+      O     #OutPreAlarmTrue; 
+      O     #StTrue; 
+      O     #tmpLocal; //[4.3]
+      SPB   SAV0; 
+      S     #OutPreAlarmTrue; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1014,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     B#(1, 13); // MessageClass Error prealarm true
+      SPA   LOG; 
+//---Condition for PreAlarm
+SAV0: UN    #InPreAlarmFalse; 
+      O     #OutPreAlarmFalse; 
+      O     #StFalse; 
+      O     #tmpLocal; //[4.3]
+      SPB   SAV1; 
+      S     #OutPreAlarmFalse; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1014,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     B#(1, 14); // MessageClass Error prealarm false
+      SPA   LOG; 
+//===Clear all commands
+SAV1: CLR   ; 
+      =     #CmdRstTrueTime; 
+      =     #CmdRstFalseTime; 
+      =     #CmdRunTimeoutTime; 
+
+      UN    #InPreAlarmTrue; //[3.0]
+      R     #OutPreAlarmTrue; //[3.0]
+      UN    #InPreAlarmFalse; //[3.0]
+      R     #OutPreAlarmFalse; //[3.0]
+//===Set Output fault reset
+      U     "GCS7_Gr_OutTick1s"; // Gr.OutTick1s [3.5] [4.2]
+      UN    #StFault; //[3.2]
+      R     #OutpFaultReset; //[3.3]
+
+      UN    #InMonTrue; //[4.5]
+      UN    #InMonFalse; //[4.5]
+      O     #StFault; //[3.2]
+      O     #tmpLocal; //[3.5]
+      U     "GCS7_Gr_OutTick1s"; // Gr.OutTick1s [3.1]
+      U     #CmdFaultReset; 
+      S     #OutpFaultReset; 
+      U     "GCS7_Gr_OutTick1s"; // Gr.OutTick1s [3.5]
+      R     #CmdFaultReset; 
+
+
+//--Output for group 
+      UN    #InLocal; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+// 
+      U     #InLocal; // [3.0]
+      SPBN  STC1; 
+      U     #InpFaultDev; // [3.0]
+      UN    #InpTrue; // [4.0]
+      L     61; // [3.0]
+      SPB   STC9; //Code StFalse.FaultDev
+      U     #InpFaultDev; // [3.0]
+      U     #InpTrue; // [4.0]
+      L     63; // [3.0]
+      SPB   STC9; //Code StTrue.FaultDev
+//--------------------
+STC1: UN    #StFalse; 
+      SPB   STC2; 
+      L     41; //Code: StFalse.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StFalse.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     1; //Code: StFalse
+      SPA   STC8; 
+//--------------------
+STC2: U     #StCtoTrue; 
+      L     2; //Code: StCtoTrue
+      SPB   STC8; 
+//--------------------
+      UN    #StTrue; 
+      SPB   STC4; 
+      L     43; //Code: StTrue.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     53; //Code: StTrue.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     3; //Code: StTrue
+      SPB   STC8; 
+//--------------------
+STC4: U     #StCtoFalse; 
+      L     4; // Code: StCtoFalse
+      SPB   STC8; 
+      U     #InpFaultDev; // [3.0]
+      L     31; // [3.0]
+      SPB   STC9; // [3.0]
+      L     32; // Code: fault
+      SPA   STC9; 
+      UN    #OutPreAlarmTrue; 
+      SPB   STC9; 
+STC8: UN    #OutPreAlarmFalse; // Code: StXx.Warning [3.0]
+      UN    #OutPreAlarmTrue; // Code: StXx.Warning [3.0]
+      SPB   STC9; // Code: StXx.Warning [3.0]
+      +     10; // Code: StXx.Warning [3.0] =+10
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

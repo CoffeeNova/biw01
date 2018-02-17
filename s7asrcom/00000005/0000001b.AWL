@@ -1,0 +1,55 @@
+TYPE "CWA_UDT_Command"
+
+
+  STRUCT 	//Function key for CWA
+   CmdAcceptWt : BOOL ;	
+   CmdAbortBatch : BOOL ;	
+   CmdAbortIngr : BOOL ;	
+   Cmd43 : BOOL ;	
+   Cmd44 : BOOL ;	
+   Cmd45 : BOOL ;	
+   Cmd46 : BOOL ;	
+   Cmd47 : BOOL ;	
+   CmdStartSingleIngr : BOOL ;	
+   CmdModifyBin : BOOL ;	
+   CmdFinalEmptying : BOOL ;	
+   CmdEmptyingInterm : BOOL ;	
+   CmdManualAddReady : BOOL ;	
+   CmdNextStep : BOOL ;	
+   CmdReset : BOOL ;	
+   CmdRetry : BOOL ;	
+   CmdRestDischargeOff : BOOL ;	
+   Cmd25 : BOOL ;	
+   Cmd26 : BOOL ;	
+   Cmd27 : BOOL ;	
+   Cmd28 : BOOL ;	
+   Cmd29 : BOOL ;	
+   Cmd30 : BOOL ;	
+   Cmd31 : BOOL ;	
+   CmdSingleIngrOff : BOOL ;	
+   CmdLogIngrOff : BOOL ;	
+   CmdFeedOn : BOOL ;	
+   CmdFree : BOOL ;	
+   CmdAutomatic : BOOL ;	
+   CmdStepOff : BOOL ;	
+   CmdAutoTolOff : BOOL ;	
+   CmdDosingMonOn : BOOL ;	
+   CmdRestDischargeOn : BOOL ;	
+   CmdScrapBatch : BOOL ;	
+   Cmd10 : BOOL ;	
+   Cmd11 : BOOL ;	
+   Cmd12 : BOOL ;	
+   Cmd13 : BOOL ;	
+   Cmd14 : BOOL ;	
+   Cmd15 : BOOL ;	
+   CmdSingleIngrOn : BOOL ;	
+   CmdLogIngrOn : BOOL ;	
+   CmdFeedOff : BOOL ;	
+   CmdHold : BOOL ;	
+   CmdHand : BOOL ;	
+   CmdStepOn : BOOL ;	
+   CmdAutoTolOn : BOOL ;	
+   CmdDosingMonOff : BOOL ;	
+  END_STRUCT ;	
+END_TYPE
+

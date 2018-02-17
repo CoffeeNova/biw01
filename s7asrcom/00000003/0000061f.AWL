@@ -1,0 +1,554 @@
+	FUNCTION_BLOCK FB 420
+	TITLE =G320M PCC GRAPHIC SUPPORT
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        PCC GRAPHIC SUPPORT
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB420.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #PCC_VIS_01 : FB14;   // DigInpCont 
+	     #PCC_VIS_02 : FB14;   // DigInpCont 
+	     #PCC_VIS_03 : FB14;   // DigInpCont 
+	     #PCC_VIS_04 : FB14;   // DigInpCont 
+	     #PCC_VIS_05 : FB14;   // DigInpCont 
+	     #PCC_VIS_06 : FB14;   // DigInpCont 
+	     #PCC_VIS_07 : FB14;   // DigInpCont 
+	     #PCC_VIS_08 : FB14;   // DigInpCont 
+	     #PCC_VIS_09 : FB14;   // DigInpCont 
+	     #PCC_VIS_10 : FB14;   // DigInpCont 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[320];
+	      R   GCS7_GrCtrlDB.ParWGR[320];
+	      R   GCS7_GrCtrlDB.ParGGR[320];
+	      R   GCS7_GrCtrlDB.ParFeed[320];
+	      S   GCS7_GrCtrlDB.ParShare[320];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[320];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[320];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[320];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[320];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[320];
+	      R   #GCS7_GrCtrlDB.CmdNext[320];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[320];
+	      O   #GCS7_GrCtrlDB.OutOccupied[320];
+	      R   GCS7_GrCtrlDB.CmdManualOff[320];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[320];
+	      R   GCS7_GrCtrlDB.CmdContinue[320];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[320];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    PLC_SystemDB.HardwareStop.General;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =PCC_VIS_01 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_01.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_01.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_01.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_01.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_01.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_01.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_01.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_01;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_02 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_02.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_02.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_02.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_02.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_02.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_02.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_02.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_02;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_03 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_03.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_03.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_03.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_03.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_03.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_03.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_03.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_03;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_04 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_04.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_04.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_04.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_04.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_04.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_04.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_04.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_04;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_05 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_05.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_05.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_05.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_05.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_05.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_05.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_05.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_05;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_06 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_06.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_06.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_06.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_06.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_06.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_06.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_06.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_06;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_07 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_07.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_07.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_07.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_07.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_07.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_07.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_07.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_07;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_08 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_08.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_08.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_08.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_08.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_08.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_08.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_08.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_08;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_09 : , only for graphic support
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #PCC_VIS_09.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_09.InMonTrue; 
+	      CLR;
+	      =      #PCC_VIS_09.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #PCC_VIS_09.InPreAlarmTrue; 
+	      CLR;
+	      =      #PCC_VIS_09.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_09.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     M 009.1; 
+	      =     #PCC_VIS_09.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_09;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =PCC_VIS_10 : Groups with objects in manual mode
+	NOP 0;
+	//-InLocal---
+	      CLR;
+	      =     #PCC_VIS_10.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #PCC_VIS_10.InMonTrue; 
+	// 
+	//-PreAlarm---
+	    //  CLR
+	    //  =      #PCC_VIS_10.InPreAlarmTrue 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #PCC_VIS_10.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     "GCS7_GrCtrlDB".OutManualAny;
+	      =     #PCC_VIS_10.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #PCC_VIS_10;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #PCC_VIS_01.StFault;
+	      O     #PCC_VIS_02.StFault;
+	      O     #PCC_VIS_03.StFault;
+	      O     #PCC_VIS_04.StFault;
+	      O     #PCC_VIS_05.StFault;
+	      O     #PCC_VIS_06.StFault;
+	      O     #PCC_VIS_07.StFault;
+	      O     #PCC_VIS_08.StFault;
+	      O     #PCC_VIS_09.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      CLR;   
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[320];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[320];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[320];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[320];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[320];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[320];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[320];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[320];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[320];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[320];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

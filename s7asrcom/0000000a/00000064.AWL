@@ -1,0 +1,2286 @@
+FUNCTION_BLOCK "G095M_Code"
+TITLE =G095M BELT CONVEYOR 4500 GERM
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        BELT CONVEYOR 4500 GERM
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB195.1.0 K.Renz              CSB41                              08.Mrz.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  CHUTE_DRIVE_Fwd : BOOL ;	//Data for user
+  CHUTE_DRIVE_Rev : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_1941_MXZ01MA : "A_1941_MXZ01MA_Code";	// Motor+6DI 
+  A_1941_BFT17 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT18 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT19 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT20 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT21 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT22 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT23 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  A_1941_BFT24 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  spare582 : ARRAY  [582 .. 593 ] OF BYTE ;	
+  A_1942_BZS12 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS13 : "GCS7_E_DigInput";	// DigInpCont 
+  spare662 : ARRAY  [662 .. 831 ] OF BYTE ;	
+  A_1942_BZS11 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS16 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS17 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS18 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS19 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS20 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS23 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS24 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS25 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS26 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS27 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS28 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_BZS29 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1942_MXZ0MA : "A_1942_MXZ0MA_Code";	// Motor+6DI 
+  A_1941_QXV31 : "GCS7_E_ValveControl";	// VLS 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[95]; 
+      R     "GCS7_GrCtrlDB".ParWGR[95]; 
+      R     "GCS7_GrCtrlDB".ParGGR[95]; 
+      R     "GCS7_GrCtrlDB".ParFeed[95]; 
+      R     "GCS7_GrCtrlDB".ParShare[95]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[95]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[95]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[95]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[95]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[95]; 
+      R     "GCS7_GrCtrlDB".CmdNext[95]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[95]; 
+      UN    "MAL1S017".PCRead.Status.StaHand; 
+      UN    "MAL1S018".PCRead.Status.StaHand; 
+      UN    "MAL1S019".PCRead.Status.StaHand; 
+      UN    "MAL1S020".PCRead.Status.StaHand; 
+      UN    "MAL1S021".PCRead.Status.StaHand; 
+      UN    "MAL1S022".PCRead.Status.StaHand; 
+      UN    "MAL1S023".PCRead.Status.StaHand; 
+      UN    "MAL1S024".PCRead.Status.StaHand; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[95]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[95]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[95]
+//      O     "GCS7_GrCtrlDB".OutOccupied[95]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[95]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[95]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[95]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[95]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+//      UN    "G094M".Gr.ModePassive
+//      ON    #A_1942_BZS11.StTrue        // parkposition
+      U     "G094M".Gr.ModePassive; 
+      O     "G094M".Gr.ModeIdling; 
+      UN    #A_1942_BZS11.StTrue; // parkposition
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+// ----------------------Sollpostion help value---------------------
+// To Parkposition
+      U     "G095M".Gr.ModeIdling; //JV210410
+      SPBN  M500; //JV210410
+      L     160; 
+      T     DB195.DBW   50; 
+M500: NOP   0; //JV210410
+      U     "MAL1S017Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M517; 
+      L     170; 
+      T     DB195.DBW   50; 
+M517: NOP   0; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M518; 
+      L     180; 
+      T     DB195.DBW   50; 
+M518: NOP   0; 
+
+      U     "MAL1S019Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M519; 
+      L     190; 
+      T     DB195.DBW   50; 
+M519: NOP   0; 
+
+      U     "MAL1S020Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M520; 
+      L     200; 
+      T     DB195.DBW   50; 
+M520: NOP   0; 
+
+      U     "MAL1S021Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M521; 
+      L     210; 
+      T     DB195.DBW   50; 
+M521: NOP   0; 
+
+      U     "MAL1S022Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M522; 
+      L     220; 
+      T     DB195.DBW   50; 
+M522: NOP   0; 
+
+      U     "MAL1S023Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M523; 
+      L     230; 
+      T     DB195.DBW   50; 
+M523: NOP   0; 
+
+      U     "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      SPBN  M524; 
+      L     240; 
+      T     DB195.DBW   50; 
+M524: NOP   0; 
+
+// ------------------Istpostion help value---------------------
+// ---------Parkposition-----------
+      U     #A_1942_BZS11.StTrue; // parkposition
+      O     #A_1942_BZS11.StCtoTrue; // parkposition
+      SPBN  M535; 
+      L     160; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     50; 
+      T     DB195.DBW   54; 
+M535: NOP   0; 
+// ---------Position left side-----------
+      U     #A_1942_BZS12.StTrue; // position left side
+      O     #A_1942_BZS12.StCtoTrue; // position left side
+      SPBN  M536; 
+      L     160; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     40; 
+      T     DB195.DBW   54; 
+M536: NOP   0; 
+
+      U     #A_1942_BZS15.StTrue; 
+      O     #A_1942_BZS15.StCtoTrue; 
+      SPBN  M537; 
+      L     170; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     97; 
+      T     DB195.DBW   54; 
+M537: NOP   0; 
+
+      U     #A_1942_BZS17.StTrue; 
+      O     #A_1942_BZS17.StCtoTrue; 
+      SPBN  M538; 
+      L     180; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     238; 
+      T     DB195.DBW   54; 
+M538: NOP   0; 
+
+      U     #A_1942_BZS19.StTrue; 
+      O     #A_1942_BZS19.StCtoTrue; 
+      SPBN  M539; 
+      L     190; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     379; 
+      T     DB195.DBW   54; 
+M539: NOP   0; 
+
+      U     #A_1942_BZS21.StTrue; 
+      O     #A_1942_BZS21.StCtoTrue; 
+      SPBN  M540; 
+      L     200; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     521; 
+      T     DB195.DBW   54; 
+M540: NOP   0; 
+
+      U     #A_1942_BZS23.StTrue; 
+      O     #A_1942_BZS23.StCtoTrue; 
+      SPBN  M541; 
+      L     210; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     662; 
+      T     DB195.DBW   54; 
+M541: NOP   0; 
+
+      U     #A_1942_BZS25.StTrue; 
+      O     #A_1942_BZS25.StCtoTrue; 
+      SPBN  M542; 
+      L     220; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     804; 
+      T     DB195.DBW   54; 
+M542: NOP   0; 
+
+      U     #A_1942_BZS27.StTrue; 
+      O     #A_1942_BZS27.StCtoTrue; 
+      SPBN  M543; 
+      L     230; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     945; 
+      T     DB195.DBW   54; 
+M543: NOP   0; 
+
+      U     #A_1942_BZS29.StTrue; 
+      O     #A_1942_BZS29.StCtoTrue; 
+      SPBN  M544; 
+      L     240; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1087; 
+      T     DB195.DBW   54; 
+M544: NOP   0; 
+// ---------Position right side-----------
+      U     #A_1942_BZS13.StTrue; // position right side
+      O     #A_1942_BZS13.StCtoTrue; // position right side
+      SPBN  M545; 
+      L     250; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1134; 
+      T     DB195.DBW   54; 
+M545: NOP   0; 
+
+// --------------Inter-Istpostion help value---------------------
+// --------------Fahrtrichtung Fwd-------------------------------
+// ---------Parkposition-----------
+      U     #A_1942_BZS11.StCtoFalse; // parkposition
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M555; 
+      L     165; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     73; 
+      T     DB195.DBW   54; 
+M555: NOP   0; 
+// ---------Position left side-----------
+      U     #A_1942_BZS12.StTrue; // position left side
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M556; 
+      L     165; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     45; 
+      T     DB195.DBW   54; 
+M556: NOP   0; 
+
+      U     #A_1942_BZS15.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M557; 
+      L     175; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     167; 
+      T     DB195.DBW   54; 
+M557: NOP   0; 
+
+      U     #A_1942_BZS17.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M558; 
+      L     185; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     308; 
+      T     DB195.DBW   54; 
+M558: NOP   0; 
+
+      U     #A_1942_BZS19.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M559; 
+      L     195; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     450; 
+      T     DB195.DBW   54; 
+M559: NOP   0; 
+
+      U     #A_1942_BZS21.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M560; 
+      L     205; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     591; 
+      T     DB195.DBW   54; 
+M560: NOP   0; 
+
+      U     #A_1942_BZS23.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M561; 
+      L     215; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     733; 
+      T     DB195.DBW   54; 
+M561: NOP   0; 
+
+      U     #A_1942_BZS25.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M562; 
+      L     225; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     874; 
+      T     DB195.DBW   54; 
+M562: NOP   0; 
+
+      U     #A_1942_BZS27.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M563; 
+      L     235; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1016; 
+      T     DB195.DBW   54; 
+M563: NOP   0; 
+
+      U     #A_1942_BZS29.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M564; 
+      L     245; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1110; 
+      T     DB195.DBW   54; 
+M564: NOP   0; 
+// ---------Position right side-----------
+      U     #A_1942_BZS13.StCtoFalse; // position right side
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      SPBN  M565; 
+      L     255; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1140; 
+      T     DB195.DBW   54; 
+M565: NOP   0; 
+
+
+// --------------Inter-Istpostion help value---------------------
+// --------------Fahrtrichtung Rev-------------------------------
+// ---------Parkposition-----------
+      U     #A_1942_BZS11.StCtoFalse; // parkposition
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M575; 
+      L     155; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     45; 
+      T     DB195.DBW   54; 
+M575: NOP   0; 
+// ---------Position left side-----------
+      U     #A_1942_BZS12.StTrue; // position left side
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M576; 
+      L     155; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     35; 
+      T     DB195.DBW   54; 
+M576: NOP   0; 
+
+      U     #A_1942_BZS15.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M577; 
+      L     165; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     73; 
+      T     DB195.DBW   54; 
+M577: NOP   0; 
+
+      U     #A_1942_BZS17.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M578; 
+      L     175; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     167; 
+      T     DB195.DBW   54; 
+M578: NOP   0; 
+
+      U     #A_1942_BZS19.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M579; 
+      L     185; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     308; 
+      T     DB195.DBW   54; 
+M579: NOP   0; 
+
+      U     #A_1942_BZS21.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M580; 
+      L     195; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     450; 
+      T     DB195.DBW   54; 
+M580: NOP   0; 
+
+      U     #A_1942_BZS23.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M581; 
+      L     205; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     591; 
+      T     DB195.DBW   54; 
+M581: NOP   0; 
+
+      U     #A_1942_BZS25.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M582; 
+      L     215; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     733; 
+      T     DB195.DBW   54; 
+M582: NOP   0; 
+
+      U     #A_1942_BZS27.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M583; 
+      L     225; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     874; 
+      T     DB195.DBW   54; 
+M583: NOP   0; 
+
+      U     #A_1942_BZS29.StCtoFalse; 
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M584; 
+      L     235; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1016; 
+      T     DB195.DBW   54; 
+M584: NOP   0; 
+// ---------Position right side-----------
+      U     #A_1942_BZS13.StCtoFalse; // position right side
+//      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      SPBN  M585; 
+      L     245; 
+      T     DB195.DBW   52; 
+// Only for visualisation
+      L     1110; 
+      T     DB195.DBW   54; 
+M585: NOP   0; 
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      >I    ; 
+//      S     "G095M".CHUTE_DRIVE_Fwd
+//      R     "G095M".CHUTE_DRIVE_Rev
+      S     "G095M".CHUTE_DRIVE_Rev; 
+      R     "G095M".CHUTE_DRIVE_Fwd; 
+
+
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      <I    ; 
+//      S     "G095M".CHUTE_DRIVE_Rev
+//      R     "G095M".CHUTE_DRIVE_Fwd
+      S     "G095M".CHUTE_DRIVE_Fwd; 
+      R     "G095M".CHUTE_DRIVE_Rev; 
+
+
+
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      R     "G095M".CHUTE_DRIVE_Fwd; 
+      R     "G095M".CHUTE_DRIVE_Rev; 
+
+//--- Set Idling Time ----
+// GERM1
+      L     #Gr.InCode; 
+      L     817; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM2
+      L     #Gr.InCode; 
+      L     818; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM3
+      L     #Gr.InCode; 
+      L     819; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM4
+      L     #Gr.InCode; 
+      L     820; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM5
+      L     #Gr.InCode; 
+      L     821; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM6
+      L     #Gr.InCode; 
+      L     822; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM7
+      L     #Gr.InCode; 
+      L     823; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+      SPB   idle; 
+// GERM8
+      L     #Gr.InCode; 
+      L     824; 
+      ==I   ; 
+      L     30; // Idling Time in x Sek
+idle: T     "G095M".Gr.Par.ParIdling; 
+
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+//BRT250310      CLR   
+      U(    ; 
+      U     "MAL1S017Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G005G".Gr.OutAutostart; 
+      O     "G005G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G006G".Gr.OutAutostart; 
+      O     "G006G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S019Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G007G".Gr.OutAutostart; 
+      O     "G007G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S020Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G008G".Gr.OutAutostart; 
+      O     "G008G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G009G".Gr.OutAutostart; 
+      O     "G009G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S022Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G012G".Gr.OutAutostart; 
+      O     "G012G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S023Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G013G".Gr.OutAutostart; 
+      O     "G013G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      ON    "G014G".Gr.OutAutostart; 
+      O     "G014G".A_19_A097Z1.StFault; 
+      )     ; 
+      )     ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U(    ; 
+      U     "G110M".Gr.OutEnablePrevGr; 
+      U     "G111M".Gr.OutEnablePrevGr; 
+      UN    "G005G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G135M".Gr.OutEnablePrevGr; 
+      U     "G136M".Gr.OutEnablePrevGr; 
+      UN    "G006G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G155M".Gr.OutEnablePrevGr; 
+      U     "G156M".Gr.OutEnablePrevGr; 
+      UN    "G007G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G175M".Gr.OutEnablePrevGr; 
+      U     "G176M".Gr.OutEnablePrevGr; 
+      UN    "G008G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G195M".Gr.OutEnablePrevGr; 
+      U     "G196M".Gr.OutEnablePrevGr; 
+      UN    "G009G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G215M".Gr.OutEnablePrevGr; 
+      U     "G216M".Gr.OutEnablePrevGr; 
+      UN    "G012G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G235M".Gr.OutEnablePrevGr; 
+      U     "G236M".Gr.OutEnablePrevGr; 
+      UN    "G013G".A_19_A097Z1.StFault; 
+      O     ; 
+      U     "G255M".Gr.OutEnablePrevGr; 
+      U     "G256M".Gr.OutEnablePrevGr; 
+      UN    "G014G".A_19_A097Z1.StFault; 
+      O     #Gr.ModeIdling; 
+      )     ; 
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.UnloadingSteeping; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[1].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G095M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 1,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-1941-BFT17 : STOWING DETECTOR DISCHARGE 1
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT17.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT17.InMonCovered
+//      SET   
+//      =     #A_1941_BFT17.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT17.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT17.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT17.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT17_I1"
+//      U     "SYS_infLog0"               //BRT120310 - wird nicht gebraucht
+//      =     #A_1941_BFT17.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT17.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT17.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT17
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT18 : STOWING DETECTOR DISCHARGE 2
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT18.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT18.InMonCovered
+//      SET   
+//      =     #A_1941_BFT18.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT18.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT18.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT18.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT18_I1"
+//      CLR   
+//      =     #A_1941_BFT18.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT18.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT18.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT18
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT19 : STOWING DETECTOR DISCHARGE 3
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT19.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT19.InMonCovered
+//      SET   
+//      =     #A_1941_BFT19.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT19.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT19.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT19.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT19_I1"
+//      U     "SYS_infLog0"               //BRT120310 - wird nicht gebraucht
+//      =     #A_1941_BFT19.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT19.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT19.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT19
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT20 : STOWING DETECTOR DISCHARGE 4
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT20.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT20.InMonCovered
+//      SET   
+//      =     #A_1941_BFT20.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT20.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT20.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT20.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT20_I1"
+//      CLR   
+//      =     #A_1941_BFT20.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT20.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT20.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT20
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT21 : STOWING DETECTOR DISCHARGE 5
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT21.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT21.InMonCovered
+//      SET   
+//      =     #A_1941_BFT21.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT21.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT21.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT21.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT21_I1"
+//      U     "SYS_infLog0"               //BRT160310 - wird nicht gebraucht
+//      =     #A_1941_BFT21.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT21.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT21.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT21
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT22 : STOWING DETECTOR DISCHARGE 6
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT22.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT22.InMonCovered
+//      SET   
+//      =     #A_1941_BFT22.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT22.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT22.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT22.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT22_I1"
+//      CLR   
+//      =     #A_1941_BFT22.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT22.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT22.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT22
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT23 : STOWING DETECTOR DISCHARGE 7
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT23.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT23.InMonCovered
+//      SET   
+//      =     #A_1941_BFT23.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT23.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT23.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT23.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT23_I1"
+//      U     "SYS_infLog0"               //BRT180310
+//      =     #A_1941_BFT23.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT23.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT23.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT23
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-BFT24 : STOWING DETECTOR DISCHARGE 8
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1941_BFT24.InLocal
+//// 
+////-Monitoring---
+//      CLR   
+//      =     #A_1941_BFT24.InMonCovered
+//      SET   
+//      =     #A_1941_BFT24.InMonUncovered
+//// 
+////-PreAlarm---
+//      CLR   
+//      =     #A_1941_BFT24.InPreAlarmCovered
+//      CLR   
+//      =     #A_1941_BFT24.InPreAlarmUncovered
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1941_BFT24.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1941_BFT24_I1"
+//      CLR   
+//      =     #A_1941_BFT24.InpCovered
+//      U     "PLC_SystemDB".HardwareStop.General
+//      =     #A_1941_BFT24.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[111]
+//      =     #A_1941_BFT24.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1941_BFT24
+//// 
+////-Write outputs---
+//
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+
+NETWORK
+TITLE ==A-1941-MXZ01MA : BELT CONVEYOR 4500
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1941_MXZ01MA.Ma.InLocal; 
+//
+//-Interlocking---
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+//      UN    #A_1941_BFT17.StFault
+//      UN    #A_1941_BFT18.StFault
+//      UN    #A_1941_BFT19.StFault
+//      UN    #A_1941_BFT20.StFault
+//      UN    #A_1941_BFT21.StFault
+//      UN    #A_1941_BFT22.StFault
+//      UN    #A_1941_BFT23.StFault
+//      UN    #A_1941_BFT24.StFault
+//<====BRT160310
+      U     #Gr.OutEnableEl; 
+      =     #A_1941_MXZ01MA.Ma.InEnableFwd; 
+//
+      U     #tmpCmdNext; 
+      S     #A_1941_MXZ01MA.Ma.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_1941_MXZ01MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-1941-BSA13---
+//      CLR
+//      S     #A_1941_MXZ01MA.A_1941_BSA13.CmdRunTimeOutTime
+//-=A-1941-BZS31/32---
+//      CLR
+//      S     #A_1941_MXZ01MA.A_1941_BZS31_32.CmdRunTimeOutTime
+//-=A-1941-BZS33/34---
+//      CLR
+//      S     #A_1941_MXZ01MA.A_1941_BZS33_34.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_1941_BSA13_I1"; 
+      =     #A_1941_MXZ01MA.A_1941_BSA13.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1941_MXZ01MA.A_1941_BSA13.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1941_MXZ01MA.A_1941_BSA13.InDPFault; 
+      U     "A_1941_BZS31_32_I1"; 
+      =     #A_1941_MXZ01MA.A_1941_BZS31_32.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1941_MXZ01MA.A_1941_BZS31_32.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1941_MXZ01MA.A_1941_BZS31_32.InDPFault; 
+      U     "A_1941_BZS33_34_I1"; 
+      =     #A_1941_MXZ01MA.A_1941_BZS33_34.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1941_MXZ01MA.A_1941_BZS33_34.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1941_MXZ01MA.A_1941_BZS33_34.InDPFault; 
+      U     "A_1941_MXZ01_I1"; 
+      =     #A_1941_MXZ01MA.A_1941_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1941_MXZ01MA.A_1941_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1941_MXZ01MA.A_1941_MXZ01.InDPFault; 
+      SET   ; 
+      =     #A_1941_MXZ01MA.Mon2.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1941_MXZ01MA ;
+// 
+//-Write outputs---
+      U     #A_1941_MXZ01MA.A_1941_MXZ01.OutpRunFwd; 
+      =     "A_1941_MXZ01_O1"; 
+NETWORK
+TITLE ==A-1942-BZS12 : DISCHARGE CHUTE LEFT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS12.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS12.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS12.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS12.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS12.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS12.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS12_I1"
+      UN    "A_1942_BZS12_I1"; 
+      =     #A_1942_BZS12.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS12.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS12.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS12 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS13 : DISCHARGE CHUTE RIGHT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS13.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS13.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS13.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS13.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS13.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS13.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS13_I1"
+      UN    "A_1942_BZS13_I1"; 
+      =     #A_1942_BZS13.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS13.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS13.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS13 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-MXZ0MA : CHUTE DRIVE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      U     #A_1942_BZS11.StTrue; // parkposition   
+      =     #A_1942_MXZ0MA.Ma.InLocal; 
+
+//-Interlocking---
+// Speed Umschaltung
+      U(    ; 
+      ON    #A_1942_BZS14.StFalse; 
+      ON    #A_1942_BZS16.StFalse; 
+      ON    #A_1942_BZS18.StFalse; 
+      ON    #A_1942_BZS20.StFalse; 
+      ON    #A_1942_BZS22.StFalse; 
+      ON    #A_1942_BZS24.StFalse; 
+      ON    #A_1942_BZS26.StFalse; 
+      ON    #A_1942_BZS28.StFalse; 
+      )     ; 
+      U(    ; 
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      -I    ; 
+      SPPZ  H1H; 
+      NEGI  ; 
+H1H:  L     10; // Inter value tolerance
+      <=I   ; 
+      )     ; 
+      S     #A_1942_MXZ0MA.A_1942_MXZ01.InSlow; 
+
+      U(    ; 
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      -I    ; 
+      SPPZ  H2H; 
+      NEGI  ; 
+H2H:  L     10; // Inter value tolerance
+      >I    ; 
+      )     ; 
+      R     #A_1942_MXZ0MA.A_1942_MXZ01.InSlow; 
+// Speed Umschaltung Ende
+
+      U     "G095M".CHUTE_DRIVE_Fwd; 
+      U(    ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      O     ; 
+      UN    #A_1942_BZS11.StTrue; // parkposition
+      UN    #Gr.InOccupied; 
+      )     ; 
+      U     #A_1942_BZS12.StFalse; 
+      U     #Gr.OutEnableEl; 
+      =     #A_1942_MXZ0MA.Ma.InEnableFwd; 
+
+      U     "G095M".CHUTE_DRIVE_Rev; 
+//BRT04032010      U     "G094M".Gr.ModePassive
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      U     #A_1942_BZS13.StFalse; 
+      U     #Gr.OutEnableEl; 
+      =     #A_1942_MXZ0MA.Ma.InEnableRev; 
+
+      U     #tmpCmdNext; 
+      O     #A_1942_MXZ0MA.Ma.InEnableFwd; 
+      S     #A_1942_MXZ0MA.Ma.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      UN    #A_1942_MXZ0MA.Ma.InEnableFwd; 
+      U     #A_1942_BZS11.StTrue; // parkposition
+      =     #A_1942_MXZ0MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-1942-QYS31---
+//      CLR
+//      S     #A_1942_MXZ0MA.A_1942_QYS31.CmdRunTimeOutTime
+//-=A-1942-QYS32---
+//      CLR
+//      S     #A_1942_MXZ0MA.A_1942_QYS32.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_1942_QYS31_I1"; 
+      =     #A_1942_MXZ0MA.A_1942_QYS31.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_MXZ0MA.A_1942_QYS31.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1942_MXZ0MA.A_1942_QYS31.InDPFault; 
+      U     "A_1942_QYS32_I1"; 
+      =     #A_1942_MXZ0MA.A_1942_QYS32.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_MXZ0MA.A_1942_QYS32.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1942_MXZ0MA.A_1942_QYS32.InDPFault; 
+      U     "A_1942_YMXZ01_I1"; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunFwd; 
+      U     "A_1942_YMXZ01_I2"; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunRev; 
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunSlow; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunSlow; 
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFast; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunFast; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1942_MXZ0MA.A_1942_MXZ01.InDPFault; 
+      SET   ; 
+      =     #A_1942_MXZ0MA.Mon2.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_MXZ0MA ;
+// 
+//-Write outputs---
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+      =     "A_1942_MXZ01_O1"; 
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+      =     "A_1942_MXZ01_O2"; 
+      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunSlow; 
+      =     "A_1942_MXZ01_O3"; 
+
+NETWORK
+TITLE ==A-1942-BZS11 : DISCHARGE CHUTE PARKING POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS11.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS11.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS11.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS11.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS11.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS11.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      U     "A_1942_BZS11_I1"
+//BRT - Stop Left und Parkpos. sind zusammen, es gibt nur einen Sensor!
+      UN    "A_1942_BZS12_I1"; 
+      =     #A_1942_BZS11.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS14 : DISCHARGE CHUTE G1A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS14_I1"
+      UN    "A_1942_BZS14_I1"; 
+      =     #A_1942_BZS14.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS15 : DISCHARGE CHUTE G1B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS15.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     170; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS15_I1"
+      UN    "A_1942_BZS15_I1"; 
+      =     #A_1942_BZS15.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS16 : DISCHARGE CHUTE G2A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS16.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS16.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS16.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS16.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS16.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS16.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS16_I1"
+      UN    "A_1942_BZS16_I1"; 
+      =     #A_1942_BZS16.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS16.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS16.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS16 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS17 : DISCHARGE CHUTE G2B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS17.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     180; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS17.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS17.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS17.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS17.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS17.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS17_I1"
+      UN    "A_1942_BZS17_I1"; 
+      =     #A_1942_BZS17.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS17.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS17.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS17 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS18 : DISCHARGE CHUTE G3A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS18.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS18.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS18.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS18.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS18.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS18.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS18_I1"
+      UN    "A_1942_BZS18_I1"; 
+      =     #A_1942_BZS18.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS18.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS18.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS18 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS19 : DISCHARGE CHUTE G3B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS19.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     190; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS19.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS19.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS19.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS19.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS19.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS19_I1"
+      UN    "A_1942_BZS19_I1"; 
+      =     #A_1942_BZS19.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS19.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS19.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS19 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS20 : DISCHARGE CHUTE G4A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS20.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS20.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS20.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS20.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS20.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS20.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS20_I1"
+      UN    "A_1942_BZS20_I1"; 
+      =     #A_1942_BZS20.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS20.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS20.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS20 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS21 : DISCHARGE CHUTE G4B  IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS21.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     200; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS21.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS21.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS21.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS21.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS21_I1"
+      UN    "A_1942_BZS21_I1"; 
+      =     #A_1942_BZS21.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS21.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS21.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS22 : DISCHARGE CHUTE G5A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS22.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS22.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS22_I1"
+      UN    "A_1942_BZS22_I1"; 
+      =     #A_1942_BZS22.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS23 : DISCHARGE CHUTE G5B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS23.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     210; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS23.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS23.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS23.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS23.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS23.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS23_I1"
+      UN    "A_1942_BZS23_I1"; 
+      =     #A_1942_BZS23.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS23.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS23.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS23 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS24 : DISCHARGE CHUTE G6A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS24.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS24.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS24.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS24.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS24.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS24.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS24_I1"
+      UN    "A_1942_BZS24_I1"; 
+      =     #A_1942_BZS24.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS24.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS24.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS24 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS25 : DISCHARGE CHUTE G6B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS25.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     220; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS25.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS25.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS25.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS25.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS25.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS25_I1"
+      UN    "A_1942_BZS25_I1"; 
+      =     #A_1942_BZS25.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS25.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS25 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS26 : DISCHARGE CHUTE G7A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS26.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS26.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS26.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS26.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS26.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS26.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS26_I1"
+      UN    "A_1942_BZS26_I1"; 
+      =     #A_1942_BZS26.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS26.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS26.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS26 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS27 : DISCHARGE CHUTE G7B  IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS27.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     230; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS27.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS27.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS27.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS27.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS27.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS27_I1"
+      UN    "A_1942_BZS27_I1"; 
+      =     #A_1942_BZS27.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS27.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS27.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS27 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS28 : DISCHARGE CHUTE G8A LOW ROTARY SPEED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS28.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1942_BZS28.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS28.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS28.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS28.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS28.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS28_I1"
+      UN    "A_1942_BZS28_I1"; 
+      =     #A_1942_BZS28.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS28.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS28.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS28 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1942-BZS29 : DISCHARGE CHUTE G8B IN POSITION
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1942_BZS29.InLocal; 
+// 
+//-Monitoring---
+//BRT080310
+      U(    ; 
+      L     240; // Switch-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      )     ; 
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1942_BZS29.InMonTrue; 
+      CLR   ; 
+      =     #A_1942_BZS29.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1942_BZS29.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_1942_BZS29.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1942_BZS29.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT080310      U     "A_1942_BZS29_I1"
+      UN    "A_1942_BZS29_I1"; 
+      =     #A_1942_BZS29.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1942_BZS29.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1942_BZS29.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1942_BZS29 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1941-QXV31 : BALL VALVE SPRAY WATER OPEN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1941_QXV31.InLocal; 
+//
+//-Interlocking---
+      U     #A_1941_MXZ01MA.A_1941_MXZ01.StStartedFwd; 
+      =     #A_1941_QXV31.InEnableHN; 
+      NOT   ; 
+      =     #A_1941_QXV31.InEnableLN; 
+//
+      SET   ; 
+      S     #A_1941_QXV31.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_1941_QXV31.InSeqStop; 
+// 
+//-Read inputs---
+      UN    #A_1941_QXV31.OutpHN; 
+      =     #A_1941_QXV31.InpLN; 
+      U     #A_1941_QXV31.OutpHN; 
+      =     #A_1941_QXV31.InpHN; 
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #A_1941_QXV31.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[11]; 
+      =     #A_1941_QXV31.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1941_QXV31 ;
+// 
+//-Write outputs---
+      U     #A_1941_QXV31.OutpHN; 
+      =     "A_1941_QXV31_O1"; 
+NETWORK
+TITLE =Test Fault
+
+//====>BRT160310 - weil Fehlkonstruktion alle Staumelder ausgebaut!
+//      U     #A_1941_BFT17.StFault
+//      O     #A_1941_BFT18.StFault
+//      O     #A_1941_BFT19.StFault
+//      O     #A_1941_BFT20.StFault
+//      O     #A_1941_BFT21.StFault
+//      O     #A_1941_BFT22.StFault
+//      O     #A_1941_BFT23.StFault
+//      O     #A_1941_BFT24.StFault
+//<====BRT160310
+      O     #A_1941_MXZ01MA.Ma.StFault; 
+      O     #A_1942_BZS12.StFault; 
+      O     #A_1942_BZS13.StFault; 
+      O     #A_1942_MXZ0MA.Ma.StFault; 
+      O     #A_1942_BZS11.StFault; 
+      O     #A_1942_BZS14.StFault; 
+      O     #A_1942_BZS15.StFault; 
+      O     #A_1942_BZS16.StFault; 
+      O     #A_1942_BZS17.StFault; 
+      O     #A_1942_BZS18.StFault; 
+      O     #A_1942_BZS19.StFault; 
+      O     #A_1942_BZS20.StFault; 
+      O     #A_1942_BZS21.StFault; 
+      O     #A_1942_BZS22.StFault; 
+      O     #A_1942_BZS23.StFault; 
+      O     #A_1942_BZS24.StFault; 
+      O     #A_1942_BZS25.StFault; 
+      O     #A_1942_BZS26.StFault; 
+      O     #A_1942_BZS27.StFault; 
+      O     #A_1942_BZS28.StFault; 
+      O     #A_1942_BZS29.StFault; 
+      O     #A_1941_QXV31.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+//BRT080310      U     #A_1941_MXZ01MA.Ma.StStopped
+//BRT080310      U     #A_1942_MXZ0MA.Ma.StStopped
+//BRT080310      UN    #Gr.VarFault
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+//====>BRT080310
+//      U(    
+//      O     #A_1942_MXZ0MA.Ma.StStartedFwd
+//      O     #A_1942_MXZ0MA.Ma.StStartedRev
+//      )     
+      U(    ; 
+      L     DB195.DBW   50; // Soll-Position
+      L     DB195.DBW   52; // Ist-Position
+      ==I   ; 
+      O     "G095M".Gr.ModeIdling; //JV210410
+      )     ; 
+//      UN    #Gr.VarStopped
+//<====BRT080310
+      U     #A_1941_QXV31.StHN; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[95]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[95]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[95]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[95]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[95]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[95]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[95]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[95]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[95]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[95]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

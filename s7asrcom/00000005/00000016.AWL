@@ -1,0 +1,39 @@
+TYPE "GCS7_UDT_StatusPattern"
+
+
+  STRUCT 	
+   StaStartRelease : BOOL ;	
+   StaMixingTime : BOOL ;	
+   StaMixingTimeEnd : BOOL ;	
+   Sta03 : BOOL ;	
+   Sta04 : BOOL ;	
+   Sta05 : BOOL ;	
+   Sta06 : BOOL ;	
+   StaDPFault : BOOL ;	
+   StaHWStop : BOOL ;	
+   StaAutostartSec : BOOL ;	
+   StaAutostart : BOOL ;	
+   StaOnline : BOOL ;	
+   StaLoaded : BOOL ;	
+   StaHandAdd : BOOL ;	
+   StaEmptyingTime : BOOL ;	
+   StaStartwarning : BOOL ;	
+   StaImmediateStopASW : BOOL ;	//ASW: Summary information: Any condition is true
+   StaTransferOffASW : BOOL ;	//ASW: Summary information: Any condition is true
+   StaFeedOffASW : BOOL ;	//ASW: Summary information: Any condition is true
+   Sta23 : BOOL ;	
+   Sta24 : BOOL ;	
+   Sta25 : BOOL ;	
+   Sta26 : BOOL ;	
+   StaHLOverride : BOOL ;	//ASW: Override function is active
+   StaImmediateStop : BOOL ;	
+   StaTransferOff : BOOL ;	
+   StaFeedOff : BOOL ;	
+   StaHold : BOOL ;	
+   StaHand : BOOL ;	
+   StaStep : BOOL ;	
+   StaReset : BOOL ;	
+   StaEndOfJob : BOOL ;	
+  END_STRUCT ;	
+END_TYPE
+

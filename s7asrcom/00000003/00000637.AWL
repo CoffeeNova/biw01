@@ -1,0 +1,791 @@
+FUNCTION_BLOCK "G273M_Code"
+TITLE =G273M RECYCLING AIR LOUVER KILN 1
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        RECYCLING AIR LOUVER KILN 1
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB373.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3135_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3135_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3135_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3136_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3136_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3136_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  spare316 : ARRAY  [316 .. 571 ] OF BYTE ;	
+  A_3135_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3135_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3136_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+//KR14012010#A_3136_BZS14 : FB14;   // DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[273]; 
+      R     "GCS7_GrCtrlDB".ParWGR[273]; 
+      R     "GCS7_GrCtrlDB".ParGGR[273]; 
+      R     "GCS7_GrCtrlDB".ParFeed[273]; 
+      R     "GCS7_GrCtrlDB".ParShare[273]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[273]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[273]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[273]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[273]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[273]; 
+      R     "GCS7_GrCtrlDB".CmdNext[273]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[273]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[273]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[273]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[273]
+//      O     "GCS7_GrCtrlDB".OutOccupied[273]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[273]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[273]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[273]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[273]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      U     #A_3135_MXZ11.StNoPosition; 
+      U     #A_3136_MXZ11.StNoPosition; 
+      UN    #Gr.InOccupied; 
+      S     #Gr.CmdRestartIdling; 
+
+NETWORK
+TITLE =Prepare global flags
+
+// Zwei-Hordenbetrieb
+// Oeffnen der Recycle-Flap wenn die Temperatur vom Brenner 1 nicht ausreicht
+      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      U(    ; 
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     50; // 5,0°C weniger als Sollwert
+      -I    ; 
+      L     10; 
+      *I    ; 
+      L     "G269M".A_3191_BTE01.OutValuePc; //  Temperature Below Kiln Floor
+      >=I   ; 
+      )     ; 
+      S     "G273M".USW8; 
+
+      U(    ; 
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     50; // 5,0°C mehr als Sollwert
+      +I    ; 
+      L     10; 
+      *I    ; 
+      L     "G269M".A_3191_BTE01.OutValuePc; //  Temperature Below Kiln Floor
+      <=I   ; 
+      )     ; 
+      ON    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      R     "G273M".USW8; 
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     0; // 0.0%
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; // kilning Process finished
+      ON    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U(    ; 
+      U     "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      U     "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      SPB   PE; 
+// Zwei-Hordenbetrieb
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      SPBN  M001; 
+      L     1000; // 100.0%
+      T     #A_3135_MXZ11.InPositionMiddle; // setpoint element
+
+      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic; // setpoint from recipe
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+
+// Cooling active
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      SPBN  Rec2; 
+      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic; // setpoint from recipe
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+Rec2: NOP   0; 
+
+      SPA   En06; 
+M001: NOP   0; 
+
+// Ein-Hordenbetrieb
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      UN    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      SPBN  M002; 
+      L     1000; // 100.0%
+      L     "G272M".A_3150_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 1
+      -I    ; 
+      SPA   PE; 
+M002: NOP   0; 
+
+
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      SPBN  M003; 
+      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic; // setpoint from recipe
+      T     #A_3135_MXZ11.InPositionMiddle; // setpoint element
+
+// Bedingung fuer das Oeffnen der Recycling-Klappe 1
+// Darre 2 im Abdarrbetrieb
+      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+// Klappe offen halten, bis die Ventilatoren angehalten haben.
+      O(    ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      UN    "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      SPBN  PE; 
+      L     1000; 
+      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic; // setpoint from recipe
+      -I    ; 
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+// Klappe offen halten, bis die Ventilatoren angehalten haben.
+      U(    ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      U     "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      U     "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      SPBN  Coo2; 
+// Die Gesamte Energie von Darre 2 zur Darre 1
+      L     1000; // 100.0%
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+Coo2: NOP   0; 
+
+      L     0; // 0.0%
+      T     #A_3135_MXZ11.InPositionMiddle; // setpoint element
+
+      SPA   En06; 
+PE:   NOP   0; 
+
+      U     "G273M".A_3135_MXZ11.InManual; 
+      SPB   Man1; 
+      T     #A_3135_MXZ11.InPositionMiddle; // setpoint element
+Man1: NOP   0; 
+
+      U     "G273M".A_3136_MXZ11.InManual; 
+      SPB   Man2; 
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+Man2: NOP   0; 
+
+M003: NOP   0; 
+      SPA   En06; 
+ILO6: NOP   0; 
+      L     "MAL1S032Par".Par.ParIntProcess.TarPos_ILO_RecycAir; 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_3135_MXZ11.InPositionMiddle; // setpoint element
+      T     #A_3136_MXZ11.InPositionMiddle; // setpoint element
+En06: NOP   0; 
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3135-MXZ11I1 : LOUVER RECYCLE AIR 1 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3135_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3135_MXZ11.OutpLN; // closing  
+      =     #A_3135_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3135_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3135_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3135_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3135_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3135_MXZ11_I1"; 
+      =     #A_3135_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3135_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3135_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3135_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3135-MXZ11I2 : LOUVER RECYCLE AIR 1 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3135_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3135_MXZ11.OutpHN; // opening   
+      =     #A_3135_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3135_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3135_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3135_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3135_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3135_MXZ11_I2"; 
+      =     #A_3135_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3135_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3135_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3135_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3135-MXZ11 : LOUVER RECYCLE AIR 1
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      U     #A_3135_BZS14.StTrue; 
+      =     #A_3135_MXZ11.InLocal; 
+
+//-Interlocking---
+      UN    #Gr.OutEnableEl; 
+      =     #A_3135_MXZ11.InLN; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3135_MXZ11.CmdMiddle1; 
+      S     #A_3135_MXZ11.CmdMiddle2; 
+      S     #A_3135_MXZ11.CmdHN; 
+// 
+//-Read inputs---
+      U     "A_3135_BZS14_I1"; 
+      =     #A_3135_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3135_MXZ11.InpMiddle1; 
+      U     "A_3135_BZS15_I1"; 
+      =     #A_3135_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3135_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3135_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3135_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3135_MXZ11.OutpLN; 
+      =     "A_3135_MXZ11_O1"; 
+      U     #A_3135_MXZ11.OutpHN; 
+      =     "A_3135_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3136-MXZ11I1 : LOUVER RECYCLE AIR 2 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3136_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3136_MXZ11.OutpLN; // closing  
+      =     #A_3136_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3136_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3136_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3136_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3136_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3136_MXZ11_I1"; 
+      =     #A_3136_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3136_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3136_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3136_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3136-MXZ11I2 : LOUVER RECYCLE AIR 2 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3136_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3136_MXZ11.OutpHN; // opening
+      =     #A_3136_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3136_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3136_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3136_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3136_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3136_MXZ11_I2"; 
+      =     #A_3136_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3136_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3136_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3136_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3136-MXZ11 : LOUVER RECYCLE AIR 2
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      U     #A_3136_BZS14.StTrue; 
+      =     #A_3136_MXZ11.InLocal; 
+//
+//-Interlocking---
+      UN    #Gr.OutEnableEl; 
+      =     #A_3136_MXZ11.InLN; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3136_MXZ11.CmdMiddle1; 
+      S     #A_3136_MXZ11.CmdMiddle2; 
+      S     #A_3136_MXZ11.CmdHN; 
+// 
+//-Read inputs---
+      U     "A_3136_BZS14_I1"; 
+      =     #A_3136_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3136_MXZ11.InpMiddle1; 
+      U     "A_3136_BZS15_I1"; 
+      =     #A_3136_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3136_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3136_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3136_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3136_MXZ11.OutpLN; 
+      =     "A_3136_MXZ11_O1"; 
+      U     #A_3136_MXZ11.OutpHN; 
+      =     "A_3136_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3135-BZS14 : LOUVER RECYCLE AIR 1 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3135_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3135_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3135_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3135_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3135_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3135_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3135_BZS14_I1"; 
+      =     #A_3135_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3135_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3135_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3135_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3135-BZS15 : LOUVER RECYCLE AIR 1 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3135_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3135_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3135_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3135_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3135_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3135_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3135_BZS15_I1"; 
+      =     #A_3135_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3135_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3135_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3135_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3136-BZS14 : LOUVER RECYCLE AIR 2 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3136_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3136_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3136_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3136_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3136_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3136_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3136_BZS14_I1"; 
+      =     #A_3136_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3136_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3136_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3136_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3136-BZS14 : LOUVER RECYCLE AIR 2 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3136_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3136_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3136_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3136_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3136_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3136_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3136_BZS15_I1"; 
+      =     #A_3136_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.NotUsed11; 
+      =     #A_3136_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[91]; 
+      =     #A_3136_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3136_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3135_MXZ11I1.StFault; 
+      O     #A_3135_MXZ11I2.StFault; 
+      O     #A_3135_MXZ11.StFault; 
+      O     #A_3136_MXZ11I1.StFault; 
+      O     #A_3136_MXZ11I2.StFault; 
+      O     #A_3136_MXZ11.StFault; 
+      O     #A_3135_BZS14.StFault; 
+      O     #A_3135_BZS15.StFault; 
+      O     #A_3136_BZS14.StFault; 
+      O     #A_3136_BZS14.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3135_MXZ11.StLN; 
+      U     #A_3136_MXZ11.StLN; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[273]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[273]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[273]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[273]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[273]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[273]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[273]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[273]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[273]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[273]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

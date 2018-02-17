@@ -1,0 +1,1543 @@
+FUNCTION_BLOCK "G298M_Code"
+TITLE =G298M FRESH AIR LOUVER KILN 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        FRESH AIR LOUVER KILN 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB398.2.0 M.Wedler            AEB41                              27.Apr.2010
+//             2nd Release
+//P01_FB398.1.0 K.Renz              CSB41                              09.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3250_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3250_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3250_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3251_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3251_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3251_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3252_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3252_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3252_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3253_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3253_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3253_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3250_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3250_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3251_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3251_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3252_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3252_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3253_BZS14 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3253_BZS15 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[298]; 
+      R     "GCS7_GrCtrlDB".ParWGR[298]; 
+      R     "GCS7_GrCtrlDB".ParGGR[298]; 
+      R     "GCS7_GrCtrlDB".ParFeed[298]; 
+      R     "GCS7_GrCtrlDB".ParShare[298]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[298]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[298]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[298]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[298]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[298]; 
+      R     "GCS7_GrCtrlDB".CmdNext[298]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[298]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[298]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[298]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[298]
+//      O     "GCS7_GrCtrlDB".OutOccupied[298]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[298]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[298]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[298]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[298]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      U     #A_3250_MXZ11.StNoPosition; 
+      O     #A_3251_MXZ11.StNoPosition; 
+      O     #A_3252_MXZ11.StNoPosition; 
+      O     #A_3253_MXZ11.StNoPosition; 
+      UN    #Gr.InOccupied; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+//// das ist noch nix, muss noch bearbeitet werden
+//
+//      U(    
+//// Zu kalte Aussenluft
+//      U(    
+//      L     -500                        // -5°C
+//      L     "G269M".A_3191_BTE11.OutValuePc
+//      >I    
+//      )     
+//      O     
+//// Zu heiss unter der Horde
+//      U(    
+////JV260710      L     DB923.DBD 1670
+//      L     "MAL1S033Par".StepAct.TemperaturBelowFloor    //JV260710
+//      L     100                         // 10.0°C mehr als Sollwert
+//      +I    
+//      L     10
+//      *I    
+//      L     "G295M".A_3291_BTE01.OutValuePc
+//      <I    
+//      )     
+//      O(                                //JV260710 =====>
+//      L     "MAL1S033Par".StepAct.TemperaturBelowFloor
+//      L     650                         //65°C
+//      <I    
+//      U     "MAL1S032Par".Par.FlagProcess.ProcessActive
+//      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ
+//      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd
+//      )                                 //JV260710 <=====
+//      )     
+//      U     "MAL1S033Par".Par.FlagProcess.ProcessActive
+//      U     "SYS_infLog0"               //JVXXXXXXX  290710
+//      S     "G298M".USW8                // Klappenregelung Ein
+//
+//      U(    
+//// Zu kalte Aussenluft
+//      U(    
+//      L     -200                        // -2°C
+//      L     "G269M".A_3191_BTE11.OutValuePc
+////JV260710      <I    
+//      >I                                //JV260710
+//      )     
+//      O     
+//// Zu heiss unter der Horde
+//      U(    
+////JV260710      L     DB923.DBD 1670
+//      L     "MAL1S033Par".StepAct.TemperaturBelowFloor    //JV260710
+//      L     10
+//      *I    
+//      L     "G295M".A_3291_BTE01.OutValuePc
+//      >=I   
+//      )     
+//      )     
+//      ON    "MAL1S033Par".Par.FlagProcess.ProcessActive
+//      R     "G298M".USW8                // Klappenregelung Ein
+//
+//
+//      L     "RegDBKiln2FreshAirFlap".LMN    // Regler im OB37
+//      RND   
+//      T     "G298M".InOutValue1
+//
+//
+      SPA   zuHe; 
+// das ist noch nix, muss noch bearbeitet werden
+
+//      U(    
+// Zu kalte Aussenluft
+      U(    ; 
+      L     -500; // -5°C
+      L     "G269M".A_3191_BTE11.OutValuePc; 
+      >I    ; 
+      )     ; 
+//      O     
+////
+//      U(    
+// Zu kalte Aussenluft
+      U(    ; 
+      L     -200; // -2°C
+      L     "G269M".A_3191_BTE11.OutValuePc; 
+//JV260710      <I    
+      >I    ; //JV260710
+      )     ; 
+//      O     
+
+zuHe: NOP   0; // JV290710 =============>
+// Kaltluftklappen aufregeln, wenn die Temperatur unter der Horde zu hoch wird beim Kaltblasen der 
+// anderen Darre über den Kanal zur eigenen Horde.
+
+// Zu heiss unter der Horde
+      U(    ; 
+//JV260710      L     DB923.DBD 1670
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; //JV260710
+      L     50; // 5.0°C mehr als Sollwert
+      +I    ; 
+      L     10; 
+      *I    ; 
+      L     "G295M".A_3291_BTE01.OutValuePc; 
+      <I    ; 
+      )     ; 
+      U(    ; //JV260710 =====>
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     650; //65°C
+      <=I   ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U(    ; //JV020810
+      O(    ; //JV020810
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; //JV020810
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; //JV020810
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd; //JV020810
+      )     ; //JV020810
+      O(    ; //JV020810
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; //JV020810
+      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; //JV020810
+      )     ; //JV020810
+      )     ; //JV020810
+//      U     "SYS_infLog0"               //JVXXXXXXX  290710   vorläufig blockiert
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; //JV020810
+      U(    ; //JV050810 =====>
+      L     0; 
+      L     "MAL1S033Par".StepAct.PosFreshAirFlapBasic; // setpoint recipe
+      ==I   ; 
+      )     ; //JV050810 <===== 
+      S     "G298M".USW8; // Klappenregelung Ein
+
+
+// Zu heiss unter der Horde
+      U(    ; 
+//JV260710      L     DB923.DBD 1670
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; //JV260710
+      L     10; 
+      *I    ; 
+      L     "G295M".A_3291_BTE01.OutValuePc; 
+      >=I   ; 
+      UN    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; //JV020810
+      )     ; 
+      O     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; //JV020810
+      ON    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      O(    ; //JV050810 =====>
+      L     0; 
+      L     "MAL1S033Par".StepAct.PosFreshAirFlapBasic; // setpoint recipe
+      <I    ; 
+      O     ; 
+      L     "MAL1S033Par".StepAct.PosFreshAirFlapBasic; // setpoint recipe
+      L     -1; 
+      ==I   ; 
+      )     ; //JV050810 <===== 
+      R     "G298M".USW8; // Klappenregelung Ein
+
+
+      L     "RegDBKiln2FreshAirFlap".LMN; // Regler im OB37
+      RND   ; 
+      T     "G298M".InOutValue1; 
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+// setpoint fresh air jalousie  
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     0; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; // kinling process finished
+      ON    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+//      U     "GCS7_GrCtrlDB".InStopped[297]    // Fans
+      U     "G297M".A_3225_MXZ01MA.Ma.StStopped; 
+      U     "G297M".A_3226_MXZ01MA.Ma.StStopped; 
+      SPB   tr06; 
+      UN    "G298M".USW8; // Klappenregelung Ein
+      U(    ; //JV050810 =====>
+      L     0; 
+      L     "MAL1S033Par".StepAct.PosFreshAirFlapBasic; // setpoint recipe
+      <I    ; 
+      )     ; //JV050810 <===== 
+      O(    ; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; //JV050810
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessEnd; //JV050810
+      )     ; 
+      SPB   reg1; 
+      L     DB398.DBW   52; // Ausgang Regler
+      L     10; // convert to 0.1%                           
+      *I    ; 
+      SPA   tr06; 
+reg1: NOP   0; 
+//      L     "MAL1S033Par".Par.ParIntProcess.PosFreshAirFlapBasic    // setpoint recipe
+      L     "MAL1S033Par".StepAct.PosFreshAirFlapBasic; // setpoint recipe  //JV050810 =====>
+      L     10; 
+      *I    ; 
+      L     0; 
+      >I    ; 
+      TAK   ; 
+      SPB   tr06; //JV050810 <===== 
+      L     1000; // 100.0%
+      SPA   tr06; 
+ILO6: L     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_FreshAir; // setpoint ILO
+      L     10; // convert to 0.1%
+      *I    ; 
+tr06: NOP   0; 
+
+      U     "G298M".A_3250_MXZ11.InManual; 
+      SPB   Man1; 
+      T     #A_3250_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 1
+Man1: NOP   0; 
+
+      U     "G298M".A_3251_MXZ11.InManual; 
+      SPB   Man2; 
+      T     #A_3251_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 2
+Man2: NOP   0; 
+
+      U     "G298M".A_3252_MXZ11.InManual; 
+      SPB   Man3; 
+      T     #A_3252_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 3
+Man3: NOP   0; 
+
+      U     "G298M".A_3253_MXZ11.InManual; 
+      SPB   Man4; 
+      T     #A_3253_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 4
+Man4: NOP   0; 
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3250-MXZ11I1 : LOUVER FRESH AIR 1 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3250_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3250_MXZ11.OutpLN; 
+      =     #A_3250_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3250_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3250_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3250_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3250_MXZ11.StCtoLN; 
+      S     #A_3250_MXZ11I1.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3250_MXZ11_I1"; 
+      =     #A_3250_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3250_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3250_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3250_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3250-MXZ11I2 : LOUVER FRESH AIR 1 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3250_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3250_MXZ11.OutpHN; 
+      =     #A_3250_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3250_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3250_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3250_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3250_MXZ11.StCtoHN; 
+      S     #A_3250_MXZ11I2.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3250_MXZ11_I2"; 
+      =     #A_3250_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3250_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3250_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3250_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3250-MXZ11 : LOUVER FRESH AIR 1
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3250_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G297M".FanStandstill; 
+      )     ; 
+      =     #A_3250_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3250_MXZ11.Par.ParManual; 
+      U     #A_3250_MXZ11.InManual; 
+      SPB   man1; 
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     0; 
+      L     #A_3250_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+// Function Added, to get shure always closed in passive state
+//      U     #Gr.OutEnableEl
+      U(    ; 
+      U     #Gr.OutEnableEl; 
+      O     ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      UN    #A_3250_MXZ11.InLocal; 
+      )     ; 
+      =     #A_3250_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3250_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3250_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3250_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3250_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      L     #A_3250_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3250_MXZ11.CmdHN; 
+man1: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3250_BZS14_I1"; 
+      =     #A_3250_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3250_MXZ11.InpMiddle1; 
+      U     "A_3250_BZS15_I1"; 
+      =     #A_3250_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3250_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3250_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3250_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3250_MXZ11.OutpLN; 
+      =     "A_3250_MXZ11_O1"; 
+      U     #A_3250_MXZ11.OutpHN; 
+      =     "A_3250_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3251-MXZ11I1 : LOUVER FRESH AIR 2 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3251_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3251_MXZ11.OutpLN; 
+      =     #A_3251_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3251_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3251_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3251_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3251_MXZ11.StCtoLN; 
+      S     #A_3251_MXZ11I1.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3251_MXZ11_I1"; 
+      =     #A_3251_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3251_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3251_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3251_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3251-MXZ11I2 : LOUVER FRESH AIR 2 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3251_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3251_MXZ11.OutpHN; 
+      =     #A_3251_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3251_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3251_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3251_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3251_MXZ11.StCtoHN; 
+      S     #A_3251_MXZ11I2.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3251_MXZ11_I2"; 
+      =     #A_3251_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3251_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3251_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3251_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3251-MXZ11 : LOUVER FRESH AIR 2
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3251_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G297M".FanStandstill; 
+      )     ; 
+      =     #A_3251_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3251_MXZ11.Par.ParManual; 
+      U     #A_3251_MXZ11.InManual; 
+      SPB   man2; 
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     0; 
+      L     #A_3251_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+// Function Added, to get shure always closed in passive state
+//      U     #Gr.OutEnableEl
+      U(    ; 
+      U     #Gr.OutEnableEl; 
+      O     ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      UN    #A_3251_MXZ11.InLocal; 
+      )     ; 
+      =     #A_3251_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3251_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3251_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3251_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3251_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      L     #A_3251_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3251_MXZ11.CmdHN; 
+man2: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3251_BZS14_I1"; 
+      =     #A_3251_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3251_MXZ11.InpMiddle1; 
+      U     "A_3251_BZS15_I1"; 
+      =     #A_3251_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3251_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3251_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3251_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3251_MXZ11.OutpLN; 
+      =     "A_3251_MXZ11_O1"; 
+      U     #A_3251_MXZ11.OutpHN; 
+      =     "A_3251_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3252-MXZ11I1 : LOUVER FRESH AIR 3 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3252_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3252_MXZ11.OutpLN; 
+      =     #A_3252_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3252_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3252_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3252_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3252_MXZ11.StCtoLN; 
+      S     #A_3252_MXZ11I1.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3252_MXZ11_I1"; 
+      =     #A_3252_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3252_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3252_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3252_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3252-MXZ11I2 : LOUVER FRESH AIR 3 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3252_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3252_MXZ11.OutpHN; 
+      =     #A_3252_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3252_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3252_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3252_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3252_MXZ11.StCtoHN; 
+      S     #A_3252_MXZ11I2.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3252_MXZ11_I2"; 
+      =     #A_3252_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3252_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3252_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3252_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3252-MXZ11 : LOUVER FRESH AIR 3
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3252_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G297M".FanStandstill; 
+      )     ; 
+      =     #A_3252_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3252_MXZ11.Par.ParManual; 
+      U     #A_3252_MXZ11.InManual; 
+      SPB   man3; 
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     0; 
+      L     #A_3252_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+// Function Added, to get shure always closed in passive state
+//      U     #Gr.OutEnableEl
+      U(    ; 
+      U     #Gr.OutEnableEl; 
+      O     ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      UN    #A_3252_MXZ11.InLocal; 
+      )     ; 
+      =     #A_3252_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3252_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3252_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3252_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3252_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      L     #A_3252_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3252_MXZ11.CmdHN; 
+man3: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3252_BZS14_I1"; 
+      =     #A_3252_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3252_MXZ11.InpMiddle1; 
+      U     "A_3252_BZS15_I1"; 
+      =     #A_3252_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3252_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3252_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3252_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3252_MXZ11.OutpLN; 
+      =     "A_3252_MXZ11_O1"; 
+      U     #A_3252_MXZ11.OutpHN; 
+      =     "A_3252_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3253-MXZ11I1 : LOUVER FRESH AIR 4 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3253_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3253_MXZ11.OutpLN; 
+      =     #A_3253_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3253_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3253_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3253_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3253_MXZ11.StCtoLN; 
+      S     #A_3253_MXZ11I1.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3253_MXZ11_I1"; 
+      =     #A_3253_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3253_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3253_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3253_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3253-MXZ11I2 : LOUVER FRESH AIR 4 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3253_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3253_MXZ11.OutpHN; 
+      =     #A_3253_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3253_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3253_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3253_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      U     #A_3253_MXZ11.StCtoHN; 
+      S     #A_3253_MXZ11I2.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_3253_MXZ11_I2"; 
+      =     #A_3253_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3253_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3253_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3253_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3253-MXZ11 : LOUVER FRESH AIR 4
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3253_BZS14.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G297M".FanStandstill; 
+      )     ; 
+      =     #A_3253_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3253_MXZ11.Par.ParManual; 
+      U     #A_3253_MXZ11.InManual; 
+      SPB   man4; 
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     0; 
+      L     #A_3253_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+// Function Added, to get shure always closed in passive state
+//      U     #Gr.OutEnableEl
+      U(    ; 
+      U     #Gr.OutEnableEl; 
+      O     ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      UN    #A_3253_MXZ11.InLocal; 
+      )     ; 
+      =     #A_3253_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3253_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3253_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3253_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3253_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      L     #A_3253_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3253_MXZ11.CmdHN; 
+man4: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3253_BZS14_I1"; 
+      =     #A_3253_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3253_MXZ11.InpMiddle1; 
+      U     "A_3253_BZS15_I1"; 
+      =     #A_3253_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3253_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3253_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3253_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3253_MXZ11.OutpLN; 
+      =     "A_3253_MXZ11_O1"; 
+      U     #A_3253_MXZ11.OutpHN; 
+      =     "A_3253_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3250-BZS14 : LOUVER FRESH AIR 1 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3250_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3250_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3250_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3250_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3250_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3250_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3250_BZS14_I1"; 
+      =     #A_3250_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3250_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3250_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3250_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3250-BZS15 : LOUVER FRESH AIR 1 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3250_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3250_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3250_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3250_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3250_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3250_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3250_BZS15_I1"; 
+      =     #A_3250_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3250_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3250_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3250_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3251-BZS14 : LOUVER FRESH AIR 2 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3251_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3251_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3251_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3251_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3251_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3251_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3251_BZS14_I1"; 
+      =     #A_3251_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3251_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3251_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3251_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3251-BZS15 : LOUVER FRESH AIR 2 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3251_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3251_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3251_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3251_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3251_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3251_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3251_BZS15_I1"; 
+      =     #A_3251_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3251_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3251_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3251_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3252-BZS14 : LOUVER FRESH AIR 3 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3252_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3252_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3252_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3252_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3252_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3252_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3252_BZS14_I1"; 
+      =     #A_3252_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3252_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3252_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3252_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3252-BZS15 : LOUVER FRESH AIR 3 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3252_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3252_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3252_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3252_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3252_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3252_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3252_BZS15_I1"; 
+      =     #A_3252_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3252_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3252_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3252_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3253-BZS14 : LOUVER FRESH AIR 4 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3253_BZS14.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3253_BZS14.InMonTrue; 
+      CLR   ; 
+      =     #A_3253_BZS14.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3253_BZS14.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3253_BZS14.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3253_BZS14.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3253_BZS14_I1"; 
+      =     #A_3253_BZS14.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3253_BZS14.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3253_BZS14.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3253_BZS14 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3253-BZS15 : LOUVER FRESH AIR 4 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3253_BZS15.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3253_BZS15.InMonTrue; 
+      CLR   ; 
+      =     #A_3253_BZS15.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3253_BZS15.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3253_BZS15.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3253_BZS15.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3253_BZS15_I1"; 
+      =     #A_3253_BZS15.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3253_BZS15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3253_BZS15.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3253_BZS15 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3250_MXZ11I1.StFault; 
+      O     #A_3250_MXZ11I2.StFault; 
+      O     #A_3250_MXZ11.StFault; 
+      O     #A_3251_MXZ11I1.StFault; 
+      O     #A_3251_MXZ11I2.StFault; 
+      O     #A_3251_MXZ11.StFault; 
+      O     #A_3252_MXZ11I1.StFault; 
+      O     #A_3252_MXZ11I2.StFault; 
+      O     #A_3252_MXZ11.StFault; 
+      O     #A_3253_MXZ11I1.StFault; 
+      O     #A_3253_MXZ11I2.StFault; 
+      O     #A_3253_MXZ11.StFault; 
+      O     #A_3250_BZS14.StFault; 
+      O     #A_3250_BZS15.StFault; 
+      O     #A_3251_BZS14.StFault; 
+      O     #A_3251_BZS15.StFault; 
+      O     #A_3252_BZS14.StFault; 
+      O     #A_3252_BZS15.StFault; 
+      O     #A_3253_BZS14.StFault; 
+      O     #A_3253_BZS15.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3250_MXZ11.StLN; 
+      U     #A_3251_MXZ11.StLN; 
+      U     #A_3252_MXZ11.StLN; 
+      U     #A_3253_MXZ11.StLN; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      UN    #A_3250_MXZ11.StLN; 
+      UN    #A_3250_MXZ11.StFault; 
+      UN    #A_3250_MXZ11.StNoPosition; 
+      UN    #A_3251_MXZ11.StLN; 
+      UN    #A_3251_MXZ11.StFault; 
+      UN    #A_3251_MXZ11.StNoPosition; 
+      UN    #A_3252_MXZ11.StLN; 
+      UN    #A_3252_MXZ11.StFault; 
+      UN    #A_3252_MXZ11.StNoPosition; 
+      UN    #A_3253_MXZ11.StLN; 
+      UN    #A_3253_MXZ11.StFault; 
+      UN    #A_3253_MXZ11.StNoPosition; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[298]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[298]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[298]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[298]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[298]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[298]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[298]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[298]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[298]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[298]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

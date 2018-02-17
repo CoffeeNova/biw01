@@ -1,0 +1,264 @@
+FUNCTION_BLOCK "GCS7_E_DFCA_Log"
+TITLE =
+//
+//COPYRIGHT:    (C) 2000  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        DFCA Log Remote Parameter Modification
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB74.1.0      A. Egli             CT3                         15-Mar-2002
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MxxMAN]
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DFCA_COM
+VERSION : 1.0
+
+
+VAR_INPUT
+  ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+  ParMsgType : INT ;	//Is used for message (translation of state)
+  ParMsgFormat : INT ;	//Message Format (normaly 12)
+  A201Nom : "GCS7_E_FB73_A201";	//Nominal values read back for DFCA (Telegram A201)
+  Mode : INT ;	//Mode read form DFCA (Telegram A101)
+END_VAR
+VAR
+  StoreA201Nom : "GCS7_E_FB73_A201";	
+  tmpBit00 : BOOL ;	
+  tmpBit01 : BOOL ;	
+  tmpBit02 : BOOL ;	
+  tmpBit03 : BOOL ;	
+END_VAR
+VAR_TEMP
+  tmpRet : INT ;	
+  tmpValueNew : DWORD ;	
+  tmpValueOld : DWORD ;	
+  tmpTextNo : DINT ;	
+  tmpHeader : WORD ;	
+  tmpPara2 : WORD ;	
+  tmpObjectNo : WORD ;	
+  tmpLineNo : WORD ;	
+  tmpMsgType : WORD ;	
+  tmpGr : INT ;	
+  tmpIndex : INT ;	
+  tmpLocalMode : BOOL ;	
+  tmpPara5 : WORD ;	
+  tmpPara6 : WORD ;	
+  tmpPara7 : WORD ;	
+  tmpPara8 : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Remote Mode: Nominal Values
+
+      L     #Mode; 
+      L     1; 
+      <>I   ; 
+      SPB   Loc; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #A201Nom,
+           RET_VAL                  := #tmpRet,
+           DSTBLK                   := #StoreA201Nom);
+      BEA   ; 
+
+NETWORK
+TITLE =Local Mode: Log Parameter Modification
+
+Loc:  L     #StoreA201Nom.Pressenstrom; 
+      T     #tmpValueOld; 
+      L     #A201Nom.Pressenstrom; 
+      <>I   ; 
+      T     #StoreA201Nom.Pressenstrom; 
+      L     1; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.DosingSpeed; 
+      T     #tmpValueOld; 
+      L     #A201Nom.DosingSpeed; 
+      <>I   ; 
+      T     #StoreA201Nom.DosingSpeed; 
+      L     2; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.DosingSpeed2; 
+      T     #tmpValueOld; 
+      L     #A201Nom.DosingSpeed2; 
+      <>I   ; 
+      T     #StoreA201Nom.DosingSpeed2; 
+      L     3; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.DosingSpeed3; 
+      T     #tmpValueOld; 
+      L     #A201Nom.DosingSpeed3; 
+      <>I   ; 
+      T     #StoreA201Nom.DosingSpeed3; 
+      L     4; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.ConditionerTemperature; 
+      T     #tmpValueOld; 
+      L     #A201Nom.ConditionerTemperature; 
+      <>I   ; 
+      T     #StoreA201Nom.ConditionerTemperature; 
+      L     5; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.Liquid1; 
+      T     #tmpValueOld; 
+      L     #A201Nom.Liquid1; 
+      <>I   ; 
+      T     #StoreA201Nom.Liquid1; 
+      L     6; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.Liquid2; 
+      T     #tmpValueOld; 
+      L     #A201Nom.Liquid2; 
+      <>I   ; 
+      T     #StoreA201Nom.Liquid2; 
+      L     7; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.Liquid3; 
+      T     #tmpValueOld; 
+      L     #A201Nom.Liquid3; 
+      <>I   ; 
+      T     #StoreA201Nom.Liquid3; 
+      L     8; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.WorkingGap; 
+      T     #tmpValueOld; 
+      L     #A201Nom.WorkingGap; 
+      <>I   ; 
+      T     #StoreA201Nom.WorkingGap; 
+      L     9; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.ParameterSet; 
+      T     #tmpValueOld; 
+      L     #A201Nom.ParameterSet; 
+      <>I   ; 
+      T     #StoreA201Nom.ParameterSet; 
+      L     10; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.CapacityCooler; 
+      T     #tmpValueOld; 
+      L     #A201Nom.CapacityCooler; 
+      <>I   ; 
+      T     #StoreA201Nom.CapacityCooler; 
+      L     11; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.RetentionTime; 
+      T     #tmpValueOld; 
+      L     #A201Nom.RetentionTime; 
+      <>I   ; 
+      T     #StoreA201Nom.RetentionTime; 
+      L     12; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.BulkDensity; 
+      T     #tmpValueOld; 
+      L     #A201Nom.BulkDensity; 
+      <>I   ; 
+      T     #StoreA201Nom.BulkDensity; 
+      L     13; 
+      SPB   Log; 
+//-----------
+      L     #StoreA201Nom.Capacity100Pc; 
+      T     #tmpValueOld; 
+      L     #A201Nom.Capacity100Pc; 
+      <>I   ; 
+      T     #StoreA201Nom.Capacity100Pc; 
+      L     14; 
+      SPB   Log; 
+//-----------
+      BEA   ; 
+NETWORK
+TITLE = MESSAGE
+
+Log:  T     #tmpTextNo; 
+      TAK   ; 
+      T     #tmpValueNew; 
+      L     #ParMsgType; 
+      L     7000; 
+      <I    ; 
+      SPB   NORM; 
+//MELE
+      L     #ParObjectNo; // Change type INT --> WORD
+      L     100; 
+      /I    ; 
+      T     #tmpGr; 
+      SRD   16; 
+      T     #tmpIndex; 
+      L     #tmpGr; 
+      SLW   8; 
+      OW    ; 
+      T     #tmpObjectNo; 
+
+      L     3; //Message Class  
+      SLW   5; 
+      L     #ParMsgFormat; // add MessageFormatNo
+      +I    ; 
+      T     #tmpHeader; //-> Header=Format := Class ¦ MsgFormatNo
+      L     #tmpTextNo; // Load: HighByte= Class ¦ Low Byte= TextNo (8 Bit)
+      T     #tmpPara2; //-->Para2 := MsgType ¦ TextNo
+      SPA   SND; 
+
+//Standard GCS90
+NORM: L     #ParObjectNo; // Change type INT --> WORD
+      T     #tmpObjectNo; 
+      L     3; // Load: HighByte= Class ¦ Low Byte= TextNo (8 Bit)
+      SLW   5; 
+      L     #ParMsgFormat; // add MessageFormatNo
+      +I    ; 
+      T     #tmpHeader; //-> Header=Format := Class ¦ MsgFormatNo
+      L     #tmpTextNo; // Load: HighByte= Class ¦ Low Byte= TextNo (8 Bit)
+      L     #ParMsgType; 
+      SLW   8; 
+      OW    ; 
+      T     #tmpPara2; //-->Para2 := MsgType ¦ TextNo
+SND:  L     "GCS7_Gr_OutLine"; 
+      T     #tmpLineNo; 
+      L     #ParMsgType; 
+      T     #tmpMsgType; 
+      L     #tmpValueOld; 
+      T     #tmpPara6; 
+      SRD   16; 
+      T     #tmpPara5; 
+      L     #tmpValueNew; 
+      T     #tmpPara8; 
+      SRD   16; 
+      T     #tmpPara7; 
+
+      CALL "SYS_LOG_EntryQueue" (//---Call Message Entry---
+           DBNumber                 := 5,// Queue DB Number                
+           Header                   := #tmpHeader,// Format
+           Para1                    := #tmpObjectNo,// ObjectNumber
+           Para2                    := #tmpPara2,// MsgType ¦ TextNo
+           Para3                    := #tmpLineNo,// Line
+           Para4                    := #tmpMsgType,// MsgType S7
+           Para5                    := #tmpPara5,// Old Value
+           Para6                    := #tmpPara6,// Old Value  
+           Para7                    := #tmpPara7,// New Valu7
+           Para8                    := #tmpPara8,// New Value 
+           Para9                    := W#16#0,// not used 
+           Para10                   := W#16#0,// not used 
+           Para11                   := W#16#0);// not used
+END_FUNCTION_BLOCK
+

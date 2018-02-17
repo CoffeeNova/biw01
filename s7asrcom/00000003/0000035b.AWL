@@ -1,0 +1,77 @@
+	ORGANIZATION_BLOCK OB36
+	TITLE =Interrupt 10ms
+	//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      PLC1BIW01_02
+	//
+	//TITLE:        Interrupt 10 ms
+	//
+	//              Weckalarm 10 ms
+	//              
+	//
+	//--------------------------------------------------------------------------------
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P0091.1.0 K.Renz              CSB41                              30.Sep.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE:      
+	//
+	//RESTRICTIONS: 
+	//
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY : GEN
+	VERSION : 9.9
+	CODE_VERSION1
+	
+	
+	VAR_TEMP
+	  OB36_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+	  OB36_STRT_INF : BYTE ;	//16#37 (OB 36 has started)
+	  OB36_PRIORITY : BYTE ;	//Priority of OB Execution
+	  OB36_OB_NUMBR : BYTE ;	//36 (Organization block 36, OB36)
+	  OB36_RESERVED_1 : BYTE ;	//Reserved for system
+	  OB36_RESERVED_2 : BYTE ;	//Reserved for system
+	  OB36_PHS_OFFSET : INT ;	//Phase offset (integer, milliseconds)
+	  OB36_RESERVED_3 : INT ;	//Reserved for system
+	  OB36_EXC_FREQ : INT ;	//Frequency of execution (msec)
+	  OB36_DATE_TIME : DATE_AND_TIME ;	//Date and time OB36 started
+	  tmpFlag00 : BOOL ;    
+	  tmpFlag01 : BOOL ;    
+	  tmpFlag02 : BOOL ;    
+	  tmpFlag03 : BOOL ;    
+	  tmpFlag04 : BOOL ;    
+	  tmpFlag05 : BOOL ;    
+	  tmpFlag06 : BOOL ;    
+	  tmpFlag07 : BOOL ;    
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =RESTRICTION
+	//!!! Do NOT use any scratch flags in that interrupt-OB !!!
+	
+	NETWORK
+	TITLE =Set Fast Call Flag
+	
+	      SET   ; 
+	      =     "GCS7_Gr_OutCallFast2"; //is set in time OB
+	
+	NETWORK
+	TITLE =Fast Call Linak
+	      CALL FB 406 , DB 406; // Group G306M DMBG DISCHARGER KILN MALT TRANSFER
+		
+	NETWORK
+	TITLE =Reset Fast Call Flag
+	
+	      CLR   ; 
+	      =     "GCS7_Gr_OutCallFast2"; //is set in time OB
+		NETWORK
+	TITLE =End of block
+	
+	      BE    ; 
+	
+	END_ORGANIZATION_BLOCK

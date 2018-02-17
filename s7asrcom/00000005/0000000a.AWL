@@ -1,0 +1,52 @@
+TYPE UDT 20500
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnableRev : BOOL ;	//Enable to run the motor reverse   
+   InEnableFwd : BOOL ;	//Enable to run the motor forward
+   InOverrideHLOutlet : BOOL ;	//Ignor HL outlet =Mon1
+   spare0203 : BOOL ;	
+   spare0204 : BOOL ;	
+   spare0205 : BOOL ;	
+   spare0206 : BOOL ;	
+   InpLocked : BOOL ;	//Machine is not available
+   CmdOff : BOOL ;	//Pulse to stop motor immediately in manual mode
+   CmdOn : BOOL ;	//Pulse to start in manual mode
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   spare0306 : BOOL ;	
+   InSeqStop : BOOL ;	//Stop automatically after idling time
+   OutWarning : BOOL ;	//Warning Element HlInlet not in StTrue
+   spare0401 : BOOL ;	
+   spare0402 : BOOL ;	
+   spare0403 : BOOL ;	
+   spare0404 : BOOL ;	
+   spare0405 : BOOL ;	
+   spare0406 : BOOL ;	
+   spare0407 : BOOL ;	
+   StStopped : BOOL ;	//Motor is stopped
+   StStarting : BOOL ;	//Motor is starting
+   StStartedFwd : BOOL ;	//Motor is started forward: Next Element can start
+   StStopping : BOOL ;	//Motor is stopping
+   StFault : BOOL ;	//Machine has a fault
+   StStartedRev : BOOL ;	//Machine is started reverse: Next Element can start
+   StLocked : BOOL ;	//Machine is external locked
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    ParWithMon3 : BOOL  := TRUE;	//With monitoring element Mon3
+    ParWithMon4 : BOOL  := TRUE;	//With monitoring element Mon4 
+    ParMon1IsHL : BOOL ;	//Mon1 is a high level
+    ParMon1IsLS : BOOL ;	//Mon1 is controlled a limit switch
+    ParMon1StopByFault : BOOL  := TRUE;	//Mon1 stops motor by fault
+    ParMon2IsLS : BOOL ;	//Mon2 is controlled a limit switch
+    ParMon3IsLS : BOOL ;	//Mon3 is controlled a limit switch
+    ParMon4AsWarning : BOOL ;	//Mon4 is only a Warning Element
+    ParMon4StopByFault : BOOL ;	//Mon4 stops motor by fault
+    ParMon4IsLS : BOOL ;	//Mon4 is controlled a limit switch
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

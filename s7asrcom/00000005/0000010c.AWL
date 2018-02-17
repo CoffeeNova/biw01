@@ -1,0 +1,360 @@
+FUNCTION_BLOCK "GCS7_E_Maintanance1"
+TITLE =Maintenance_1
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control Maintenance 1
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB30.2.1      A. Egli             CT3                         18-Aug-2003
+//              FDefineValue 
+//FB30.2.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB30.1.1      A.Egli              CT3                         04-Mar-2002
+//              Reset CmdFaultReset
+//FB30.1.0      A.Egli              CT3                         20-Mar-2000
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MAIN1xxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//1   Counter cleared
+//9   fault cancelled
+//11  fault 
+//12  warning 
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+// 32   StFault        
+//  2   StWarning      
+//  3   StNormal       
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Maintena
+VERSION : 2.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  spare0200 : BOOL ;	
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  InpFault : BOOL ;	//Input to count OutFaultCnt
+  InpCount : BOOL ;	//Input to count OutValue
+  spare0207 : BOOL ;	
+  CmdClearValue : BOOL ;	//Clear values
+  spare0301 : BOOL ;	
+  spare0302 : BOOL ;	
+  CmdFaultReset : BOOL ;	//Command fault reset
+  spare0304 : BOOL ;	
+  spare0305 : BOOL ;	
+  spare0306 : BOOL ;	
+  spare0307 : BOOL ;	
+  OutCopyCount : BOOL ;	//Copy of InpCount
+  OutCopyFault : BOOL ;	//Copy of InpFault
+  spare0402 : BOOL ;	
+  spare0403 : BOOL ;	
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  spare0406 : BOOL ;	
+  spare0407 : BOOL ;	
+  spare0500 : BOOL ;	
+  spare0501 : BOOL ;	
+  StNormal : BOOL ;	//OutValue < InWarningValue
+  StWarning : BOOL ;	//OutValue >=InWarningValue
+  StFault : BOOL ;	//OutValue >=InFaultValue
+  spare0505 : BOOL ;	
+  spare0506 : BOOL ;	
+  spare0507 : BOOL ;	
+  InFaultLimit : DINT ;	//Limit for fault           [0.1h] or [number]
+  InWarningLimit : DINT ;	//Limit for warning         [0.1h] or [number]
+  OutValue : DINT ;	//Actual maintenance value  [0.1h] or [number]
+  OutFaultCnt : INT ;	//Number of fault of monitored object [number]
+  OutCountSec : INT ;	//Help value to count second
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParSpare0401 : BOOL ;	
+   ParEdgeCnt : BOOL ;	//Type is flag counter
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpLocal : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpFault : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     30; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1830; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue     //[2.1]
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter
+pPar: NOP   0; 
+// Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8] =CmdClearValue
+      S     #CmdClearValue; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; //PCControl.Value[1]
+      L     DBD [AR1,P#6.0]; //PCControl.Value[x+3]
+      T     #InFaultLimit; 
+      L     DBD [AR1,P#10.0]; //PCControl.Value[x+5]
+      T     #InWarningLimit; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+
+NETWORK
+TITLE = All State Init
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//===Clear tmp Variable
+      UN    #CmdClearValue; 
+      SPB   glJ1; 
+      L     0; 
+      T     #OutValue; 
+      T     #OutFaultCnt; 
+      T     #OutCountSec; 
+      O     #Par.ParLogOff; //---Set LOG Message
+      SPB   glJ1; 
+      L     B#(3, 7); // Message ('Value Cleared' )
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1030);
+
+//===Global Group Orders===
+//==Count Edges
+glJ1: UN    #Par.ParEdgeCnt; 
+      SPB   glJ2; 
+      U     #InpCount; 
+      FP    #OutCopyCount; 
+      SPB   glIc; 
+      SPA   glJ4; 
+//==Running time
+glJ2: UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1s
+      ON    #InpCount; 
+      SPB   glJ4; 
+      L     #OutCountSec; 
+      +     1; 
+      T     #OutCountSec; 
+      L     360; 
+      <I    ; 
+      SPB   glJ4; 
+glIc: L     #OutValue; 
+      +     L#1; 
+      T     #OutValue; 
+      L     0; 
+      T     #OutCountSec; 
+//==Count faults
+glJ4: NOP   0; 
+      U     #InpFault; 
+      FP    #OutCopyFault; 
+      SPBN  glJ5; 
+      L     #OutFaultCnt; 
+      +     1; 
+      T     #OutFaultCnt; 
+//===Help flags
+glJ5: NOP   0; 
+      L     #OutValue; 
+      L     #InWarningLimit; 
+      >=D   ; 
+      U(    ; 
+      L     0; 
+      <>D   ; 
+      )     ; 
+      =     #tmpWarning; 
+      L     #OutValue; 
+      L     #InFaultLimit; 
+      >=D   ; 
+      U(    ; 
+      L     0; 
+      <>D   ; 
+      )     ; 
+      =     #tmpFault; 
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StNormal; 
+      SPB   S2; 
+      U     #StWarning; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StNormal; // Init
+      SPA   S2; 
+
+NETWORK
+TITLE =StNormal
+// Any transition to StNormal
+      S     #StNormal; 
+      SPA   LOG; 
+//=== Logic ====
+//Transition to StFault
+S2:   U     #tmpFault; 
+      R     #StNormal; 
+      SPB   xxS4; 
+//Transition to StWarning
+      U     #tmpWarning; 
+      R     #StNormal; 
+      SPB   xxS3; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StWarning
+// Any transition to StWarning
+xxS3: S     #StWarning; 
+      L     B#(1, 12); // Message ('Warning')
+      SPA   LOG; 
+//=== Logic ====
+// Transition to StFault
+S3:   U     #tmpFault; 
+      R     #StWarning; 
+      SPB   xxS4; 
+//  Retry message
+      U     #CmdFaultReset; 
+      O     "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      U     #tmpWarning; 
+      SPB   xxS3; 
+// Transition to StNormal
+      U     #tmpWarning; 
+      SPB   OUT; 
+      R     #StWarning; 
+      S     #StNormal; 
+      L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG; 
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      S     #StFault; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1030,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     B#(1, 11); // Message ('fault')
+      SPA   LOG; 
+
+//=== Logic ====
+// retry of fault message
+S4:   U     #CmdFaultReset; 
+      O     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      U     #tmpFault; 
+      L     B#(1, 11); // Message ('fault')
+      SPB   LOG; 
+      U     #tmpFault; 
+      SPB   OUT; 
+      R     #StFault; 
+      S     #StNormal; 
+      L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG; 
+
+NETWORK
+TITLE =LOG
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1030);
+
+NETWORK
+TITLE =Global End
+
+OUT:  SET   ; 
+      R     #CmdClearValue; 
+      R     #CmdFaultReset; //[1.1]
+NETWORK
+TITLE =State Code
+
+      L     2; // Code: Warning
+      U     #StWarning; 
+      SPB   STC; 
+      L     3; // Code: Normal
+      U     #StNormal; 
+      SPB   STC; 
+      L     32; // Code: fault
+STC:  L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,131 @@
+	DATA_BLOCK DB102
+	TITLE =DBG002G  Contactor panel power supply 1
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Contactor panel power supply 1
+	//                General group DB
+	//                Allgemeine Gruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB102.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG002G 
+	VERSION : 00.00
+	
+	FB102
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=200; 
+	      #Gr.Par.ParIdling      	:=0; 
+	      #Gr.Par.ParMgr	        :=False; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=True; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=98;
+	//Parameter G_POWER_M10 : Power supply panel +M10
+	      #G_POWER_M10.Par.ParObjectNo                             :=201;
+	      #G_POWER_M10.Par.ParMsgType                              :=7135;
+	      #G_POWER_M10.Par.ParHornCode                             :=0;
+	      #G_POWER_M10.Par.ParDelayChange                          :=0;
+	      #G_POWER_M10.Par.ParDelayTrue                            :=10;
+	      #G_POWER_M10.Par.ParDelayFalse                           :=0;
+	      #G_POWER_M10.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_M10.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_M10.Par.ParLogOff                               :=False;
+	      #G_POWER_M10.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_M10.Par.ParFaultRetry                           :=False;
+	      #G_POWER_M10.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_POWER_Mx1 : Power supply panel x
+	      #G_POWER_Mx1.Par.ParObjectNo                             :=202;
+	      #G_POWER_Mx1.Par.ParMsgType                              :=7135;
+	      #G_POWER_Mx1.Par.ParHornCode                             :=0;
+	      #G_POWER_Mx1.Par.ParDelayChange                          :=0;
+	      #G_POWER_Mx1.Par.ParDelayTrue                            :=10;
+	      #G_POWER_Mx1.Par.ParDelayFalse                           :=0;
+	      #G_POWER_Mx1.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_Mx1.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_Mx1.Par.ParLogOff                               :=False;
+	      #G_POWER_Mx1.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_Mx1.Par.ParFaultRetry                           :=False;
+	      #G_POWER_Mx1.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_POWER_Mx2 : Power supply panel x
+	      #G_POWER_Mx2.Par.ParObjectNo                             :=203;
+	      #G_POWER_Mx2.Par.ParMsgType                              :=7135;
+	      #G_POWER_Mx2.Par.ParHornCode                             :=0;
+	      #G_POWER_Mx2.Par.ParDelayChange                          :=0;
+	      #G_POWER_Mx2.Par.ParDelayTrue                            :=10;
+	      #G_POWER_Mx2.Par.ParDelayFalse                           :=0;
+	      #G_POWER_Mx2.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_Mx2.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_Mx2.Par.ParLogOff                               :=False;
+	      #G_POWER_Mx2.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_Mx2.Par.ParFaultRetry                           :=False;
+	      #G_POWER_Mx2.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_POWER_Mx3 : Power supply panel x
+	      #G_POWER_Mx3.Par.ParObjectNo                             :=204;
+	      #G_POWER_Mx3.Par.ParMsgType                              :=7135;
+	      #G_POWER_Mx3.Par.ParHornCode                             :=0;
+	      #G_POWER_Mx3.Par.ParDelayChange                          :=0;
+	      #G_POWER_Mx3.Par.ParDelayTrue                            :=10;
+	      #G_POWER_Mx3.Par.ParDelayFalse                           :=0;
+	      #G_POWER_Mx3.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_Mx3.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_Mx3.Par.ParLogOff                               :=False;
+	      #G_POWER_Mx3.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_Mx3.Par.ParFaultRetry                           :=False;
+	      #G_POWER_Mx3.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_POWER_Mx4 : Power supply panel x
+	      #G_POWER_Mx4.Par.ParObjectNo                             :=205;
+	      #G_POWER_Mx4.Par.ParMsgType                              :=7135;
+	      #G_POWER_Mx4.Par.ParHornCode                             :=0;
+	      #G_POWER_Mx4.Par.ParDelayChange                          :=0;
+	      #G_POWER_Mx4.Par.ParDelayTrue                            :=10;
+	      #G_POWER_Mx4.Par.ParDelayFalse                           :=0;
+	      #G_POWER_Mx4.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_Mx4.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_Mx4.Par.ParLogOff                               :=False;
+	      #G_POWER_Mx4.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_Mx4.Par.ParFaultRetry                           :=False;
+	      #G_POWER_Mx4.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter G_POWER_Mx5 : Power supply panel x
+	      #G_POWER_Mx5.Par.ParObjectNo                             :=206;
+	      #G_POWER_Mx5.Par.ParMsgType                              :=7135;
+	      #G_POWER_Mx5.Par.ParHornCode                             :=0;
+	      #G_POWER_Mx5.Par.ParDelayChange                          :=0;
+	      #G_POWER_Mx5.Par.ParDelayTrue                            :=10;
+	      #G_POWER_Mx5.Par.ParDelayFalse                           :=0;
+	      #G_POWER_Mx5.Par.ParTimeoutTrue                          :=0;
+	      #G_POWER_Mx5.Par.ParTimeoutFalse                         :=0;
+	      #G_POWER_Mx5.Par.ParLogOff                               :=False;
+	      #G_POWER_Mx5.Par.Par2WorkingCond                         :=False;
+	      #G_POWER_Mx5.Par.ParFaultRetry                           :=False;
+	      #G_POWER_Mx5.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

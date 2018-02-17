@@ -1,0 +1,40 @@
+	DATA_BLOCK DB2007
+	TITLE =Section Log Step Values DB : STEEPING ROW 3 (ST17-24)
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section Log Step Values : STEEPING ROW 3 (ST17-24)
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB897.1.0 K.Renz              CSB41                       21.Okt.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	VERSION : 0.0
+	"SSA_MH_Step_Values"
+	BEGIN
+	END_DATA_BLOCK

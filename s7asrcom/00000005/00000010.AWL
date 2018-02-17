@@ -1,0 +1,40 @@
+TYPE "GCS7_FB12_Communication"
+VERSION : 0.1
+
+
+  STRUCT 	
+   InEnableRev : BOOL ;	//Enable to run the element reverse   
+   InEnableFwd : BOOL ;	//Enable to run the element forward
+   InSlow : BOOL ;	//Speed mode: 1= slow / 0= fast
+   InpRunSlow : BOOL ;	//Digital input: 1= element is running slow
+   InpRunFast : BOOL ;	//Digital input: 1= element is running fast
+   InpRunRev : BOOL ;	//Digital input: 1= element is running reverse
+   InpRunFwd : BOOL ;	//Digital input: 1= element is running forward
+   InpFaultDev : BOOL ;	//Digital input: 1= overload or fault frequency converter
+   CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+   CmdOn : BOOL ;	//Pulse to start the element immediately (manual mode)
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   InReport : BOOL ;	//Report of all state transitions
+   InSeqStop : BOOL ;	//Stop automatically after idling time
+   InHWStop : BOOL ;	//HW stop is detected, no fault
+   InDPFault : BOOL ;	//DP-Fault is detected, no fault
+   OutIdling : BOOL ;	//Idling is active
+   OutpRunSlow : BOOL ;	//Digital output to run slow
+   OutpRunFast : BOOL ;	//Digital output to run fast
+   OutpRunRev : BOOL ;	//Digital output to run reverse
+   OutpRunFwd : BOOL ;	//Digital output to run forward
+   spare0407 : BOOL ;	
+   StStopped : BOOL ;	//Element is stopped
+   StStarting : BOOL ;	//Element is starting
+   StStartedFwd : BOOL ;	//Element is started forward: Next element can start
+   StStopping : BOOL ;	//Element is stopping
+   StFault : BOOL ;	//Element has a fault
+   StStartedRev : BOOL ;	//Element is started reverse: Next Element can start
+   InOutManSlow : BOOL ;	//Manual speed mode: 1= slow / 0= fast
+   InOutManRev : BOOL ;	//Manual direction mode: 1= reverse / 0= forward
+  END_STRUCT ;	
+END_TYPE
+

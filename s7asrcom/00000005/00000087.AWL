@@ -1,0 +1,837 @@
+FUNCTION_BLOCK "GCS7_M_PressureVessel"
+TITLE =Pressure Vessel Conveying system
+//  
+//COPYRIGHT:    (C) 1999  BUEHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 68 Machine Control:Pressure Vessel Conveying System
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB68.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB68.3.2      A. Egli             CT3                         18-Apr-2000
+//              Clearing time only if not InMinPrssure
+//FB68.3.1      A. Egli             CT3                          2-Dec-1999
+//              Conditon for RecycValve1 and RecycValve2
+//FB68.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced
+//FB68.2A       A. Egli             CT3                         04-Mai-1999
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.TAKxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : PulsePha
+VERSION : 4.0
+
+
+VAR
+  Ma : "GCS7_M_FB68_Data";	
+  ConvValve1 : "GCS7_E_ValveControl";	//Element
+  FluidValve1 : "GCS7_E_ValveControl";	//Element
+  InletValve1 : "GCS7_E_ValveControl";	//Element
+  RecycValve1 : "GCS7_E_ValveControl";	//Element
+  OutletValve : "GCS7_E_ValveControl";	//Element
+  Vibro : "GCS7_E_DigOutput";	//Element
+  ConvValve2 : "GCS7_E_ValveControl";	//Element
+  FluidValve2 : "GCS7_E_ValveControl";	//Element
+  InletValve2 : "GCS7_E_ValveControl";	//Element
+  RecycValve2 : "GCS7_E_ValveControl";	//Element
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpVKE : BOOL ;	
+  tmpEnableConveying : BOOL ;	//General condition for conveying Valve
+  tmpAirOK : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     42; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2068; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParDelayFluidTime; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParMinConveyingTime; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Ma.Par.ParPulseBothTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Ma.Par.ParPulseFluidOnlyTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Ma.Par.ParClearingTime; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Ma.Par.ParPulseCnt; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //CmdOff   
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //CmdConveying
+      S     #Ma.CmdConveying; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //CmdFilling1
+      S     #Ma.CmdFilling2; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[15]; //CmdFilling1
+      S     #Ma.CmdFilling1; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[0]; //CmdPulsing
+      S     #Ma.CmdPulsing; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //CmdManualOff
+      R     #Ma.InManual; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; ///Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+//Fault 
+      O     #ConvValve1.StFault; 
+      O     #FluidValve1.StFault; 
+      O     #InletValve1.StFault; 
+      O     #RecycValve1.StFault; 
+      O     #OutletValve.StFault; 
+      O     #Vibro.StFault; 
+      O     #ConvValve2.StFault; 
+      O     #FluidValve2.StFault; 
+      O     #InletValve2.StFault; 
+      O     #RecycValve2.StFault; 
+      =     #Ma.OutFault; 
+
+//Local
+      U(    ; 
+      U     #OutletValve.StLN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      )     ; 
+      U(    ; 
+      U     #RecycValve1.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      )     ; 
+      U     #InletValve1.StLN; 
+      U     #ConvValve1.StLN; 
+      U     #FluidValve1.StLN; 
+      U(    ; 
+      U     #RecycValve2.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      U     #InletValve2.StLN; 
+      U     #ConvValve2.StLN; 
+      U     #FluidValve2.StLN; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      S     #ConvValve1.InLocal; 
+
+      UN    #Ma.InLocal; 
+      O     #Ma.InManual; 
+      R     #ConvValve1.InLocal; 
+      U     #ConvValve1.InLocal; 
+      =     #FluidValve1.InLocal; 
+      =     #InletValve1.InLocal; 
+      =     #RecycValve1.InLocal; 
+      =     #OutletValve.InLocal; 
+      =     #Vibro.InLocal; 
+      =     #ConvValve2.InLocal; 
+      =     #FluidValve2.InLocal; 
+      =     #InletValve2.InLocal; 
+      =     #RecycValve2.InLocal; 
+//Enable 
+      UN    #Ma.InLocal; 
+      O     #Ma.InManual; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+//Temp flag
+      U     #Ma.InAirOk; 
+      O     #Ma.InManual; 
+      =     #tmpAirOK; 
+
+//Manual filling
+      U     #Ma.CmdFilling1; 
+      S     #Ma.Par.OutManFilling1; 
+      U     #Ma.CmdFilling2; 
+      S     #Ma.Par.OutManFilling2; 
+
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      O     #Ma.CmdConveying; 
+      R     #Ma.Par.OutManFilling1; 
+      R     #Ma.Par.OutManFilling2; 
+
+
+NETWORK
+TITLE =Call ConvValve1
+
+      CALL #ConvValve1 ;
+
+NETWORK
+TITLE =Call FluidValve1
+
+      CALL #FluidValve1 ;
+
+NETWORK
+TITLE =Call InletValve
+
+      CALL #InletValve1 ;
+
+NETWORK
+TITLE =Call OutletValve
+
+      UN    #Ma.Par.ParWithOutletValve; 
+      SPB   E05; 
+      CALL #OutletValve ;
+
+NETWORK
+TITLE =Call RecycValve
+
+E05:  UN    #Ma.Par.ParWithRecycValve; 
+      SPB   E06; 
+      CALL #RecycValve1 ;
+
+NETWORK
+TITLE =Call Vibro
+
+E06:  SET   ; 
+      S     #Vibro.Par.ParPulse; 
+// Call Vibro
+      CALL #Vibro ;
+
+NETWORK
+TITLE =Call ConvValve2
+
+      UN    #Ma.Par.ParType2Vessel; 
+      SPB   StJ0; 
+      CALL #ConvValve2 ;
+
+NETWORK
+TITLE =Call FluidValve2
+
+      CALL #FluidValve2 ;
+
+NETWORK
+TITLE =Call InletValve2
+
+      CALL #InletValve2 ;
+
+NETWORK
+TITLE =Call RecycValve2
+
+      UN    #Ma.Par.ParWithRecycValve; 
+      SPB   StJ0; 
+      CALL #RecycValve2 ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StFilling; 
+      SPB   S1; 
+      U     #Ma.StConveying; 
+      SPB   S2; 
+      U     #Ma.StPulsing; 
+      SPB   S3; 
+      U     #Ma.StClearing; 
+      SPB   S5; 
+      U     #Ma.StCleared; 
+      SPB   S6; 
+      SPA   xxS6; // ===> Initialisation
+
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; 
+      SPA   OUT; 
+//=== Logic
+S0:   U(    ; 
+      U     #Ma.InEnableFilling1; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.InEnableFilling2; 
+      UN    #Ma.InManual; 
+      )     ; 
+      U     #Ma.CmdNext; 
+      O     #Ma.CmdFilling1; 
+      O     #Ma.CmdFilling2; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //-->StFilling
+      U     #Ma.InEnableConveying; 
+      UN    #Ma.InManual; 
+      U     #Ma.CmdNext; 
+      O     #Ma.CmdConveying; 
+      R     #Ma.StStopped; 
+      SPB   xxS2; //-->Conveying
+      SPA   OUT; 
+
+NETWORK
+TITLE =StFilling
+//any Transition 
+xxS1: S     #Ma.StFilling; 
+      S     #Ma.OutLoaded; 
+//=== Logic
+S1:   UN    #Ma.InEnableFilling1; 
+      UN    #Ma.InEnableFilling2; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      R     #Ma.StFilling; 
+      SPB   xxS0; //--> StStopped
+      U     #Ma.CmdConveying; 
+      R     #Ma.StFilling; 
+      SPB   xxS2; //--> StConveying
+      SPA   OUT; 
+
+NETWORK
+TITLE =StConveying
+//any Transition 
+xxS2: S     #Ma.StConveying; 
+      R     #Ma.Par.OutDelayFluidDone; 
+      R     #Ma.Par.OutConvTimeDone; 
+      L     0; 
+      T     #Ma.Par.OutDelayFluidTime; 
+      T     #Ma.Par.OutConveyingTime; 
+
+//=== Logic
+// Condition for Stopped
+S2:   U     #Ma.InNoRestdischarge; 
+      U     #Ma.Par.OutConvTimeDone; 
+      UN    #Ma.InMaxPressure; 
+      UN    #Ma.InMinPressure; 
+      UN    #Ma.InManual; 
+      R     #Ma.StConveying; 
+      SPB   xxS6; //--> StCleared;
+      ON    #Ma.InEnableConveying; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      R     #Ma.StConveying; 
+      SPB   xxS0; //--> StStopped
+// Condition for Fluidization
+      U     #Ma.Par.OutConvTimeDone; 
+      UN    #Ma.InMaxPressure; 
+      UN    #Ma.InMinPressure; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.CmdPulsing; 
+      R     #Ma.StConveying; 
+      SPB   xxS3; //--> StPulsing
+// Condition for Filling
+      U     #Ma.CmdFilling1; 
+      O     #Ma.CmdFilling2; 
+      R     #Ma.StConveying; 
+      SPB   xxS1; //--> StFilling
+
+//Delay time fluidization valve
+      U     #OutletValve.StHN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      U     #ConvValve1.StHN; 
+      U(    ; 
+      U     #ConvValve2.StHN; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      U     #tmpAirOK; 
+      UN    #Ma.OutBlowoff; 
+      SPB   S2FL; 
+      R     #Ma.Par.OutDelayFluidDone; 
+      R     #Ma.Par.OutConvTimeDone; 
+      L     0; 
+      T     #Ma.Par.OutDelayFluidTime; 
+      T     #Ma.Par.OutConveyingTime; 
+      SPA   OUT; 
+S2FL: U     #Ma.Par.OutDelayFluidDone; 
+      SPB   S2B1; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S2A2; 
+      L     #Ma.Par.OutDelayFluidTime; 
+      +     2; 
+      T     #Ma.Par.OutDelayFluidTime; 
+S2A2: L     #Ma.Par.ParDelayFluidTime; 
+      L     #Ma.Par.OutDelayFluidTime; 
+      <=I   ; 
+      S     #Ma.Par.OutDelayFluidDone; 
+//Conveying time
+S2B1: U     #Ma.Par.OutConvTimeDone; 
+      SPB   S2H2; 
+      U     #OutletValve.StHN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      U(    ; 
+      U     #RecycValve1.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      )     ; 
+      U     #InletValve1.StLN; 
+      U     #ConvValve1.StHN; 
+      U     #FluidValve1.StHN; 
+      U(    ; 
+      U     #RecycValve2.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      U     #InletValve2.StLN; 
+      U     #ConvValve2.StHN; 
+      U     #FluidValve2.StHN; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      U     #tmpAirOK; 
+      UN    #Ma.OutBlowoff; 
+      SPBN  OUT; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S3B2; 
+      L     #Ma.Par.OutConveyingTime; 
+      +     2; 
+      T     #Ma.Par.OutConveyingTime; 
+      L     #Ma.Par.ParMinConveyingTime; 
+      L     #Ma.Par.OutConveyingTime; 
+      <=I   ; 
+      S     #Ma.Par.OutConvTimeDone; 
+S2H2: SPA   OUT; 
+
+NETWORK
+TITLE =StPulsing
+//any Transition 
+xxS3: S     #Ma.StPulsing; 
+      S     #Ma.Par.OutPulseFluidOnly; 
+      L     0; 
+      T     #Ma.Par.OutPulseCnt; 
+      T     #Ma.Par.OutPulseTime; 
+
+//=== Logic
+// Condition for Clearing
+S3:   L     #Ma.Par.ParPulseCnt; 
+      L     #Ma.Par.OutPulseCnt; 
+      <=I   ; 
+      UN    #Ma.InManual; 
+      R     #Ma.StPulsing; 
+      SPB   xxS5; //--> StClearing
+// Condition for Conveying
+      U     #Ma.CmdConveying; 
+      R     #Ma.Par.OutPulseFluidOnly; 
+      R     #Ma.StPulsing; 
+      SPB   xxS2; //--> StConveying
+// Condition for Stopped
+      UN    #Ma.InEnableConveying; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOff; 
+      R     #Ma.Par.OutPulseFluidOnly; 
+      R     #Ma.StPulsing; 
+      SPB   xxS0; //--> StStopped
+// Condition for Filling
+      U     #Ma.CmdFilling1; 
+      O     #Ma.CmdFilling2; 
+      R     #Ma.StPulsing; 
+      R     #Ma.Par.OutPulseFluidOnly; 
+      SPB   xxS1; //--> StFilling
+
+
+//PulseBothTime
+      U     #OutletValve.StHN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      U(    ; 
+      U     #RecycValve1.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      )     ; 
+      U     #FluidValve1.StHN; 
+      U     #InletValve1.StLN; 
+      U(    ; 
+      U     #RecycValve2.StLN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      U     #FluidValve2.StHN; 
+      U     #InletValve2.StLN; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      U     #tmpAirOK; 
+      UN    #Ma.OutBlowoff; 
+      NOT   ; 
+      R     #Ma.Par.OutPulseFluidOnly; 
+      SPB   OUT; 
+
+      U     #Ma.Par.OutPulseFluidOnly; 
+      SPB   S3B1; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S3A2; 
+      L     #Ma.Par.OutPulseTime; 
+      +     2; 
+      T     #Ma.Par.OutPulseTime; 
+S3A2: L     #Ma.Par.ParPulseBothTime; 
+      L     #Ma.Par.OutPulseTime; 
+      >I    ; 
+      SPB   OUT; 
+      S     #Ma.Par.OutPulseFluidOnly; 
+      L     0; 
+      T     #Ma.Par.OutPulseTime; 
+      L     #Ma.Par.OutPulseCnt; 
+      +     1; 
+      T     #Ma.Par.OutPulseCnt; 
+      SPA   OUT; 
+
+
+//PulseFluidOnlyTime
+S3B1: UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S3B2; 
+      L     #Ma.Par.OutPulseTime; 
+      +     2; 
+      T     #Ma.Par.OutPulseTime; 
+S3B2: L     #Ma.Par.ParPulseFluidOnlyTime; 
+      L     #Ma.Par.OutPulseTime; 
+      >I    ; 
+      SPB   OUT; 
+      R     #Ma.Par.OutPulseFluidOnly; 
+      S     #Vibro.CmdNext; 
+      L     0; 
+      T     #Ma.Par.OutPulseTime; 
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+      L     0; 
+      T     #Ma.Par.OutClearingTime; 
+//=== Logic
+// Condition for StCleared
+S5:   L     #Ma.Par.ParClearingTime; 
+      L     #Ma.Par.OutClearingTime; 
+      <=I   ; 
+      R     #Ma.StClearing; 
+      SPB   xxS6; //--> StCleared;
+// Condition for StConveying
+      U     #Ma.InManual; 
+      R     #Ma.StClearing; 
+      SPB   xxS2; //--> StConveying
+// Condition for StStopped
+      UN    #Ma.InEnableConveying; 
+      R     #Ma.StClearing; 
+      SPB   xxS0; //--> StStopped
+//Clearing Time
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      O     #Ma.InMinPressure; //[3.2]
+      O     #Ma.OutFault; 
+      SPB   OUT; 
+      L     #Ma.Par.OutClearingTime; 
+      +     2; 
+      T     #Ma.Par.OutClearingTime; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StCleared
+//any Transition 
+xxS6: S     #Ma.StCleared; 
+      R     #Ma.OutLoaded; 
+      SPA   OUT; 
+//=== Logic
+//Condition for StFilling
+S6:   U     #Ma.InEnableFilling1; 
+      O     #Ma.InEnableFilling2; 
+      R     #Ma.StCleared; 
+      SPB   xxS1; //-->StFilling
+//Condition for StConveying
+      U     #Ma.CmdConveying; 
+      R     #Ma.StCleared; 
+      SPB   xxS2; //-->StConveying
+// Condition for StStopped
+      UN    #Ma.InEnableConveying; 
+      O     #Ma.InManual; 
+      R     #Ma.StCleared; 
+      SPB   xxS0; //--> StStopped
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =State Code
+// State           StCode
+// ----------------------
+// StFault            32
+// StStopped          1
+// StFilling          2
+// StConveying        3
+// StPulsing          4
+// StClearing         5
+// StCleared          6
+OUT:  U     #Ma.OutFault; 
+      L     32; //Code=Fault
+      SPB   Code; 
+      U     #Ma.StStopped; 
+      L     1; //Code=Stopped
+      SPB   Code; 
+      L     2; //Code=Filling
+      U     #Ma.StFilling; 
+      SPB   Code; 
+      L     3; //Code=Conveying
+      U     #Ma.StConveying; 
+      SPB   Code; 
+      L     4; //Code=Pulsing
+      U     #Ma.StPulsing; 
+      SPB   Code; 
+      L     5; //Code=Clearing
+      U     #Ma.StClearing; 
+      SPB   Code; 
+      L     6; //Code=Cleared
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      UC    "SYS_CBitCtrl"; //Set change bit
+
+NETWORK
+TITLE =General
+
+      U     #Ma.CmdFaultReset; 
+      S     #ConvValve1.CmdFaultReset; 
+      S     #FluidValve1.CmdFaultReset; 
+      S     #InletValve1.CmdFaultReset; 
+      S     #OutletValve.CmdFaultReset; 
+      S     #RecycValve1.CmdFaultReset; 
+      S     #Vibro.CmdFaultReset; 
+      S     #ConvValve2.CmdFaultReset; 
+      S     #FluidValve2.CmdFaultReset; 
+      S     #InletValve2.CmdFaultReset; 
+      S     #RecycValve2.CmdFaultReset; 
+
+
+//RecycValve 
+      U     #Ma.InEnableFilling1; 
+      UN    #Ma.InManual; 
+      O     #Ma.Par.OutManFilling1; 
+      U(    ; //[3.1] 
+      U     #OutletValve.StLN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      )     ; //[3.1]
+      U     #FluidValve1.StLN; 
+      U     #ConvValve1.StLN; 
+      U     #Ma.StFilling; 
+      =     #RecycValve1.InEnableHN; 
+      R     #RecycValve1.InEnableLN; 
+      UN    #RecycValve1.InEnableHN; 
+      =     #RecycValve1.InEnableLN; 
+
+//RecycValve2 
+      U     #Ma.InEnableFilling2; 
+      UN    #Ma.InManual; 
+      O     #Ma.Par.OutManFilling2; 
+      U(    ; //[3.1]
+      U     #OutletValve.StLN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      )     ; //[3.1]
+      U     #FluidValve2.StLN; 
+      U     #ConvValve2.StLN; 
+      U     #Ma.StFilling; 
+      =     #RecycValve2.InEnableHN; 
+      R     #RecycValve2.InEnableLN; 
+      UN    #RecycValve2.InEnableHN; 
+      =     #RecycValve2.InEnableLN; 
+
+//Inlet Valve 
+      U     #RecycValve1.StHN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      U     #RecycValve1.InEnableHN; 
+      =     #InletValve1.InEnableHN; 
+      UN    #InletValve1.InEnableHN; 
+      =     #InletValve1.InEnableLN; 
+
+//InletValve2
+      U     #RecycValve2.StHN; 
+      ON    #Ma.Par.ParWithRecycValve; 
+      U     #RecycValve2.InEnableHN; 
+      =     #InletValve2.InEnableHN; 
+      UN    #InletValve2.InEnableHN; 
+      =     #InletValve2.InEnableLN; 
+
+//Outlet Valve 
+      U     #Ma.InEnableConveying; 
+      O     #Ma.InManual; 
+      UN    #Ma.StStopped; 
+      UN    #Ma.StFilling; 
+      UN    #Ma.StCleared; 
+      =     #OutletValve.InEnableHN; 
+      R     #OutletValve.InEnableLN; 
+      UN    #OutletValve.InEnableHN; 
+      U     #FluidValve1.StLN; 
+      U     #ConvValve1.StLN; 
+      S     #OutletValve.InEnableLN; 
+
+//Conveying valve and fluidization valve
+      U     #Ma.StConveying; 
+      O     #Ma.StPulsing; 
+      O     #Ma.StClearing; 
+      UN    #Ma.OutFault; 
+      U(    ; 
+      U     #OutletValve.StHN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      )     ; 
+      U(    ; 
+      U     #RecycValve1.StLN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      )     ; 
+      U     #InletValve1.StLN; 
+      U(    ; 
+      U     #RecycValve2.StLN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      U     #InletValve2.StLN; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      U(    ; 
+      U     #Ma.InEnableConveying; 
+      O     #Ma.InManual; 
+      )     ; 
+      UN    #Ma.InOverPressure; 
+      =     #tmpEnableConveying; 
+
+//FluidValve / FluidValve2
+      UN    #Ma.StConveying; 
+      O     #Ma.Par.OutDelayFluidDone; 
+      UN    #Ma.InMaxPressure; 
+      U     #tmpEnableConveying; 
+      =     #FluidValve1.InEnableHN; 
+      UN    #tmpEnableConveying; 
+      O     #Ma.InMaxPressure; 
+      =     #FluidValve1.InEnableLN; 
+
+      U     #FluidValve1.InEnableHN; 
+      =     #FluidValve2.InEnableHN; 
+      U     #FluidValve1.InEnableLN; 
+      =     #FluidValve2.InEnableLN; 
+
+//ConvValve / ConvValve2 
+      UN    #Ma.Par.OutPulseFluidOnly; 
+      ON    #Ma.StPulsing; 
+      U     #tmpEnableConveying; 
+      =     #ConvValve1.InEnableHN; 
+      UN    #ConvValve1.InEnableHN; 
+      U(    ; 
+      U     #Ma.InBlowoffIsOpen; 
+      O     #Ma.StPulsing; 
+      )     ; 
+      =     #ConvValve1.InEnableLN; 
+
+      U     #ConvValve1.InEnableHN; 
+      =     #ConvValve2.InEnableHN; 
+      U     #ConvValve1.InEnableLN; 
+      =     #ConvValve2.InEnableLN; 
+
+//Vibro
+      SET   ; 
+      =     #Vibro.InEnable; 
+
+//Blow off 
+      UN    #Ma.StConveying; 
+      UN    #Ma.StPulsing; 
+      UN    #Ma.StClearing; 
+      O     #Ma.InOverPressure; 
+      O     #Ma.OutFault; 
+      O     ; 
+      U     #FluidValve1.StLN; 
+      UN    #ConvValve1.StHN; 
+      =     #Ma.OutBlowoff; 
+
+//OutEnableFilling
+//        U       RecycValve1.InEnableHN;
+//        U(;
+//        U       RecycValve1.StHN;
+//        ON      #Ma.Par.ParWithRecycValve;
+//        );
+//        U       InletValve1.StHN;
+//        =       Ma.OutEnableFilling;
+
+//OutEnableBlower
+      U     #OutletValve.StHN; 
+      ON    #Ma.Par.ParWithOutletValve; 
+      U(    ; 
+      U     #FluidValve1.StHN; 
+      O     #ConvValve1.StHN; 
+      )     ; 
+      UN    #ConvValve1.StFault; 
+      U(    ; 
+      U     #FluidValve2.StHN; 
+      O     #ConvValve2.StHN; 
+      UN    #ConvValve2.StFault; 
+      ON    #Ma.Par.ParType2Vessel; 
+      )     ; 
+      O     #Ma.InBlowoffIsOpen; 
+      =     #Ma.OutEnableBlower; 
+
+NETWORK
+TITLE =Global End
+//Next
+      SET   ; 
+      S     #ConvValve1.CmdNext; 
+      S     #FluidValve1.CmdNext; 
+      S     #OutletValve.CmdNext; 
+      S     #InletValve1.CmdNext; 
+      S     #RecycValve1.CmdNext; 
+      S     #ConvValve2.CmdNext; 
+      S     #FluidValve2.CmdNext; 
+      S     #InletValve2.CmdNext; 
+      S     #RecycValve2.CmdNext; 
+//---Clear all commands
+      CLR   ; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdConveying; 
+      =     #Ma.CmdPulsing; 
+      =     #Ma.CmdFilling1; 
+      =     #Ma.CmdFilling2; 
+// 
+
+END_FUNCTION_BLOCK
+

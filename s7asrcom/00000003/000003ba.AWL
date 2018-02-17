@@ -1,0 +1,76 @@
+	DATA_BLOCK DB79
+	TITLE =DBG320M
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Central Bin List DB
+	//              Zentraler Zellen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB079.1.0 K.Renz              CSB41             13.Jan.2010
+	//             1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 00.00
+	
+	FB79
+	BEGIN       
+	  BIN101.BinNr := 101;
+	  BIN101.Par.ParOverfillingWeight := 100;
+	  BIN101.Par.ParDryFillingWeight  := 0;
+	  BIN101.Par.ParLL_isBelowBin     := False;
+	  BIN102.BinNr := 102;
+	  BIN102.Par.ParOverfillingWeight := 100;
+	  BIN102.Par.ParDryFillingWeight  := 0;
+	  BIN102.Par.ParLL_isBelowBin     := False;
+	  BIN103.BinNr := 103;
+	  BIN103.Par.ParOverfillingWeight := 100;
+	  BIN103.Par.ParDryFillingWeight  := 0;
+	  BIN103.Par.ParLL_isBelowBin     := False;
+	  BIN104.BinNr := 104;
+	  BIN104.Par.ParOverfillingWeight := 100;
+	  BIN104.Par.ParDryFillingWeight  := 0;
+	  BIN104.Par.ParLL_isBelowBin     := False;
+	  BIN105.BinNr := 105;
+	  BIN105.Par.ParOverfillingWeight := 100;
+	  BIN105.Par.ParDryFillingWeight  := 0;
+	  BIN105.Par.ParLL_isBelowBin     := False;
+	  BIN106.BinNr := 106;
+	  BIN106.Par.ParOverfillingWeight := 100;
+	  BIN106.Par.ParDryFillingWeight  := 0;
+	  BIN106.Par.ParLL_isBelowBin     := False;
+	  BIN107.BinNr := 107;
+	  BIN107.Par.ParOverfillingWeight := 100;
+	  BIN107.Par.ParDryFillingWeight  := 0;
+	  BIN107.Par.ParLL_isBelowBin     := False;
+	  BIN108.BinNr := 108;
+	  BIN108.Par.ParOverfillingWeight := 100;
+	  BIN108.Par.ParDryFillingWeight  := 0;
+	  BIN108.Par.ParLL_isBelowBin     := False;
+	  BIN9001.BinNr := 9001;
+	  BIN9001.Par.ParOverfillingWeight := 100;
+	  BIN9001.Par.ParDryFillingWeight  := 0;
+	  BIN9001.Par.ParLL_isBelowBin     := False;
+	  BIN9005.BinNr := 9005;
+	  BIN9005.Par.ParOverfillingWeight := 100;
+	  BIN9005.Par.ParDryFillingWeight  := 0;
+	  BIN9005.Par.ParLL_isBelowBin     := False;
+	  MAL1S34_SND.BinNr := 9004;
+	  MAL1S34_SND.Par.ParOverfillingWeight := 100;
+	  MAL1S34_SND.Par.ParDryFillingWeight  := 0;
+	  MAL1S34_SND.Par.ParLL_isBelowBin     := False;
+	END_DATA_BLOCK

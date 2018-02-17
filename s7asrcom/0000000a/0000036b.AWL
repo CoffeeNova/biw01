@@ -1,0 +1,1499 @@
+
+FUNCTION_BLOCK "G269M_Code"
+TITLE =G269M TEMPERATURE MES. KILN 1
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TEMPERATURE MES. KILN 1
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB369.1.0 K.Renz              CSB41                              30.Sep.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  read_3191 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3191_BTE01 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE05 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE07 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE08 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE10 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE11 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3191_BTE12 : "GCS7_E_AnalogInput";	// AnaInp 
+     #A_3191_BTE06 : FB19;   // AnaInp 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[269]; 
+      R     "GCS7_GrCtrlDB".ParWGR[269]; 
+      R     "GCS7_GrCtrlDB".ParGGR[269]; 
+      R     "GCS7_GrCtrlDB".ParFeed[269]; 
+      R     "GCS7_GrCtrlDB".ParShare[269]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[269]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[269]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[269]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[269]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[269]; 
+      R     "GCS7_GrCtrlDB".CmdNext[269]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[269]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[269]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[269]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[269]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[269]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[269]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3191-BTE01 : AIR TEMPERATURE BELOW FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE01.InLocal; 
+//
+//-Monitoring--- 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE01.InMonLL; 
+      =     #A_3191_BTE01.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE01.InMonMid; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE01.InMonH; 
+      =     #A_3191_BTE01.InMonHH; 
+//MW 2010.04.08
+      SET   ; 
+      =     #A_3191_BTE01.Par.ParWarningL; 
+      =     #A_3191_BTE01.Par.ParWarningH; 
+      CLR   ; 
+      =     #A_3191_BTE01.Par.ParWarningLL; 
+      =     #A_3191_BTE01.Par.ParPreAlarmLL; 
+      =     #A_3191_BTE01.Par.ParPreAlarmHH; 
+      =     #A_3191_BTE01.Par.ParWarningHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE01_AI1"; 
+      T     #A_3191_BTE01.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE01.InDPFault; 
+// 
+//-Set Parameters---
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      SPB   fui; 
+// Toleranzband -1,5°C Temperatur unter der Horde
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#150; // =1,5°C
+      -D    ; 
+      T     #A_3191_BTE01.Par.ParLimitL; 
+// Toleranzband +1,5°C Temperatur unter der Horde
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#150; // =1,5°C
+      +D    ; 
+      T     #A_3191_BTE01.Par.ParLimitH; 
+      SPA   hui; 
+fui:  NOP   0; 
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE01.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE01.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE01.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE01.Par.ParLimitHH; 
+hui:  NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE01 ;
+// 
+//-Write outputs---
+// Schaltpunkt zu Oeffnen der Defrosterklappe
+      L     #A_3191_BTE01.OutValuePc; 
+      L     7000; // =70,00°C
+      >=I   ; 
+      =     "MAL1S032Par".Par.FlagProcess2.Schaltp_70; 
+
+NETWORK
+TITLE ==A-3191-BTE05 : AIR TEMPERATURE DIFFUSOR FAN 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE05.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3191_BTE05.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE05.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE05.InMonMid; 
+      CLR   ; 
+      =     #A_3191_BTE05.InMonH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE05.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE05_AI1"; 
+      T     #A_3191_BTE05.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE05.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE05.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3191_BTE05.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      ON    "G271M".A_3125_MXZ01MA.Ma.StStartedFwd; 
+      ON    "G276M".A_3161_KCL12_REG_ON.StTrue; 
+      SPB   fui1; 
+
+// Toleranzband -3,5°C Temperatur unter der Horde
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      -D    ; 
+      T     #A_3191_BTE05.Par.ParLimitL; 
+// Toleranzband +3,5°C Temperatur unter der Horde
+      L     "MAL1S032Par".StepAct.TemperaturBelowFloor; 
+      L     L#10; 
+      *D    ; 
+      L     L#350; // =3,5°C
+      +D    ; 
+      T     #A_3191_BTE05.Par.ParLimitH; 
+      SPA   hui1; 
+fui1: NOP   0; 
+
+
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE05.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE05.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE05.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE05.Par.ParLimitHH; 
+hui1: NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE07 : AIR TEMPERATURE ABOVE FLOOR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE07.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3191_BTE07.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE07.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE07.InMonMid; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE07.InMonH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_3191_BTE07.OutOverflow; 
+      =     #A_3191_BTE07.Par.ParWarningH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE07.InMonHH; 
+      =     #A_3191_BTE07.Par.ParPreAlarmHH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    #A_3191_BTE07.OutOverflow; 
+      =     #A_3191_BTE07.Par.ParWarningHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE07_AI1"; 
+      T     #A_3191_BTE07.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE07.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE07.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3191_BTE07.Par.ParNoHornByWarning; 
+
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      SPB   psp; 
+//      L     "MAL1S032Par".RecipeHeader.WarningTempAboveFloor
+      L     L#900; // 90,00°C
+      L     L#10; 
+      *D    ; 
+      T     #A_3191_BTE07.Par.ParLimitH; 
+      L     #A_3191_BTE07.Par.ParLimitH; 
+      L     L#500; 
+      +D    ; 
+      T     #A_3191_BTE07.Par.ParLimitHH; 
+psp:  NOP   0; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      SPB   npsp; 
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE07.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE07.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE07.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE07.Par.ParLimitHH; 
+npsp: NOP   0; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE07 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE08 : AIR TEMPERATURE AFTER BURNER 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE08.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3191_BTE08.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE08.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE08.InMonMid; 
+      CLR   ; 
+      =     #A_3191_BTE08.InMonH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE08.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE08_AI1"; 
+      T     #A_3191_BTE08.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE08.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE08.InDPFault; 
+// 
+//-Set Parameters---
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE08.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE08.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE08.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE08.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE08 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE10 : AIR TEMPERATURE BEFORE BURNER 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE10.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3191_BTE10.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE10.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE10.InMonMid; 
+      CLR   ; 
+      =     #A_3191_BTE10.InMonH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE10.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE10_AI1"; 
+      T     #A_3191_BTE10.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE10.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE10.InDPFault; 
+// 
+//-Set Parameters---
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE10.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE10.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE10.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE10.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE10 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE11 : AIR TEMPERATURE AMBIENT AIR
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE11.InLocal; 
+//
+//-Monitoring--- 
+      SET   ; 
+      =     #A_3191_BTE11.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE11.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE11.InMonMid; 
+      CLR   ; 
+      =     #A_3191_BTE11.InMonH; 
+      SET   ; 
+      =     #A_3191_BTE11.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE11_AI1"; 
+      T     #A_3191_BTE11.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE11.InDPFault; 
+// 
+//-Set Parameters---
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      R     #A_3191_BTE11.Par.ParNoHornByWarning; 
+
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE11.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE11.Par.ParLimitL; 
+      L     L#3200; // 32,00°C
+//      L     "MAL1Par".Values1.Value03   // Line Parameter --> not used!!
+//      L     L#100
+//      *D    
+      T     #A_3191_BTE11.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE11.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE12 : AIR TEMPERATURE AFTER HEAT EXCHANGER FLAP
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE12.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_3191_BTE12.InMonLL; 
+      CLR   ; 
+      =     #A_3191_BTE12.InMonL; 
+      CLR   ; 
+      =     #A_3191_BTE12.InMonMid; 
+      CLR   ; 
+      =     #A_3191_BTE12.InMonH; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      =     #A_3191_BTE12.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_3191_BTE12_AI1"; 
+      T     #A_3191_BTE12.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3191_BTE12.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[92]; 
+      =     #A_3191_BTE12.InDPFault; 
+// 
+//-Set Parameters---
+      L     L#-10000; // -100,00°C
+      T     #A_3191_BTE12.Par.ParLimitLL; 
+      L     L#0; // 0,00°C
+      T     #A_3191_BTE12.Par.ParLimitL; 
+      L     L#9900; // 99,00°C
+      T     #A_3191_BTE12.Par.ParLimitH; 
+      L     L#10000; // 100,00°C
+      T     #A_3191_BTE12.Par.ParLimitHH; 
+// 
+//-Call object control---
+      CALL #A_3191_BTE12 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3191-BTE06 : AIR TEMPERATURE DIFFUSOR FAN 2
+NOP 0;
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3191_BTE06.InLocal; 
+//
+//-Monitoring--- 
+      CLR;
+      =     #A_3191_BTE06.InMonLL;
+      CLR;
+      =     #A_3191_BTE06.InMonL;
+      CLR;
+      =     #A_3191_BTE06.InMonMid;
+      CLR;
+      =     #A_3191_BTE06.InMonH;
+      CLR;
+      =     #A_3191_BTE06.InMonHH;
+// 
+//-Read inputs---
+      L     PEW950; 
+      T     #A_3191_BTE06.InpValue; 
+      U   DB050.DBX32.3;
+      =     #A_3191_BTE06.InHWStop;
+       U     PLC_DPInfo.Master[1].SlavesError[92];
+       =       #A_3191_BTE06.InDPFault;
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL  #A_3191_BTE06;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3191_BTE01.OutFaulted; 
+      O     #A_3191_BTE05.OutFaulted; 
+      O     #A_3191_BTE07.OutFaulted; 
+      O     #A_3191_BTE08.OutFaulted; 
+      O     #A_3191_BTE10.OutFaulted; 
+      O     #A_3191_BTE11.OutFaulted; 
+      O     #A_3191_BTE12.OutFaulted; 
+      O     #A_3191_BTE06.OutFaulted;
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_3191_BTE01.OutWarning; 
+      O     #A_3191_BTE05.OutWarning; 
+      O     #A_3191_BTE07.OutWarning; 
+      O     #A_3191_BTE08.OutWarning; 
+      O     #A_3191_BTE10.OutWarning; 
+      O     #A_3191_BTE11.OutWarning; 
+      O     #A_3191_BTE12.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #Gr.ModeIdling; 
+      U     #Gr.OutSeqStop; 
+      O     #Gr.ModePassive; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[269]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[269]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[269]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[269]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[269]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[269]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[269]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[269]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[269]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[269]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+
+
+DATA_BLOCK "G269M"
+TITLE =DBG269M  TEMPERATURE MES. KILN 1
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TEMPERATURE MES. KILN 1
+//                Machine group DB
+//                Maschinengruppen-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//P01_DB369.1.0 K.Renz              CSB41             30.Sep.2009
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+NAME : DBG269M
+VERSION : 0.0
+
+"G269M_Code"
+BEGIN
+   Gr.FcCode := 0; 
+   Gr.Spare2 := 0; 
+   Gr.Spare4 := 0; 
+   Gr.Spare6 := 0; 
+   Gr.OutEmptyingTime := 0; 
+   Gr.ChangeBit.spare := B#16#0; 
+   Gr.ChangeBit.CBit1 := FALSE; 
+   Gr.ChangeBit.CBit2 := FALSE; 
+   Gr.ChangeBit.CBit3 := FALSE; 
+   Gr.ChangeBit.CBit4 := FALSE; 
+   Gr.StCode := 0; 
+   Gr.InEnableGr := FALSE; 
+   Gr.CmdContinue := FALSE; 
+   Gr.CmdRestartIdling := FALSE; 
+   Gr.InReleaseEmptyingTime := FALSE; 
+   Gr.InFeeding := FALSE; 
+   Gr.InOutAutostartMan := FALSE; 
+   Gr.InPreStart := FALSE; 
+   Gr.CmdManualOff := FALSE; 
+   Gr.CmdOff := FALSE; 
+   Gr.CmdOn := FALSE; 
+   Gr.CmdNext := FALSE; 
+   Gr.CmdFaultReset := FALSE; 
+   Gr.InOccupied := FALSE; 
+   Gr.InManual := FALSE; 
+   Gr.InLoadedSec := FALSE; 
+   Gr.InSeqStop := FALSE; 
+   Gr.ModePassive := FALSE; 
+   Gr.ModeActive := FALSE; 
+   Gr.ModeIdling := FALSE; 
+   Gr.spare163 := FALSE; 
+   Gr.spare164 := FALSE; 
+   Gr.spare165 := FALSE; 
+   Gr.spare166 := FALSE; 
+   Gr.spare167 := FALSE; 
+   Gr.StStopped := FALSE; 
+   Gr.StStarting := FALSE; 
+   Gr.StStarted := FALSE; 
+   Gr.StStopping := FALSE; 
+   Gr.StFault := FALSE; 
+   Gr.OutLoaded := FALSE; 
+   Gr.OutWarning := FALSE; 
+   Gr.OutFeeding := FALSE; 
+   Gr.OutEnableEl := FALSE; 
+   Gr.OutEnable1 := FALSE; 
+   Gr.OutHWStop := FALSE; 
+   Gr.OutDPFault := FALSE; 
+   Gr.OutAutostart := FALSE; 
+   Gr.OutManual := FALSE; 
+   Gr.OutHornOn := FALSE; 
+   Gr.OutEnablePrevGr := FALSE; 
+   Gr.VarStopped := FALSE; 
+   Gr.VarStarted := FALSE; 
+   Gr.VarFault := FALSE; 
+   Gr.VarStartwarning := FALSE; 
+   Gr.VarFlag1s := FALSE; 
+   Gr.OutEmptyingTimeDone := FALSE; 
+   Gr.OutNewWay := FALSE; 
+   Gr.OutSeqStop := FALSE; 
+   Gr.OutIdlingTime := 0; 
+   Gr.InCodePreselect := 0; 
+   Gr.InLine := 0; 
+   Gr.InCode := 0; 
+   Gr.OutCode := 0; 
+   Gr.Par.ParObjectNo := 26900; 
+   Gr.Par.ParMgr := TRUE; 
+   Gr.Par.ParWgr := FALSE; 
+   Gr.Par.ParGgr := FALSE; 
+   Gr.Par.ParHornCode := 10; 
+   Gr.Par.ParIdling := 2; 
+   Gr.Par.ParEmptyingTime := 0; 
+   Gr.Par.Para1_0 := FALSE; 
+   Gr.Par.Para1_1 := FALSE; 
+   Gr.Par.Para1_2 := FALSE; 
+   Gr.Par.Para1_3 := FALSE; 
+   Gr.Par.Para1_4 := FALSE; 
+   Gr.Par.Para1_5 := FALSE; 
+   Gr.Par.Para1_6 := FALSE; 
+   Gr.Par.Para1_7 := FALSE; 
+   Gr.Par.Para1_8 := FALSE; 
+   Gr.Par.Para1_9 := FALSE; 
+   Gr.Par.Para1_10 := FALSE; 
+   Gr.Par.Para1_11 := FALSE; 
+   Gr.Par.Para1_12 := FALSE; 
+   Gr.Par.Para1_13 := FALSE; 
+   Gr.Par.Para1_14 := FALSE; 
+   Gr.Par.Para1_15 := FALSE; 
+   Gr.Par.Para2 := 0; 
+   Gr.Par.Para3 := 0; 
+   Gr.Par.Para4 := 0; 
+   Gr.Par.Para5 := 0; 
+   InOutValue1 := L#0; 
+   InOutValue2 := L#0; 
+   OutWayConflict := FALSE; 
+   OutSelectionOk := FALSE; 
+   CmdNewValue := FALSE; 
+   CmdNewJob := FALSE; 
+   OutCodeOK := FALSE; 
+   InEndOfJob := FALSE; 
+   staWayOk := FALSE; 
+   EdgeStartRelease := FALSE; 
+   read_3191 := FALSE; 
+   USW9 := FALSE; 
+   USW10 := FALSE; 
+   USW11 := FALSE; 
+   USW12 := FALSE; 
+   USW13 := FALSE; 
+   USW14 := FALSE; 
+   USW15 := FALSE; 
+   A_3191_BTE01.StCode := 0; 
+   A_3191_BTE01.InMonLL := FALSE; 
+   A_3191_BTE01.InMonL := FALSE; 
+   A_3191_BTE01.InMonMid := FALSE; 
+   A_3191_BTE01.InMonH := FALSE; 
+   A_3191_BTE01.InMonHH := FALSE; 
+   A_3191_BTE01.spare0205 := FALSE; 
+   A_3191_BTE01.InpFaultAI := FALSE; 
+   A_3191_BTE01.InpFaultDev := FALSE; 
+   A_3191_BTE01.InHWStop := FALSE; 
+   A_3191_BTE01.InDPFault := FALSE; 
+   A_3191_BTE01.InDisable := FALSE; 
+   A_3191_BTE01.CmdFaultReset := FALSE; 
+   A_3191_BTE01.InLocal := FALSE; 
+   A_3191_BTE01.spare0305 := FALSE; 
+   A_3191_BTE01.InReport := FALSE; 
+   A_3191_BTE01.spare0307 := FALSE; 
+   A_3191_BTE01.OutLL := FALSE; 
+   A_3191_BTE01.OutL := FALSE; 
+   A_3191_BTE01.OutH := FALSE; 
+   A_3191_BTE01.OutHH := FALSE; 
+   A_3191_BTE01.OutOverflow := FALSE; 
+   A_3191_BTE01.spare0405 := FALSE; 
+   A_3191_BTE01.OutFaultAI := FALSE; 
+   A_3191_BTE01.spare0407 := FALSE; 
+   A_3191_BTE01.StLL := FALSE; 
+   A_3191_BTE01.StL := FALSE; 
+   A_3191_BTE01.StMid := FALSE; 
+   A_3191_BTE01.StH := FALSE; 
+   A_3191_BTE01.StHH := FALSE; 
+   A_3191_BTE01.StFaultAI := FALSE; 
+   A_3191_BTE01.OutWarning := FALSE; 
+   A_3191_BTE01.OutFaulted := FALSE; 
+   A_3191_BTE01.InpValue := 0; 
+   A_3191_BTE01.OutValuePc := 0; 
+   A_3191_BTE01.OutValueUnits := L#0; 
+   A_3191_BTE01.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE01.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE01.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE01.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE01.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE01.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE01.OutAlarmNrLog := 0; 
+   A_3191_BTE01.Par.ParObjectNo := 26901; 
+   A_3191_BTE01.Par.ParMsgType := 7252; 
+   A_3191_BTE01.Par.ParHornCode := 10; 
+   A_3191_BTE01.Par.ParLogOff := FALSE; 
+   A_3191_BTE01.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE01.Par.ParValueByUser := FALSE; 
+   A_3191_BTE01.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE01.Par.ParWago := FALSE; 
+   A_3191_BTE01.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE01.Par.ParWarningLL := FALSE; 
+   A_3191_BTE01.Par.ParWarningL := TRUE; 
+   A_3191_BTE01.Par.ParWarningMid := FALSE; 
+   A_3191_BTE01.Par.ParWarningH := TRUE; 
+   A_3191_BTE01.Par.ParWarningHH := FALSE; 
+   A_3191_BTE01.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE01.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE01.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE01.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE01.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE01.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE01.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE01.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE01.Par.ParLimitLL := L#0; 
+   A_3191_BTE01.Par.ParLimitL := L#2000; 
+   A_3191_BTE01.Par.ParLimitH := L#8500; 
+   A_3191_BTE01.Par.ParLimitHH := L#10000; 
+   A_3191_BTE01.Par.ParMonTimeLL := 0; 
+   A_3191_BTE01.Par.ParMonTimeL := 600; 
+   A_3191_BTE01.Par.ParMonTimeMid := 0; 
+   A_3191_BTE01.Par.ParMonTimeH := 600; 
+   A_3191_BTE01.Par.ParMonTimeHH := 0; 
+   A_3191_BTE01.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE01.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE01.Par.ParDelayTime := 30; 
+   A_3191_BTE01.Par.OutMonTimeLL := 0; 
+   A_3191_BTE01.Par.OutMonTimeL := 0; 
+   A_3191_BTE01.Par.OutMonTimeMid := 0; 
+   A_3191_BTE01.Par.OutMonTimeH := 0; 
+   A_3191_BTE01.Par.OutMonTimeHH := 0; 
+   A_3191_BTE01.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE01.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE01.Par.OutDelayTime := 0; 
+   A_3191_BTE01.Par.Spare66 := 0; 
+   A_3191_BTE05.StCode := 0; 
+   A_3191_BTE05.InMonLL := FALSE; 
+   A_3191_BTE05.InMonL := FALSE; 
+   A_3191_BTE05.InMonMid := FALSE; 
+   A_3191_BTE05.InMonH := FALSE; 
+   A_3191_BTE05.InMonHH := FALSE; 
+   A_3191_BTE05.spare0205 := FALSE; 
+   A_3191_BTE05.InpFaultAI := FALSE; 
+   A_3191_BTE05.InpFaultDev := FALSE; 
+   A_3191_BTE05.InHWStop := FALSE; 
+   A_3191_BTE05.InDPFault := FALSE; 
+   A_3191_BTE05.InDisable := FALSE; 
+   A_3191_BTE05.CmdFaultReset := FALSE; 
+   A_3191_BTE05.InLocal := FALSE; 
+   A_3191_BTE05.spare0305 := FALSE; 
+   A_3191_BTE05.InReport := FALSE; 
+   A_3191_BTE05.spare0307 := FALSE; 
+   A_3191_BTE05.OutLL := FALSE; 
+   A_3191_BTE05.OutL := FALSE; 
+   A_3191_BTE05.OutH := FALSE; 
+   A_3191_BTE05.OutHH := FALSE; 
+   A_3191_BTE05.OutOverflow := FALSE; 
+   A_3191_BTE05.spare0405 := FALSE; 
+   A_3191_BTE05.OutFaultAI := FALSE; 
+   A_3191_BTE05.spare0407 := FALSE; 
+   A_3191_BTE05.StLL := FALSE; 
+   A_3191_BTE05.StL := FALSE; 
+   A_3191_BTE05.StMid := FALSE; 
+   A_3191_BTE05.StH := FALSE; 
+   A_3191_BTE05.StHH := FALSE; 
+   A_3191_BTE05.StFaultAI := FALSE; 
+   A_3191_BTE05.OutWarning := FALSE; 
+   A_3191_BTE05.OutFaulted := FALSE; 
+   A_3191_BTE05.InpValue := 0; 
+   A_3191_BTE05.OutValuePc := 0; 
+   A_3191_BTE05.OutValueUnits := L#0; 
+   A_3191_BTE05.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE05.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE05.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE05.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE05.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE05.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE05.OutAlarmNrLog := 0; 
+   A_3191_BTE05.Par.ParObjectNo := 26902; 
+   A_3191_BTE05.Par.ParMsgType := 7252; 
+   A_3191_BTE05.Par.ParHornCode := 10; 
+   A_3191_BTE05.Par.ParLogOff := FALSE; 
+   A_3191_BTE05.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE05.Par.ParValueByUser := FALSE; 
+   A_3191_BTE05.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE05.Par.ParWago := FALSE; 
+   A_3191_BTE05.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE05.Par.ParWarningLL := FALSE; 
+   A_3191_BTE05.Par.ParWarningL := TRUE; 
+   A_3191_BTE05.Par.ParWarningMid := FALSE; 
+   A_3191_BTE05.Par.ParWarningH := TRUE; 
+   A_3191_BTE05.Par.ParWarningHH := FALSE; 
+   A_3191_BTE05.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE05.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE05.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE05.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE05.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE05.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE05.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE05.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE05.Par.ParLimitLL := L#0; 
+   A_3191_BTE05.Par.ParLimitL := L#2000; 
+   A_3191_BTE05.Par.ParLimitH := L#8500; 
+   A_3191_BTE05.Par.ParLimitHH := L#10000; 
+   A_3191_BTE05.Par.ParMonTimeLL := 0; 
+   A_3191_BTE05.Par.ParMonTimeL := 600; 
+   A_3191_BTE05.Par.ParMonTimeMid := 0; 
+   A_3191_BTE05.Par.ParMonTimeH := 600; 
+   A_3191_BTE05.Par.ParMonTimeHH := 0; 
+   A_3191_BTE05.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE05.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE05.Par.ParDelayTime := 30; 
+   A_3191_BTE05.Par.OutMonTimeLL := 0; 
+   A_3191_BTE05.Par.OutMonTimeL := 0; 
+   A_3191_BTE05.Par.OutMonTimeMid := 0; 
+   A_3191_BTE05.Par.OutMonTimeH := 0; 
+   A_3191_BTE05.Par.OutMonTimeHH := 0; 
+   A_3191_BTE05.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE05.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE05.Par.OutDelayTime := 0; 
+   A_3191_BTE05.Par.Spare66 := 0; 
+   A_3191_BTE07.StCode := 0; 
+   A_3191_BTE07.InMonLL := FALSE; 
+   A_3191_BTE07.InMonL := FALSE; 
+   A_3191_BTE07.InMonMid := FALSE; 
+   A_3191_BTE07.InMonH := FALSE; 
+   A_3191_BTE07.InMonHH := FALSE; 
+   A_3191_BTE07.spare0205 := FALSE; 
+   A_3191_BTE07.InpFaultAI := FALSE; 
+   A_3191_BTE07.InpFaultDev := FALSE; 
+   A_3191_BTE07.InHWStop := FALSE; 
+   A_3191_BTE07.InDPFault := FALSE; 
+   A_3191_BTE07.InDisable := FALSE; 
+   A_3191_BTE07.CmdFaultReset := FALSE; 
+   A_3191_BTE07.InLocal := FALSE; 
+   A_3191_BTE07.spare0305 := FALSE; 
+   A_3191_BTE07.InReport := FALSE; 
+   A_3191_BTE07.spare0307 := FALSE; 
+   A_3191_BTE07.OutLL := FALSE; 
+   A_3191_BTE07.OutL := FALSE; 
+   A_3191_BTE07.OutH := FALSE; 
+   A_3191_BTE07.OutHH := FALSE; 
+   A_3191_BTE07.OutOverflow := FALSE; 
+   A_3191_BTE07.spare0405 := FALSE; 
+   A_3191_BTE07.OutFaultAI := FALSE; 
+   A_3191_BTE07.spare0407 := FALSE; 
+   A_3191_BTE07.StLL := FALSE; 
+   A_3191_BTE07.StL := FALSE; 
+   A_3191_BTE07.StMid := FALSE; 
+   A_3191_BTE07.StH := FALSE; 
+   A_3191_BTE07.StHH := FALSE; 
+   A_3191_BTE07.StFaultAI := FALSE; 
+   A_3191_BTE07.OutWarning := FALSE; 
+   A_3191_BTE07.OutFaulted := FALSE; 
+   A_3191_BTE07.InpValue := 0; 
+   A_3191_BTE07.OutValuePc := 0; 
+   A_3191_BTE07.OutValueUnits := L#0; 
+   A_3191_BTE07.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE07.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE07.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE07.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE07.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE07.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE07.OutAlarmNrLog := 0; 
+   A_3191_BTE07.Par.ParObjectNo := 26903; 
+   A_3191_BTE07.Par.ParMsgType := 7252; 
+   A_3191_BTE07.Par.ParHornCode := 10; 
+   A_3191_BTE07.Par.ParLogOff := FALSE; 
+   A_3191_BTE07.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE07.Par.ParValueByUser := FALSE; 
+   A_3191_BTE07.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE07.Par.ParWago := FALSE; 
+   A_3191_BTE07.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE07.Par.ParWarningLL := FALSE; 
+   A_3191_BTE07.Par.ParWarningL := TRUE; 
+   A_3191_BTE07.Par.ParWarningMid := FALSE; 
+   A_3191_BTE07.Par.ParWarningH := TRUE; 
+   A_3191_BTE07.Par.ParWarningHH := FALSE; 
+   A_3191_BTE07.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE07.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE07.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE07.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE07.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE07.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE07.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE07.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE07.Par.ParLimitLL := L#0; 
+   A_3191_BTE07.Par.ParLimitL := L#2000; 
+   A_3191_BTE07.Par.ParLimitH := L#8500; 
+   A_3191_BTE07.Par.ParLimitHH := L#10000; 
+   A_3191_BTE07.Par.ParMonTimeLL := 0; 
+   A_3191_BTE07.Par.ParMonTimeL := 600; 
+   A_3191_BTE07.Par.ParMonTimeMid := 0; 
+   A_3191_BTE07.Par.ParMonTimeH := 600; 
+   A_3191_BTE07.Par.ParMonTimeHH := 0; 
+   A_3191_BTE07.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE07.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE07.Par.ParDelayTime := 30; 
+   A_3191_BTE07.Par.OutMonTimeLL := 0; 
+   A_3191_BTE07.Par.OutMonTimeL := 0; 
+   A_3191_BTE07.Par.OutMonTimeMid := 0; 
+   A_3191_BTE07.Par.OutMonTimeH := 0; 
+   A_3191_BTE07.Par.OutMonTimeHH := 0; 
+   A_3191_BTE07.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE07.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE07.Par.OutDelayTime := 0; 
+   A_3191_BTE07.Par.Spare66 := 0; 
+   A_3191_BTE08.StCode := 0; 
+   A_3191_BTE08.InMonLL := FALSE; 
+   A_3191_BTE08.InMonL := FALSE; 
+   A_3191_BTE08.InMonMid := FALSE; 
+   A_3191_BTE08.InMonH := FALSE; 
+   A_3191_BTE08.InMonHH := FALSE; 
+   A_3191_BTE08.spare0205 := FALSE; 
+   A_3191_BTE08.InpFaultAI := FALSE; 
+   A_3191_BTE08.InpFaultDev := FALSE; 
+   A_3191_BTE08.InHWStop := FALSE; 
+   A_3191_BTE08.InDPFault := FALSE; 
+   A_3191_BTE08.InDisable := FALSE; 
+   A_3191_BTE08.CmdFaultReset := FALSE; 
+   A_3191_BTE08.InLocal := FALSE; 
+   A_3191_BTE08.spare0305 := FALSE; 
+   A_3191_BTE08.InReport := FALSE; 
+   A_3191_BTE08.spare0307 := FALSE; 
+   A_3191_BTE08.OutLL := FALSE; 
+   A_3191_BTE08.OutL := FALSE; 
+   A_3191_BTE08.OutH := FALSE; 
+   A_3191_BTE08.OutHH := FALSE; 
+   A_3191_BTE08.OutOverflow := FALSE; 
+   A_3191_BTE08.spare0405 := FALSE; 
+   A_3191_BTE08.OutFaultAI := FALSE; 
+   A_3191_BTE08.spare0407 := FALSE; 
+   A_3191_BTE08.StLL := FALSE; 
+   A_3191_BTE08.StL := FALSE; 
+   A_3191_BTE08.StMid := FALSE; 
+   A_3191_BTE08.StH := FALSE; 
+   A_3191_BTE08.StHH := FALSE; 
+   A_3191_BTE08.StFaultAI := FALSE; 
+   A_3191_BTE08.OutWarning := FALSE; 
+   A_3191_BTE08.OutFaulted := FALSE; 
+   A_3191_BTE08.InpValue := 0; 
+   A_3191_BTE08.OutValuePc := 0; 
+   A_3191_BTE08.OutValueUnits := L#0; 
+   A_3191_BTE08.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE08.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE08.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE08.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE08.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE08.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE08.OutAlarmNrLog := 0; 
+   A_3191_BTE08.Par.ParObjectNo := 26904; 
+   A_3191_BTE08.Par.ParMsgType := 7252; 
+   A_3191_BTE08.Par.ParHornCode := 10; 
+   A_3191_BTE08.Par.ParLogOff := FALSE; 
+   A_3191_BTE08.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE08.Par.ParValueByUser := FALSE; 
+   A_3191_BTE08.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE08.Par.ParWago := FALSE; 
+   A_3191_BTE08.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE08.Par.ParWarningLL := FALSE; 
+   A_3191_BTE08.Par.ParWarningL := TRUE; 
+   A_3191_BTE08.Par.ParWarningMid := FALSE; 
+   A_3191_BTE08.Par.ParWarningH := TRUE; 
+   A_3191_BTE08.Par.ParWarningHH := FALSE; 
+   A_3191_BTE08.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE08.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE08.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE08.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE08.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE08.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE08.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE08.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE08.Par.ParLimitLL := L#0; 
+   A_3191_BTE08.Par.ParLimitL := L#2000; 
+   A_3191_BTE08.Par.ParLimitH := L#8500; 
+   A_3191_BTE08.Par.ParLimitHH := L#10000; 
+   A_3191_BTE08.Par.ParMonTimeLL := 0; 
+   A_3191_BTE08.Par.ParMonTimeL := 600; 
+   A_3191_BTE08.Par.ParMonTimeMid := 0; 
+   A_3191_BTE08.Par.ParMonTimeH := 600; 
+   A_3191_BTE08.Par.ParMonTimeHH := 0; 
+   A_3191_BTE08.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE08.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE08.Par.ParDelayTime := 30; 
+   A_3191_BTE08.Par.OutMonTimeLL := 0; 
+   A_3191_BTE08.Par.OutMonTimeL := 0; 
+   A_3191_BTE08.Par.OutMonTimeMid := 0; 
+   A_3191_BTE08.Par.OutMonTimeH := 0; 
+   A_3191_BTE08.Par.OutMonTimeHH := 0; 
+   A_3191_BTE08.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE08.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE08.Par.OutDelayTime := 0; 
+   A_3191_BTE08.Par.Spare66 := 0; 
+   A_3191_BTE10.StCode := 0; 
+   A_3191_BTE10.InMonLL := FALSE; 
+   A_3191_BTE10.InMonL := FALSE; 
+   A_3191_BTE10.InMonMid := FALSE; 
+   A_3191_BTE10.InMonH := FALSE; 
+   A_3191_BTE10.InMonHH := FALSE; 
+   A_3191_BTE10.spare0205 := FALSE; 
+   A_3191_BTE10.InpFaultAI := FALSE; 
+   A_3191_BTE10.InpFaultDev := FALSE; 
+   A_3191_BTE10.InHWStop := FALSE; 
+   A_3191_BTE10.InDPFault := FALSE; 
+   A_3191_BTE10.InDisable := FALSE; 
+   A_3191_BTE10.CmdFaultReset := FALSE; 
+   A_3191_BTE10.InLocal := FALSE; 
+   A_3191_BTE10.spare0305 := FALSE; 
+   A_3191_BTE10.InReport := FALSE; 
+   A_3191_BTE10.spare0307 := FALSE; 
+   A_3191_BTE10.OutLL := FALSE; 
+   A_3191_BTE10.OutL := FALSE; 
+   A_3191_BTE10.OutH := FALSE; 
+   A_3191_BTE10.OutHH := FALSE; 
+   A_3191_BTE10.OutOverflow := FALSE; 
+   A_3191_BTE10.spare0405 := FALSE; 
+   A_3191_BTE10.OutFaultAI := FALSE; 
+   A_3191_BTE10.spare0407 := FALSE; 
+   A_3191_BTE10.StLL := FALSE; 
+   A_3191_BTE10.StL := FALSE; 
+   A_3191_BTE10.StMid := FALSE; 
+   A_3191_BTE10.StH := FALSE; 
+   A_3191_BTE10.StHH := FALSE; 
+   A_3191_BTE10.StFaultAI := FALSE; 
+   A_3191_BTE10.OutWarning := FALSE; 
+   A_3191_BTE10.OutFaulted := FALSE; 
+   A_3191_BTE10.InpValue := 0; 
+   A_3191_BTE10.OutValuePc := 0; 
+   A_3191_BTE10.OutValueUnits := L#0; 
+   A_3191_BTE10.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE10.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE10.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE10.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE10.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE10.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE10.OutAlarmNrLog := 0; 
+   A_3191_BTE10.Par.ParObjectNo := 26905; 
+   A_3191_BTE10.Par.ParMsgType := 7252; 
+   A_3191_BTE10.Par.ParHornCode := 10; 
+   A_3191_BTE10.Par.ParLogOff := FALSE; 
+   A_3191_BTE10.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE10.Par.ParValueByUser := FALSE; 
+   A_3191_BTE10.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE10.Par.ParWago := FALSE; 
+   A_3191_BTE10.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE10.Par.ParWarningLL := FALSE; 
+   A_3191_BTE10.Par.ParWarningL := TRUE; 
+   A_3191_BTE10.Par.ParWarningMid := FALSE; 
+   A_3191_BTE10.Par.ParWarningH := TRUE; 
+   A_3191_BTE10.Par.ParWarningHH := FALSE; 
+   A_3191_BTE10.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE10.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE10.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE10.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE10.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE10.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE10.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE10.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE10.Par.ParLimitLL := L#0; 
+   A_3191_BTE10.Par.ParLimitL := L#2000; 
+   A_3191_BTE10.Par.ParLimitH := L#8500; 
+   A_3191_BTE10.Par.ParLimitHH := L#10000; 
+   A_3191_BTE10.Par.ParMonTimeLL := 0; 
+   A_3191_BTE10.Par.ParMonTimeL := 600; 
+   A_3191_BTE10.Par.ParMonTimeMid := 0; 
+   A_3191_BTE10.Par.ParMonTimeH := 600; 
+   A_3191_BTE10.Par.ParMonTimeHH := 0; 
+   A_3191_BTE10.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE10.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE10.Par.ParDelayTime := 30; 
+   A_3191_BTE10.Par.OutMonTimeLL := 0; 
+   A_3191_BTE10.Par.OutMonTimeL := 0; 
+   A_3191_BTE10.Par.OutMonTimeMid := 0; 
+   A_3191_BTE10.Par.OutMonTimeH := 0; 
+   A_3191_BTE10.Par.OutMonTimeHH := 0; 
+   A_3191_BTE10.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE10.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE10.Par.OutDelayTime := 0; 
+   A_3191_BTE10.Par.Spare66 := 0; 
+   A_3191_BTE11.StCode := 0; 
+   A_3191_BTE11.InMonLL := FALSE; 
+   A_3191_BTE11.InMonL := FALSE; 
+   A_3191_BTE11.InMonMid := FALSE; 
+   A_3191_BTE11.InMonH := FALSE; 
+   A_3191_BTE11.InMonHH := FALSE; 
+   A_3191_BTE11.spare0205 := FALSE; 
+   A_3191_BTE11.InpFaultAI := FALSE; 
+   A_3191_BTE11.InpFaultDev := FALSE; 
+   A_3191_BTE11.InHWStop := FALSE; 
+   A_3191_BTE11.InDPFault := FALSE; 
+   A_3191_BTE11.InDisable := FALSE; 
+   A_3191_BTE11.CmdFaultReset := FALSE; 
+   A_3191_BTE11.InLocal := FALSE; 
+   A_3191_BTE11.spare0305 := FALSE; 
+   A_3191_BTE11.InReport := FALSE; 
+   A_3191_BTE11.spare0307 := FALSE; 
+   A_3191_BTE11.OutLL := FALSE; 
+   A_3191_BTE11.OutL := FALSE; 
+   A_3191_BTE11.OutH := FALSE; 
+   A_3191_BTE11.OutHH := FALSE; 
+   A_3191_BTE11.OutOverflow := FALSE; 
+   A_3191_BTE11.spare0405 := FALSE; 
+   A_3191_BTE11.OutFaultAI := FALSE; 
+   A_3191_BTE11.spare0407 := FALSE; 
+   A_3191_BTE11.StLL := FALSE; 
+   A_3191_BTE11.StL := FALSE; 
+   A_3191_BTE11.StMid := FALSE; 
+   A_3191_BTE11.StH := FALSE; 
+   A_3191_BTE11.StHH := FALSE; 
+   A_3191_BTE11.StFaultAI := FALSE; 
+   A_3191_BTE11.OutWarning := FALSE; 
+   A_3191_BTE11.OutFaulted := FALSE; 
+   A_3191_BTE11.InpValue := 0; 
+   A_3191_BTE11.OutValuePc := 0; 
+   A_3191_BTE11.OutValueUnits := L#0; 
+   A_3191_BTE11.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE11.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE11.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE11.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE11.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE11.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE11.OutAlarmNrLog := 0; 
+   A_3191_BTE11.Par.ParObjectNo := 26906; 
+   A_3191_BTE11.Par.ParMsgType := 7252; 
+   A_3191_BTE11.Par.ParHornCode := 10; 
+   A_3191_BTE11.Par.ParLogOff := FALSE; 
+   A_3191_BTE11.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE11.Par.ParValueByUser := FALSE; 
+   A_3191_BTE11.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE11.Par.ParWago := FALSE; 
+   A_3191_BTE11.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE11.Par.ParWarningLL := FALSE; 
+   A_3191_BTE11.Par.ParWarningL := TRUE; 
+   A_3191_BTE11.Par.ParWarningMid := FALSE; 
+   A_3191_BTE11.Par.ParWarningH := TRUE; 
+   A_3191_BTE11.Par.ParWarningHH := FALSE; 
+   A_3191_BTE11.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE11.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE11.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE11.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE11.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE11.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE11.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE11.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE11.Par.ParLimitLL := L#0; 
+   A_3191_BTE11.Par.ParLimitL := L#2000; 
+   A_3191_BTE11.Par.ParLimitH := L#8500; 
+   A_3191_BTE11.Par.ParLimitHH := L#10000; 
+   A_3191_BTE11.Par.ParMonTimeLL := 0; 
+   A_3191_BTE11.Par.ParMonTimeL := 600; 
+   A_3191_BTE11.Par.ParMonTimeMid := 0; 
+   A_3191_BTE11.Par.ParMonTimeH := 600; 
+   A_3191_BTE11.Par.ParMonTimeHH := 0; 
+   A_3191_BTE11.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE11.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE11.Par.ParDelayTime := 30; 
+   A_3191_BTE11.Par.OutMonTimeLL := 0; 
+   A_3191_BTE11.Par.OutMonTimeL := 0; 
+   A_3191_BTE11.Par.OutMonTimeMid := 0; 
+   A_3191_BTE11.Par.OutMonTimeH := 0; 
+   A_3191_BTE11.Par.OutMonTimeHH := 0; 
+   A_3191_BTE11.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE11.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE11.Par.OutDelayTime := 0; 
+   A_3191_BTE11.Par.Spare66 := 0; 
+   A_3191_BTE12.StCode := 0; 
+   A_3191_BTE12.InMonLL := FALSE; 
+   A_3191_BTE12.InMonL := FALSE; 
+   A_3191_BTE12.InMonMid := FALSE; 
+   A_3191_BTE12.InMonH := FALSE; 
+   A_3191_BTE12.InMonHH := FALSE; 
+   A_3191_BTE12.spare0205 := FALSE; 
+   A_3191_BTE12.InpFaultAI := FALSE; 
+   A_3191_BTE12.InpFaultDev := FALSE; 
+   A_3191_BTE12.InHWStop := FALSE; 
+   A_3191_BTE12.InDPFault := FALSE; 
+   A_3191_BTE12.InDisable := FALSE; 
+   A_3191_BTE12.CmdFaultReset := FALSE; 
+   A_3191_BTE12.InLocal := FALSE; 
+   A_3191_BTE12.spare0305 := FALSE; 
+   A_3191_BTE12.InReport := FALSE; 
+   A_3191_BTE12.spare0307 := FALSE; 
+   A_3191_BTE12.OutLL := FALSE; 
+   A_3191_BTE12.OutL := FALSE; 
+   A_3191_BTE12.OutH := FALSE; 
+   A_3191_BTE12.OutHH := FALSE; 
+   A_3191_BTE12.OutOverflow := FALSE; 
+   A_3191_BTE12.spare0405 := FALSE; 
+   A_3191_BTE12.OutFaultAI := FALSE; 
+   A_3191_BTE12.spare0407 := FALSE; 
+   A_3191_BTE12.StLL := FALSE; 
+   A_3191_BTE12.StL := FALSE; 
+   A_3191_BTE12.StMid := FALSE; 
+   A_3191_BTE12.StH := FALSE; 
+   A_3191_BTE12.StHH := FALSE; 
+   A_3191_BTE12.StFaultAI := FALSE; 
+   A_3191_BTE12.OutWarning := FALSE; 
+   A_3191_BTE12.OutFaulted := FALSE; 
+   A_3191_BTE12.InpValue := 0; 
+   A_3191_BTE12.OutValuePc := 0; 
+   A_3191_BTE12.OutValueUnits := L#0; 
+   A_3191_BTE12.Msg.WarningDoneLL := FALSE; 
+   A_3191_BTE12.Msg.WarningDoneL := FALSE; 
+   A_3191_BTE12.Msg.WarningDoneMid := FALSE; 
+   A_3191_BTE12.Msg.WarningDoneH := FALSE; 
+   A_3191_BTE12.Msg.WarningDoneHH := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneLL := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneL := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneMid := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneH := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneHH := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneDev := FALSE; 
+   A_3191_BTE12.Msg.FaultDoneAI := FALSE; 
+   A_3191_BTE12.OutAlarmNrLog := 0; 
+   A_3191_BTE12.Par.ParObjectNo := 26907; 
+   A_3191_BTE12.Par.ParMsgType := 7252; 
+   A_3191_BTE12.Par.ParHornCode := 10; 
+   A_3191_BTE12.Par.ParLogOff := FALSE; 
+   A_3191_BTE12.Par.ParSpare0401 := FALSE; 
+   A_3191_BTE12.Par.ParValueByUser := FALSE; 
+   A_3191_BTE12.Par.ParLimitsPc := TRUE; 
+   A_3191_BTE12.Par.ParWago := FALSE; 
+   A_3191_BTE12.Par.ParNoHornByWarning := FALSE; 
+   A_3191_BTE12.Par.ParWarningLL := FALSE; 
+   A_3191_BTE12.Par.ParWarningL := TRUE; 
+   A_3191_BTE12.Par.ParWarningMid := FALSE; 
+   A_3191_BTE12.Par.ParWarningH := TRUE; 
+   A_3191_BTE12.Par.ParWarningHH := FALSE; 
+   A_3191_BTE12.Par.ParPreAlarmLL := FALSE; 
+   A_3191_BTE12.Par.ParPreAlarmL := FALSE; 
+   A_3191_BTE12.Par.ParPreAlarmMid := FALSE; 
+   A_3191_BTE12.Par.ParPreAlarmH := FALSE; 
+   A_3191_BTE12.Par.ParPreAlarmHH := FALSE; 
+   A_3191_BTE12.Par.ParUnitsByZeroDigit := L#0; 
+   A_3191_BTE12.Par.ParUnitsByMaxDigit := L#27384; 
+   A_3191_BTE12.Par.ParUnitsBy100Pc := L#10000; 
+   A_3191_BTE12.Par.ParLimitLL := L#0; 
+   A_3191_BTE12.Par.ParLimitL := L#2000; 
+   A_3191_BTE12.Par.ParLimitH := L#8500; 
+   A_3191_BTE12.Par.ParLimitHH := L#10000; 
+   A_3191_BTE12.Par.ParMonTimeLL := 0; 
+   A_3191_BTE12.Par.ParMonTimeL := 600; 
+   A_3191_BTE12.Par.ParMonTimeMid := 0; 
+   A_3191_BTE12.Par.ParMonTimeH := 600; 
+   A_3191_BTE12.Par.ParMonTimeHH := 0; 
+   A_3191_BTE12.Par.ParDelayTimeDown := 10; 
+   A_3191_BTE12.Par.ParDelayTimeUp := 10; 
+   A_3191_BTE12.Par.ParDelayTime := 30; 
+   A_3191_BTE12.Par.OutMonTimeLL := 0; 
+   A_3191_BTE12.Par.OutMonTimeL := 0; 
+   A_3191_BTE12.Par.OutMonTimeMid := 0; 
+   A_3191_BTE12.Par.OutMonTimeH := 0; 
+   A_3191_BTE12.Par.OutMonTimeHH := 0; 
+   A_3191_BTE12.Par.OutDelayTimeDown := 0; 
+   A_3191_BTE12.Par.OutDelayTimeUp := 0; 
+   A_3191_BTE12.Par.OutDelayTime := 0; 
+   A_3191_BTE12.Par.Spare66 := 0; 
+      #A_3191_BTE06.Par.ParObjectNo                             :=26908;
+      #A_3191_BTE06.Par.ParHornCode                             :=10;
+      #A_3191_BTE06.Par.ParMsgType                              :=7252;
+      #A_3191_BTE06.Par.ParUnitsByZeroDigit                     :=L#0;
+      #A_3191_BTE06.Par.ParUnitsByMaxDigit                      :=L#27384;
+      #A_3191_BTE06.Par.ParUnitsBy100Pc                         :=L#10000;
+      #A_3191_BTE06.Par.ParDelayTimeDown                        :=10;
+      #A_3191_BTE06.Par.ParDelayTimeUp                          :=10;
+      #A_3191_BTE06.Par.ParDelayTime                            :=30;
+      #A_3191_BTE06.Par.ParLimitLL                              :=L#0;
+      #A_3191_BTE06.Par.ParLimitL                               :=L#2000;
+      #A_3191_BTE06.Par.ParLimitH                               :=L#8500;
+      #A_3191_BTE06.Par.ParLimitHH                              :=L#10000;
+      #A_3191_BTE06.Par.ParMonTimeLL                            :=0;
+      #A_3191_BTE06.Par.ParMonTimeL                             :=600;
+      #A_3191_BTE06.Par.ParMonTimeMid                           :=0;
+      #A_3191_BTE06.Par.ParMonTimeH                             :=600;
+      #A_3191_BTE06.Par.ParMonTimeHH                            :=0;
+      #A_3191_BTE06.Par.ParLogOff                               :=False;
+      #A_3191_BTE06.Par.ParValueByUser                          :=False;
+      #A_3191_BTE06.Par.ParLimitsPc                             :=True;
+      #A_3191_BTE06.Par.ParWago                                 :=False;
+      #A_3191_BTE06.Par.ParNoHornByWarning                      :=False;
+      #A_3191_BTE06.Par.ParWarningLL                            :=False;
+      #A_3191_BTE06.Par.ParWarningL                             :=True;
+      #A_3191_BTE06.Par.ParWarningMid                           :=False;
+      #A_3191_BTE06.Par.ParWarningH                             :=True;
+      #A_3191_BTE06.Par.ParWarningHH                            :=False;
+      #A_3191_BTE06.Par.ParPreAlarmLL                           :=False;
+      #A_3191_BTE06.Par.ParPreAlarmL                            :=False;
+      #A_3191_BTE06.Par.ParPreAlarmMid                          :=False;
+      #A_3191_BTE06.Par.ParPreAlarmH                            :=False;
+      #A_3191_BTE06.Par.ParPreAlarmHH                           :=False;
+END_DATA_BLOCK
+

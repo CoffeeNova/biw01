@@ -1,0 +1,13 @@
+DATA_BLOCK DB 1021
+TITLE =
+VERSION : 0.0
+
+"SSA_MH_ProcessTime_Fct"
+BEGIN
+   InfDataReady := FALSE; 
+   ProzessActive := FALSE; 
+   InStartTime := DT#90-1-1-0:0:0.000; 
+   OutStartTime := DT#90-1-1-0:0:0.000; 
+   TimeActual := DT#90-1-1-0:0:0.000; 
+END_DATA_BLOCK
+

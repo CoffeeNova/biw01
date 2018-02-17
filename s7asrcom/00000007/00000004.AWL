@@ -1,0 +1,562 @@
+FUNCTION_BLOCK "STD_DryIntervalFilling"
+TITLE =STD: Intervall and dryfilling
+//COPYRIGHT:    (C) 2000  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      STD_MU664
+//
+//TITLE:        Intervall and dryfilling of wheat bins
+//
+//              Intervall- und Trockenbefüllung von Weizenzellen
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//STD_FB803.2.0 Ph. Engler          MU664                              11-Feb-2004
+//              GCS7
+//STD_FB803.1.0 Ph. Engler          MU664                              07-Dec-2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : PE
+FAMILY : STD
+VERSION : 2.0
+
+
+VAR_INPUT
+  Code : INT ;	
+  RcvObject : BLOCK_DB ;	
+  InTick : BOOL ;	//1Sek. = M 4.5; 1Min. = M 4.6
+END_VAR
+VAR
+  StCode : INT ;	//State code
+  InIntervalFilling : BOOL ;	//Release signal for the intervall filling.
+  InDryFilling : BOOL ;	//Release signal for the dry filling.
+  InDosing : BOOL ;	//Feedgroup of section is running.
+  InWaterRunning : BOOL ;	//Water valve is open.
+  InEnable : BOOL ;	//Job is active.
+  spare85 : BOOL ;	
+  spare86 : BOOL ;	
+  spare87 : BOOL ;	
+  StOff : BOOL ;	
+  StIntervalFilling : BOOL ;	
+  StDrying : BOOL ;	
+  StDryFilling : BOOL ;	
+  StWaiting : BOOL ;	//The feedgroups are stopped
+  spare95 : BOOL ;	
+  spare96 : BOOL ;	
+  spare97 : BOOL ;	
+  OutNextReceiver : BOOL ;	//Signal to change the receiver
+  OutEnableWater : BOOL ;	//Signal to start the water dosing
+  OutDryFillingRequest : BOOL ;	
+  OutEdgeNextRcv : BOOL ;	
+  OutLoadedWet : BOOL ;	//Transfer machines are loaded with wet product.
+  OutDryFillingDone : BOOL ;	
+  OutEdgeDryFillingTime : BOOL ;	
+  InDryFillingWeight : DINT ;	
+  ParDryFillingTime : BOOL ;	//Max. dryfilling time is active
+  ParIntervalTime : INT ;	//Interval filling time
+  ParMaxDryTime : INT ;	//Max. dry filling time
+  ParDryingTime : INT ;	//Time to drying the transport elements
+  ActTime : INT ;	//Actual running or pausing time
+  ActDiffTime : INT ;	//Actual rest time until timer elaps
+  ActMaxTime : INT ;	//Actual target time
+  CntDryInterval1 : "CTUD";	//Internal the timer is handled by a IEC-Counter
+  CntDrying : "CTUD";	//Time to drying the transport element after the dampener
+  Bin : STRUCT 	
+   BinNr : INT ;	
+   InfLevelWarning : BOOL ;	
+   InfLevelFault : BOOL ;	
+   OutDryFillingDone : BOOL ;	
+   user03 : BOOL ;	
+   VarFlagOverwriteLevel : BOOL ;	
+   InfLowLevel : BOOL ;	
+   InfLevelMiddle : BOOL ;	
+   InfHighLevel : BOOL ;	
+   InfActiveBin : BOOL ;	
+   InfPreselect : BOOL ;	
+   InfDeselect : BOOL ;	
+   StaEmpty : BOOL ;	
+   spare14 : BOOL ;	
+   spare15 : BOOL ;	
+   VarFlagLocked : BOOL ;	
+   VarFlagLevelFault : BOOL ;	
+   ParEmptyingTime : INT ;	
+   ActWeight : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  VarAddrBin : DWORD ;	
+  VarAddrBinStatus : DWORD ;	
+  VarAddrActWeight : DWORD ;	
+  VarCnt : INT ;	//Loop counter
+  VarDiNo : INT ;	
+  tmpDryFillingTimeOn : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Open silo object db
+
+      AUF   #RcvObject; 
+
+NETWORK
+TITLE =IN PLC new start or new binlist DB
+
+      L     1; 
+      L     #Code; 
+      ==I   ; 
+      ON    DBX   63.6; // InfInitDone
+      SPBN  IN00; 
+// 
+      SET   ; 
+      S     DBX   63.6; // --> InfInitDone
+// 
+      L     DBB    9; // )  par_DW_first_bin
+      SLD   3; // )
+      T     #VarAddrBin; // --> Adresse first_bin
+      L     0; // ====START LOOP BIN ============
+      L     DBB   13; //  )  par_nr_of_bin
+      ==I   ; 
+      BEB   ; 
+IN01: T     #VarCnt; 
+//-Load bin---
+      L     P##Bin; 
+      T     #VarAddrBinStatus; 
+      L     DBD [#VarAddrBin]; //  )  Bin[x].BinNr / BinStatus
+      T     DID [#VarAddrBinStatus]; //  )  BinStatus
+//-Update StaEmpty--- 
+      SET   ; 
+      =     #Bin.StaEmpty; 
+//-Save bin---
+      L     DID [#VarAddrBinStatus]; //  )  BinStatus
+      T     DBD [#VarAddrBin]; //  )  Bin[x].BinNr / BinStatus
+      L     #VarAddrBin; 
+      L     DBB   11; //  )  ParNrOfBytePerBin
+      SLD   3; 
+      +D    ; //  )
+      T     #VarAddrBin; //  )
+//-Loop---
+      L     #VarCnt; 
+      LOOP  IN01; // ====END LOOP BIN ==============
+// 
+      BEA   ; 
+IN00: NOP   0; 
+NETWORK
+TITLE =AS All states
+
+      NOP   0; 
+//-LoadedWet---
+      U     #InWaterRunning; 
+      S     #OutLoadedWet; 
+// 
+//-Dry filling time switched on--- 
+      U     #ParDryFillingTime; 
+      FP    #OutEdgeDryFillingTime; 
+      =     #tmpDryFillingTimeOn; 
+      U     #tmpDryFillingTimeOn; 
+      U     #StDryFilling; 
+      S     #CntDryInterval1.R; 
+// 
+//-Dryfilling requested---
+      CLR   ; 
+      =     #OutDryFillingRequest; 
+      =     #OutDryFillingDone; 
+// 
+      L     DBB    9; // )  par_DW_first_bin
+      SLD   3; // )
+      T     #VarAddrBin; // --> Adresse first_bin
+      L     DBB    9; // )  par_DW_first_bin
+      L     6; 
+      +I    ; 
+      SLD   3; // )
+      T     #VarAddrActWeight; // --> Adresse first actual weight
+      L     0; // ====START LOOP BIN ============
+      L     DBB   13; //  )  par_nr_of_bin
+      ==I   ; 
+      BEB   ; 
+AS01: T     #VarCnt; 
+//-Load bin---
+      L     P##Bin; 
+      T     #VarAddrBinStatus; 
+      L     DBD [#VarAddrBin]; //  )  Bin[x].BinNr / BinStatus
+      T     DID [#VarAddrBinStatus]; //  )  BinStatus
+//-OutDryFillingRequest--- 
+      U     #Bin.InfActiveBin; 
+      O     #Bin.InfPreselect; 
+      U     #Bin.StaEmpty; 
+      U     #InDryFilling; 
+      S     #OutDryFillingRequest; 
+//-Update StaEmpty--- 
+      U     #CntDryInterval1.QU; 
+      U     #StDryFilling; 
+      U     #ParDryFillingTime; 
+      UN    #tmpDryFillingTimeOn; 
+//      ON    #InDryFilling
+      O(    ; 
+      L     DBD [#VarAddrActWeight]; //  )  Bin[x].BinNr / BinStatus
+      L     #InDryFillingWeight; 
+      >=D   ; 
+      )     ; 
+      U     #Bin.InfActiveBin; 
+      ON    #Bin.InfLowLevel; 
+      U     #InEnable; 
+      U     #Bin.StaEmpty; 
+      R     #Bin.StaEmpty; 
+//-OutDryFillingDone---
+      S     #OutDryFillingDone; 
+//-Save bin---
+      L     DID [#VarAddrBinStatus]; //  )  BinStatus
+      T     DBD [#VarAddrBin]; //  )  Bin[x].BinNr / BinStatus
+//-Next---
+      L     #VarAddrBin; 
+      L     DBB   11; //  )  ParNrOfBytePerBin
+      SLD   3; 
+      +D    ; //  )
+      T     #VarAddrBin; //  )
+      L     #VarAddrActWeight; 
+      L     DBB   11; //  )  ParNrOfBytePerBin
+      SLD   3; 
+      +D    ; //  )
+      T     #VarAddrActWeight; //  )
+//-Loop---
+      L     #VarCnt; 
+      LOOP  AS01; // ====END LOOP BIN ==============
+// 
+//-Interval filling off---
+      L     #ParIntervalTime; 
+      L     0; 
+      <=I   ; 
+      R     #InIntervalFilling; 
+// 
+//-Dry filling off---
+      L     #ParMaxDryTime; 
+      L     0; 
+      <=I   ; 
+      U     #ParDryFillingTime; 
+      R     #InDryFilling; 
+NETWORK
+TITLE =States
+
+      NOP   0; 
+//-StOff---
+      U     #StOff; 
+      SPB   StOf; 
+//-StIntervalFilling---
+      U     #StIntervalFilling; 
+      SPB   StIF; 
+//-StDrying---
+      U     #StDrying; 
+      SPB   StDR; 
+//-StDryFilling---
+      U     #StDryFilling; 
+      SPB   StDF; 
+//-StWaiting---
+      U     #StWaiting; 
+      SPB   StWa; 
+//-Init---
+      SPA   StOf; 
+NETWORK
+TITLE =StOff
+
+StOf: SET   ; 
+      S     #StOff; 
+      S     #CntDryInterval1.LOAD; 
+// 
+//-Transition to StWaiting---
+//      U     #InDryFilling
+//      O     #InIntervalFilling
+      U     #InEnable; 
+      R     #StOff; 
+      S     #StWaiting; 
+      S     #CntDryInterval1.R; 
+      S     #CntDrying.R; 
+      SPB   CC01; 
+// 
+      SPA   cnt; 
+NETWORK
+TITLE =StIntervalFilling
+
+StIF: SET   ; 
+      S     #StIntervalFilling; 
+// 
+//-Counter target value---
+      L     #ParIntervalTime; 
+      L     32767; 
+      UW    ; 
+      T     #CntDryInterval1.PV; 
+// 
+//-Transition to StOff---
+      UN    #InIntervalFilling; 
+      UN    #InDryFilling; 
+      ON    #InEnable; 
+      R     #StIntervalFilling; 
+      SPB   StOf; 
+// 
+//-Transition to StDrying---
+      U     #OutDryFillingRequest; 
+      U     #InDryFilling; 
+      U     #OutLoadedWet; 
+      R     #StIntervalFilling; 
+      S     #StDrying; 
+      S     #CntDrying.R; 
+      SPB   cnt; 
+// 
+//-Transition to StDryFilling---
+      U     #OutDryFillingRequest; 
+      U     #InDryFilling; 
+      R     #StIntervalFilling; 
+      S     #StDryFilling; 
+      S     #CntDryInterval1.R; 
+      SPB   cnt; 
+// 
+//-Transition to StWaiting---
+      UN    #InDosing; 
+      ON    #InIntervalFilling; 
+      R     #StIntervalFilling; 
+      S     #CntDrying.R; 
+      SPB   StWa; 
+// 
+      SPA   cnt; 
+NETWORK
+TITLE =StDrying
+
+StDR: SET   ; 
+      S     #StDrying; 
+      S     #CntDryInterval1.LOAD; 
+// 
+//-Transition to StOff---
+      UN    #InIntervalFilling; 
+      UN    #InDryFilling; 
+      ON    #InEnable; 
+      R     #StDrying; 
+      SPB   StOf; 
+// 
+//-Transition to StIntervallFilling---
+      UN    #OutDryFillingRequest; 
+      ON    #InDryFilling; 
+      R     #StDrying; 
+      S     #StIntervalFilling; 
+      S     #CntDryInterval1.R; 
+      SPB   cnt; 
+// 
+//-Transition to StDryFilling---
+      U     #CntDrying.QU; 
+      R     #StDrying; 
+      S     #StDryFilling; 
+      R     #OutLoadedWet; 
+      S     #CntDryInterval1.R; 
+      SPB   cnt; 
+// 
+      SPA   cnt; 
+NETWORK
+TITLE =StDryFilling
+
+StDF: SET   ; 
+      S     #StDryFilling; 
+      UN    #ParDryFillingTime; 
+      S     #CntDryInterval1.LOAD; 
+// 
+//-Counter target value---
+      L     #ParMaxDryTime; 
+      L     32767; 
+      UW    ; 
+      T     #CntDryInterval1.PV; 
+// 
+//-Transition to StOff---
+      UN    #InIntervalFilling; 
+      UN    #InDryFilling; 
+      ON    #InEnable; 
+      R     #StDryFilling; 
+      SPB   StOf; 
+// 
+//-Transition to StIntervallFilling---
+      UN    #OutDryFillingRequest; 
+      ON    #InDryFilling; 
+      R     #StDryFilling; 
+      S     #StIntervalFilling; 
+      S     #CntDryInterval1.R; 
+      SPB   cnt; 
+// 
+//-Transition to StWaiting---
+      UN    #InDosing; 
+      R     #StDryFilling; 
+      SPB   StWa; 
+// 
+      SPA   cnt; 
+NETWORK
+TITLE =StWaiting
+
+StWa: SET   ; 
+      S     #StWaiting; 
+      UN    #OutDryFillingRequest; 
+      ON    #ParDryFillingTime; 
+      UN    #InIntervalFilling; 
+      S     #CntDryInterval1.LOAD; 
+// 
+//-Transition to StOff---
+//      UN    #InIntervalFilling
+//      UN    #InDryFilling
+      ON    #InEnable; 
+      R     #StWaiting; 
+      SPB   StOf; 
+// 
+//-Transition to StIntervallFilling---
+      U     #InDosing; 
+      U     #InIntervalFilling; 
+      UN    #OutDryFillingRequest; 
+      R     #StWaiting; 
+      UN    #StWaiting; 
+      U     #CntDryInterval1.QU; 
+      S     #CntDryInterval1.R; 
+      UN    #StWaiting; 
+      SPB   StIF; 
+// 
+//-Transition to StDrying---
+      U     #InDosing; 
+      U     #OutDryFillingRequest; 
+      UN    #CntDrying.QU; 
+      R     #StWaiting; 
+      SPB   StDR; 
+// 
+//-Transition to StDryFilling---
+      U     #InDosing; 
+      U     #OutDryFillingRequest; 
+      R     #StWaiting; 
+      SPB   StDF; 
+// 
+      SPA   cnt; 
+NETWORK
+TITLE =DT Drying Time
+
+cnt:  U     #StDrying; 
+      U     #InTick; 
+      UN    #CntDrying.QU; 
+      =     #CntDrying.CU; 
+// 
+//-Counter target value---
+      L     #ParDryingTime; 
+      L     32767; 
+      UW    ; 
+      T     #CntDrying.PV; 
+// 
+//-Counter dry filling--- 
+      CALL #CntDrying ;
+// 
+      SET   ; 
+      R     #CntDrying.R; 
+      R     #CntDrying.LOAD; 
+NETWORK
+TITLE =Interval and dry filling time
+
+      U     #StDryFilling; 
+      U     #ParDryFillingTime; 
+      O     #StIntervalFilling; 
+      AUF   #RcvObject; 
+//      U     DBX   43.4                  // .ToASW.InfWayAdjustEnd
+      UN    DBX   43.1; // .ToASW.InfPreselect
+      U     #InTick; 
+      UN    #CntDryInterval1.QU; 
+      =     #CntDryInterval1.CU; 
+// 
+      AUF   #RcvObject; 
+      U     DBX   43.1; // .ToASW.InfPreselect
+      UN    #StDrying; 
+      S     #CntDryInterval1.R; 
+// 
+CC01: CALL #CntDryInterval1 ;
+// 
+      SET   ; 
+      R     #CntDryInterval1.R; 
+      R     #CntDryInterval1.LOAD; 
+NETWORK
+TITLE =TV Time values
+
+      NOP   0; 
+//-ActTime---
+      L     #CntDryInterval1.CV; 
+      T     #ActTime; 
+// 
+//-ActDiffTime---
+      L     #CntDryInterval1.PV; 
+      L     #CntDryInterval1.CV; 
+      -I    ; 
+      T     #ActDiffTime; 
+// 
+//-ActMaxTime---
+      L     #CntDryInterval1.PV; 
+      T     #ActMaxTime; 
+NETWORK
+TITLE =Outputs
+
+      NOP   0; 
+//-OutEnableWater---
+      U     #StOff; 
+      O     #StIntervalFilling; 
+      O(    ; 
+      UN    #InDryFilling; 
+      ON    #OutDryFillingRequest; 
+      U     #StWaiting; 
+      )     ; 
+      =     #OutEnableWater; 
+// 
+//-OutNextReceiver---
+      U     #StIntervalFilling; 
+      U     #CntDryInterval1.QU; 
+      O     #OutDryFillingDone; 
+      FP    #OutEdgeNextRcv; 
+      AUF   #RcvObject; 
+      S     DBX   62.6; // .ToSSW.CmdNext
+      S     #CntDryInterval1.R; 
+NETWORK
+TITLE =State code
+//State          StCode
+// ---------------------
+// StOff              1
+// StIntervalFilling  2
+// StDrying           3
+// StDryFilling       4
+// StWaiting          5
+// StUpToHL           6
+      L     1; 
+      U     #StOff; 
+      SPB   STCS; 
+      L     2; 
+      U     #StIntervalFilling; 
+      SPB   STCS; 
+      L     3; 
+      U     #StDrying; 
+      SPB   STCS; 
+      L     4; 
+      U     #StDryFilling; 
+      SPB   STCS; 
+      L     6; 
+      U     #InDryFilling; 
+      UN    #OutDryFillingRequest; 
+      UN    #InIntervalFilling; 
+      O(    ; 
+      UN    #InIntervalFilling; 
+      UN    #InDryFilling; 
+      )     ; 
+      U     #StWaiting; 
+      SPB   STCS; 
+      L     5; 
+      U     #StWaiting; 
+      SPB   STCS; 
+      L     0; // Default value
+STCS: T     #StCode; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

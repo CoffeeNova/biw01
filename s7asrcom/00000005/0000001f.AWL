@@ -1,0 +1,199 @@
+ORGANIZATION_BLOCK "SYS_OBNL_FLT"
+TITLE = "Organization Block (OB) Not Loaded Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      PROJECT    
+//
+//TITLE:        Priority Class Error Organization Block (OB85)
+//             
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                            DATE:
+//STD_OB85.2.1  A.Egli              CT3                              23-Nov-2004
+//              Only no stop when I/O access error updating the process image
+//STD_OB85.2.0  A.Egli              CT3                              12-Jul-2004
+//              LOG Message
+//STD_OB85.1.0  A.Egli              CT3                              05-Nov-2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS:
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : ASW
+NAME : OBNLFLT
+VERSION : 2.1
+
+
+VAR_TEMP
+  OB85_EV_CLASS : BYTE ;	//16#35 Event class 3
+  OB85_FLT_ID : BYTE ;	//16#XX, Fault identification code
+  OB85_PRIORITY : BYTE ;	//26 (Priority of 1 is lowest)
+  OB85_OB_NUMBR : BYTE ;	//85 (Organization block 85, OB85)
+  OB85_RESERVED_1 : BYTE ;	//Reserved for system
+  OB85_RESERVED_2 : BYTE ;	//Reserved for system
+  OB85_RESERVED_3 : INT ;	//Reserved for system
+  OB85_ERR_EV_NUM : BYTE ;	//Number of event causing error
+  OB85_ERR_EV_CLASS : BYTE ;	//Class of event causing error
+  OB85_OB_PRIOR : BYTE ;	//Priority of OB causing error
+  OB85_OB_NUM : BYTE ;	//Number of OB causing error
+  OB85_DATE_TIME : DATE_AND_TIME ;	//Date and time OB85 started   
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	
+  tmpPara4 : WORD ;	
+  tmpPara5 : WORD ;	
+  tmpPara6 : WORD ;	//---
+  tmpPara7 : WORD ;	//---
+  tmpPara8 : WORD ;	//---
+  tmpDate : WORD ;	
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+  tmp_Z23 : DWORD ;	
+  tmpNoStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Log Message: Header
+
+//Header
+      U(    ; 
+      L     #OB85_EV_CLASS; 
+      L     B#16#34; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//--System Message---
+      L     85; 
+      T     #tmpObjNo; 
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB85_FLT_ID; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB85_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB85_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para4: DKZ23
+      L     #OB85_RESERVED_1; 
+      T     #tmpPara4; 
+
+//Para5: Z1
+      L     #OB85_RESERVED_3; 
+      T     #tmpPara5; 
+
+//Para6: Z23 HW
+      LAR1  P##OB85_ERR_EV_NUM; 
+      L     LW [AR1,P#0.0]; 
+      T     #tmpPara6; 
+
+//Para7: Z23 LW
+      L     LW [AR1,P#2.0]; 
+      T     #tmpPara7; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB85_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+
+NETWORK
+TITLE =Faults without STOP
+// // alle auskommentierten Einträge führen in STOP
+//
+//B1,B2,B3,B4: I/O access error when updating the process image
+      U(    ; 
+      L     B#16#F0; 
+      L     #OB85_FLT_ID; 
+      UW    ; 
+      L     B#16#B0; 
+      ==I   ; 
+      )     ; 
+      =     #tmpNoStop; 
+NETWORK
+TITLE =Log Message: Entry
+
+//Entre Log Message
+      UN    #tmpNoStop; 
+      S     "SYS_LOG_Queue".CmdAddFastMsg; 
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := #tmpPara4,//Para4: DKZ23
+           Para5                    := #tmpPara5,//Para5: Z1
+           Para6                    := #tmpPara6,//Para6: Z23 HW
+           Para7                    := #tmpPara7,//Para7: Z23 LW
+           Para8                    := W#16#0,//Para8: 
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =Stop PLC
+
+      U     #tmpNoStop; 
+      BEB   ; 
+//**********************
+// Bring CPU to Stop
+      CALL "SIEMENS_STP" ;
+//**********************
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

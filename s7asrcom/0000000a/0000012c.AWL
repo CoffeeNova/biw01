@@ -1,0 +1,1264 @@
+FUNCTION_BLOCK "G187M_Code"
+TITLE =G187M LOCAL COMMAND BUTTON / LAMPS GERM 5
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        LOCAL COMMAND BUTTON / LAMPS GERM 5
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB287.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2511_KCL01I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01I3 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01I4 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01I5 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01I6 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_KCL01O1 : "GCS7_E_DigOutput";	// DigOut
+  A_2511_KCL01O2 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I3 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I4 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I5 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I6 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I7 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I8 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01I9 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2515_KCL01O1 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O2 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O3 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O4 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O5 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O6 : "GCS7_E_DigOutput";	// DigOut
+  A_2515_KCL01O7 : "GCS7_E_DigOutput";	// DigOut
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[187]; 
+      R     "GCS7_GrCtrlDB".ParWGR[187]; 
+      R     "GCS7_GrCtrlDB".ParGGR[187]; 
+      R     "GCS7_GrCtrlDB".ParFeed[187]; 
+      R     "GCS7_GrCtrlDB".ParShare[187]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[187]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[187]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[187]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[187]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[187]; 
+      R     "GCS7_GrCtrlDB".CmdNext[187]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[187]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[187]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[187]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[187]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[187]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[187]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+//      NOP   0
+////- Restart after fault --
+//      U     #Gr.CmdFaultReset
+//      U     #Gr.VarFault
+//      S     "SYS_StartWarningDB".Area[6].CmdResetStartWarning
+////- Run Timer --
+//      AUF   "G187M"
+//      CALL  "GCS7_StartWarning" , "SYS_StartWarningDB"
+//       InModeHigher   :=FALSE
+//       InArea         :=6
+//       InEnable       :=#Gr.OutEnableEl
+//       InLocal        :=#tmpLocal
+//       InStarted      :=#Gr.VarStarted
+//       InCmdNext      :=#tmpCmdNext
+//       OutCmdNext     :=#tmpCmdNext
+//       OutStartwarning:=#Gr.VarStartwarning
+////- Store Startwarning done  --
+////- Reset Autostart --
+//      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL
+//      FN    #EdgeStartRelease
+//      U     #Gr.VarFault
+//      R     #Gr.OutAutostart
+//
+
+
+NETWORK
+TITLE ==A-2511-KCL01I1 : SCREW ON BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I1.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I1.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I1"; 
+      =     #A_2511_KCL01I1.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01I2 : SCREW OFF BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I2.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I2.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I2"; 
+      =     #A_2511_KCL01I2.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01I3 : DRIVE FORWARD SLOWLY BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I3.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I3.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I3.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I3.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I3.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I3.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I3"; 
+      =     #A_2511_KCL01I3.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I3.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I3.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I3 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01I4 : DRIVE BACKWARD SLOWLY BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I4.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I4.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I4.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I4.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I4.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I4.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I4"; 
+      =     #A_2511_KCL01I4.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I4.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I4.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I4 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01I5 : DRIVE FORWARD FASTER BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I5.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I5.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I5.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I5.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I5.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I5.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I5"; 
+      =     #A_2511_KCL01I5.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I5.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I5.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I5 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01I6 : DRIVE BACKWARD FASTER BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_KCL01I6.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_KCL01I6.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I6.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_KCL01I6.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_KCL01I6.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_KCL01I6.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_KCL01_I6"; 
+      =     #A_2511_KCL01I6.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01I6.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01I6.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01I6 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-KCL01O1 : ALARM FLASHER
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2511_KCL01O1.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "G183M".USW8; // function locking/unlocking wall and unloader is released
+      O     "G185M".A_2511_MXZ41MA.Ma.StStartedFwd; //dyk 081027 Requested by AMBEV
+      O     "G185M".A_2511_MXZ41MA.Ma.StStartedRev; //dyk 081027 Requested by AMBEV
+      =     #A_2511_KCL01O1.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2511_KCL01O1.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      =     #A_2511_KCL01O1.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01O1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01O1.InDPFault; 
+// 
+//-Set Parameters---
+// Requested by AMBEV - When travelling machine is running, the lamp should blink
+      U     "G185M".A_2511_MXZ41MA.Ma.StStartedFwd; 
+      O     "G185M".A_2511_MXZ41MA.Ma.StStartedRev; 
+      =     "G187M".A_2511_KCL01O1.Par.ParPulsing; 
+
+// Requested by AMBEV - When travelling machine is stopped and Local Command is active, the lamp is active continuously
+      UN    "G185M".A_2511_MXZ41MA.Ma.StStartedFwd; 
+      UN    "G185M".A_2511_MXZ41MA.Ma.StStartedRev; 
+      =     "G187M".A_2511_KCL01O1.Par.ParContinuous; 
+// 
+//-Call object control---
+      CALL #A_2511_KCL01O1 ;
+// 
+//-Write outputs---
+      U     #A_2511_KCL01O1.OutpRun; 
+      O     ; 
+      U     #Gr.OutEnableEl; 
+      U     "G187M".A_2511_KCL01O1.Par.ParContinuous; 
+      U     "G183M".USW8; // function locking/unlocking wall and unloader is released
+      =     "A_2511_KCL01_O1"; 
+
+NETWORK
+TITLE ==A-2511-KCL01O2 : SPARE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2511_KCL01O2.InLocal; 
+//
+//-Interlocking--- 
+      U     #A_2511_KCL01O1.StStarted; 
+      U     #Gr.OutEnableEl; 
+      =     #A_2511_KCL01O2.InEnable; 
+//
+      U     #tmpCmdNext; 
+      S     #A_2511_KCL01O2.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_2511_KCL01O2.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_KCL01O2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_KCL01O2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_KCL01O2 ;
+// 
+//-Write outputs---
+      U     #A_2511_KCL01O2.OutpRun; 
+      =     "A_2511_KCL01_O2"; 
+NETWORK
+TITLE ==A-2515-KCL01I1 : BACKWALL LIFTING BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I1.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I1.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I1.InMonFalse; 
+
+      L     60; // pulse length time
+      T     #A_2515_KCL01I1.Par.ParDelayTrue; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I1"; 
+      =     #A_2515_KCL01I1.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I2 : BACKWALL LOWERING BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I2.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I2.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I2"; 
+      =     #A_2515_KCL01I2.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I3 : UNCOUPLE BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I3.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I3.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I3.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I3.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I3.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I3.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I3"; 
+      =     #A_2515_KCL01I3.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I3.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I3.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I3 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I4 : COUPLE BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I4.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I4.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I4.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I4.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I4.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I4.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I4"; 
+      =     #A_2515_KCL01I4.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I4.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I4.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I4 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I5 : WALL LOCKING BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I5.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I5.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I5.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I5.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I5.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I5.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I5"; 
+      =     #A_2515_KCL01I5.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I5.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I5.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I5 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I6 : WALL UNLOCKING BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I6.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I6.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I6.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I6.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I6.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I6.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I6"; 
+      =     #A_2515_KCL01I6.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I6.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I6.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I6 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I7 : HORIZONTAL SCREW ON BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I7.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I7.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I7.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I7.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I7.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I7.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I7"; 
+      =     #A_2515_KCL01I7.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I7.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I7.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I7 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I8 : DIAGONAL SCREW ON BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I8.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I8.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I8.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I8.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I8.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I8.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I8"; 
+      =     #A_2515_KCL01I8.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I8.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I8.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I8 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01I9 : SCREW STOP BUTTON
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2515_KCL01I9.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2515_KCL01I9.InMonTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I9.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2515_KCL01I9.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2515_KCL01I9.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2515_KCL01I9.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2515_KCL01_I9"; 
+      =     #A_2515_KCL01I9.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01I9.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01I9.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01I9 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2515-KCL01O1 : BACKWALL LIFTED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O1.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      UN    "G182M".A_2515_BZS22.StTrue; 
+      U     "G182M".A_2515_BZS23.StTrue; 
+      =     #A_2515_KCL01O1.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O1.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O1.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O1 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O1.OutpRun; 
+      =     "A_2515_KCL01_O1"; 
+NETWORK
+TITLE ==A-2515-KCL01O2 : BACKWALL LOWERED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O2.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      UN    "G182M".A_2515_BZS23.StTrue; 
+      U     "G182M".A_2515_BZS22.StTrue; 
+      =     #A_2515_KCL01O2.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O2.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O2.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O2 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O2.OutpRun; 
+      =     "A_2515_KCL01_O2"; 
+NETWORK
+TITLE ==A-2515-KCL01O3 : UNCOUPLED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O3.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U     "G183M".A_2511_BZS22.StTrue; // drive 1 unlocked
+      U     "G183M".A_2511_BZS26.StTrue; // drive 2 unlocked
+      U     "G183M".A_2511_BZS32.StTrue; // drive 3 unlocked
+      U     "G183M".A_2511_BZS36.StTrue; // drive 4 unlocked     
+      =     #A_2515_KCL01O3.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O3.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O3.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O3.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O3.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O3 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O3.OutpRun; 
+      =     "A_2515_KCL01_O3"; 
+NETWORK
+TITLE ==A-2515-KCL01O4 : COUPLED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O4.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U     "G183M".A_2511_BZS23.StTrue; // drive 1 locked
+      U     "G183M".A_2511_BZS27.StTrue; // drive 2 locked
+      U     "G183M".A_2511_BZS33.StTrue; // drive 3 locked
+      U     "G183M".A_2511_BZS37.StTrue; // drive 4 locked
+      =     #A_2515_KCL01O4.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O4.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O4.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O4.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O4.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O4 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O4.OutpRun; 
+      =     "A_2515_KCL01_O4"; 
+NETWORK
+TITLE ==A-2515-KCL01O5 : WALL LOCKED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O5.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U     "G184M".A_2515_BZS43.StTrue; // drive 1 locked
+      U     "G184M".A_2515_BZS47.StTrue; // drive 2 locked
+      =     #A_2515_KCL01O5.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O5.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O5.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O5.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O5.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O5 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O5.OutpRun; 
+      =     "A_2515_KCL01_O5"; 
+NETWORK
+TITLE ==A-2515-KCL01O6 : WALL UNLOCKED
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O6.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U     "G184M".A_2515_BZS42.StTrue; // drive 1 unlocked
+      U     "G184M".A_2515_BZS46.StTrue; // drive 2 unlocked
+      =     #A_2515_KCL01O6.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O6.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O6.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O6.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O6.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O6 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O6.OutpRun; 
+      =     "A_2515_KCL01_O6"; 
+NETWORK
+TITLE ==A-2515-KCL01O7 : CLEANING FLAP 1/2
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      CLR   ; 
+      =     #A_2515_KCL01O7.InLocal; 
+//
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U(    ; 
+      O     "G194M".A_2515_QYS18.StFalse; 
+      O     "G194M".A_2515_QYS19.StFalse; 
+      )     ; 
+      =     #A_2515_KCL01O7.InEnable; 
+
+      U     #tmpCmdNext; 
+      SET   ; 
+      S     #A_2515_KCL01O7.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_2515_KCL01O7.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2515_KCL01O7.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[55]; 
+      =     #A_2515_KCL01O7.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2515_KCL01O7 ;
+// 
+//-Write outputs---
+      U     #A_2515_KCL01O7.OutpRun; 
+      =     "A_2515_KCL01_O7"; 
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2511_KCL01I1.StFault; 
+      O     #A_2511_KCL01I2.StFault; 
+      O     #A_2511_KCL01I3.StFault; 
+      O     #A_2511_KCL01I4.StFault; 
+      O     #A_2511_KCL01I5.StFault; 
+      O     #A_2511_KCL01I6.StFault; 
+      O     #A_2511_KCL01O1.StFault; 
+      O     #A_2511_KCL01O2.StFault; 
+      O     #A_2515_KCL01I1.StFault; 
+      O     #A_2515_KCL01I2.StFault; 
+      O     #A_2515_KCL01I3.StFault; 
+      O     #A_2515_KCL01I4.StFault; 
+      O     #A_2515_KCL01I5.StFault; 
+      O     #A_2515_KCL01I6.StFault; 
+      O     #A_2515_KCL01I7.StFault; 
+      O     #A_2515_KCL01I8.StFault; 
+      O     #A_2515_KCL01I9.StFault; 
+      O     #A_2515_KCL01O1.StFault; 
+      O     #A_2515_KCL01O2.StFault; 
+      O     #A_2515_KCL01O3.StFault; 
+      O     #A_2515_KCL01O4.StFault; 
+      O     #A_2515_KCL01O5.StFault; 
+      O     #A_2515_KCL01O6.StFault; 
+      O     #A_2515_KCL01O7.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2511_KCL01O1.OutWarning; 
+      O     #A_2511_KCL01O2.OutWarning; 
+      O     #A_2515_KCL01O1.OutWarning; 
+      O     #A_2515_KCL01O2.OutWarning; 
+      O     #A_2515_KCL01O3.OutWarning; 
+      O     #A_2515_KCL01O4.OutWarning; 
+      O     #A_2515_KCL01O5.OutWarning; 
+      O     #A_2515_KCL01O6.OutWarning; 
+      O     #A_2515_KCL01O7.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+//      U     #A_2511_KCL01O1.StStopped
+//      U     #A_2511_KCL01O2.StStopped
+//      U     #A_2515_KCL01O1.StStopped
+//      U     #A_2515_KCL01O2.StStopped
+//      U     #A_2515_KCL01O3.StStopped
+//      U     #A_2515_KCL01O4.StStopped
+//      U     #A_2515_KCL01O5.StStopped
+//      U     #A_2515_KCL01O6.StStopped
+//      U     #A_2515_KCL01O7.StStopped
+//      UN    #Gr.VarFault
+//      =     #Gr.VarStopped
+//
+      UN    #Gr.VarStarted; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+
+NETWORK
+TITLE =Test Started
+//      U     #A_2511_KCL01O1.StStarted
+//      U     #A_2511_KCL01O2.StStarted
+//      U     #A_2515_KCL01O1.StStarted
+//      U     #A_2515_KCL01O2.StStarted
+//      U     #A_2515_KCL01O3.StStarted
+//      U     #A_2515_KCL01O4.StStarted
+//      U     #A_2515_KCL01O5.StStarted
+//      U     #A_2515_KCL01O6.StStarted
+//      U     #A_2515_KCL01O7.StStarted
+//      UN    #Gr.VarStopped
+//      UN    #Gr.VarFault
+//      =     #Gr.VarStarted
+//
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[187]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[187]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[187]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[187]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[187]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[187]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[187]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[187]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[187]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[187]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

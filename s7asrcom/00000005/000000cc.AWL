@@ -1,0 +1,373 @@
+FUNCTION_BLOCK "GCS7_M_Motors3W2HL"
+TITLE =3 Motors and 2 HL
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 48 Machine with 3 Motors and 2 HL 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB48.5.0      A. Egli             CT3                         17-Jul-2002
+//              New Release with one block 
+//              Condition Scraper.InLocal
+//FB48.4.0      A. Egli             CT3                         24-Mai-2000
+//              Element Scraper (FB11)
+//              Mode Separator
+//FB48.3.1      A. Egli             CT3                         30-Nov-1999
+//              StFault = StCode 32
+//FB48.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB48.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB48.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB48.1A       A.Egli              AEE61                       12-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.M3HxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Ma3M2HL
+VERSION : 5.0
+
+
+VAR
+  Ma : "GCS7_M_FB48_Data";	
+  Motor1 : "GCS7_E_Motor";	//Element
+  Motor2 : "GCS7_E_Motor";	//Element
+  Motor3 : "GCS7_E_Motor";	//Element
+  HLLow : "GCS7_E_DigInput";	//Element
+  HLInlet : "GCS7_E_DigInput";	//Element
+  Scraper : "GCS7_E_DigOutput";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpSeqStop : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     10; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2048; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[0]; //Cmd1[0]=CmdOnM1
+      S     #Ma.CmdOn; 
+      S     #Ma.InDisableM2; 
+      S     #Ma.InDisableM3; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdOnM2
+      R     #Ma.InDisableM2; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //Cmd2[1]=CmdOffM2
+      S     #Ma.InDisableM2; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[2]; //Cmd1[2]=CmdOnM3
+      R     #Ma.InDisableM3; 
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[2]; //Cmd2[2]=CmdOffM3
+      S     #Ma.InDisableM3; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      R     #Ma.InDisableM2; 
+      R     #Ma.InDisableM3; 
+
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #tmpSeqStop; 
+
+//--- Fault----
+      U     #Motor1.StFault; 
+      O     #Motor2.StFault; 
+      O     #Motor3.StFault; 
+      O     #HLLow.StFault; 
+      O     #HLInlet.StFault; 
+      O     #Scraper.StFault; 
+      =     #tmpFaultSum; 
+//--- Next
+      U(    ; 
+      U     #Motor2.StStartedFwd; 
+      ON    #Ma.Par.ParTypeSeparator; 
+      )     ; 
+      U     #tmpNext; 
+      S     #Motor1.CmdNext; 
+      U     #Motor1.StStartedFwd; 
+      O     #Ma.Par.ParTypeSeparator; 
+      U     #tmpNext; 
+      S     #Motor2.CmdNext; 
+      S     #Motor3.CmdNext; 
+      U     #tmpNext; 
+      S     #Scraper.CmdNext; 
+//--- Interlocking Motors
+//Motor1
+      U     #tmpEnable; 
+      O     #Ma.Par.ParMotor1IsFan; 
+      =     #Motor1.InEnableFwd; 
+// 
+      U     #tmpSeqStop; 
+      ON    #tmpEnable; 
+      U     #Motor2.StStopped; 
+      O     ; 
+      UN    #Ma.Par.ParMotor1IsFan; 
+      U     #tmpSeqStop; 
+      =     #Motor1.InSeqStop; 
+//Motor2
+      UN    #HLLow.StFault; 
+      ON    #Ma.Par.ParWithHLLow; 
+      U(    ; 
+      U     #Motor1.StStartedFwd; 
+      O     #Ma.Par.ParTypeSeparator; 
+      )     ; 
+      UN    #Ma.InDisableM2; 
+      U     #tmpEnable; 
+      =     #Motor2.InEnableFwd; 
+
+      U     #tmpSeqStop; 
+      =     #Motor2.InSeqStop; 
+//Motor3 
+      U     #Motor2.InEnableFwd; 
+      U     #Motor2.StStartedFwd; 
+      O     #Ma.Par.ParTypeSeparator; 
+      U     #Motor1.StStartedFwd; 
+      UN    #Ma.InDisableM3; 
+      U     #tmpEnable; 
+      =     #Motor3.InEnableFwd; 
+      U     #tmpSeqStop; 
+      =     #Motor3.InSeqStop; 
+//Scraper
+      U     #Motor2.StStartedFwd; 
+      U     #tmpEnable; 
+      =     #Scraper.InEnable; 
+      U     #tmpSeqStop; 
+      =     #Scraper.InSeqStop; 
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Motor1.InLocal; 
+      =     #Motor2.InLocal; 
+      =     #Motor3.InLocal; 
+      =     #HLLow.InLocal; 
+      =     #HLInlet.InLocal; 
+      =     #Scraper.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Motor1.CmdFaultReset; 
+      S     #Motor2.CmdFaultReset; 
+      S     #Motor3.CmdFaultReset; 
+      S     #HLLow.CmdFaultReset; 
+      S     #HLInlet.CmdFaultReset; 
+      S     #Scraper.CmdFaultReset; 
+// 
+//--- Monitoring Level
+      SET   ; 
+      S     #HLLow.InMonFalse; 
+      S     #HLInlet.InMonFalse; 
+
+NETWORK
+TITLE =Call Motor1
+
+      CALL #Motor1 ;
+
+NETWORK
+TITLE =Call Motor2
+
+      CALL #Motor2 ;
+
+NETWORK
+TITLE =Call Motor3
+
+      UN    #Ma.Par.ParWithMotor3; 
+      SPB   el4; 
+      CALL #Motor3 ;
+
+NETWORK
+TITLE =Call Digital Input: HLLow
+
+el4:  UN    #Ma.Par.ParWithHLLow; 
+      SPB   el5; 
+      CALL #HLLow ;
+
+NETWORK
+TITLE =Call Digital Input: HLInlet
+
+el5:  UN    #Ma.Par.ParWithHLInlet; 
+      SPB   el6; 
+      CALL #HLInlet ;
+
+NETWORK
+TITLE =Call Digital Output: Scraper
+
+el6:  UN    #Ma.Par.ParWithScraper; 
+      SPB   SPen; 
+      CALL #Scraper ;
+SPen: NOP   0; 
+NETWORK
+TITLE =Actual State
+// StFault
+      U     #tmpFaultSum; 
+      =     #Ma.StFault; 
+// StStopped
+      U     #Motor3.StStopped; 
+      ON    #Ma.Par.ParWithMotor3; 
+      U     #Motor1.StStopped; 
+      U     #Motor2.StStopped; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStopped; 
+// StStarted
+      U     #Motor3.StStartedFwd; 
+      ON    #Ma.Par.ParWithMotor3; 
+      U     #Motor1.StStartedFwd; 
+      U     #Motor2.StStartedFwd; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStarted; 
+// StStopping
+      U     #Motor1.InSeqStop; 
+      O     #Motor2.InSeqStop; 
+      O     #Motor3.InSeqStop; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopped; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStopping; 
+// StStarting
+      UN    #Ma.StStopped; 
+      UN    #Ma.StStarted; 
+      UN    #Ma.StStopping; 
+      UN    #Ma.StFault; 
+      =     #Ma.StStarting; 
+
+
+
+NETWORK
+TITLE =State Code
+// State             StCode
+// -------------------------
+// StFault             32
+// StStopped            1
+// StStarting           2
+// StStarted.Wait       3
+// StStarted.Feeding    4
+// StEmptying           5
+// StEmptied            6
+// StStopping           7
+      U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //3.1: Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+
+END_FUNCTION_BLOCK
+

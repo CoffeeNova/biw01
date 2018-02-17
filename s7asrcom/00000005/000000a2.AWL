@@ -1,0 +1,804 @@
+FUNCTION_BLOCK "GCS7_M_Aspiration"
+TITLE =Aspiration Fan with 1 Airlock
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 60 Machine Control:Aspiration  
+//
+//REVISION:     10
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB60.5.13     M. Miotto           MU93                        13-Nov-2008
+//              - Condition StStarted if Discharger is off during startup
+//FB60.5.12     A. Egli             CT3                         21-Aug-2008
+//              - ARF: InEnableHN only if Fan is started (MAUB)
+//              - ARF: InEnableLN only if Fan is stopped (MAUA)
+//FB60.5.11     A. Egli             CT3                         09-Apr-2008
+//              - InDisableDischarger added
+//              - ARF: Interlocking with Fan.OutpRunFwd
+//FB60.5.10     G. Shingler         CDDP                        22-Sep-2006
+//              InDisableFilter added
+//FB60.5.9      A.Egli              CT3                         25-Jan-2005
+//              Transition StStarted to StStopping, when no element is started
+//FB60.5.8      A.Egli              CT3                         22-Jun-2004
+//              Use HLAirlock.OutTimeoutTime in Transition to StStarted
+//              Undo change [5.4]
+//FB60.5.7      A.Egli              CT3                         27-Mai-2004
+//              Undo changes of [5.6]
+//FB60.5.6      K.Tischer           CT3                         12-Feb-2004
+//              after inDisableAirlock Ma.stStarting
+//FB60.5.5      K.Tischer           CT3                         10-Feb-2004
+//              #ARF.InEnableHN   new:#Fan.StStartedFwd (old:#Fan.OutpRunFwd)  
+//FB60.5.4      A.Egli              CT3                         11-Nov-2003
+//              Continue StStarted --> StStopping when Airlock is stopped
+//FB60.5.3      A.Egli              CT3                         01-Okt-2003
+//              Continue running Filter if InDisableAirlock
+//FB60.5.2      A. Egli             CT3                         18-Aug-2003
+//              Condition for Idling
+//FB60.5.1      A. Egli             CT3                         22-Jul-2003
+//              Filter.InLocal
+//FB60.5.0      A. Egli             CT3                         17-Dec-2002
+//              New Release with one block
+//FB60.4.4      P.Engler            CT3                         17-Dec-2002
+//              Run filter if InDisableAirlock
+//FB60.4.3      A. Egli             CT3                         25-Sep-2001
+//              ARF.StHN as contion for transition -->StStarted
+//FB60.4.2      A. Egli             CT3                         24-Aug-2000
+//              Condition for InLocal
+//FB60.4.1      A. Egli             CT3                         27-Jun-2000
+//              Monitoring HL Airlock always 
+//FB60.4.0      A. Egli             CT3                         25-Mai-2000
+//              New Element Discharger 
+//FB60.3.3      A. Egli             CT3                         24-Jan-2000
+//              -Condition StStopping to StStarting
+//              -Pressure.InPrealarmTrue
+//FB60.3.2      A. Egli             CT3                         24-Jan-2000
+//              Condition StStarting to StStopping
+//FB60.3.1      A. Egli             CT3                         15-Nov-1999
+//              Monitoring HLAirLock adapted
+//FB60.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced
+//FB60.2C       A. Egli             CT3                         17-Aug-1999
+//              No interlocking and with filter door
+//FB60.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB60.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB60.1A       A.Egli              AEE61                       8-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.ASAxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Aspirati
+VERSION : 5.13
+
+
+VAR
+  Ma : "GCS7_M_FB60_Data";	
+  Airlock : "GCS7_E_Motor";	//Elememt airlock
+  Fan : "GCS7_E_Motor";	//Elememt Fan
+  Filter : "GCS7_E_DigOutput";	//Elememt Filter control
+  ARF : "GCS7_E_ValveControl";	//Elememt Air regulation flap
+  LSDoor : "GCS7_E_DigInput";	//Element filter door 
+  Pressure : "GCS7_E_DigInput";	//Element Filter Pressure
+  HLAirlock : "GCS7_E_DigInput";	//Elememt HL Airlock 
+  Discharger : "GCS7_E_Motor";	//Elememt Discharger (Vibro)
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpEnableVibro : BOOL ;	
+  tmpPulsingMode : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     20; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2060; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+aPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParVibroOnTime; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParVibroOffTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOffMan; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOnMan; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdFanOffMan
+      S     #Ma.CmdFanOffMan; 
+
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Pulsing mode Discharger
+
+      L     #Ma.Par.ParVibroOffTime; 
+      L     0; 
+      <>I   ; 
+      U(    ; 
+      L     #Ma.Par.ParVibroOffTime; 
+      <>I   ; 
+      )     ; 
+      =     #tmpPulsingMode; 
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOnMan; 
+      =     #tmpNext; 
+
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+//--- Fault----
+      U     #Discharger.StFault; 
+      U     #Ma.Par.ParWithDischarger; 
+      O     #LSDoor.StFault; 
+      O     #Pressure.StFault; 
+      O     #Airlock.StFault; 
+      O     #Fan.StFault; 
+      O     #ARF.StFault; 
+      O     #Filter.StFault; 
+      O     #HLAirlock.StFault; 
+      =     #tmpFaultSum; 
+// 
+//--- Interlocking airlock 
+      U     #LSDoor.StTrue; 
+      ON    #Ma.Par.ParWithLSDoor; 
+      UN    #Ma.CmdOffMan; 
+      UN    #Ma.InDisableAirlock; 
+      =     #Airlock.InEnableFwd; 
+
+      U     #tmpNext; 
+      U     #Ma.InEnable; 
+      S     #Airlock.CmdNext; 
+
+      UN    #Fan.StStartedFwd; 
+      ON    #Ma.Par.ParWithFan; 
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      ON    #Ma.InEnable; 
+      =     #Airlock.InSeqStop; 
+//--- Interlocking Filter 
+      =     #Filter.InSeqStop; 
+
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; 
+      U     #Airlock.InEnableFwd; //[3.3]
+      O(    ; //[4.4]
+      UN    #Ma.InDisableAirlock; //[4.4]
+      O     #Ma.InEnable; //[4.4]
+      U(    ; //[5.3]
+      U     #HLAirlock.StFalse; //[5.3]
+      O     #HLAirlock.StCtoTrue; //[5.3]
+      U     #Ma.Par.ParWithHLAirlock; //[5.3]
+      O     #Ma.Par.ParWithDischarger; //[5.3]
+      )     ; //[5.3]
+      )     ; 
+      UN    #Ma.InDisableFilter; //[5.10]
+      =     #Filter.InEnable; 
+
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; //[4.4]
+      U(    ; //[4.4]
+      U     #Discharger.StStartedFwd; //[4.4]
+      O     #Ma.InDisableDischarger; //[5.13]
+      ON    #Ma.Par.ParWithDischarger; //[4.4]
+      O     #tmpPulsingMode; //[5.0]
+      )     ; //[4.4]
+      O     #Ma.InDisableAirlock; //[4.4]
+      U     #tmpNext; //[4.4]
+      S     #Filter.CmdNext; 
+// 
+//--- Interlocking Fan
+//2C: U     #LSDoor.StTrue;
+//2C: ON    #Ma.Par.ParWithLSDoor;
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdFanOffMan; 
+      UN    #Ma.CmdOffMan; 
+      =     #Fan.InEnableFwd; 
+
+      U     #ARF.StLN; 
+      ON    #Ma.Par.ParWithARF; 
+      U(    ; //[4.4]
+      U     #Ma.InDisableAirlock; //[4.4]
+      U     #Ma.Par.ParWithDischarger; //[4.4]
+      O     #Filter.StStarted; //[4.4]
+      O     #Ma.InDisableFilter; //[5.10]
+      ON    #Ma.Par.ParWithFilter; //[4.4]
+      )     ; 
+      U(    ; 
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; 
+      O     #Ma.InDisableAirlock; //[4.4]
+      )     ; 
+      U(    ; 
+      U     #Discharger.StStartedFwd; //[4.4]
+      O     #Ma.InDisableDischarger; //[5.13]
+      ON    #Ma.Par.ParWithDischarger; //[4.4]
+      O     #Ma.InDisableAirlock; //[4.4]
+      O     #tmpPulsingMode; //[5.0]
+      )     ; 
+      U     #tmpNext; 
+      S     #Fan.CmdNext; 
+// 
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #Fan.InSeqStop; 
+//--- Interlocking ARF
+      U     #Fan.StStartedFwd; //[5.5] MAUB=Command to open flap ,MAUA=Command to monitoring open position
+      =     #ARF.InEnableHN; 
+      U     #Fan.StStopped; //[5.5]
+      O     #Fan.StFault; //[5.11][5.12](MAUA)
+      =     #ARF.InEnableLN; //MAUB=Command to close flap ,MAUA=Command to monitoring closed position
+      SET   ; 
+      S     #ARF.CmdNext; 
+      UN    #Ma.Par.ParWithDischarger; 
+      SPB   InX1; 
+      U     #Ma.StStarted; //5.0
+      U     #tmpPulsingMode; //5.0
+      O     #tmpNext; //5.0
+      U     #Discharger.InEnableFwd; //[5.11]
+      S     #Discharger.CmdNext; 
+// 
+//--- Interlocking LSDoore 
+InX1: SET   ; 
+      =     #LSDoor.InMonTrue; 
+// 
+//--- Interlocking pressure 
+      U     #Ma.InEnable; 
+      UN    #tmpLocal; 
+      O     #Ma.InManual; 
+      UN    #Ma.Par.ParWithFan; 
+      O     #Fan.StStartedFwd; // [4.0] 
+      =     #Pressure.InMonTrue; 
+      =     #Pressure.InPreAlarmTrue; //[3.3] 
+// 
+//--- Interlocking HL 
+//      U     #Airlock.StStartedFwd;      //3.1 
+//      O     #Ma.InDisableAirlock;   //3.1
+      SET   ; //4.1
+      =     #HLAirlock.InMonFalse; 
+
+//--- Local mode --
+      U(    ; 
+      U     #Fan.StStopped; 
+      ON    #Ma.Par.ParWithFan; 
+      )     ; 
+      U(    ; 
+      U     #Airlock.StStopped; 
+      ON    #Ma.Par.ParWithAirlock; 
+      )     ; 
+      U     #tmpLocal; 
+      =     #LSDoor.InLocal; //[4.2]
+      =     #Pressure.InLocal; //[4.2]
+
+      U     #tmpLocal; 
+      =     #Fan.InLocal; 
+      =     #ARF.InLocal; 
+      =     #HLAirlock.InLocal; 
+      =     #Airlock.InLocal; 
+      =     #Filter.InLocal; //[5.1]
+      UN    #Ma.Par.ParWithDischarger; 
+      SPB   InL1; 
+      U     #tmpLocal; 
+      =     #Discharger.InLocal; 
+//--- Fault Reset -------------
+InL1: U     #Ma.CmdFaultReset; 
+      S     #Pressure.CmdFaultReset; 
+      S     #LSDoor.CmdFaultReset; 
+      S     #Fan.CmdFaultReset; 
+      S     #Airlock.CmdFaultReset; 
+      S     #ARF.CmdFaultReset; 
+      S     #Filter.CmdFaultReset; 
+      S     #HLAirlock.CmdFaultReset; 
+      UN    #Ma.Par.ParWithDischarger; 
+      SPB   InF1; 
+      U     #Ma.CmdFaultReset; 
+      S     #Discharger.CmdFaultReset; 
+//Warning
+InF1: UN    #Pressure.StTrue; 
+      U     #Ma.Par.ParWithPressure; 
+      O     ; 
+      U     #Ma.Par.ParWithFilter; 
+      U     #Filter.OutWarning; 
+      =     #Ma.OutWarning; 
+NETWORK
+TITLE =Interlocking Discharger/ Vibro Time (5.0)
+
+      UN    #Ma.Par.ParWithDischarger; 
+      SPB   VBEN; 
+//== timer Vibro                        
+//Start Vibro immediatly at negativ flag of
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; 
+      U     #Airlock.InEnableFwd; 
+      =     #tmpEnableVibro; 
+//----------------------
+//Init Pulsing time
+      U     #tmpEnableVibro; 
+      U     #tmpPulsingMode; 
+      SPB   vtJ1; 
+      L     0; 
+      T     #Ma.Par.OutDelayTime; 
+      S     #Ma.OutPulseVibroOn; 
+      SPA   vtOT; 
+//----------------------
+//Count timer
+vtJ1: U     #Ma.OutPulseVibroOn; //[5.11]
+      U     #Ma.InDisableDischarger; //[5.11]
+      ON    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   vtOT; 
+      L     #Ma.Par.OutDelayTime; 
+      +     2; 
+      T     #Ma.Par.OutDelayTime; 
+//----------------------
+//Vibro off time
+      U     #Ma.OutPulseVibroOn; 
+      SPB   vtOn; 
+      L     #Ma.Par.ParVibroOffTime; 
+      L     #Ma.Par.OutDelayTime; 
+      >=I   ; 
+      SPB   vtOT; 
+      S     #Ma.OutPulseVibroOn; 
+      SPA   vtJ0; 
+//----------------------
+//Vibro on time
+vtOn: L     #Ma.Par.ParVibroOnTime; 
+      <I    ; 
+      SPB   vtOT; 
+      R     #Ma.OutPulseVibroOn; 
+vtJ0: L     0; 
+      T     #Ma.Par.OutDelayTime; 
+//----------------------
+//Interlocking Discharger
+vtOT: U     #Ma.OutPulseVibroOn; //[5.0]
+      UN    #Ma.InDisableDischarger; //[5.11]
+      U     #tmpEnableVibro; 
+      =     #Discharger.InEnableFwd; 
+      U     #Airlock.InSeqStop; 
+      =     #Discharger.InSeqStop; 
+VBEN: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: LS Filter Door
+
+      UN    #Ma.Par.ParWithLSDoor; 
+      SPB   el2; 
+      CALL #LSDoor ;
+
+NETWORK
+TITLE =Call Digital Input: Pressure
+
+el2:  UN    #Ma.Par.ParWithPressure; 
+      SPB   el3; 
+      CALL #Pressure ;
+
+NETWORK
+TITLE =Call Fan
+
+el3:  UN    #Ma.Par.ParWithFan; 
+      SPB   el4; 
+      CALL #Fan ;
+
+NETWORK
+TITLE =Call Airlock
+
+el4:  UN    #Ma.Par.ParWithAirlock; 
+      SPB   el5; 
+      CALL #Airlock ;
+
+NETWORK
+TITLE =Call Digital Output: Filter control unit
+
+el5:  UN    #Ma.Par.ParWithFilter; 
+      SPB   el6; 
+      CALL #Filter ;
+
+NETWORK
+TITLE =Call VLS: Air legulation flap
+
+el6:  UN    #Ma.Par.ParWithARF; 
+      SPB   el7; 
+      CALL #ARF ;
+
+NETWORK
+TITLE =Call Digital Input: HLAirlock
+
+el7:  UN    #Ma.Par.ParWithHLAirlock; 
+      SPB   el8; 
+      CALL #HLAirlock ;
+
+NETWORK
+TITLE =Call Discharger
+
+el8:  UN    #Ma.Par.ParWithDischarger; 
+      SPB   el9; 
+      CALL #Discharger ;
+el9:  NOP   0; 
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StIdling; 
+      SPB   S5; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+      L     1; // StCode=Stopped
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #Fan.StStopped; 
+      U     #Ma.Par.ParWithFan; 
+      O     ; 
+      UN    #Airlock.StStopped; 
+      U     #Ma.Par.ParWithAirlock; 
+      O     ; 
+      UN    #Filter.StStopped; 
+      U     #Ma.Par.ParWithFilter; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+      L     2; // StCode=Starting
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Fan.StStartedFwd; 
+      ON    #Ma.Par.ParWithFan; 
+      U(    ; 
+      U     #Airlock.StStartedFwd; 
+      O     #Ma.InDisableAirlock; //[4.4]
+      ON    #Ma.Par.ParWithAirlock; 
+      )     ; 
+      U(    ; //[4.4]
+      U     #Discharger.StStartedFwd; //[4.4]
+      O     #Ma.InDisableDischarger; //[5.13]
+      O     #Ma.InDisableAirlock; //[4.4]
+      ON    #Ma.Par.ParWithDischarger; //[4.4]
+      O     #tmpPulsingMode; //[5.0]
+      )     ; //[4.4]
+      U(    ; //[4.4]
+      U     #Ma.InDisableAirlock; //[4.4]
+      U     #Ma.Par.ParWithDischarger; //[4.4]
+      O     #Ma.InDisableFilter; //[5.10]
+      O     #Filter.StStarted; //[4.4]
+      ON    #Ma.Par.ParWithFilter; //[4.4]
+      )     ; 
+      U(    ; //[3.3]
+      UN    #Ma.Par.ParWithHLAirlock; //[3.3]
+      O     #HLAirlock.StFalse; //[3.3]
+      O     #HLAirlock.OutTimeoutTime; //[5.8]
+      )     ; //[3.3]
+      U(    ; //[3.3]
+      UN    #Ma.Par.ParWithPressure; //[3.3]
+      O     #Pressure.StTrue; //[3.3]
+      )     ; //[3.3]
+      U(    ; //[4.3]
+      U     #ARF.StHN; //[4.3]
+      ON    #Ma.Par.ParWithARF; //[4.3]
+      )     ; //[4.3]
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+
+// Condition for StStopping
+      U     #Fan.StStopped; //[3.2]
+      O     #Fan.StStopping; 
+      ON    #Ma.Par.ParWithFan; 
+      U(    ; 
+      UN    #Airlock.StStarting; 
+      UN    #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; 
+      )     ; 
+      U(    ; 
+      UN    #Filter.StStarting; 
+      UN    #Filter.StStarted; 
+      ON    #Ma.Par.ParWithFilter; 
+      )     ; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+
+// Condition for StIdling
+      U     #Airlock.StStartedFwd; 
+      U     #Airlock.InSeqStop; 
+      U     #Ma.Par.ParWithAirlock; 
+      O     ; 
+      U     #Filter.StStarted; 
+      U     #Filter.InSeqStop; 
+      UN    #Ma.Par.ParWithAirlock; 
+      R     #Ma.StStarting; 
+      SPB   xxS5; //-->StIdling
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StIdling
+      U(    ; 
+      U     #Airlock.StStartedFwd; 
+      U     #Airlock.InSeqStop; 
+      U     #Ma.Par.ParWithAirlock; 
+      O     ; 
+      U     #Filter.StStarted; 
+      U     #Filter.InSeqStop; 
+      UN    #Ma.Par.ParWithAirlock; 
+      O     ; 
+      U     #Filter.StStarted; 
+      U     #Fan.InSeqStop; 
+      UN    #Ma.Par.ParWithAirlock; 
+      O     ; //[5.2]
+      U     #Fan.InSeqStop; //[5.2]
+      U     #Ma.Par.ParWithFan; //[5.2]
+      )     ; 
+      U(    ; 
+      UN    #Fan.StStartedFwd; 
+      ON    #Ma.Par.ParWithFan; 
+      )     ; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //-->StIdling  
+// Condition for StStopping
+      UN    #Fan.StStartedFwd; 
+      U     #Ma.Par.ParWithFan; 
+      O     ; 
+      UN    #Airlock.StStartedFwd; 
+//[5.7]      UN    #Airlock.StStarting         //[5.6]
+      UN    #Ma.InDisableAirlock; //[4.4]
+      U     #Ma.Par.ParWithAirlock; 
+      UN    #Ma.Par.ParWithFan; //[4.4][5.4][5.8]
+      O     ; 
+      UN    #Filter.StStarted; //[4.4]
+      UN    #Ma.InDisableAirlock; //[4.4]
+      UN    #Ma.InDisableFilter; //[5.10]
+      U     #Ma.Par.ParWithFilter; //[4.4]
+      UN    #Ma.Par.ParWithFan; //[4.4][5.4][5.8]
+      O     ; //[5.9]
+      UN    #Fan.StStartedFwd; //[5.9]
+      UN    #Filter.StStarted; //[5.9]
+      UN    #Airlock.StStartedFwd; //[5.9]
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Filter.StStopped; 
+      ON    #Ma.Par.ParWithFilter; 
+      U(    ; 
+      U     #Fan.StStopped; 
+      ON    #Ma.Par.ParWithFan; 
+      )     ; 
+      U(    ; 
+      U     #Airlock.StStopped; 
+      ON    #Ma.Par.ParWithAirlock; 
+      )     ; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting //[3.3]
+      UN    #Fan.StStopped; 
+      UN    #Fan.StStopping; 
+      ON    #Ma.Par.ParWithFan; 
+      U(    ; 
+      U     #Airlock.StStarting; 
+      O     #Airlock.StStartedFwd; 
+      O     #Ma.InDisableAirlock; //[4.4]
+      ON    #Ma.Par.ParWithAirlock; 
+      )     ; 
+      U(    ; 
+      U     #Filter.StStarting; 
+      O     #Filter.StStarted; 
+      O     #Ma.InDisableAirlock; //[4.4]
+      O     #Ma.InDisableFilter; //[5.10]
+      ON    #Ma.Par.ParWithFilter; 
+      )     ; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//    ---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS0; //-->StStopping 
+
+NETWORK
+TITLE =StIdling
+//any Transition 
+xxS5: S     #Ma.StIdling; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StIdling; 
+      SPB   xxS4; //-->StFault
+// Condition for StStopping
+      UN    #Airlock.StStartedFwd; 
+      U     #Ma.Par.ParWithAirlock; 
+      O     ; 
+      UN    #Filter.StStarted; 
+      UN    #Ma.Par.ParWithAirlock; 
+      R     #Ma.StIdling; 
+      SPB   xxS3; //-->StStopping  
+// Condition for StStarted
+      UN    #Fan.StStopped; 
+      UN    #Fan.StStopping; 
+      U     #Ma.Par.ParWithFan; 
+      O     ; 
+      U     #Airlock.StStartedFwd; 
+      UN    #Airlock.InSeqStop; 
+      U     #Ma.Par.ParWithAirlock; 
+      O     ; 
+      U     #Filter.StStarted; 
+      UN    #Filter.InSeqStop; 
+      UN    #Ma.Par.ParWithAirlock; 
+      U     #Ma.Par.ParWithFilter; 
+      R     #Ma.StIdling; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =State Code
+// State           StCode
+// ----------------------
+// StFault            32
+// StStopped          1
+// StStarting         2
+// StStarted          3
+// StWarning          4
+// StIdling           6
+// StStopping         7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      UN    #Ma.OutWarning; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      U     #Ma.OutWarning; 
+      L     4; //Code=StWarning 
+      SPB   Code; 
+      U     #Ma.StIdling; 
+      L     6; //Code=StIdling
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOnMan; 
+      =     #Ma.CmdOffMan; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdFanOffMan; 
+
+END_FUNCTION_BLOCK
+

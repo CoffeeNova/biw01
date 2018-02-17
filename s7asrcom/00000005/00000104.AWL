@@ -1,0 +1,1126 @@
+FUNCTION_BLOCK "GCS7_E_MDDx"
+TITLE =MDDx Serial Communication
+//  
+//COPYRIGHT:    (C) 1998  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control MDDx Serial Communication
+//              GCPROVB Revision 11   
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                      DATE:
+//
+//FB35.4.0      A. Egli             CT3                        18-Mai-2004
+//              MDDO/M
+//FB35.3.1      A. Egli             CT3                        02-Sep-2003
+//              Fault at calculation of address of parameter 
+//FB35.3.0      A. Egli             CT3                        17-Jun-2002
+//              New Release with one block 
+//FB35.2.2      A. Egli             CT3                        17-Mar-2000
+//              Length for answer telegram
+//FB35.2.1      S. Kalberer         CT3                        19-Jan-2000
+//              LOG and fault reset by warning but not local mode
+//FB35.2.0      S. Kalberer         CT3                        06-Dec-1999
+//              New alarms 7,8,12,28-31 adapted to LOG
+//              Set Horn on transition to fault or warning and not InLocal
+//              No cyclic command "S" sending (UDT20351 has changed!)
+//FB35.1A       S. Kalberer         CT3                        24-Sep-1999
+//              Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MDDENMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//              tmpFault and tmpWarning may be set together!
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//  1  EPROM wrong checksum         = #Par.Par.OutLCAlarm.CheckSumFault
+//  2  RAM test fault               = #Par.Par.OutLCAlarm.RAMTestFault
+//  3  Operation fault              = #Par.Par.OutLCAlarm.OperationFault
+//  4  Watchdog                     = #Par.Par.OutLCAlarm.WatchDog
+//  5  Memory lost                  = #Par.Par.OutLCAlarm.MemoryLost
+//  6  No communication with grinding gap print
+//                                  = #Par.Par.OutLCAlarm.GrindGapPrint
+//  7  ERR 7                        = #Par.Par.OutLCAlarm.ERR0007
+//  8  ERR 8                        = #Par.Par.OutLCAlarm.ERR0008
+//  9  Fault cancelled
+// 10  MDDx communication fault
+// 11  Dry running of grinding rolls= #Par.Par.OutLCAlarm.GrindRollsDryRun
+// 12  ERR 12                       = #Par.Par.OutLCAlarm.ERR0012
+// 13  Standstill of feed rolls     = #Par.Par.OutLCAlarm.FeedRollsStandstill
+// 14  Standstill of grinding rolls = #Par.Par.OutLCAlarm.GrindRollsStandstill
+// 15  Standstill of lower grinding rolls
+//                                 = #Par.Par.OutLCAlarm.GrindRollsLowStandstill
+// 16 Overload of main motor       = #Par.Par.OutLCAlarm.MotorOverload;
+// 17 Overload of lower motor      = #Par.Par.OutLCAlarm.MotorLowOverload;
+// 18 Grinding gap fault           = #Par.Par.OutLCAlarm.GrindGapFault;
+// 19 Lower grinding gap fault     = #Par.Par.OutLCAlarm.GrindGapLowFault;
+// 20 Product registration fault   = #Par.Par.OutLCAlarm.ProdRegistrationFault;
+// 21 Grinding gap no increment    = #Par.Par.OutLCAlarm.GrindGapNoIncr;
+// 22 Lower grinding gap no increment
+//                                 = #Par.Par.OutLCAlarm.GrindGapLowNoIncr;
+// 23 HL inlet                     = #Par.Par.OutLCAlarm.HLInlet;
+// 24 HL outlet                    = #Par.Par.OutLCAlarm.HLOutlet;
+// 25 HL backup left               = #Par.Par.OutLCAlarm.HLBackUpLeft;
+// 26 HL backup right              = #Par.Par.OutLCAlarm.HLBackUpRight;
+// 27 Emergency stop was pressed   = #Par.Par.OutLCAlarm.EmergencyStop;
+// 28 Product is full or the feed roll maximum speed
+//                                 = #Par.Par.OutLCAlarm.InletProductFullRpnmax
+// 29 Not enough product in the inlet
+//                                 = #Par.Par.OutLCAlarm.InletNotEnoughProduct
+// 30 ERR 30                       = #Par.Par.OutLCAlarm.ERR0030
+// 31 ERR 31                       = #Par.Par.OutLCAlarm.ERR0031
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//
+//32  StFault                 
+// 3  StOk                    
+// 5  StWarning               
+//45  StWarning.HWStop               StStopped + InHWStop 
+//55  StWarning.DPFault              StStopped + DPFault
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MDDxSer
+VERSION : 4.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnableEngage : BOOL ;	//Signal to engage the rolls
+  InRestdischarge : BOOL ;	//Signal to activate restdischarge mode
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  CmdNewValue : BOOL ;	
+  spare0205 : BOOL ;	
+  spare0206 : BOOL ;	
+  spare0207 : BOOL ;	
+  spare0300 : BOOL ;	
+  spare0301 : BOOL ;	
+  spare0302 : BOOL ;	
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  spare0305 : BOOL ;	
+  spare0306 : BOOL ;	
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutComFault : BOOL ;	//Communication fault
+  OutFaultResetDone : BOOL ;	//Aux. signal fault reset done
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  spare0406 : BOOL ;	
+  spare0407 : BOOL ;	
+  spare0500 : BOOL ;	
+  spare0501 : BOOL ;	
+  StOk : BOOL ;	//Element is ok
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Element has a communication or device fault
+  StWarning : BOOL ;	//Element is in local mode or has a warning fault
+  OutFeedRollSpeed : INT ;	//Is read from LC [0..0500 RPM]
+  OutFeedRollStatus : INT ;	//Is read from LC [0..9999]
+  OutRollsUpCurrent : INT ;	//Is read from LC [0.1 A]
+  OutRollsLowCurrent : INT ;	//Is read from LC [0.1 A]
+  OutRollsUpLoad : INT ;	//Is read from LC [%]
+  OutRollsLowLoad : INT ;	//Is read from LC [%]
+  OutGrindGapStatus : INT ;	//Is read from LC [0..9999]
+  OutAlarmNr : INT ;	//Is read from LC [0..9999]
+  spare2200 : INT ;	//Is read from LC [0..9999]
+  OutLCState : STRUCT 	//Is read from LC [Bit]
+   spare00 : BYTE ;	
+   RollStandMDDM : BOOL ;	//Roll stand type: 0=MDDO / 1=MDDM
+   HLInlet : BOOL ;	//HL inlet: 1=Covered
+   HLOutlet : BOOL ;	//HL outlet: 1=Covered
+   HLBackUp : BOOL ;	//HL backup: 1=Covered
+   RestDischarge : BOOL ;	//Restdischarge: 1=Active
+   Disengaged : BOOL ;	//Rolls: 1=Disengaged
+   ManDisengaged : BOOL ;	//Rolls manually disengaged: 1=Manually disengaged
+   spare17 : BOOL ;	
+  END_STRUCT ;	
+  spare2600 : INT ;	
+  spare2800 : INT ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  InGapData : STRUCT 	//Only without MDEF
+   Spare0 : INT ;	
+   GapTopLeft : INT ;	//de:  Sollwert Mahlspalt oben links
+   GapTopRight : INT ;	//de:  Sollwert Mahlspalt oben rechts
+   GapBottomLeft : INT ;	//de:  Sollwert Mahlspalt unten links
+   GapBottomRight : INT ;	//de:  Sollwert Mahlspalt unten rechts
+   GapAdjustment : INT ;	
+  END_STRUCT ;	
+  OutGapData : STRUCT 	//Only without MDEF
+   Spare0 : INT ;	
+   GapTopLeftNom : INT ;	//de:  Sollwert Mahlspalt oben links
+   GapTopRightNom : INT ;	//de:  Sollwert Mahlspalt oben rechts
+   GapBottomLeftNom : INT ;	//de:  Sollwert Mahlspalt unten links
+   GapBottomRightNom : INT ;	//de:  Sollwert Mahlspalt unten rechts
+   GapTopLeftAc : INT ;	//de:  Istwert Mahlspalt oben links
+   GapTopRightAc : INT ;	//de:  Istwert Mahlspalt oben rechts
+   GapBottomLeftAc : INT ;	//de:  Istwert Mahlspalt unten links
+   GapBottomRightAc : INT ;	//de:  Istwert Mahlspalt unten rechts
+   GapAdjustment : INT ;	//0=Off;1=Manual;2=Automatic;3=Referencing;4=Aligment;5=Save
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   spare0401 : BOOL ;	
+   ParWarning : BOOL ;	//Warning mode for communication fault (see OutComFault)
+   ParNoMDEF : BOOL ;	//1=No MDEF : read and write of grinding gap data
+   spare04041 : BOOL ;	
+   ParFilter : STRUCT 	//Filter to alarm 1=Ignore alarm    
+    spare00 : BOOL ;	
+    CheckSumFault : BOOL ;	//ERR  1 - EPROM wrong checksum
+    RAMTestFault : BOOL ;	//ERR  2 - RAM test fault
+    OperationFault : BOOL ;	//ERR  3 - Operation fault
+    WatchDog : BOOL ;	//ERR  4 - Watchdog
+    MemoryLost : BOOL ;	//ERR  5 - Memory lost
+    GrindGapPrint : BOOL ;	//ERR  6 - No communication with grinding gap print
+    ERR0007 : BOOL ;	//ERR  7 - not defined
+    ERR0008 : BOOL ;	//ERR  8 - not defined
+    ERR0009 : BOOL ;	//ERR  9 - not defined (reserved PLC message)
+    ERR0010 : BOOL ;	//ERR 10 - not defined (reserved PLC message)
+    GrindRollsDryRun : BOOL ;	//ERR 11 - Dry running of grinding rolls
+    ERR0012 : BOOL ;	//ERR 12 - not defined
+    FeedRollsStandstill : BOOL ;	//ERR 13 - Standstill of feed rolls
+    GrindRollsStandstill : BOOL ;	//ERR 14 - Standstill of grinding rolls
+    GrindRollsLowStandstill : BOOL ;	//ERR 15 - Standstill of lower grinding rolls
+    MotorOverload : BOOL ;	//ERR 16 - Overload of main motor
+    MotorLowOverload : BOOL ;	//ERR 17 - Overload of lower motor
+    GrindGapFault : BOOL ;	//ERR 18 - Grinding gap fault
+    GrindGapLowFault : BOOL ;	//ERR 19 - Lower grinding gap fault
+    ProdRegistrationFault : BOOL ;	//ERR 20 - Product registration fault
+    GrindGapNoIncr : BOOL ;	//ERR 21 - Grinding gap no increment
+    GrindGapLowNoIncr : BOOL ;	//ERR 22 - Lower grinding gap no increment
+    HLInlet : BOOL ;	//ERR 23 - HL inlet
+    HLOutlet : BOOL ;	//ERR 24 - HL outlet
+    HLBackUpLeft : BOOL ;	//ERR 25 - HL backup left
+    HLBackUpRight : BOOL ;	//ERR 26 - HL backup right
+    EmergencyStop : BOOL ;	//ERR 27 - Emergency stop was pressed
+    InletProductFullRpnmax : BOOL ;	//ERR 28 - Product is full or the feed roll is rotating at maximum speed 
+    InletNotEnoughProduct : BOOL ;	//ERR 29 - Not enough product in the inlet
+    ERR0030 : BOOL ;	//ERR 30 - not defined
+    ERR0031 : BOOL ;	//ERR 31 - not defined
+   END_STRUCT ;	
+   ParFilterWarning : STRUCT 	//Filter to set alarm type (0=Fault;Suspend/1=Warning)
+    spare00 : BOOL ;	
+    CheckSumFault : BOOL ;	//ERR  1 - EPROM wrong checksum
+    RAMTestFault : BOOL ;	//ERR  2 - RAM test fault
+    OperationFault : BOOL ;	//ERR  3 - Operation fault
+    WatchDog : BOOL ;	//ERR  4 - Watchdog
+    MemoryLost : BOOL ;	//ERR  5 - Memory lost
+    GrindGapPrint : BOOL ;	//ERR  6 - No communication with grinding gap print
+    ERR0007 : BOOL ;	//ERR  7 - not defined
+    ERR0008 : BOOL ;	//ERR  8 - not defined
+    ERR0009 : BOOL ;	//ERR  9 - not defined (reserved PLC message)
+    ERR0010 : BOOL ;	//ERR 10 - not defined (reserved PLC message)
+    GrindRollsDryRun : BOOL ;	//ERR 11 - Dry running of grinding rolls
+    ERR0012 : BOOL ;	//ERR 12 - not defined
+    FeedRollsStandstill : BOOL ;	//ERR 13 - Standstill of feed rolls
+    GrindRollsStandstill : BOOL ;	//ERR 14 - Standstill of grinding rolls
+    GrindRollsLowStandstill : BOOL ;	//ERR 15 - Standstill of lower grinding rolls
+    MotorOverload : BOOL ;	//ERR 16 - Overload of main motor
+    MotorLowOverload : BOOL ;	//ERR 17 - Overload of lower motor
+    GrindGapFault : BOOL ;	//ERR 18 - Grinding gap fault
+    GrindGapLowFault : BOOL ;	//ERR 19 - Lower grinding gap fault
+    ProdRegistrationFault : BOOL ;	//ERR 20 - Product registration fault
+    GrindGapNoIncr : BOOL ;	//ERR 21 - Grinding gap no increment
+    GrindGapLowNoIncr : BOOL ;	//ERR 22 - Lower grinding gap no increment
+    HLInlet : BOOL ;	//ERR 23 - HL inlet
+    HLOutlet : BOOL ;	//ERR 24 - HL outlet
+    HLBackUpLeft : BOOL ;	//ERR 25 - HL backup left
+    HLBackUpRight : BOOL ;	//ERR 26 - HL backup right
+    EmergencyStop : BOOL ;	//ERR 27 - Emergency stop was pressed
+    InletProductFullRpnmax : BOOL ;	//ERR 28 - Product is full or the feed roll is rotating at maximum speed 
+    InletNotEnoughProduct : BOOL ;	//ERR 29 - Not enough product in the inlet
+    ERR0030 : BOOL ;	//ERR 30 - not defined
+    ERR0031 : BOOL ;	//ERR 31 - not defined
+   END_STRUCT ;	
+   ParComDB : INT ;	//Communication DB
+   ParLCIdx : INT ;	//Index of data record
+   ParLCAddr : INT ;	//Address of LC
+   OutLCAlarm : STRUCT 	//Alarm bit mask of OutAlarmNumber
+    spare00 : BOOL ;	
+    CheckSumFault : BOOL ;	//ERR  1 - EPROM wrong checksum
+    RAMTestFault : BOOL ;	//ERR  2 - RAM test fault
+    OperationFault : BOOL ;	//ERR  3 - Operation fault
+    WatchDog : BOOL ;	//ERR  4 - Watchdog
+    MemoryLost : BOOL ;	//ERR  5 - Memory lost
+    GrindGapPrint : BOOL ;	//ERR  6 - No communication with grinding gap print
+    ERR0007 : BOOL ;	//ERR  7 - not defined
+    ERR0008 : BOOL ;	//ERR  8 - not defined
+    ERR0009 : BOOL ;	//ERR  9 - not defined (reserved PLC message)
+    ERR0010 : BOOL ;	//ERR 10 - not defined (reserved PLC message)
+    GrindRollsDryRun : BOOL ;	//ERR 11 - Dry running of grinding rolls
+    ERR0012 : BOOL ;	//ERR 12 - not defined
+    FeedRollsStandstill : BOOL ;	//ERR 13 - Standstill of feed rolls
+    GrindRollsStandstill : BOOL ;	//ERR 14 - Standstill of grinding rolls
+    GrindRollsLowStandstill : BOOL ;	//ERR 15 - Standstill of lower grinding rolls
+    MotorOverload : BOOL ;	//ERR 16 - Overload of main motor
+    MotorLowOverload : BOOL ;	//ERR 17 - Overload of lower motor
+    GrindGapFault : BOOL ;	//ERR 18 - Grinding gap fault
+    GrindGapLowFault : BOOL ;	//ERR 19 - Lower grinding gap fault
+    ProdRegistrationFault : BOOL ;	//ERR 20 - Product registration fault
+    GrindGapNoIncr : BOOL ;	//ERR 21 - Grinding gap no increment
+    GrindGapLowNoIncr : BOOL ;	//ERR 22 - Lower grinding gap no increment
+    HLInlet : BOOL ;	//ERR 23 - HL inlet
+    HLOutlet : BOOL ;	//ERR 24 - HL outlet
+    HLBackUpLeft : BOOL ;	//ERR 25 - HL backup left
+    HLBackUpRight : BOOL ;	//ERR 26 - HL backup right
+    EmergencyStop : BOOL ;	//ERR 27 - Emergency stop was pressed
+    InletProductFullRpnmax : BOOL ;	//ERR 28 - Product is full or the feed roll is rotating at maximum speed 
+    InletNotEnoughProduct : BOOL ;	//ERR 29 - Not enough product in the inlet
+    ERR0030 : BOOL ;	//ERR 30 - not defined
+    ERR0031 : BOOL ;	//ERR 31 - not defined
+   END_STRUCT ;	
+   OutStateTarget : STRUCT 	//Command for LC, is send to LC with 'S'
+    spare00 : BOOL ;	
+    spare01 : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    spare06 : BOOL ;	
+    spare07 : BOOL ;	
+    EnableEngage : BOOL ;	//Enable engage the rolls
+    RestDischarge : BOOL ;	//Enable restdischarge mode (for fumigation of the bins)
+    spare12 : BOOL ;	
+    spare13 : BOOL ;	
+    spare14 : BOOL ;	
+    spare15 : BOOL ;	
+    spare16 : BOOL ;	
+    spare17 : BOOL ;	
+   END_STRUCT ;	
+   OutComFlags : STRUCT 	//Flags for communication
+    b_Done : BOOL ;	//Actual roll stand data
+    S_Done : BOOL ;	//Target status
+    M_Done : BOOL ;	//Target values MDDO/M
+    _m_Done : BOOL ;	//Actual values MDDO/M
+   END_STRUCT ;	
+   OutStateTargetStore : INT ;	//OutStateTarget has changed, send Cmd "S"
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrOffset : DWORD ;	//store the Instance Pointer
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpCommand : INT ;	
+  tmpFBNO : INT ;	//Number of the actual FB
+  tmpFault : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpComActive : BOOL ;	//Put or get is in queue
+  tmpLenDyn : DINT ;	
+  tmpAddrParFilter : DWORD ;	//Pointer to ParFilter
+  tmpAddrParFilterWarning : DWORD ;	//Pointer to ParFilterWarning
+  tmpAddrOutLCState : DWORD ;	//Pointer to OutLCState
+  tmpAddrOutLCAlarm : DWORD ;	//Pointer to OutLCAlarm
+  tmpAddrOutStateTarget : DWORD ;	//Pointer to OutLCStateTarget
+  tmpComDB : INT ;	
+  tmpLocal : BOOL ;	
+  tmpHornOn : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     35; 
+      T     #tmpFBNO; 
+      L     96; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; //-->Addr Para
+      L     P##Par; //[3.1]
+      +D    ; //[3.1]
+      LAR1  ; 
+
+      TAR1  ; 
+      L     P#8.0; 
+      +D    ; 
+      T     #tmpAddrParFilter; //-->Pointer to Par.ParFilter
+
+      TAR1  ; 
+      L     P#12.0; 
+      +D    ; 
+      T     #tmpAddrParFilterWarning; //-->Pointer to Par.ParFilterWarning
+
+      TAR1  ; 
+      L     P#22.0; 
+      +D    ; 
+      T     #tmpAddrOutLCAlarm; //-->Pointer to Par.OutLCAlarm
+
+      TAR1  ; 
+      L     P#26.0; 
+      +D    ; 
+      T     #tmpAddrOutStateTarget; //-->Pointer to Par.OutStateTarget
+
+      L     #Par.ParComDB; 
+      T     #tmpComDB; 
+
+      SET   ; 
+      R     #tmpHornOn; 
+NETWORK
+TITLE = Call back function
+//*****This functions are called by FB7 (COM) ******
+      AUF   DB [#tmpComDB]; 
+      L     0; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   PC; 
+      L     DBB   76; //COM.Telegram.Command;
+      T     #tmpCommand; 
+      L     1; 
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      SPB   Send; 
+      L     2; 
+      ==I   ; 
+      SPB   Rcv; 
+      L     4; //NAK
+      L     DBW   32; //COM.Element.CODE;
+      ==I   ; 
+      S     #OutComFault; //fault MDDx communication
+//Handle CmdFaultReset
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+      S     #OutFaultResetDone; 
+      SPA   STOR; 
+//Read telegram length
+Send: L     #tmpCommand; 
+      L     'b'; 
+      ==I   ; 
+      L     40; //Lenght in byte
+      SPB   Sndx; 
+      L     #tmpCommand; //[4.0]
+      L     'm'; //[4.0]
+      ==I   ; //[4.0]
+      L     36; //Lenght in byte   //[4.0]
+      SPB   Sndx; //[4.0]
+      SPA   SndA; 
+Sndx: T     DBW   86; //COM.Telegram.LenAnswer
+      SPA   STOR; 
+SndA: NOP   0; 
+//Send S
+      L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   SndM; 
+      LAR1  #tmpAddrOutStateTarget; 
+      L     W [AR1,P#0.0]; // 2.0:
+      T     DBD   36; //COM.Element.InOutValue
+      L     34; //Convert Hex to 4-ASCII
+      T     DBW    0; //COM.CODE
+      L     4; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      SPA   STOR; 
+//[4.0]---->
+//Send M
+SndM: L     #tmpCommand; 
+      L     'M'; 
+      <>I   ; 
+      SPB   SndZ; 
+//GapTopLeft    
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #InGapData.GapTopLeft; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert DInt to 4-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//GapTopRight    
+      L     4; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #InGapData.GapTopRight; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert DInt to 4-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//GapBottomLeft    
+      L     8; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #InGapData.GapBottomLeft; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert DInt to 4-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//GapBottomRight
+      L     12; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #InGapData.GapBottomRight; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert DInt to 4-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+//Adjustment    
+      L     16; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     #InGapData.GapAdjustment; 
+      T     DBD   36; //COM.Element.InOutValue
+      L     14; //Convert DInt to 4-ASCII
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     20; //Lenght in byte
+      T     DBW   78; //COM.Telegram.Len
+      SPA   STOR; 
+//<--[4.0]
+SndZ: SPA   STOR; 
+//--- Get done ---------------
+//Copy reveived data to element
+Rcv:  R     #OutComFault; 
+      L     #tmpCommand; 
+      L     'b'; 
+      <>I   ; 
+      SPB   Rcvm; 
+//Feed roll speed 
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutFeedRollSpeed; 
+//Feed roll status
+      L     4; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutFeedRollStatus; 
+//Rolls up current
+      L     8; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutRollsUpCurrent; 
+//Rolls low current
+      L     12; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutRollsLowCurrent; 
+//Rolls up load
+      L     16; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutRollsUpLoad; 
+//Rolls low load
+      L     20; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutRollsLowLoad; 
+//Grind gap status
+      L     24; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGrindGapStatus; 
+//Alarm number
+      L     28; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutAlarmNr; 
+//Reserve
+      L     32; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #spare2200; 
+//LC status
+      L     36; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     44; //Convert 4-ASCII to Hex
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     #tmpAddrOffset; //-->Addr Para
+      L     P##OutLCState; 
+      +D    ; 
+      LAR1  ; 
+      L     DBD   36; //COM.Element.InOutValue
+      T     W [AR1,P#0.0]; //#OutLCState
+//Handle CmdFaultReset
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+      S     #OutFaultResetDone; 
+      SPA   STOR; 
+//[4.0]-->
+//Command 'm'
+Rcvm: R     #OutComFault; 
+      L     #tmpCommand; 
+      L     'm'; 
+      <>I   ; 
+      SPB   RcvM; 
+//GapTopLeftNom
+      L     0; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapTopLeftNom; 
+//GapTopRightNom
+      L     4; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapTopRightNom; 
+//GapBottomLeftNom
+      L     8; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapBottomLeftNom; 
+//GapBottomRightNom
+      L     12; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapBottomRightNom; 
+//GapTopLeftAc
+      L     16; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapTopLeftAc; 
+//GapTopRightAc
+      L     20; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapTopRightAc; 
+//GapBottomLeftAc
+      L     24; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapBottomLeftAc; 
+//GapBottomRightAc
+      L     28; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapBottomRightAc; 
+//Adjustment
+      L     32; //Character offset
+      T     DBW   40; //COM.Element.AddrOffset
+      L     24; //Convert 4-ASCII to DInt
+      T     DBW    0; //COM.CODE
+      TDB   ; //ComDB->Instanz-DB
+      UC    "GCS7_RS485Ctrl"; //Convert (CODE=DBW0)
+      TDB   ; //ElementDB->Instanz-DB
+      L     DBD   36; //COM.Element.InOutValue
+      T     #OutGapData.GapAdjustment; 
+      SPA   STOR; 
+//<--[4.0]
+//--- Put done ---------------
+RcvM: L     #tmpCommand; //[4.0]
+      L     'M'; //[4.0]
+      <>I   ; //[4.0]
+      SPB   RcvS; //[4.0]
+      R     #CmdNewValue; //[4.0]
+      SPA   STOR; //[4.0]
+RcvS: L     #tmpCommand; 
+      L     'S'; 
+      <>I   ; 
+      SPB   RcvX; 
+RcvX: SPA   STOR; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+PC:   L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1035; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; //-->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     11; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = Read LC data
+
+Ctrl: AUF   DB [#tmpComDB]; 
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index;
+      L     1; //Read LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    "GCS7_RS485Ctrl"; 
+      TDB   ; 
+      L     #tmpFBNO; 
+      T     DBW   52; //COM.LC0.FBNO;   
+      L     DINO; 
+      T     DBW   54; //COM.LC0.DINO;
+      TAR2  DBD   56; //COM.LC0.AddrDyn;        
+      L     #tmpAddrOffset; 
+      T     DBD   60; //COM.LC0.AddrPara;       
+      L     #Par.ParLCAddr; 
+      T     DBD   64; //COM.Telegram.LCAddr;
+
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+      U     #InLocal; 
+      O     #InDPFault; 
+      O     #InHWStop; 
+      =     #tmpLocal; 
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//--- tmpFault   
+      L     #OutAlarmNr; //Calculate OutLCAlarm out of the AlarmNumber
+      L     1; 
+      SLD   ; 
+      SRD   1; //Clear Alarm Bit 0
+      SLD   1; 
+      TAD   ; //Replace akku to correct bit order
+      LAR1  #tmpAddrOutLCAlarm; 
+      T     D [AR1,P#0.0]; //#OutLCAlarm
+      LAR1  #tmpAddrParFilter; 
+      L     D [AR1,P#0.0]; //#Par.ParFilter;
+      INVD  ; //Invers filter mask
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      O     #OutComFault; //---Communication fault
+      =     #tmpFault; 
+//      TAK                             // 2.1:
+      LAR1  #tmpAddrOutLCAlarm; // 2.1:
+      L     D [AR1,P#0.0]; // 2.1: #OutLCAlarm
+      LAR1  #tmpAddrParFilterWarning; 
+      L     D [AR1,P#0.0]; //#Par.ParFilterWarning;
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      UN    #OutComFault; 
+      O     ; 
+      U     #OutComFault; //Warning mode: for OutComFault
+      U     #Par.ParWarning; //if ParWarning is set
+      =     #tmpWarning; //additional information (tmpFault is also set)
+      U     DBX   50.0; //COM.LC0.CmdPut
+      O     DBX   50.1; //COM.LC0.CmdGet
+      =     #tmpComActive; 
+//---LC State target commands
+      U     #InEnableEngage; 
+      =     #Par.OutStateTarget.EnableEngage; 
+      U     #InRestdischarge; 
+      =     #Par.OutStateTarget.RestDischarge; 
+NETWORK
+TITLE =Communication start
+
+      U     #tmpComActive; 
+      SPB   STAT; 
+      L     #Par.OutStateTargetStore; // 2.0:---State target has changed?
+      LAR1  #tmpAddrOutStateTarget; // 2.0:   -> Send command S
+      L     W [AR1,P#0.0]; // 2.0:
+      <>I   ; // 2.0:
+      UN    #Par.OutComFlags.S_Done; 
+      SPB   CmdS; 
+      UN    #Par.OutComFlags.b_Done; 
+      SPB   Cmdb; 
+      UN    #Par.OutComFlags.M_Done; //[4.0]
+      U     #CmdNewValue; //[4.0]
+      U     #Par.ParNoMDEF; //[4.0]
+      SPB   CmdM; //[4.0]
+      UN    #Par.OutComFlags._m_Done; //[4.0]
+      U     #Par.ParNoMDEF; //[4.0]
+      SPB   Cmdm; //[4.0]
+      R     #Par.OutComFlags.b_Done; //[4.0]
+      R     #Par.OutComFlags.S_Done; 
+      R     #Par.OutComFlags.M_Done; //[4.0]
+      R     #Par.OutComFlags._m_Done; //[4.0]
+      SPA   OUT; 
+Cmdb: S     #Par.OutComFlags.b_Done; 
+      L     'b'; 
+      SPA   GET; 
+Cmdm: S     #Par.OutComFlags._m_Done; //[4.0]
+      L     'm'; //[4.0]
+      SPA   GET; //[4.0]
+CmdS: T     #Par.OutStateTargetStore; // 2.0:---Store state target
+      S     #Par.OutComFlags.S_Done; 
+      L     'S'; 
+      SPA   PUT; 
+CmdM: S     #Par.OutComFlags.M_Done; //[4.0]
+      L     'M'; //[4.0]
+      SPA   PUT; //[4.0]
+PUT:  SET   ; 
+      S     DBX   50.0; //COM.LC0.CmdPut;
+      SPA   ALL1; 
+GET:  SET   ; 
+      S     DBX   50.1; //COM.LC0.CmdGet;
+ALL1: S     #tmpComActive; 
+      T     DBB   51; //COM.LC0.Command;
+      SPA   OUT; 
+NETWORK
+TITLE =States
+//===State machine===
+STAT: U     #StOk; 
+      SPB   S2; 
+      U     #StFault; 
+      SPB   S4; 
+      U     #StWarning; 
+      SPB   S5; 
+      S     #StOk; //Init
+
+NETWORK
+TITLE = StOk
+
+xS2:  S     #StOk; 
+      R     #StWarning; 
+      R     #StFault; 
+      R     #CmdFaultReset; 
+      R     #OutFaultResetDone; 
+      L     B#(3, 9); //Message Operator ('fault cancelled' )
+      SPA   LOG; 
+S2:   U     #tmpWarning; //---Condition to set Horn
+      O     #tmpFault; // 2.0:
+      UN    #tmpLocal; // 2.0:
+      S     #tmpHornOn; 
+
+      U     #tmpWarning; // 2.0:---Condition for StFault/StWarning
+      O     #tmpFault; // 2.0:
+      SPB   xS45; //StXxx -> StFault/StWarning transition
+      SPA   OUT; 
+
+NETWORK
+TITLE = StFault
+
+S4:   UN    #tmpFault; //---Condition for StOk
+      U     #CmdFaultReset; 
+      SPB   xS2; 
+      U     #InLocal; //---Condition for StWarning
+      O     #tmpWarning; 
+      SPB   xS45; 
+      U     #OutFaultResetDone; //reLOG fault
+      SPB   xS45; 
+      SPA   OUT; 
+
+NETWORK
+TITLE = StWarning
+//Automatic fault reset
+S5:   UN    #tmpFault; //---Condition for StOk
+      UN    #tmpWarning; // 2.1:
+      U     #InLocal; // 2.1:
+      O     ; // 2.1:
+      UN    #tmpWarning; // 2.1:
+      UN    #tmpFault; // 2.1:
+      UN    #InLocal; // 2.1:
+      U     #CmdFaultReset; // 2.1:
+      SPB   xS2; 
+      UN    #tmpLocal; //---Condition for StFault
+      UN    #tmpWarning; 
+      U     #tmpFault; // 2.1:
+      S     #tmpHornOn; 
+      SPB   xS45; //StXxx -> StFault transition flag
+      UN    #InLocal; //2.1: reLOG warning
+      U     #OutFaultResetDone; // 2.1:
+      SPB   xS45; // 2.1:
+      U     #OutFaultResetDone; //---Fault reset
+      S     #CmdFaultReset; 
+      R     #OutFaultResetDone; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =LOG
+
+xS45: R     #StOk; 
+      R     #OutFaultResetDone; //---Fault reset
+//---Horn On-----------------------------
+      UN    #tmpHornOn; 
+      SPB   S4J2; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1035,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+//---Message------------------------------
+S4J2: U     #tmpLocal; //----Condition for StWarning
+      O     #tmpWarning; 
+      S     #StWarning; 
+      R     #StFault; 
+      U     #tmpLocal; // 2.1:---InLocal=1 -> no LOG message
+      SPB   OUT; 
+      U     #tmpFault; // 2.1:
+      UN    #tmpWarning; // 2.1:
+      S     #StFault; 
+      R     #StWarning; 
+      L     B#(1, 10); 
+      U     #OutComFault; 
+      SPB   LOG; 
+      L     B#(1, 1); 
+      U     #Par.OutLCAlarm.CheckSumFault; 
+      SPB   LOG; 
+      L     B#(1, 2); 
+      U     #Par.OutLCAlarm.RAMTestFault; 
+      SPB   LOG; 
+      L     B#(1, 3); 
+      U     #Par.OutLCAlarm.OperationFault; 
+      SPB   LOG; 
+      L     B#(1, 4); 
+      U     #Par.OutLCAlarm.WatchDog; 
+      SPB   LOG; 
+      L     B#(1, 5); 
+      U     #Par.OutLCAlarm.MemoryLost; 
+      SPB   LOG; 
+      L     B#(1, 6); 
+      U     #Par.OutLCAlarm.GrindGapPrint; 
+      SPB   LOG; 
+      L     B#(1, 7); // 2.0:
+      U     #Par.OutLCAlarm.ERR0007; 
+      SPB   LOG; 
+      L     B#(1, 8); // 2.0:
+      U     #Par.OutLCAlarm.ERR0008; 
+      SPB   LOG; 
+      L     B#(1, 11); 
+      U     #Par.OutLCAlarm.GrindRollsDryRun; 
+      SPB   LOG; 
+      L     B#(1, 12); // 2.0:
+      U     #Par.OutLCAlarm.ERR0012; 
+      SPB   LOG; 
+      L     B#(1, 13); 
+      U     #Par.OutLCAlarm.FeedRollsStandstill; 
+      SPB   LOG; 
+      L     B#(1, 14); 
+      U     #Par.OutLCAlarm.GrindRollsStandstill; 
+      SPB   LOG; 
+      L     B#(1, 15); 
+      U     #Par.OutLCAlarm.GrindRollsLowStandstill; 
+      SPB   LOG; 
+      L     B#(1, 16); 
+      U     #Par.OutLCAlarm.MotorOverload; 
+      SPB   LOG; 
+      L     B#(1, 17); 
+      U     #Par.OutLCAlarm.MotorLowOverload; 
+      SPB   LOG; 
+      L     B#(1, 18); 
+      U     #Par.OutLCAlarm.GrindGapFault; 
+      SPB   LOG; 
+      L     B#(1, 19); 
+      U     #Par.OutLCAlarm.GrindGapLowFault; 
+      SPB   LOG; 
+      L     B#(1, 20); 
+      U     #Par.OutLCAlarm.ProdRegistrationFault; 
+      SPB   LOG; 
+      L     B#(1, 21); 
+      U     #Par.OutLCAlarm.GrindGapNoIncr; 
+      SPB   LOG; 
+      L     B#(1, 22); 
+      U     #Par.OutLCAlarm.GrindGapLowNoIncr; 
+      SPB   LOG; 
+      L     B#(1, 23); 
+      U     #Par.OutLCAlarm.HLInlet; 
+      SPB   LOG; 
+      L     B#(1, 24); 
+      U     #Par.OutLCAlarm.HLOutlet; 
+      SPB   LOG; 
+      L     B#(1, 25); 
+      U     #Par.OutLCAlarm.HLBackUpLeft; 
+      SPB   LOG; 
+      L     B#(1, 26); 
+      U     #Par.OutLCAlarm.HLBackUpRight; 
+      SPB   LOG; 
+      L     B#(1, 27); 
+      U     #Par.OutLCAlarm.EmergencyStop; 
+      SPB   LOG; 
+      L     B#(1, 28); // 2.0:
+      U     #Par.OutLCAlarm.InletProductFullRpnmax; 
+      SPB   LOG; 
+      L     B#(1, 29); // 2.0:
+      U     #Par.OutLCAlarm.InletNotEnoughProduct; 
+      SPB   LOG; 
+      L     B#(1, 30); // 2.0:
+      U     #Par.OutLCAlarm.ERR0030; 
+      SPB   LOG; 
+      L     B#(1, 31); // 2.0:
+      U     #Par.OutLCAlarm.ERR0031; 
+      SPB   LOG; 
+      L     B#(1, 10); //COM communication
+      SPA   LOG; 
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1035);
+
+NETWORK
+TITLE =Global End
+
+OUT:  NOP   0; 
+SAVE: SET   ; //---Clear all commands
+//--Output for group 
+      U     #InDPFault; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #InLocal; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+      L     3; //Code: ok
+      U     #StOk; 
+      SPB   STC; 
+//--Warning ---
+      UN    #StWarning; 
+      SPB   STC2; 
+      L     45; //Code:StWarning.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     55; //Code: StWarning.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     5; //Code: StWarning
+      SPA   STC; 
+//===============
+STC2: L     32; //Code: fault
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+NETWORK
+TITLE = Store LC data
+
+      L     #Par.ParLCIdx; 
+      T     DBW   34; //COM.Element.Index; 
+      L     2; //Store LC data
+      T     DBW    0; //COM.CODE;
+      TDB   ; 
+      UC    "GCS7_RS485Ctrl"; 
+      TDB   ; 
+STOR: NOP   0; 
+END_FUNCTION_BLOCK
+

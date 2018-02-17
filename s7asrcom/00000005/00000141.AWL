@@ -1,0 +1,1445 @@
+FUNCTION_BLOCK "GCS7_E_ATV"
+TITLE =ATV
+//
+//COPYRIGHT:    (C) 2006  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FU Control Altivar
+//
+//REVISION:     10
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB18.1.5      A. Egli             BASE                        07-Apr-2008
+//              - NMAx data from FU copied to data block
+//              - CmdFaultReset from Group
+//FB18.1.3      A. Egli             CT3                         18-Apr-2007
+//              Multimotor configuration
+//FB18.1.1      A. Egli             CT3                         24-Nov-2006
+//              Local Mode: Condition StStooping-->StStarting
+//FB18.1.0      A. Egli             CT3                         26-Sep-2006
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [SSW-EL--Altivar_MAN_en]
+//
+//RESTRICTIONS: S7
+//-------------------------------------------------------------------------
+//
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  stopped
+// 2  started forward
+// 5  started reverse
+// 9  fault cancelled
+//10  fault device
+//11  fault running
+//12  fault starting
+//13  fault stopping
+//14  fault Isolated
+//15  fault Overload
+//16  fault Service
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+// 1 StStopped                 
+// 2 StStarting                
+// 3 StStartedFwdSlow          
+// 4 StStartedFwdFast          
+// 5 StStartedRevSlow          
+// 6 StStartedRevFast          
+// 7 StStopping                 
+// 9 StStartRequest            StStopped+CmdNext 
+//11 StartingDelay             StStopped+(OutStartWarning or OutStartDelay)
+//
+//31 StFault+InpFaultDev=1     (Active)
+//32 StFault
+//33 StFault+Isolated
+//34 StFault+Overload
+//35 StFault+Service 
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : FU_ALT
+VERSION : 1.5
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnableRev : BOOL ;	//Enable to run the element reverse   
+  InEnableFwd : BOOL ;	//Enable to run the element forward
+  InPrestart : BOOL ;	
+  spare23 : BOOL ;	
+  spare24 : BOOL ;	
+  spare25 : BOOL ;	
+  InpContactor : BOOL ;	
+  spare27 : BOOL ;	
+  CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element immediately (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0=Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  InSeqStop : BOOL ;	//Stop automatically after idling time
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InSimulation : BOOL ;	//Simulation with DPSim
+  OutIdling : BOOL ;	//Idling is active
+  OutComFaultRead : BOOL ;	
+  OutComFaultWrite : BOOL ;	
+  OutpContactor : BOOL ;	
+  Spare47 : BOOL ;	
+  StStopped : BOOL ;	//Element is stopped
+  StStarting : BOOL ;	//Element is starting
+  StStartedFwd : BOOL ;	//Element is started forward: Next element can start
+  StStopping : BOOL ;	//Element is stopping
+  StFault : BOOL ;	//Element has a fault
+  StStartedRev : BOOL ;	//Element is started reverse: Next Element can start
+  InOutManRev : BOOL ;	//Manual direction mode: 1= reverse / 0= forward
+  Spare57 : BOOL ;	
+  InForce : BOOL ;	
+  tmpASW : BOOL ;	
+  InpIsolated : BOOL ;	
+  InpOverload : BOOL ;	
+  InpService : BOOL ;	
+  InMultiMotorCfg0 : BOOL ;	//Use Multimotor configuration 0
+  InMultiMotorCfg1 : BOOL ;	//Use Multimotor configuration 1
+  InMultiMotorCfg2 : BOOL ;	//Use Multimotor configuration 2
+  OutFaultRelevant : BOOL ;	//Relavant faultfor group
+  OutDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutStartRequestMan : BOOL ;	//Start Request for Manaul Mode
+  OutStartRequestAuto : BOOL ;	
+  OutStartWarning : BOOL ;	//Startwarning is active
+  OutStartDelay : BOOL ;	//Startdelay time is running
+  OutDelayFault : BOOL ;	//ParDelayFaultTime is running
+  OutAlarmNoLog : INT ;	//Last textnumber send to log
+  OutFaultDev : BOOL ;	//Alarm reason
+  OutFaultStopping : BOOL ;	//Alarm reason
+  OutFaultStarting : BOOL ;	//Alarm reason
+  OutFaultOverload : BOOL ;	//Alarm reason
+  OutFaultIsolated : BOOL ;	//Alarm reason
+  OutFaultService : BOOL ;	//Alarm reason
+  OutTimeStarted : DINT ;	//[s] Not errasable time "Started"
+  OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+  OutCntStartup : DINT ;	//Not errasable counter of startup
+  OutCntFault : DINT ;	//Not errasable counter of faults
+  InSpeed : REAL ;	//Target Value speed [Unit or 0.1%]
+  OutSpeed : REAL ;	//Actual Value speed [0.1%]
+  spare36 : INT ;	
+  spare38 : INT ;	
+  Snd : STRUCT 	
+   PKW : STRUCT 	
+    PKE : INT ;	//Logical Address Parameter
+    Cmd : STRUCT 	
+     spare : BYTE ;	
+     Read : BOOL ;	
+     Write : BOOL ;	
+    END_STRUCT ;	
+    PWE : DINT ;	
+   END_STRUCT ;	
+   Cmd : STRUCT 	
+    Halt : BOOL ;	
+    Reserved9 : BOOL ;	
+    Reserved10 : BOOL ;	
+    DirectionRev : BOOL ;	
+    MultiMotorCfg1 : BOOL ;	//Use MultiMotor configuration 1
+    MultiMotorCfg2 : BOOL ;	//Use MultiMotor configuration 2
+    Spare14 : BOOL ;	
+    Spare15 : BOOL ;	
+    SwitchOn : BOOL ;	
+    EnableVoltage : BOOL ;	
+    QuickStop : BOOL ;	
+    EnableOperation : BOOL ;	
+    Reserved4 : BOOL ;	
+    Reserved5 : BOOL ;	
+    Reserved6 : BOOL ;	
+    FaultReset : BOOL ;	
+   END_STRUCT ;	
+   Speed : INT ;	//Target Speed e.g (LFR Logical Address 8502) [0.1Hz]
+   PCD3 : INT ;	
+   PCD4 : INT ;	
+   PCD5 : INT ;	
+   PCD6 : INT ;	
+   PCD7 : INT ;	
+   PCD8 : INT ;	
+  END_STRUCT ;	
+  Rcv : STRUCT 	
+   PKW : STRUCT 	
+    PKE : INT ;	//Logical Address Parameter
+    RWN : INT ;	//Code Answer
+    PWE : DINT ;	//Paramter Value or Error reason
+   END_STRUCT ;	
+   Status : STRUCT 	
+    Reserved8 : BOOL ;	
+    Remote : BOOL ;	
+    TargetReached : BOOL ;	
+    InternalLimitActive : BOOL ;	
+    Reserved12 : BOOL ;	
+    Reserved13 : BOOL ;	
+    StopViaStopKey : BOOL ;	
+    DirectionRev : BOOL ;	
+    ReadySwitchOn : BOOL ;	
+    SwitchedOn : BOOL ;	
+    OperationEnabled : BOOL ;	
+    Fault : BOOL ;	
+    VoltageEnabled : BOOL ;	
+    QuickStop : BOOL ;	
+    SwitchedOnDisabled : BOOL ;	
+    Warning : BOOL ;	
+   END_STRUCT ;	
+   Speed : INT ;	//Actual Speed e.g (RFR Logical Address 3202) [0.1Hz]
+   MultiMotorCfg : INT ;	//Active MultiMotor Configuration [0..2] (CNSF Logical Address 8020)
+   PZD4 : INT ;	
+   PZD5 : INT ;	
+   PZD6 : INT ;	
+   PZD7 : INT ;	
+   PZD8 : INT ;	
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParRestartDelay : BOOL ;	//No restart possible in StStopping
+   ParHeavyStartup : BOOL ;	//Element with heavy startup
+   ParStartwarning : BOOL ;	
+   ParValueAsUnit : BOOL ;	//Speed values as units not as not procent value
+   ParIOByteNo : INT ;	//PROFIBUS: Address of first input and output byte
+   ParMonTime : INT ;	//[0.1 s] After this time outputs must be equal inputs
+   ParStartDelay : INT ;	//[0.1 s] Requested start delay time
+   ParStartingTime : INT ;	//[0.1 s] Delay time, until the element is ready to start production
+   ParStoppingTime : INT ;	//[0.1 s] Delay time, until the element has come to a standstill
+   ParIdlingTime : INT ;	//[0.1 s] Requested idling time to stop element in automatic mode
+   ParDelayFaultTime : INT ;	//[0.1 s] Requested fault delay time by negative flag of input
+   ParDPNode1 : INT ;	
+   ParDPNode2 : INT ;	
+   ParUnitsBy100 : INT ;	//Unit by 100%
+   OutMonTime : INT ;	//Actual time: Monitoring
+   OutTransitionTime : INT ;	//Actual time: Starting, stopping, change direction, idling
+   OutDelayFaultTime : INT ;	//Actual time: DelayTime
+   OutStartDelay : INT ;	
+   InOutManPulseLen : INT ;	//Pulse length to start a the motor
+   spare : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnableRev : BOOL ;	//Global enable reverse
+  tmpEnableFwd : BOOL ;	//Global enable forward
+  tmpEnable : BOOL ;	//Global enable
+  tmpDelayOver : BOOL ;	//Delay time is over
+  tmpMonOver : BOOL ;	//Monitoring time is over
+  tmpInpFault : BOOL ;	//Fault variable
+  tmpHeavyStartup : BOOL ;	//Any element is starting with HeavyStartup
+  tmpLocal : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpDPFaultInp : BOOL ;	
+  tmpDPFaultOutp : BOOL ;	
+  tmpLenDyn : INT ;	//Global enable forward
+  tmpAddr : WORD ;	
+  tmpReturn : INT ;	
+  tmpAddrIO : DWORD ;	
+  tmpAddrRcv : DWORD ;	
+  tmpAddrSnd : DWORD ;	
+  tmpRunning : BOOL ;	
+  tmpFaultDelayRunning : BOOL ;	
+  tmpMultiMotorCfgTar : INT ;	//Target Multi Motor Config
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     130; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+      L     P##Rcv; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrRcv; 
+      L     P##Snd; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      TAR2  ; 
+      +D    ; 
+      T     #tmpAddrSnd; 
+
+      L     #Par.ParIOByteNo; 
+      SLD   3; 
+      T     #tmpAddrIO; 
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1018; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      O     "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; //Handshake.FDefineValue
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: L     "SYS_DirectCtrlDB".PC.Value[11]; 
+      T     #Par.ParMonTime; 
+      L     "SYS_DirectCtrlDB".PC.Value[12]; 
+      T     #Par.ParStartDelay; 
+      L     "SYS_DirectCtrlDB".PC.Value[13]; 
+      T     #Par.ParStartingTime; 
+      L     "SYS_DirectCtrlDB".PC.Value[14]; 
+      T     #Par.ParStoppingTime; 
+      L     "SYS_DirectCtrlDB".PC.Value[15]; 
+      T     #Par.ParIdlingTime; 
+      L     "SYS_DirectCtrlDB".PC.Value[16]; 
+      T     #Par.ParDelayFaultTime; 
+// Write new commands from PC to Interface object
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[7]; // CmdManRevOn;
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #InOutManRev; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdOff
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdOn
+      UN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; // CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[7]; // CmdManRevOff;
+      R     #InOutManRev; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[1]; // CmdOnTickFwd
+      O     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      SPB   pJ1; 
+      L     DB3.DBW   56; // "SYS_PCControl".PC.Cmd3
+      T     #Par.InOutManPulseLen; 
+//Define Value
+pJ1:  UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      L     "SYS_DirectCtrlDB".PC.Value[1]; 
+      ITD   ; 
+      DTR   ; 
+      T     #InSpeed; 
+      SPA   pIni; 
+pExa: L     #Par.ParMonTime; 
+      T     "SYS_DirectCtrlDB".PC.Value[11]; 
+      L     #Par.ParStartDelay; 
+      T     "SYS_DirectCtrlDB".PC.Value[12]; 
+      L     #Par.ParStartingTime; 
+      T     "SYS_DirectCtrlDB".PC.Value[13]; 
+      L     #Par.ParStoppingTime; 
+      T     "SYS_DirectCtrlDB".PC.Value[14]; 
+      L     #Par.ParIdlingTime; 
+      T     "SYS_DirectCtrlDB".PC.Value[15]; 
+      L     #Par.ParDelayFaultTime; 
+      T     "SYS_DirectCtrlDB".PC.Value[16]; 
+      TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+      L     DINO; 
+      T     "SYS_DirectCtrlDB".GC.InDBNr; 
+      SPA   pIni; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =(Profibus) Read data and store Data 
+
+      L     #Par.ParIOByteNo; 
+      T     #tmpAddr; 
+      U     #InSimulation; 
+      SPB   rSim; 
+      CALL "SIEMENS_DPRD_DAT" (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #tmpReturn,
+           RECORD                   := #Rcv.PKW);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #OutComFaultRead; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#8.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DIW [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#10.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DIW [AR1,P#10.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#12.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DIW [AR1,P#12.0]; 
+      LAR1  #tmpAddrIO; 
+      L     PEW [AR1,P#14.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DIW [AR1,P#14.0]; 
+      LAR1  #tmpAddrIO; //[1.5]
+      L     PEW [AR1,P#16.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DIW [AR1,P#16.0]; //[1.5]
+      LAR1  #tmpAddrIO; //[1.5]
+      L     PEW [AR1,P#18.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DIW [AR1,P#18.0]; //[1.5]
+      LAR1  #tmpAddrIO; //[1.5]
+      L     PEW [AR1,P#20.0]; //[1.5]                                                  
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DIW [AR1,P#20.0]; //[1.5]
+      LAR1  #tmpAddrIO; //[1.5]
+      L     PEW [AR1,P#22.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DIW [AR1,P#22.0]; //[1.5]
+      SPA   rDP; 
+//read from Simulation
+rSim: R     #OutComFaultRead; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   "TEST_IOSimuliInput"; 
+      L     P#DBX 0.0; 
+rDB1: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      T     #tmpAddrIO; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#0.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#4.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#8.0]; 
+      LAR1  #tmpAddrRcv; 
+      T     DID [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; //[1.5]
+      L     D [AR1,P#12.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DID [AR1,P#12.0]; //[1.5]
+      LAR1  #tmpAddrIO; //[1.5]
+      L     D [AR1,P#16.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DID [AR1,P#16.0]; //[1.5]
+      LAR1  #tmpAddrIO; //[1.5]
+      L     D [AR1,P#20.0]; //[1.5]
+      LAR1  #tmpAddrRcv; //[1.5]
+      T     DID [AR1,P#20.0]; //[1.5]
+rDP:  NOP   0; 
+//===============================
+//LC Parameter 
+//===============================
+      L     "SYS_DirectCtrlLCDB".PC.ObjectNo; 
+      L     #Par.ParObjectNo; 
+      <>I   ; 
+      SPB   rJ0; 
+//-------------------------------------------
+//Check Answer Examine
+      ON    "SYS_DirectCtrlLCDB".PC.Hsk.FExamine; 
+      ON    #Snd.PKW.Cmd.Read; 
+      SPB   rW1; 
+      L     #Rcv.PKW.PKE; 
+      L     #Snd.PKW.PKE; 
+      ==I   ; 
+      SPBN  rW1; 
+      L     #Rcv.PKW.RWN; 
+      L     1; 
+      ==I   ; 
+      SPBN  rW1; 
+      R     #Snd.PKW.Cmd.Read; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[2]; 
+      L     #Rcv.PKW.PWE; 
+      SRD   16; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[3]; 
+      L     #Rcv.PKW.PWE; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[4]; 
+      L     12; 
+      CALL "SYS_DirectCtrl" ;
+      SPA   rJ1; 
+//-------------------------------------------
+//Check Answer Write
+rW1:  UN    "SYS_DirectCtrlLCDB".PC.Hsk.FDefinePara; 
+      ON    #Snd.PKW.Cmd.Write; 
+      SPB   rJ1; 
+      L     #Rcv.PKW.PKE; 
+      L     #Snd.PKW.PKE; 
+      ==I   ; 
+      SPBN  rJ1; 
+      L     #Rcv.PKW.RWN; 
+      L     2; 
+      ==I   ; 
+      SPB   rWA1; 
+      L     #Rcv.PKW.RWN; 
+      L     7; 
+      ==I   ; 
+      SPB   rWA1; 
+      SPA   rJ1; 
+rWA1: R     #Snd.PKW.Cmd.Write; 
+      L     #Rcv.PKW.RWN; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[2]; 
+      L     12; 
+      CALL "SYS_DirectCtrl" ;
+      SPA   rJ1; 
+//-------------------------------------------
+//Examine Parameter
+rJ1:  UN    "SYS_DirectCtrlLCDB".PC.Hsk.FExamine; 
+      SPB   rJ2; 
+      O     #Snd.PKW.Cmd.Read; 
+      O     #Snd.PKW.Cmd.Write; 
+      SPB   rJ2; 
+      S     #Snd.PKW.Cmd.Read; 
+      L     "SYS_DirectCtrlLCDB".PC.Value[1]; 
+      T     #Snd.PKW.PKE; 
+      SPA   rJ9; 
+//-------------------------------------------
+//Write Parameter
+rJ2:  UN    "SYS_DirectCtrlLCDB".PC.Hsk.FDefinePara; 
+      SPB   rJ0; 
+      O     #Snd.PKW.Cmd.Read; 
+      O     #Snd.PKW.Cmd.Write; 
+      SPB   rJ0; 
+      S     #Snd.PKW.Cmd.Write; 
+      L     "SYS_DirectCtrlLCDB".PC.Value[1]; 
+      T     #Snd.PKW.PKE; 
+      L     "SYS_DirectCtrlLCDB".PC.Value[3]; 
+      SLD   16; 
+      L     "SYS_DirectCtrlLCDB".PC.Value[4]; 
+      OD    ; 
+      T     #Snd.PKW.PWE; 
+      SPA   rJ9; 
+//===============================
+//Init Flag
+//===============================
+rJ0:  L     #Rcv.PKW.PKE; 
+      L     #Snd.PKW.PKE; 
+      <>I   ; 
+      SPB   rJ9; 
+      L     #Rcv.PKW.RWN; 
+      L     1; 
+      ==I   ; 
+      R     #Snd.PKW.Cmd.Read; 
+      L     #Rcv.PKW.RWN; 
+      L     2; 
+      ==I   ; 
+      U(    ; 
+      L     #Snd.PKW.PWE; 
+      L     #Rcv.PKW.PWE; 
+      ==I   ; 
+      )     ; 
+      O(    ; 
+      L     #Rcv.PKW.RWN; 
+      L     7; 
+      ==I   ; 
+      )     ; 
+      R     #Snd.PKW.Cmd.Write; 
+rJ9:  NOP   0; 
+NETWORK
+TITLE =DPFault
+
+      U     #InDPFault; 
+      =     #OutDPFault; 
+NETWORK
+TITLE =Multi Motor Configuration
+
+      U     #InMultiMotorCfg0; //[1.3]
+      L     1; //[1.3] Return Value of MultiMotorCfg 0 is 1
+      SPB   MCJ1; //[1.3]
+      U     #InMultiMotorCfg1; //[1.3]
+      L     2; //[1.3] Return Value of MultiMotorCfg 1 is 2
+      SPB   MCJ1; //[1.3]
+      U     #InMultiMotorCfg2; //[1.3]
+      L     3; //[1.3] Return Value of MultiMotorCfg 2 is 3
+      SPB   MCJ1; //[1.3]
+      L     0; //[1.3]
+MCJ1: T     #tmpMultiMotorCfgTar; //[1.3]
+      L     2; //[1.3]
+      L     #tmpMultiMotorCfgTar; //[1.3]
+      ==I   ; //[1.3]
+      =     #Snd.Cmd.MultiMotorCfg1; //[1.3]
+      L     3; //[1.3]
+      L     #tmpMultiMotorCfgTar; //[1.3]
+      ==I   ; //[1.3]
+      =     #Snd.Cmd.MultiMotorCfg2; //[1.3]
+NETWORK
+TITLE = All State Init
+
+      NOP   0; 
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      R     #InManual; 
+      UN    #InManual; 
+      U     #InLocal; 
+      =     #tmpLocal; 
+//Force Off
+//   U     "GCS7_Gr_OutForceOff"
+//   R     #InForce
+//[1.5]->Begin
+//-Fault reset---
+      U     "GCS7_Gr_OutFaultReset"; 
+      S     #CmdFaultReset; 
+//[1.5]<-End
+
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---Heavy Startup---
+      U     "GCS7_Gr_InHeavyStartup"; //---Global InHeavyStartup
+      U     #Par.ParHeavyStartup; 
+      =     #tmpHeavyStartup; 
+//===Global Enable
+      U     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+//---Enable / Manual No Interlocking Mode---
+      UN    #InManual; 
+      SPB   AUT; 
+      U(    ; 
+      U     #InEnableFwd; 
+      UN    #Par.ParManual; 
+      O     ; 
+      UN    #InOutManRev; 
+      U     #Par.ParManual; 
+      )     ; 
+      UN    #InHWStop; 
+      UN    #OutDPFault; 
+      =     #tmpEnableFwd; 
+      U(    ; 
+      U     #InEnableRev; 
+      UN    #Par.ParManual; 
+      O     ; 
+      U     #InOutManRev; 
+      U     #Par.ParManual; 
+      )     ; 
+      UN    #InHWStop; 
+      UN    #OutDPFault; 
+      =     #tmpEnableRev; 
+      SPA   ENAB; 
+//---Enable / Automatic Interlocking Mode---
+AUT:  U     #InEnableFwd; 
+      UN    #InHWStop; 
+      UN    #OutDPFault; 
+      UN    #InLocal; 
+      =     #tmpEnableFwd; 
+      U     #InEnableRev; 
+      UN    #InHWStop; 
+      UN    #OutDPFault; 
+      UN    #InLocal; 
+      =     #tmpEnableRev; 
+//---Enable / HardwareStop---
+ENAB: X     #tmpEnableFwd; //---Global Enable
+      X     #tmpEnableRev; 
+      U(    ; //[1.3]
+      L     #Rcv.MultiMotorCfg; //[1.3]
+      L     #tmpMultiMotorCfgTar; //[1.3]
+      ==I   ; //[1.3]
+      O(    ; //[1.3]
+      L     0; //[1.3]
+      ==I   ; //[1.3]
+      )     ; //[1.3]
+      )     ; //[1.3]
+      =     #tmpEnable; 
+//---Both Inputs or InpFaultDevice active
+      U     #InpOverload; 
+      O     #InpIsolated; 
+      O     #InpService; 
+      UN    #StStopped; 
+      UN    #StFault; 
+      O     #OutComFaultRead; 
+      O     #OutComFaultWrite; 
+      O     #Rcv.Status.Fault; 
+      UN    #InForce; 
+      =     #tmpInpFault; 
+//---Test Started ---------------
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      =     #tmpStarted; 
+//---Test Running 
+      U     #Rcv.Status.OperationEnabled; 
+      U     #InpContactor; 
+      =     #tmpRunning; 
+NETWORK
+TITLE =Start as Pulse
+
+      UN    #tmpEnable; 
+      ON    #InManual; 
+      O     #CmdOff; 
+      SPB   STP1; 
+      L     0; 
+      L     #Par.InOutManPulseLen; 
+      >=I   ; 
+      SPB   STP2; 
+      U     #StStopped; 
+      UN    #OutStartRequestMan; 
+      S     #CmdOn; 
+      ON    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      O     #OutStartRequestMan; //[5.0]
+      SPB   STP2; 
+      +     -2; 
+      T     #Par.InOutManPulseLen; 
+      L     0; 
+      >I    ; 
+      SPB   STP2; 
+      S     #CmdOff; 
+STP1: L     0; 
+      T     #Par.InOutManPulseLen; 
+STP2: NOP   0; 
+NETWORK
+TITLE =Fault delay time: ParDelayTime 
+
+//Test or Running delay time ====================
+//---Condition for Delay Fault
+      U     #StStartedFwd; 
+      O     #StStartedRev; 
+      U     #Snd.Cmd.EnableOperation; 
+      UN    #Rcv.Status.OperationEnabled; 
+      SPB   TFF1; 
+      R     #tmpFaultDelayRunning; 
+      L     #Par.ParDelayFaultTime; 
+      T     #Par.OutDelayFaultTime; 
+      SPA   TFF0; 
+TFF1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutDelayFaultTime; 
+      SPB   TFF3; 
+      +     -2; 
+TFF3: T     #Par.OutDelayFaultTime; 
+      L     0; 
+      >I    ; 
+      =     #tmpFaultDelayRunning; 
+      SPB   TFF0; 
+      T     #Par.OutDelayFaultTime; 
+TFF0: NOP   0; 
+NETWORK
+TITLE =Start Request //[5.0]
+
+      NOP   0; 
+//--------------
+      U     #CmdNext; 
+      O     #CmdOn; 
+      O     #OutStartRequestAuto; 
+      UN    #CmdOff; 
+      U     #tmpEnable; 
+      UN    #InManual; 
+      UN    #InSeqStop; 
+      U(    ; 
+      U     #StStopped; 
+      O     #StStopping; 
+      )     ; 
+      =     #OutStartRequestAuto; 
+//--------------
+      U     #CmdOn; 
+      O     #OutStartRequestMan; 
+      UN    #CmdOff; 
+      U     #tmpEnable; 
+      U     #InManual; 
+      U     #StStopped; 
+      =     #OutStartRequestMan; 
+NETWORK
+TITLE =Start-Delay //[5.0]
+
+      U     #OutStartRequestAuto; 
+      SPB   SDY1; 
+      L     #Par.ParStartDelay; 
+      T     #Par.OutStartDelay; 
+SDY1: L     0; 
+      L     #Par.OutStartDelay; 
+      <I    ; 
+      U     #OutStartRequestAuto; 
+      =     #OutStartDelay; 
+      SPBN  SDY2; 
+      UN    "GCS7_Gr_OutTick200ms"; 
+      SPB   SDY2; 
+      L     #Par.OutStartDelay; 
+      +     -2; 
+      T     #Par.OutStartDelay; 
+SDY2: NOP   0; 
+NETWORK
+TITLE =Startwarning  
+
+
+
+NETWORK
+TITLE =States
+
+      U     #StStopped; //===State machine===
+      SPB   S0; 
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      SPB   S2; 
+      U     #StStopping; 
+      SPB   S3; 
+      U     #StStarting; 
+      SPB   S1; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; //Initialise: goto StStopped
+      SPA   S0; 
+NETWORK
+TITLE =StStopped
+
+      NOP   0; 
+//Transiiton to StStopped
+xxS0: R     #StStopping; 
+      S     #StStopped; 
+      SPA   LOG1; 
+//==============================
+//State
+//==============================
+//---Condition for StFault
+S0:   U     #tmpInpFault; 
+      UN    #tmpLocal; 
+      SPB   xxS4; 
+//---Condition for StStarting
+      U(    ; 
+      U     #OutStartRequestAuto; 
+      UN    #OutStartDelay; 
+      O     #OutStartRequestMan; 
+      UN    #tmpHeavyStartup; 
+      UN    #OutStartWarning; 
+      UN    #tmpLocal; 
+      O     ; 
+      U     #tmpLocal; 
+      U     #Rcv.Status.OperationEnabled; 
+      )     ; 
+      SPB   xxS1; 
+      SPA   SAVE; 
+NETWORK
+TITLE =StStarting
+
+      NOP   0; 
+//==============================
+// Any transition to StStarting
+//==============================
+xxS1: SET   ; 
+      R     #StStopped; 
+      R     #StStopping; 
+      S     #StStarting; 
+      L     #Par.ParMonTime; // Set actual vaule of timer
+      T     #Par.OutMonTime; 
+      L     #Par.ParStartingTime; 
+      T     #Par.OutTransitionTime; 
+      U     #Par.ParHeavyStartup; 
+      S     "GCS7_Gr_InHeavyStartup"; 
+// Maintanance Counter Startups
+      L     #OutCntStartup; 
+      +     L#1; 
+      T     #OutCntStartup; 
+      SPA   SAVE; 
+//==============================
+//State
+//==============================
+//---Condition for StFault
+S1:   U     #tmpInpFault; 
+      UN    #tmpLocal; 
+      SPB   S1S4; 
+//---Condition for StStopped
+      UN    #tmpEnable; 
+      O     #CmdOff; 
+      UN    #tmpLocal; 
+      O     ; 
+      U     #InSeqStop; 
+      UN    #InManual; 
+      UN    #tmpLocal; 
+      O     ; 
+      UN    #Rcv.Status.OperationEnabled; 
+      U     #tmpLocal; 
+      SPB   S1S3; 
+//---Condition for StStarting
+      UN    "GCS7_Gr_OutTick200ms"; 
+      L     #Par.OutTransitionTime; // Set Timer 
+      SPB   S13; 
+      L     #Par.OutMonTime; 
+      +     -2; 
+      T     #Par.OutMonTime; 
+      L     #Par.OutTransitionTime; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S13:  L     0; 
+      <=I   ; 
+      =     #tmpDelayOver; // Starting time over
+//---Condition for StStarted
+      U     #tmpRunning; 
+      O     #InForce; 
+      U     #tmpDelayOver; 
+      SPB   xxS2; 
+//---Condition for StFault
+      L     #Par.OutMonTime; 
+      L     0; // Monitoring time over
+      <=I   ; 
+      UN    #tmpLocal; 
+      UN    #tmpRunning; 
+      SPB   S1S4; 
+      SPA   SAVE; 
+//---Transition -> StStopping
+S1S3: R     #StStarting; 
+      U     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      SPA   xxS3; 
+//---Transition -> StFault
+S1S4: R     #StStarting; 
+      U     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      SPA   xxS4; 
+NETWORK
+TITLE =StStarted
+
+      NOP   0; 
+//---Transition -> StStartedXxx
+xxS2: SET   ; 
+      R     #StStarting; 
+      L     0; 
+      T     #Par.OutMonTime; 
+      T     #Par.OutTransitionTime; 
+      U     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+//---Transition -> StStartedFwd
+      UN    #Rcv.Status.DirectionRev; 
+      UN    #InForce; 
+      O     ; 
+      U     #tmpEnableFwd; 
+      U     #InForce; 
+      S     #StStartedFwd; 
+      R     #StStartedRev; 
+      SPB   LOG1; 
+//---Transition -> StStartedRev
+      S     #StStartedRev; 
+      R     #StStartedFwd; 
+      SPA   LOG1; 
+//==============================
+//State
+//==============================
+//---Condition for Stopping when Change Direction
+S2:   U     #tmpEnableRev; 
+      U     #StStartedFwd; 
+      UN    #tmpLocal; 
+      O     ; 
+      U     #tmpEnableFwd; 
+      U     #StStartedRev; 
+      UN    #tmpLocal; 
+      SPB   xxS3; 
+//---Condition for StFault
+      U(    ; 
+      UN    #tmpRunning; 
+      UN    #tmpFaultDelayRunning; 
+      UN    #InForce; 
+      U     #Snd.Cmd.EnableOperation; 
+      O     #tmpInpFault; 
+      O     ; 
+      UN    #InpContactor; 
+      UN    #InForce; 
+      )     ; 
+      UN    #tmpLocal; 
+      SPB   xxS4; 
+//Change Direction
+      UN    #Rcv.Status.DirectionRev; 
+      U     #Snd.Cmd.EnableOperation; 
+      U     #StStartedRev; 
+      SPB   xxS2; 
+      U     #Rcv.Status.DirectionRev; 
+      U     #Snd.Cmd.EnableOperation; 
+      U     #StStartedFwd; 
+      SPB   xxS2; 
+// Maintanance Counter
+      UN    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   S2MT; 
+      L     #OutTimeStarted; 
+      +     L#1; 
+      T     #OutTimeStarted; 
+//===Local Mode======================
+S2MT: UN    #tmpLocal; 
+      SPB   S2J1; 
+//---Condition for StStopping: local mode
+      UN    #Rcv.Status.OperationEnabled; 
+      UN    #tmpFaultDelayRunning; 
+      SPB   xxS3; 
+      SPA   SAVE; 
+//===Automatic Mode======================
+//---Condition for StStopping: autmatic
+S2J1: UN    #tmpEnable; // other modes
+      O     #CmdOff; 
+      O     ; 
+      UN    #Rcv.Status.OperationEnabled; 
+      UN    #tmpFaultDelayRunning; 
+      UN    #InForce; 
+      SPB   xxS3; 
+//---Idling time ----------------------
+      U     #InSeqStop; 
+      U     #OutIdling; 
+      SPB   S2I1; 
+      L     #Par.ParIdlingTime; 
+      T     #Par.OutTransitionTime; 
+      U     #InSeqStop; 
+      UN    #InManual; 
+      S     #OutIdling; 
+      SPA   SAVE; 
+S2I1: UN    "GCS7_Gr_OutTick200ms"; 
+      L     #Par.OutTransitionTime; 
+      SPB   S2I3; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S2I3: L     0; 
+      <=I   ; // Idling time over
+      SPB   xxS3; //--> StStopping
+      SPA   SAVE; 
+NETWORK
+TITLE =StStopping
+
+      NOP   0; 
+//=============================
+//Any transition to StStopping
+//=============================
+xxS3: SET   ; 
+      S     #StStopping; 
+      R     #OutIdling; 
+      R     #StStartedFwd; 
+      R     #StStartedRev; 
+      L     #Par.ParMonTime; // Set monitoring time
+      T     #Par.OutMonTime; 
+      L     #Par.ParStoppingTime; // Set stopping time
+      T     #Par.OutTransitionTime; 
+      SPA   SAVE; 
+//==============================
+//State
+//==============================
+//---Condition for StFault
+S3:   U     #tmpInpFault; 
+      UN    #tmpLocal; 
+      SPB   xxS4; 
+//---Condition for StStarting in InLocal
+      UN    #tmpInpFault; 
+      U     #Rcv.Status.OperationEnabled; //[1.1]
+      U     #tmpLocal; 
+      SPB   xxS1; 
+//---Condition for StStarting: no Restart
+      U     #Par.ParRestartDelay; 
+      O     #tmpHeavyStartup; 
+      SPB   S3J2; 
+      U     #OutStartRequestAuto; 
+      UN    #OutStartDelay; 
+      O     #OutStartRequestMan; 
+      UN    #tmpHeavyStartup; 
+      UN    #OutStartWarning; 
+      SPB   xxS1; 
+//---Condition for StStopping
+S3J2: UN    "GCS7_Gr_OutTick200ms"; 
+      L     #Par.OutTransitionTime; // Set Timer 
+      SPB   S3J3; 
+      L     #Par.OutMonTime; //---Condition for StStopped
+      +     -2; // Set actual timer
+      T     #Par.OutMonTime; 
+      L     #Par.OutTransitionTime; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S3J3: L     0; 
+      <=I   ; // Stopping time over
+      =     #tmpDelayOver; 
+//---Condition for StStopped
+      U     #tmpDelayOver; // Stopped
+      UN    #Rcv.Status.OperationEnabled; 
+      SPB   xxS0; 
+//Monitoring Time
+      L     #Par.OutMonTime; 
+      L     0; // Monitoring time over
+      <=I   ; 
+      =     #tmpMonOver; 
+      UN    #tmpMonOver; 
+      ON    #tmpDelayOver; // Stopping time over
+      SPB   SAVE; 
+//---Transtition -> StFault
+      SPA   xxS4; 
+NETWORK
+TITLE = StFault
+
+      NOP   0; 
+//==============================
+// Any transiton to Fault  
+//==============================
+xxS4: SET   ; 
+      R     #tmpEnable; 
+      R     #StStopped; 
+      R     #StStopping; 
+      R     #StStartedFwd; 
+      R     #StStartedRev; 
+      R     #OutDelayFault; 
+      R     #OutIdling; 
+// Maintanance Counter Faults
+      U     #StFault; 
+      SPB   S4T2; 
+      L     #OutCntFault; 
+      +     L#1; 
+      T     #OutCntFault; 
+S4T2: SET   ; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; // Global.InFaultFlag
+//    S     #tmpTimeClear               // Reset actual timer value
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1018,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     0; 
+      T     #Par.OutMonTime; 
+      L     #Par.ParStoppingTime; 
+      T     #Par.OutTransitionTime; 
+      SET   ; 
+S4S4: SPA   LOG4; 
+//==============================
+//State
+//==============================
+// Maintanance Counter Fault Time
+S4:   UN    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   S4MT; 
+      L     #OutTimeFaulted; 
+      +     L#1; 
+      T     #OutTimeFaulted; 
+//===logic
+S4MT: L     0; //---Condition to count stopping time
+      L     #Par.OutTransitionTime; // Set Timer 
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      SPB   S4J1; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S4J1: U     #Rcv.Status.Fault; 
+      UN    #tmpLocal; 
+      UN    #OutFaultDev; 
+      SPB   S4S4; 
+      UN    #CmdFaultReset; //---Condition for StFault
+      UN    "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      UN    #tmpLocal; 
+      SPB   SAVE; 
+//---Condition for StFault with LOG
+      U     #OutpContactor; 
+      UN    #InpContactor; 
+      O     #Rcv.Status.Fault; 
+      O     #InpIsolated; 
+      O     #InpOverload; 
+      O     #InpService; 
+      O     #tmpInpFault; // MessageClass Error Fault stopping
+      UN    #InForce; 
+      UN    #tmpLocal; 
+      SPB   S4S4; 
+      R     #StFault; //---Transition -> StStopping
+      S     #StStopping; 
+      R     #OutIdling; 
+      L     #Par.ParMonTime; // Set monitoring time
+      T     #Par.OutMonTime; 
+      SPA   LOG9; 
+
+NETWORK
+TITLE =LOG Message
+
+//LOG transition to StStopped,StStartedXxx
+LOG1: UN    #tmpReport; // ReportAll?
+      SPB   SAVE; 
+      U     #StStartedFwd; 
+      L     B#(4, 2); // MessageClass Info started fwd
+      SPB   LOG; 
+      U     #StStartedRev; 
+      L     B#(4, 5); // MessageClass Info started rev
+      SPB   LOG; 
+      U     #StStopped; 
+      L     B#(4, 0); // MessageClass Info stopped
+      SPB   LOG; // [4.2]
+      SPA   SAVE; 
+//LOG transition to fault
+LOG4: U     #Rcv.Status.Fault; 
+      O     #OutComFaultRead; 
+      O     #OutComFaultWrite; 
+      S     #OutFaultDev; 
+      L     B#(1, 10); // MessageClass Error fault device
+      SPB   LOG; 
+      U     #InpIsolated; 
+      S     #OutFaultIsolated; //[5.0]
+      L     B#(1, 14); // MessageClass Error fault isolated
+      SPB   LOG; 
+      U     #InpOverload; 
+      S     #OutFaultOverload; //[5.0]
+      L     B#(1, 15); // MessageClass Error fault Overload
+      SPB   LOG; 
+      U     #InpService; 
+      S     #OutFaultService; //[5.0]
+      L     B#(1, 16); // MessageClass Error fault Service
+      SPB   LOG; 
+      UN    #Rcv.Status.Remote; 
+      L     B#(1, 18); // MessageClass Error fault remote
+      SPB   LOG; 
+      U     #tmpStarted; 
+      L     B#(1, 11); // MessageClass Error fault started
+      SPB   LOG; 
+      U     #OutpContactor; 
+      UN    #InpContactor; 
+      L     B#(1, 17); // MessageClass Error fault contactor
+      S     #OutFaultStarting; //[5.0]
+      SPB   LOG; 
+      UN    #tmpEnable; // Fault Stopping
+      O     #OutFaultStopping; 
+      L     B#(1, 13); 
+      S     #OutFaultStopping; //[5.0]
+      SPB   LOG; 
+      L     B#(1, 12); // MessageClass Error fault starting
+      S     #OutFaultStarting; //[5.0]
+      SPA   LOG; 
+//Log fault cancelled
+LOG9: L     B#(3, 9); // MessageClass Operater "fault cancelled"
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1018);
+
+NETWORK
+TITLE =Reset Fault Flag
+
+SAVE: UN    #StFault; 
+      R     #OutFaultStopping; 
+      R     #OutFaultStarting; 
+      R     #OutFaultOverload; 
+      R     #OutFaultIsolated; 
+      R     #OutFaultService; 
+      R     #OutFaultDev; 
+NETWORK
+TITLE =State Code
+
+      NOP   0; 
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      O     #OutComFaultRead; 
+      O     #OutComFaultWrite; 
+      SPB   STC9; 
+      U     #Rcv.Status.Fault; 
+      L     30; //Code: StStopped.InpFaultDev
+      SPB   STC9; 
+      U     #CmdNext; 
+      UN    #tmpLocal; 
+      L     9; // Code: starting requested
+      SPB   STC9; 
+      L     1; // Code: stopped
+      SPB   STC9; 
+//--------------------
+STC2: U     #StStarting; 
+      L     2; // Code: starting
+      SPB   STC9; 
+      U     #StStartedFwd; 
+      L     4; // 2.6 Code: started forward
+      SPB   STC9; 
+//--------------------
+      U     #StStartedRev; 
+      L     6; // 2.6: Code: started reverse
+      SPB   STC9; 
+//--------------------
+      U     #StStopping; 
+      L     7; // Code: stopping
+      SPB   STC9; 
+      U     #Rcv.Status.Fault; // Code: StFault.ATV
+      L     31; // 
+      SPB   STC9; // 
+      L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+NETWORK
+TITLE =Command FU /IO
+
+      UN    #tmpLocal; 
+      =     #OutpContactor; 
+      UN    #tmpLocal; 
+      =     #Snd.Cmd.EnableVoltage; 
+      =     #Snd.Cmd.QuickStop; 
+//--------------
+      U     #InPrestart; 
+      O     #tmpEnableFwd; 
+      O     #tmpEnableRev; 
+      UN    #tmpLocal; 
+      U     #Rcv.Status.ReadySwitchOn; 
+      =     #Snd.Cmd.SwitchOn; 
+//--------------
+      U     #tmpEnableFwd; 
+      O     #tmpEnableRev; 
+      UN    #StStopped; 
+      UN    #StFault; 
+      UN    #StStopping; 
+      U     #Snd.Cmd.SwitchOn; 
+      U     #Rcv.Status.SwitchedOn; 
+      U(    ; 
+      U     #StStarting; 
+      O     #Snd.Cmd.EnableOperation; 
+      )     ; 
+      U     #InpContactor; 
+      =     #Snd.Cmd.EnableOperation; 
+//--------------
+      U     #tmpEnableFwd; 
+      R     #Snd.Cmd.DirectionRev; 
+      U     #tmpEnableRev; 
+      S     #Snd.Cmd.DirectionRev; 
+//--------------
+      U     #CmdFaultReset; 
+      S     #Snd.Cmd.FaultReset; 
+      UN    #Rcv.Status.Fault; 
+      O     #tmpLocal; 
+      R     #Snd.Cmd.FaultReset; 
+//--------------
+//Convert target value
+      U     #Par.ParValueAsUnit; 
+      L     #InSpeed; 
+      SPB   dpJ1; 
+      L     1.000000e+002; 
+      /R    ; 
+      L     #Par.ParUnitsBy100; 
+      DTR   ; 
+      *R    ; 
+      RND+  ; 
+      SPA   dpJ2; 
+dpJ1: RND   ; 
+dpJ2: T     #Snd.Speed; 
+//--------------
+//Convert actual value
+      L     #Rcv.Speed; 
+      ITD   ; 
+      DTR   ; 
+      L     #Par.ParUnitsBy100; 
+      DTR   ; 
+      /R    ; 
+      L     1.000000e+002; 
+      *R    ; 
+      T     #OutSpeed; 
+NETWORK
+TITLE =(Profibus) Send Data
+
+      U     #InSimulation; 
+      SPB   sSim; 
+      CALL "SIEMENS_DPWR_DAT" (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #Snd.PKW,
+           RET_VAL                  := #tmpReturn);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #OutComFaultWrite; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#8.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#10.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#10.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#12.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#12.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#14.0]; 
+      LAR1  #tmpAddrIO; 
+      T     PAW [AR1,P#14.0]; 
+      SPA   DP_C; 
+//write to Simulation
+sSim: R     #OutComFaultWrite; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   "TEST_IOSimuliOutput"; 
+      L     P#DBX 0.0; 
+rDB2: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      T     #tmpAddrIO; 
+      LAR1  #tmpAddrSnd; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#0.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#4.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     W [AR1,P#8.0]; 
+      LAR1  #tmpAddrSnd; 
+      L     DIW [AR1,P#10.0]; 
+      LAR1  #tmpAddrIO; 
+      T     W [AR1,P#10.0]; 
+DP_C: NOP   0; 
+
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #CmdOn; 
+      =     #CmdOff; 
+      =     #CmdNext; 
+      =     #CmdFaultReset; 
+//-- Init Start Request
+      UN    #OutStartDelay; 
+      UN    #OutStartWarning; 
+      R     #OutStartRequestAuto; 
+      R     #OutStartRequestMan; 
+//--Output for group 
+      U     M     11.7; 
+      U     #InLocal; 
+      U     #InManual; 
+      O     #InForce; 
+      SPB   ENJ2; 
+      U     #OutDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+ENJ2: NOP   0; 
+      U     #InForce; 
+      S     M     15.3; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; 
+// No fault when not used element in manual mode
+      UN    M     11.7; 
+      ON    #InLocal; 
+      U     #StFault; 
+      =     #OutFaultRelevant; 
+END_FUNCTION_BLOCK
+

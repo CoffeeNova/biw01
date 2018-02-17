@@ -1,0 +1,244 @@
+ORGANIZATION_BLOCK "SYS_MainProgram"
+TITLE =Main program
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GEN_MU664
+//
+//TITLE:        Main program
+//              
+//              Hauptprogramm
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//GEN_OB001.1.0 A.Egli              CT3                                07-Feb-2003
+//              Redesign GCS7 Release 2
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+//
+//
+AUTHOR : PE
+FAMILY : GEN
+VERSION : 0.0
+
+
+VAR_TEMP
+  OB1_EV_CLASS : BYTE ;	//Bits 0-3 = 1 (Coming event), Bits 4-7 = 1 (Event class 1)
+  OB1_SCAN_1 : BYTE ;	//1 (Cold restart scan 1 of OB 1), 3 (Scan 2-n of OB 1)
+  OB1_PRIORITY : BYTE ;	//1 (Priority of 1 is lowest)
+  OB1_OB_NUMBR : BYTE ;	//1 (Organization block 1, OB1)
+  OB1_RESERVED_1 : BYTE ;	//Reserved for system
+  OB1_RESERVED_2 : BYTE ;	//Reserved for system
+  OB1_PREV_CYCLE : INT ;	//Cycle time of previous OB1 scan (milliseconds)
+  OB1_MIN_CYCLE : INT ;	//Minimum cycle time of OB1 (milliseconds)
+  OB1_MAX_CYCLE : INT ;	//Maximum cycle time of OB1 (milliseconds)
+  OB1_DATE_TIME : DATE_AND_TIME ;	//Date and time OB1 started
+END_VAR
+BEGIN
+NETWORK
+TITLE =TF General test functions
+
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  TF00; 
+// 
+//-Test functions ON---
+      SET   ; 
+      R     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      R     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      R     "PLC_SystemDB".TestFunctions.StaHardware; 
+      S     "PLC_SystemDB".TestFunctions.StaCWASimulation; 
+      S     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      S     "PLC_SystemDB".TestFunctions.StaDPSimulation; 
+      S     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC1ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC2ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC3ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC4ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC5ComSimulation; 
+
+      SET   ; 
+      =     "GCS7_Gr_SimDPtoImage"; 
+// 
+//-Temporary test functions....... (0000)---
+      U     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      SPBN  TF02; 
+      CALL "TEST_Functions" (
+           code_no                  := 0,
+           RET_VAL                  := MW  2001);
+TF02: NOP   0; 
+// 
+//-............................... (1001)---
+      U     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      SPBN  TF03; 
+      CALL "TEST_Functions" (
+           code_no                  := 1001,
+           RET_VAL                  := MW  2001);
+TF03: NOP   0; 
+// 
+//-Test functions OFF---
+TF00: NOP   0; 
+NETWORK
+TITLE =IN Initialisation
+
+      NOP   0; 
+//-Standard software---
+      CALL "SYS_InitFlagTimer" ;
+// 
+//-User software---
+      SET   ; 
+      =     "ENG_RemarkFlag"; 
+      U     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      =     "GCS7_Gr_OutReportAll"; 
+      U     "PLC_SystemDB".GlobalFlags.StaLOGOff; 
+      =     "GCS7_Gr_OutLogOff"; 
+// 
+//-Heavy startup flag---
+      U     "GCS7_Gr_InHeavyStartup"; 
+      L     S5T#3M; 
+      SE    "T_ResetHeavyStartupFlag"; 
+      U     "T_ResetHeavyStartupFlag"; 
+      R     "GCS7_Gr_InHeavyStartup"; 
+// 
+//-Testfunctions---
+      UN    "PLC_SystemDB".GlobalFlags.StaTest; 
+      R     "PLC_SystemDB".GlobalFlags.StaProtocolling; 
+      R     "PLC_SystemDB".TestFunctions.StaIOManager; 
+      R     "PLC_SystemDB".TestFunctions.StaHardware; 
+      R     "PLC_SystemDB".TestFunctions.StaCWASimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaIOSimuli; 
+      R     "PLC_SystemDB".TestFunctions.StaDPSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC1ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC2ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC3ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC4ComSimulation; 
+      R     "PLC_SystemDB".TestFunctions.StaPLC5ComSimulation; 
+// 
+//-Startup warning time---
+      L     10; 
+      T     "SYS_StartWarningDB".ParStartwarningTime; 
+      L     120; 
+      T     "SYS_StartWarningDB".ParStartReleaseTimeL; 
+      L     20; 
+      T     "SYS_StartWarningDB".ParStartReleaseTimeH; 
+NETWORK
+TITLE =GF Plant general functions
+
+      CALL "SYS_GeneralFunctions" ;
+      CALL "ASW_PlantParFunction" ;
+      CALL "HW_PanelLamps" ;
+NETWORK
+TITLE =GR General, way and machine groups
+
+      CALL "SYS_CallGroup" ;
+
+NETWORK
+TITLE =LS Lines and sections
+
+      CALL "SYS_CallLineSection" (
+           InCode                   := 0);
+
+NETWORK
+TITLE =PC PCC Direct control
+
+      NOP   0; 
+//-General control---
+      L     0; 
+      AUF   "SYS_DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for process control system main---
+      L     5; 
+      AUF   "SYS_PCCDirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for process control system clients---
+//  ---Client 1 --- 
+      L     5; 
+      AUF   "SYS_PC1DirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for ObjView---
+      L     5; 
+      AUF   "SYS_ObjViewDirectCtrlDB"; 
+      UC    "SYS_DirectCtrl"; 
+// 
+//-Control for inhouse test channel---
+      L     5; 
+      U     "PLC_SystemDB".TestFunctions.StaPCDirectInhouseTest; 
+      AUF   "SYS_IHTestDirectCtrlDB"; 
+      CC    "SYS_DirectCtrl"; 
+NETWORK
+TITLE =CB Changebit
+//-> ParBlockLen: 128 for VISControl; 220 for MELE; 220 for WinCoS
+//-> For more changebit-interface-DB's add the new DB and set the pointer
+//   ParNextDB in the previous DB. A call of additional method is not necessary.
+      NOP   0; 
+//-Init Changebit---
+      L     220; 
+      T     "SYS_CBitDB".ParBlockLen; 
+// 
+//-Copy change bits from object DB to change bit DB---
+      L     1; 
+      CALL "SYS_CBitCtrl" ;//Read/copy
+// 
+//-Reset change bit CBit[x], if PC has accepted---
+      L     2; 
+      CALL "SYS_CBitCtrl" ;//Update
+
+NETWORK
+TITLE =MQ message queues
+
+      NOP   0; 
+//-LOG-Queue---
+      CALL "SYS_LOG_CtrlQueue" (
+           DBNumber                 := 5);
+NETWORK
+TITLE =CM Communication
+
+      NOP   0; 
+//-PLC to PLC Communication---
+//      CALL  "COM_PLCtoPLC"
+NETWORK
+TITLE =GD Graphic display data (PLC=>PCC)
+
+      CALL "ASW_GraphicFunction" ;
+// 
+//-Cycle time---
+      L     #OB1_MIN_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Minimal; 
+      L     #OB1_PREV_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Actual; 
+      L     #OB1_MAX_CYCLE; 
+      T     "ASW_GraphicData".General.CycleTime[1].Maximal; 
+NETWORK
+TITLE =DP Diagnosis
+
+      NOP   0; 
+//-Detailed profibus DP---
+      CALL "SYS_DPDiagMain" ;
+// 
+//-PLCLiveValue for the PCC---
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_CBitDB".PLCLifeValue);
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_PC1CBitDB".PLCLifeValue);
+      CALL "STD_PLCLiveValue" (
+           LiveValue                := "SYS_PC2CBitDB".PLCLifeValue);
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

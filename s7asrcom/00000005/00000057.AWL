@@ -1,0 +1,259 @@
+FUNCTION FC 2 : VOID
+TITLE =Change bit controller
+//COPYRIGHT:   (C) 1994 BY  BUHLER LTD
+//                          CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:     GCS7
+//
+//TITLE:       FC 002 METHOD'S FOR      CHANGE-BIT-DB
+//                    METHODEN FUER AENDERUNGS-BIT-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:       AUTOR:              DEPT:                           DATE:
+//
+//FC2.1.1      A.Egli              CT3                             08-Nov-20002
+//             New release
+//FC002.1B     A.Egli              CT3                             2-Dec-99
+//             RELEASE 1A Convert form S5
+//FC002.1A     A.Egli               AEE61                          11-Nov-96
+//             RELEASE 1A Convert form S5
+//
+//-------------------------------------------------------------------------
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:     MANUAL : ....... .DOC
+//             
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//
+//COPYRIGHT:          (C) 1990 BY  BUHLER LTD
+//                                 CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:            GCS7
+//
+//TITLE:              FC 002 METHOD'S FOR      CHANGE-BIT-DB
+//                           METHODEN FUER AENDERUNGS-BIT-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:              SSW.FC002.1B     A.Egli   CT3              2-Dec-99
+//                       RELEASE 1A Convert form S5
+//IDENT:              SSW.FC002.1A     A.Egli   AEE61           11-Nov-96
+//                       RELEASE 1A Convert form S5
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:            MANUAL : CBIT1MAN.DOC
+//                   
+//
+//RESTRICTIONS:       ACCU1 =Code
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : MET_CBIT
+VERSION : 1.1
+
+
+VAR_TEMP
+  tmpCBit : ARRAY  [1 .. 4 ] OF //Must by at LB0
+  BOOL ;	
+  CODE : INT ;	//Function code of the to compute function
+  tmpAddrPointer : DINT ;	
+  tmpAddrCopyBit : DINT ;	
+  tmpDBSource : INT ;	
+  tmpDWSource : DINT ;	
+  tmpAddrEnd : DINT ;	
+  tmpCBitOld : DWORD ;	
+  tmpFcClear : BOOL ;	
+  tmpBitNr : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      T     #CODE; 
+
+NETWORK
+TITLE =CBit: Code=3
+//Set Changebit of GCS90 objects:
+//
+//Input  : AR2        : Address dynamic data
+//         DB2.DBW12  : ParBlockLen
+//Output : F13.0 /F13.1 /F13.2 /F13.3
+//
+      L     #CODE; 
+      L     3; 
+      <>I   ; 
+      SPB   F1; 
+      TAR2  ; 
+      L     DB2.DBW   12; //ParBlockLen (Byte)
+      SLD   3; //Length in Bit
+      /I    ; 
+      T     #tmpBitNr; 
+      L     3; 
+      >=I   ; 
+      SPB   BIT4; 
+      L     #tmpBitNr; 
+      L     1; 
+      SLW   ; 
+      L     MB    13; //Changebit.CBIT[1..4] 
+      OW    ; 
+      T     MB    13; //-->Changebit.CBIT[1..4] 
+//---Blockgrenze---
+      TAR2  ; 
+      +     L#48; 
+      L     DB2.DBW   12; //ParBlockLen (Byte)
+      SLD   3; //Length in Bit
+      /I    ; 
+      T     #tmpBitNr; 
+      L     3; 
+      >=I   ; 
+      SPB   BIT4; 
+      L     #tmpBitNr; 
+      L     1; 
+      SLW   ; 
+      L     MB    13; //Changebit.CBIT[1..4] 
+      OW    ; 
+      T     MB    13; //-->Changebit.CBIT[1..4] 
+      BEA   ; 
+BIT4: S     M     13.3; //Changebit.CBit4
+      BEA   ; 
+NETWORK
+TITLE = Read/copy
+//Copy change bits from object DB to change bit DB to area 'Copy[x]' 
+//
+F1:   L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   bEnd; 
+      R     #tmpFcClear; // 2nd Loop for clear 
+Clr:  AUF   DB     2; // >>> call FIRST CBIT-DB
+// Begin Loop 1: CBit-DB ---  
+ZYK1: L     DBLG; 
+      +     -4; 
+      SLD   3; 
+      T     #tmpAddrEnd; 
+      L     DBW   10; //  ParDWCopyByts
+      SLD   3; 
+      LAR1  ; //  -->tmpAddrCopyBit; 
+      L     P#160.0; 
+      +D    ; 
+      T     #tmpAddrPointer; 
+// Begin Loop 2:Copy Change Bit -------- 
+BEG2: L     DBD [#tmpAddrPointer]; // Pointer to Source address
+      L     W#16#FFFF; 
+      UD    ; 
+      SLD   3; 
+      T     #tmpDWSource; 
+      L     DBW [#tmpAddrPointer]; // Pointer to Source address
+      T     #tmpDBSource; 
+      L     -1; // --> End of configuration
+      L     #tmpDBSource; 
+      ==I   ; //  
+      SPB   NEX1; //  
+      L     0; //  
+      ==I   ; //  
+      SPB   NEX2; //--> spare
+      AUF   DI [#tmpDBSource]; 
+      UN    #tmpFcClear; 
+      SPB   Copy; 
+//--- Clear Change bit in object DB's 
+      L     DIB [#tmpDWSource]; 
+      L     2#11110000; // Only 4 Bit per object  
+      UW    ; 
+      T     DIB [#tmpDWSource]; 
+      SPA   NEX2; 
+//--- Copy Change bit ------- 
+Copy: L     DIB [#tmpDWSource]; 
+      L     2#1111; // Only 4 Bit per object  
+      UW    ; 
+      T     LB     0; // tmpCBit     
+      U     #tmpCBit[1]; 
+      S     DBX [AR1,P#0.0]; // -->Copy[x]
+      U     #tmpCBit[2]; 
+      S     DBX [AR1,P#0.1]; // -->Copy[x+1]
+      U     #tmpCBit[3]; 
+      S     DBX [AR1,P#0.2]; // -->Copy[x+2]
+      U     #tmpCBit[4]; 
+      S     DBX [AR1,P#0.3]; // -->Copy[x+3]
+NEX2: L     #tmpAddrPointer; 
+      +     32; 
+      T     #tmpAddrPointer; // Pointer to next source DB        
+      L     #tmpAddrEnd; 
+      >D    ; 
+      SPB   NEX1; 
+      +AR1  P#0.4; // Inc. address of copy bits
+      SPA   BEG2; 
+// End of Loop 2: -----
+NEX1: L     0; // 
+      L     DBW    6; // ParNextDB
+      ==I   ; // 
+      SPB   bOut; 
+      AUF   DB [DBW 6]; // Call Next DB 
+      SPA   ZYK1; 
+bOut: UN    #tmpFcClear; 
+      S     #tmpFcClear; 
+      SPB   Clr; //-->2nd Loop for clear 
+      BEA   ; 
+bEnd: NOP   0; 
+NETWORK
+TITLE = FUNC=2, Update
+//- Reset change bit CBit[x], if PC has accepted
+//- Copy the Copy[x] to CBir[x]
+//  
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      SPB   dEnd; 
+      AUF   DB     2; 
+// Begin Loop 1:Copy Change Bit -------- 
+dZY1: LAR1  P#0.0; 
+      L     DBW   10; //ParDWCopyByts
+      SLD   3; 
+      T     #tmpAddrCopyBit; 
+dZY2: L     DBD [AR1,P#40.0]; // RBit[x]
+      INVD  ; 
+      L     DBD [AR1,P#200.0]; // CBit[x]
+      UD    ; 
+      T     #tmpCBitOld; 
+      L     DBD [#tmpAddrCopyBit]; 
+      OD    ; 
+      T     DBD [AR1,P#200.0]; // -->CBit[x]
+      L     0; // 
+      T     DBD [AR1,P#40.0]; // -->RBit[x]
+//   Increment address pointer  
+      L     #tmpCBitOld; 
+      L     DBD [#tmpAddrCopyBit]; 
+      UD    ; 
+      T     DBD [#tmpAddrCopyBit]; 
+      L     #tmpAddrCopyBit; 
+      L     P#4.0; 
+      +D    ; 
+      T     #tmpAddrCopyBit; 
+      +AR1  P#4.0; 
+      TAR1  ; 
+      L     P#160.0; 
+      <D    ; 
+      SPB   dZY2; 
+// End of Loop 2: -----
+      L     0; // 
+      L     DBW    6; // ParNextDB
+      ==I   ; // 
+      BEB   ; 
+      AUF   DB [DBW 6]; // Call Next DB 
+      SPA   dZY1; // 
+dEnd: NOP   0; 
+NETWORK
+TITLE = END
+
+
+
+END_FUNCTION
+

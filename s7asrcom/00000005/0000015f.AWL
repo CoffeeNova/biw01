@@ -1,0 +1,269 @@
+DATA_BLOCK "PLC_SystemDB"
+TITLE =PLC: System informations
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      STD_MU664
+//
+//TITLE:        PLC: System informations
+//
+//              PLC: Systeminformationen
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//
+//STD_DB050.1.1 Ph. Engler          MU664                              21-Dec-2000
+//              ColdStart signals and counter integrated
+//STD_DB050.1A  Ph. Engler          MU664                              05-Jan-2000
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:  
+//MANUAL : 
+//CODE   :
+//RESTRICTIONS:
+//
+//--------------------------------------------------------------------------------
+//
+//
+//
+//
+//
+//
+AUTHOR : PE
+FAMILY : GEN
+NAME : SystemDB
+VERSION : 9.9
+
+
+  STRUCT 	
+   Spare00 : WORD ;	
+   Startup : STRUCT 	
+    CmdNewstartMan : BOOL ;	//Manual newstart active
+    CmdNewstartAuto : BOOL ;	//Automatic newstart active
+    CmdRestartMan : BOOL ;	//Manual restart requested
+    CmdRestartAuto : BOOL ;	//Automatic restart requested
+    CmdColdstartMan : BOOL ;	//Manual coldstart requested
+    CmdColdstartAuto : BOOL ;	//Automatic coldstart requested
+    NotUsed06 : BOOL ;	
+    NotUsed07 : BOOL ;	
+    CmdStartTestMode : BOOL ;	//Starts the test mode
+   END_STRUCT ;	
+   StartupCounter : STRUCT 	
+    NewstartMan : INT ;	//Number of manual newstart startups
+    NewstartAuto : INT ;	//Number of automatic newstart startups
+    RestartMan : INT ;	//Number of manual restart startups
+    RestartAuto : INT ;	//Number of automatic restart startups
+    ColdstartMan : INT ;	//Number of manual coldstart startups
+    ColdstartAuto : INT ;	//Number of automatic coldstart startups
+    NotUsed07 : INT ;	
+    NotUsed08 : INT ;	
+    NotUsed09 : INT ;	
+    NotUsed10 : INT ;	
+    NotUsed11 : INT ;	
+    NotUsed12 : INT ;	
+   END_STRUCT ;	
+   Hardware : STRUCT 	
+    PLCBatteryFailure : BOOL ;	
+    NotUsed09 : BOOL ;	
+    NotUsed10 : BOOL ;	
+    NotUsed11 : BOOL ;	
+    NotUsed12 : BOOL ;	
+    NotUsed13 : BOOL ;	
+    NotUsed14 : BOOL ;	
+    NotUsed15 : BOOL ;	
+    VoltageOk : BOOL ;	//Control voltage ok
+    EsGeneralOk : BOOL ;	//General emergency stop ok
+    PowerOk : BOOL ;	//Power supply motor contactor panels ok
+    FuseOk : BOOL ;	//Mini circuit breakers ok
+    PlcOk : BOOL ;	//PLC ok
+    FireOk : BOOL ;	//No fire alarms
+    SmokeOk : BOOL ;	//No smoke alarms
+    ExflapsOk : BOOL ;	//Explosion flaps ok
+   END_STRUCT ;	
+   HardwareStop : STRUCT 	
+    NotUsed08 : BOOL ;	
+    NotUsed09 : BOOL ;	
+    NotUsed10 : BOOL ;	
+    NotUsed11 : BOOL ;	
+    NotUsed12 : BOOL ;	
+    NotUsed13 : BOOL ;	
+    NotUsed14 : BOOL ;	
+    NotUsed15 : BOOL ;	
+    General : BOOL ;	//Stop from Hardware all circuits
+    NotUsed01 : BOOL ;	
+    NotUsed02 : BOOL ;	
+    NotUsed03 : BOOL ;	
+    NotUsed04 : BOOL ;	
+    NotUsed05 : BOOL ;	
+    NotUsed06 : BOOL ;	
+    NotUsed07 : BOOL ;	
+   END_STRUCT ;	
+   GlobalFlags : STRUCT 	
+    NotUsed08 : BOOL ;	
+    NotUsed09 : BOOL ;	
+    NotUsed10 : BOOL ;	
+    NotUsed11 : BOOL ;	
+    NotUsed12 : BOOL ;	
+    NotUsed13 : BOOL ;	
+    NotUsed14 : BOOL ;	
+    NotUsed15 : BOOL ;	
+    StaTest : BOOL ;	//Activates the test mode
+    StaLOGOff : BOOL ;	
+    NotUsed02 : BOOL ;	
+    NotUsed03 : BOOL ;	
+    NotUsed04 : BOOL ;	
+    NotUsed05 : BOOL ;	
+    NotUsed06 : BOOL ;	
+    StaProtocolling : BOOL ;	//Activates the protocolling functionality of the elements
+   END_STRUCT ;	
+   TestFunctions : STRUCT 	
+    StaPLC1ComSimulation : BOOL ;	
+    StaPLC2ComSimulation : BOOL ;	
+    StaPLC3ComSimulation : BOOL ;	
+    StaPLC4ComSimulation : BOOL ;	
+    StaPLC5ComSimulation : BOOL ;	
+    StaPLC6ComSimulation : BOOL ;	
+    StaPLC7ComSimulation : BOOL ;	
+    StaPLC8ComSimulation : BOOL ;	
+    StaIOManager : BOOL ;	//IO's simulated with the IO-Manager
+    StaHardware : BOOL ;	//IO's connected to the real hardware
+    StaCWASimulation : BOOL ;	//CWA-Simulator on
+    StaIOSimuli : BOOL ;	//IO's simulated with the IOSimuli
+    StaDPSimulation : BOOL ;	//Simulation of DP-Scales 
+    StaWinAC : BOOL ;	//Testing on a WinAC
+    NotUsed06 : BOOL ;	
+    StaPCDirectInhouseTest : BOOL ;	//Direct control channel for inhouse test
+    StaPLC9ComSimulation : BOOL ;	
+    StaPLC10ComSimulation : BOOL ;	
+    StaPLC11ComSimulation : BOOL ;	
+    StaPLC12ComSimulation : BOOL ;	
+    StaPLC13ComSimulation : BOOL ;	
+    StaPLC14ComSimulation : BOOL ;	
+    StaPLC15ComSimulation : BOOL ;	
+    StaPLC16ComSimulation : BOOL ;	
+   END_STRUCT ;	
+   PlantID : STRUCT 	
+    Product : ARRAY  [1 .. 15 ] OF //i.e. MELE_SMU01_99
+    CHAR ;	
+    PlcNr : INT  := 1;	
+    GCSRelease : INT  := 2;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+BEGIN
+   Spare00 := W#16#0; 
+   Startup.CmdNewstartMan := FALSE; 
+   Startup.CmdNewstartAuto := FALSE; 
+   Startup.CmdRestartMan := FALSE; 
+   Startup.CmdRestartAuto := FALSE; 
+   Startup.CmdColdstartMan := FALSE; 
+   Startup.CmdColdstartAuto := FALSE; 
+   Startup.NotUsed06 := FALSE; 
+   Startup.NotUsed07 := FALSE; 
+   Startup.CmdStartTestMode := FALSE; 
+   StartupCounter.NewstartMan := 0; 
+   StartupCounter.NewstartAuto := 0; 
+   StartupCounter.RestartMan := 0; 
+   StartupCounter.RestartAuto := 0; 
+   StartupCounter.ColdstartMan := 0; 
+   StartupCounter.ColdstartAuto := 0; 
+   StartupCounter.NotUsed07 := 0; 
+   StartupCounter.NotUsed08 := 0; 
+   StartupCounter.NotUsed09 := 0; 
+   StartupCounter.NotUsed10 := 0; 
+   StartupCounter.NotUsed11 := 0; 
+   StartupCounter.NotUsed12 := 0; 
+   Hardware.PLCBatteryFailure := FALSE; 
+   Hardware.NotUsed09 := FALSE; 
+   Hardware.NotUsed10 := FALSE; 
+   Hardware.NotUsed11 := FALSE; 
+   Hardware.NotUsed12 := FALSE; 
+   Hardware.NotUsed13 := FALSE; 
+   Hardware.NotUsed14 := FALSE; 
+   Hardware.NotUsed15 := FALSE; 
+   Hardware.VoltageOk := FALSE; 
+   Hardware.EsGeneralOk := FALSE; 
+   Hardware.PowerOk := FALSE; 
+   Hardware.FuseOk := FALSE; 
+   Hardware.PlcOk := FALSE; 
+   Hardware.FireOk := FALSE; 
+   Hardware.SmokeOk := FALSE; 
+   Hardware.ExflapsOk := FALSE; 
+   HardwareStop.NotUsed08 := FALSE; 
+   HardwareStop.NotUsed09 := FALSE; 
+   HardwareStop.NotUsed10 := FALSE; 
+   HardwareStop.NotUsed11 := FALSE; 
+   HardwareStop.NotUsed12 := FALSE; 
+   HardwareStop.NotUsed13 := FALSE; 
+   HardwareStop.NotUsed14 := FALSE; 
+   HardwareStop.NotUsed15 := FALSE; 
+   HardwareStop.General := FALSE; 
+   HardwareStop.NotUsed01 := FALSE; 
+   HardwareStop.NotUsed02 := FALSE; 
+   HardwareStop.NotUsed03 := FALSE; 
+   HardwareStop.NotUsed04 := FALSE; 
+   HardwareStop.NotUsed05 := FALSE; 
+   HardwareStop.NotUsed06 := FALSE; 
+   HardwareStop.NotUsed07 := FALSE; 
+   GlobalFlags.NotUsed08 := FALSE; 
+   GlobalFlags.NotUsed09 := FALSE; 
+   GlobalFlags.NotUsed10 := FALSE; 
+   GlobalFlags.NotUsed11 := FALSE; 
+   GlobalFlags.NotUsed12 := FALSE; 
+   GlobalFlags.NotUsed13 := FALSE; 
+   GlobalFlags.NotUsed14 := FALSE; 
+   GlobalFlags.NotUsed15 := FALSE; 
+   GlobalFlags.StaTest := FALSE; 
+   GlobalFlags.StaLOGOff := FALSE; 
+   GlobalFlags.NotUsed02 := FALSE; 
+   GlobalFlags.NotUsed03 := FALSE; 
+   GlobalFlags.NotUsed04 := FALSE; 
+   GlobalFlags.NotUsed05 := FALSE; 
+   GlobalFlags.NotUsed06 := FALSE; 
+   GlobalFlags.StaProtocolling := FALSE; 
+   TestFunctions.StaPLC1ComSimulation := FALSE; 
+   TestFunctions.StaPLC2ComSimulation := FALSE; 
+   TestFunctions.StaPLC3ComSimulation := FALSE; 
+   TestFunctions.StaPLC4ComSimulation := FALSE; 
+   TestFunctions.StaPLC5ComSimulation := FALSE; 
+   TestFunctions.StaPLC6ComSimulation := FALSE; 
+   TestFunctions.StaPLC7ComSimulation := FALSE; 
+   TestFunctions.StaPLC8ComSimulation := FALSE; 
+   TestFunctions.StaIOManager := FALSE; 
+   TestFunctions.StaHardware := FALSE; 
+   TestFunctions.StaCWASimulation := FALSE; 
+   TestFunctions.StaIOSimuli := FALSE; 
+   TestFunctions.StaDPSimulation := FALSE; 
+   TestFunctions.StaWinAC := FALSE; 
+   TestFunctions.NotUsed06 := FALSE; 
+   TestFunctions.StaPCDirectInhouseTest := FALSE; 
+   TestFunctions.StaPLC9ComSimulation := FALSE; 
+   TestFunctions.StaPLC10ComSimulation := FALSE; 
+   TestFunctions.StaPLC11ComSimulation := FALSE; 
+   TestFunctions.StaPLC12ComSimulation := FALSE; 
+   TestFunctions.StaPLC13ComSimulation := FALSE; 
+   TestFunctions.StaPLC14ComSimulation := FALSE; 
+   TestFunctions.StaPLC15ComSimulation := FALSE; 
+   TestFunctions.StaPLC16ComSimulation := FALSE; 
+   PlantID.Product[1] := 'M'; 
+   PlantID.Product[2] := 'E'; 
+   PlantID.Product[3] := 'L'; 
+   PlantID.Product[4] := 'E'; 
+   PlantID.Product[5] := '_'; 
+   PlantID.Product[6] := 'S'; 
+   PlantID.Product[7] := 'M'; 
+   PlantID.Product[8] := 'U'; 
+   PlantID.Product[9] := '0'; 
+   PlantID.Product[10] := '1'; 
+   PlantID.Product[11] := '_'; 
+   PlantID.Product[12] := '9'; 
+   PlantID.Product[13] := '9'; 
+   PlantID.Product[14] := ' '; 
+   PlantID.Product[15] := ' '; 
+   PlantID.PlcNr := 1; 
+   PlantID.GCSRelease := 2; 
+END_DATA_BLOCK
+

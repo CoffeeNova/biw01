@@ -1,0 +1,63 @@
+FUNCTION "SYS_SimpleDPInfo" : VOID
+TITLE =Simple DP-Diagnostic
+//
+//COPYRIGHT:    (C) 1999 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      S7
+//
+//TITLE:        Simple DP-Diagnostic
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FC98.1A       S. Kalberer         CT3                         09.Aug.1999
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see Siemens manual DIAG21_d.PDF
+//RESTRICTIONS: S7 type: see also Siemens manual
+//
+//-------------------------------------------------------------------------
+//Input Parameters:
+//-----------------
+//
+// InEnableCheck: 
+//                FALSE = DP-Diagnostic check inactive
+//                TRUE  = DP-Diagnostic check active
+// InExtDPInterface (only relevant for S7-400):
+//                FALSE = S7-300/ Internal Master DP-Interface (Master-CPU)
+//                TRUE  = External Master DP-Interface  (CP, IM)
+// InDPMasterSystemNo:
+//                Number of DP-Mastersystems that was projected with STEP 7
+//                (1= standard)
+AUTHOR : SK
+FAMILY : DP
+NAME : DP_Diag
+VERSION : 1.0
+
+
+VAR_INPUT
+  InEnableCheck : BOOL ;	//Signal to enable the diagnostic check
+  InExtDPInterface : BOOL ;	//only S7-400: 0= integrated (Master-CPU), 1= external (CP, IM)
+  InDPMasterSystemNo : INT ;	//DP-Master System Number (prjected with STEP 7)
+END_VAR
+BEGIN
+NETWORK
+TITLE =Call Siemens FC 99 (GLOBAL_DP_INFO)
+
+
+      CALL "SIEMENS_GlobalDPInfo" (
+           CHECK_ACTIV              := #InEnableCheck,
+           EXTERNAL_DP_INTERFACE    := #InExtDPInterface,
+           DP_MASTERSYSTEM          := #InDPMasterSystemNo,
+           DATA_FIELD               := "SYS_SimpleDPInfo4DB".tmpDataField,
+           SUM_SLAVES_DIAG          := "SYS_SimpleDPInfo4DB".Sum_SlavesNotPresent,
+           LIST_SLAVES_NOT_PRESENT  := "SYS_SimpleDPInfo4DB".List_SlavesNotPresent,
+           LIST_SLAVES_ERROR        := "SYS_SimpleDPInfo4DB".List_SlavesError,
+           RETVAL                   := "SYS_SimpleDPInfo4DB".OutRetVal,
+           BUSY                     := "SYS_SimpleDPInfo4DB".OutBusy);
+END_FUNCTION
+

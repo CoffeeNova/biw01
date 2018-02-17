@@ -1,0 +1,735 @@
+FUNCTION_BLOCK "G293M_Code"
+TITLE =G293M UNLOADING / LOADING SCREW KILN 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        UNLOADING / LOADING SCREW KILN 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB393.2.0 M.Wedler            AEB41                              27.Apr.2010
+//             2nd Release
+//P01_FB393.1.0 K.Renz              CSB41                              08.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3211_MXZ11 : "GCS7_E_Motor";	// Motor 
+  A_3211_UM011VA_PD1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3211_UM011VA_PD2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_3211_MXZ11_FU : "GCS7_E_Motor";	// Motor 
+  A_3211_UM011VA_COM : "SSA_SEW_MOVIDRIVE";	// FU_Siemens 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[293]; 
+      R     "GCS7_GrCtrlDB".ParWGR[293]; 
+      R     "GCS7_GrCtrlDB".ParGGR[293]; 
+      R     "GCS7_GrCtrlDB".ParFeed[293]; 
+      R     "GCS7_GrCtrlDB".ParShare[293]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[293]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[293]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[293]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[293]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[293]; 
+      R     "GCS7_GrCtrlDB".CmdNext[293]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[293]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[293]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[293]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[293]
+//      O     "GCS7_GrCtrlDB".OutOccupied[293]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[293]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[293]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[293]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[293]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+//      U(    
+//      U(    
+//      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading
+//      U     DB394.DBX   99.0            // UNLOADING DOOR CLOSED
+//      O     
+//      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading
+//      U     DB394.DBX   99.2            // UNLOADING DOOR OPENED
+//      O     
+//      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading
+//      UN    "MAL1S033Par".Par.FlagFunction_1.FinishUnloading
+//      U     "MAL1S033Par".Par.FlagMachine.WEGMESSUNG_0
+//      O     
+//      U     "G292M".TurningTo_Parkposition
+//      U     "MAL1S033Par".Par.FlagFunction_1.LoadEnd
+//      U     "MAL1S033".PCRead.Step.StActive
+//      )     
+//      O     #Gr.InManual
+//      )     
+//      U     #Gr.InEnableGr
+//      =     #Gr.OutEnableEl
+//
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[11].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G293M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 11,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-3211-MXZ11_FU : FU UNLOADING / LOADING SREW (Netzschütz)
+//Dieses Element dient nur fuer die Visualisierung!!
+//      NOP   0
+////-InLocal--- 
+//      U     #tmpLocal
+//      =     #A_3211_MXZ11_FU.InLocal
+//
+////-Interlocking--- 
+//      U     "G267M".A_3111_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT
+//      =     #A_3211_MXZ11_FU.InEnableFwd
+//// 
+//      SET   
+//      S     #A_3211_MXZ11_FU.CmdNext
+//// 
+//      U     #Gr.OutSeqStop
+//      =     #A_3211_MXZ11_FU.InSeqStop
+//// 
+////-Read inputs---
+////      U     "A_3211_MXZ11_I1"
+//      U     "G293M".A_3211_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT
+//      U     #A_3211_MXZ11_FU.OutpRunFwd
+//      =     #A_3211_MXZ11_FU.InpRunFwd
+//      U     "PLC_SystemDB".GlobalFlags.Kilning_1
+//      =     #A_3211_MXZ11_FU.InHWStop
+//      U     "PLC_DPInfo".Master[1].SlavesError[101]
+//      =     #A_3211_MXZ11_FU.InDPFault
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_3211_MXZ11_FU
+//// 
+////-Write outputs---
+////      U     #A_3211_MXZ11_FU.OutpRunFwd
+//
+//// Netzschuetz "EIN"
+//      U     #Gr.OutEnableEl
+//      O     #A_3211_MXZ11.InManual
+//      O     #Gr.InManual
+//      =     "A_3211_MXZ11_O1"
+//
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      ON    "G022G".A_3299_SHE01.StTrue; // EMERGENCY-OFF BELOW FLOOR
+      ON    "G022G".A_3299_SHE02.StTrue; // EMERGENCY-OFF ABOVE FLOOR
+      ON    "G022G".A_3299_SHE05.StTrue; // EMERGENCY-OFF LADDER
+      ON    "G022G".A_32_A097Z1.StTrue; // EMERGENCY-STOP +C32
+      ON    "G022G".A_32_S_H097Z.StTrue; // OPERATING ON +C32
+      =     #A_3211_MXZ11_FU.InLocal; 
+
+//-Interlocking--- 
+//      U     #Gr.OutEnableEl
+      U     "G022G".A_3299_SHE01.StTrue; // EMERGENCY-OFF BELOW FLOOR
+      U     "G022G".A_3299_SHE02.StTrue; // EMERGENCY-OFF ABOVE FLOOR
+      U     "G022G".A_3299_SHE05.StTrue; // EMERGENCY-OFF LADDER
+      U     "G022G".A_32_A097Z1.StTrue; // EMERGENCY-STOP +C32
+      U     "G022G".A_32_S_H097Z.StTrue; // OPERATING ON +C32
+      =     #A_3211_MXZ11_FU.InEnableFwd; 
+// 
+//      U     #tmpCmdNext
+      U     "G022G".A_3299_SHE01.StTrue; // EMERGENCY-OFF BELOW FLOOR
+      U     "G022G".A_3299_SHE02.StTrue; // EMERGENCY-OFF ABOVE FLOOR
+      U     "G022G".A_3299_SHE05.StTrue; // EMERGENCY-OFF LADDER
+      U     "G022G".A_32_A097Z1.StTrue; // EMERGENCY-STOP +C32
+      U     "G022G".A_32_S_H097Z.StTrue; // OPERATING ON +C32
+      S     #A_3211_MXZ11_FU.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      CLR   ; 
+      =     #A_3211_MXZ11_FU.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_3211_MXZ11_I1"; 
+      U     #A_3211_MXZ11_FU.OutpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      O     ; 
+      U     #A_3211_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      U     #A_3211_MXZ11_FU.OutpRunFwd; 
+      =     #A_3211_MXZ11_FU.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #A_3211_MXZ11_FU.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3211_MXZ11_FU.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3211_MXZ11_FU ;
+// 
+//-Write outputs---
+      U     #A_3211_MXZ11_FU.OutpRunFwd; 
+      =     "A_3211_MXZ11_O1"; 
+NETWORK
+TITLE ==A-3211-MXZ11 : UN-/LOADING SCREW KILN
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_3211_MXZ11.InLocal; 
+//
+//-Interlocking--- 
+//-Load direction---
+      U(    ; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U     "G294M".A_3215_BZS14.StTrue; // UNLOADING DOOR CLOSED
+      UN    "G292M".A_3211_MXZ41MA.A_3211_BLH13.StFault; // Product sensor
+      UN    "G292M".Gr.StFault; 
+      )     ; 
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      U     #USW14; // ILO-cmd run fwd
+      )     ; 
+      UN    #A_3211_UM011VA_PD2.OutFaulted; 
+      U     #A_3211_MXZ11_FU.StStartedFwd; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3211_MXZ11.InEnableFwd; 
+
+//-Unload direction---
+      U(    ; 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      U     "G294M".A_3215_BZS15.StTrue; // UNLOADING DOOR OPENED
+      U     "G305M".A_3911_MXZ01MA.Ma.StStartedFwd; 
+      )     ; 
+      O(    ; 
+      U     "G294M".A_3215_BZS15.StTrue; // UNLOADING DOOR OPENED
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      U     #USW15; // ILO-Mode man rev
+      )     ; 
+      UN    #A_3211_UM011VA_PD2.OutFaulted; 
+      U     #A_3211_MXZ11_FU.StStartedFwd; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3211_MXZ11.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_3211_MXZ11.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_3211_MXZ11.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_3211_MXZ11.OutpRunRev; 
+      U     #A_3211_UM011VA_COM.OutRunningRev; 
+      U     "A_3211_MXZ11_I1"; // Netzschuetz "EIN"
+      =     #A_3211_MXZ11.InpRunRev; 
+      U     #A_3211_MXZ11.OutpRunFwd; 
+      U     #A_3211_UM011VA_COM.OutRunningFwd; 
+      U     "A_3211_MXZ11_I1"; // Netzschuetz "EIN"
+      =     #A_3211_MXZ11.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3211_MXZ11.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3211_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3211_MXZ11.OutpRunFwd; 
+      R     #A_3211_MXZ11.InOutManRev; 
+      U     #A_3211_MXZ11.OutpRunRev; 
+      S     #A_3211_MXZ11.InOutManRev; 
+
+NETWORK
+TITLE ==A-3211-UM011VA_COM : UNLOADIN / LOADING SCREW FU COMMUNICATION
+//Von der Werkseinstellung weichen folgende Parameter ab:
+//P100/101 Sollwertquelle/Steuerquelle => SBUS 1;
+//P881 SBUS-Adresse <> 0; siehe Handbuch "Feldbusschnittstelle DFP21B"
+//P872 Sollwertbeschreibung PA3 => Rampe
+//=> P876 PA-Daten freigeben = EIN
+//"Drive_IO_Address": Anfangsadresse des E/A-Bereichs => Hardwarekonfiguration
+//
+//Eingänge der FC:
+//Freigabe des Antriebes:
+//Freigabe via dig. Eingänge (Rechts/Halt & Freigabe/Stop) & 
+//Freigabe via Steuerwort (Enable_rapid_stop & Enable)
+//"Reset" = true: Fehler quittieren
+//"SETPOINT_SPEED": Vorgabe der Sollgeschwindigkeit in rpm (Integer),
+//"RAMP": Vorgabe der Rampe in ms (Integer)
+//
+//Ausgänge der FC:
+//Ist die Datenübertragung/PROFIBUS gestört, so werden alle Ausgänge abgelöscht.
+//=> "Kommuikation_OK" = false (selbstquittierend)
+//"INVERTER_READY" = true: Es liegt kein Fehler vor & Netzspannung EIN
+//"FAULT_OF_AXIS" = true: Ein Fehler steht an.
+//"FAULT_NO" <> 0: Die Fehlercodes sind im Systemhandbuch dokumentiert und werden 
+//in den MOVITOOLS (Status, Busmonitor)angezeigt.
+//"ACTUAL_SPEED": Istgeschwindigkeit (INT) in rpm
+//"OUTPUT_CURRENT": Scheinstrom (INT) in Prozent vom Gerätenennstrom
+      NOP   0; 
+      U     #A_3211_MXZ11.OutpRunFwd; 
+      =     #A_3211_UM011VA_COM.InEnableFwd; 
+      U     #A_3211_MXZ11.OutpRunRev; 
+      =     #A_3211_UM011VA_COM.InEnableRev; 
+
+      U     #Gr.CmdFaultReset; 
+      S     #A_3211_UM011VA_COM.CmdFaultReset; 
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+      L     600; // Einricht Drehzahl=3.00Hz Nmax=50Hz
+      U     #A_3211_MXZ11.InManual; 
+      SPB   TaSp; 
+//-Fast by big product shift, slow by little produkt shift---
+// Speed for 1. loading level
+      U(    ; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_1; 
+      L     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      ==I   ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      L     10000; // 100.00% Nmax = 50.00Hz
+      SPB   TaSp; 
+
+// Speed for 2. loading level
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U     "G292M".A_3211_MXZ41MA.A_3211_MXZ41.OutpRunFwd; 
+      U(    ; 
+      L     "MAL1S033Par".RecipeHeader.Loading.LoadingSpeed_2; 
+      L     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      ==I   ; 
+      )     ; 
+      L     6500; 
+      SPB   TaSp; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; // LiftingPositionRound_4
+      L     L#1; 
+      ==D   ; // 87%
+      )     ; 
+      L     10000; // 100.00% Nmax = 50.00Hz
+      SPB   TaSp; 
+
+// Speed for 3. loading level
+      U(    ; 
+      L     "G292M".A_3211_MXZ41MA.Ma.OutCntRound; 
+      L     L#2; 
+      ==D   ; 
+      )     ; 
+      UN    "MAL1S033Par".Par.Switches1.StaOn03; // LiftingPositionRound_4
+      U(    ; 
+      L     87; // 87%
+      L     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      <>I   ; 
+      )     ; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      L     10000; // 100.00% Nmax = 50.00Hz 
+      SPB   TaSp; 
+
+
+// Speed for 4. and more loading level
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      U     "G292M".A_3211_MXZ41MA.A_3211_MXZ41.OutpRunFwd; 
+      U(    ; 
+      L     87; // 87%
+      L     "MAL1S033Par".Par.MachineValue.SollwertFahrantrieb; 
+      ==I   ; 
+      )     ; 
+      L     L#6000; // 60.00% Nmax = 30.00Hz 
+      SPB   TaSp; 
+
+      L     10000; // 100.00% Nmax = 50.00Hz
+      U     "MAL1S033Par".Par.FlagFunction_1.StepUnloading; 
+      SPB   TaSp; 
+      L     10000; // 100.00% Nmax = 50.00Hz
+TaSp: T     #A_3211_UM011VA_COM.OutValuePC; 
+// 
+//-Call object control---
+      CALL #A_3211_UM011VA_COM ;
+// 
+//-Simu Inhousetest---
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  NCo2; 
+      L     #A_3211_UM011VA_COM.Output.SetpointValue01; 
+      T     #A_3211_UM011VA_COM.Input.ActualValue01; 
+      L     #A_3211_UM011VA_COM.OutValuePC; 
+      T     #A_3211_UM011VA_COM.InValuePC; 
+
+      L     1300; // Nennstrom
+      T     #A_3211_UM011VA_COM.Input.ActualValue02; 
+
+      U     #A_3211_MXZ11.OutpRunFwd; 
+      O     #A_3211_MXZ11.OutpRunRev; 
+      SPB   NCo2; 
+      L     0; 
+      T     #A_3211_UM011VA_COM.Input.ActualValue01; 
+      T     #A_3211_UM011VA_COM.Input.ActualValue02; 
+NCo2: NOP   0; 
+//-Write outputs---
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPB   NCo1; 
+      SPA   NCOL; 
+NCo1: NOP   0; 
+// Check if the inverter is working
+      U     #A_3211_UM011VA_COM.Input.StateWord_1.STATE_WORD_BIT_15; 
+      U     #A_3211_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      UN    #A_3211_UM011VA_COM.Input.StateWord_1.STOERUNG_WARNUNG; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; // JV190908
+      U     #A_3211_MXZ11.OutpRunFwd; 
+      =     #A_3211_UM011VA_COM.OutRunningFwd; 
+
+      U     #A_3211_UM011VA_COM.Input.StateWord_1.STATE_WORD_BIT_15; 
+      U     #A_3211_UM011VA_COM.Input.StateWord_1.BETRIEBSBEREIT; 
+      UN    #A_3211_UM011VA_COM.Input.StateWord_1.STOERUNG_WARNUNG; 
+      O     "PLC_SystemDB".GlobalFlags.StaTest; // JV190908
+      U     #A_3211_MXZ11.OutpRunRev; 
+      =     #A_3211_UM011VA_COM.OutRunningRev; 
+NCOL: NOP   0; 
+
+NETWORK
+TITLE ==A-3211-UM011VA_PD1 : FREQUENCY FREQ. UN-/LOADING SCREW KILN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3211_UM011VA_PD1.InLocal; 
+//
+//-Monitoring--- 
+      U     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      =     #A_3211_UM011VA_PD1.InMonLL; 
+      =     #A_3211_UM011VA_PD1.InMonL; 
+      CLR   ; 
+      =     #A_3211_UM011VA_PD1.InMonMid; 
+      CLR   ; 
+      =     #A_3211_UM011VA_PD1.InMonH; 
+      U     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      =     #A_3211_UM011VA_PD1.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_3211_UM011VA_COM.InValuePC; // FU  
+      T     #A_3211_UM011VA_PD1.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3211_UM011VA_PD1.InHWStop; 
+// 
+//-Set Parameters---
+// 4000H=100.00%=1500rpm=50.00Hz
+//[2.0] - Erläuterung
+      L     L#27648; // InpValue=Drehzahl direkt   
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.00%=0.00Hz                 
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParLimitLL; 
+      L     L#600; // 6.00%=3.00Hz
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParLimitL; 
+      L     L#10000; // 100.00%=50.00Hz
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParLimitH; 
+      L     L#10100; // 101.00%=50.50Hz
+      T     "G293M".A_3211_UM011VA_PD1.Par.ParLimitHH; 
+
+// 
+//-Call object control---
+      CALL #A_3211_UM011VA_PD1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3211-UM011VA_PD2 : CURRENT FREQ. UN-/LOADING SCREW KILN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3211_UM011VA_PD2.InLocal; 
+//
+//-Monitoring--- 
+      U     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      =     #A_3211_UM011VA_PD2.InMonLL; 
+      =     #A_3211_UM011VA_PD2.InMonL; 
+      CLR   ; 
+      =     #A_3211_UM011VA_PD2.InMonMid; 
+      U     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      =     #A_3211_UM011VA_PD2.InMonH; 
+      =     #A_3211_UM011VA_PD2.InMonHH; 
+// 
+// Simu Inhousetest
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      U(    ; 
+      O     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      )     ; 
+      SPBN  M160; 
+      L     880; 
+      T     #A_3211_UM011VA_COM.Input.ActualValue02; 
+M160: NOP   0; 
+//-Read inputs---
+      L     #A_3211_UM011VA_COM.Input.ActualValue02; 
+      T     #A_3211_UM011VA_PD2.InpValue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3211_UM011VA_PD2.InHWStop; 
+// 
+//-Set Parameters---
+// 1000Dez=100,0%=73,0A (In FU)
+// 27648Dez = 2018.3A
+// --> Erläuterung
+      L     L#20183; // Stromwert bei 27648Dez
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParUnitsByMaxDigit; 
+      L     L#10000; // OutValuePc=OutValueUnits
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParUnitsBy100Pc; 
+      L     L#0; // 0.0A
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParLimitLL; 
+      L     L#160; // 16.0A
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParLimitL; 
+      L     L#730; // 73.0A=100.0% (In FU)
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParLimitH; 
+      L     L#913; // 91.3A=125.0% (In FU)
+      T     "G293M".A_3211_UM011VA_PD2.Par.ParLimitHH; 
+// 
+      U     "MAL1S033".ToASW.InfDataReady; 
+      U     "MAL1S033Par".Par.FlagFunction_1.StepLoading; 
+      L     L#650; // 65.0 Ampere
+      SPB   pH; 
+      L     L#730; // 73.0 Ampere
+pH:   T     #A_3211_UM011VA_PD2.Par.ParLimitH; 
+      SET   ; 
+      =     "G293M".A_3211_UM011VA_PD2.Par.ParWarningH; 
+// 
+//-Call object control---
+      CALL #A_3211_UM011VA_PD2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3211_MXZ11_FU.StFault; 
+      O     #A_3211_MXZ11.StFault; 
+      O     #A_3211_UM011VA_PD1.OutFaulted; 
+      O     #A_3211_UM011VA_PD2.OutFaulted; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_3211_UM011VA_PD1.OutWarning; 
+      O     #A_3211_UM011VA_PD2.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3211_MXZ11_FU.StStopped; 
+      U     #A_3211_MXZ11.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_3211_MXZ11_FU.StStartedFwd; 
+      U(    ; 
+      O     #A_3211_MXZ11.StStartedFwd; 
+      O     #A_3211_MXZ11.StStartedRev; 
+      )     ; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[293]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[293]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[293]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[293]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[293]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[293]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[293]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[293]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[293]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[293]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

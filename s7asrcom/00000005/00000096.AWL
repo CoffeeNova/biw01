@@ -1,0 +1,580 @@
+FUNCTION_BLOCK FB 61
+TITLE =Scale MWBL/MWBS
+//  
+//COPYRIGHT:    (C) 2001  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 61 Machine Control:Scale MWBL/MWBS
+//              (with FB40) 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB61.2.1      A. Egli             CT3                         17-Mai-2004
+//              Scale.InDisableDischargeDUMP moved to last netzwerk
+//              Scale not interlocked with InDisableAirlock 
+//FB61.2.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB61.1.0      A. Egli             CT3                         23-Aug-2001
+//              Make new Version FB62.5.1 with DP Scales
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MWBxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//              >=FB26.1.0 
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Ma_MWBL
+VERSION : 2.1
+
+
+VAR
+  Ma : UDT 20610;	
+  Airlock : FB 12;	//Element
+  LLOutlet : FB 14;	//Element
+  HLInlet : FB 14;	//Element
+  Scale : FB 40;	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpNext2 : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpEmpty : BOOL ;	
+  tmpDisableAirlock : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpStoreAR2 : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     12; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+
+      NOP   0; 
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2061; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   aExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      O     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     DB3.DBX   53.0; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   55.5; //Cmd1[13]=CmdManualOff
+      R     #Ma.InManual; 
+
+//[4.0]   U     PCControl.PC.Cmd1[1]; //Cmd1[1]=CmdEmptyingOn
+//[4.0]   S     #Ma.InRestdischarge;
+//[4.0]   U     PCControl.PC.Cmd2[1]; //Cmd2[1]=CmdEmptyingOff
+//[4.0]   R     #Ma.InRestdischarge; 
+
+      U     DB3.DBX   52.2; //Cmd1[2]=CmdDisableAirlock
+      S     #Ma.InDisableAirlock; 
+      U     DB3.DBX   54.2; //Cmd2[2]=CmdEnableAirlock
+      R     #Ma.InDisableAirlock; 
+
+      U     DB3.DBX   52.7; //Cmd2[2]=CmdEmptying
+      S     #Ma.InOutEmptyingHopperScale; 
+
+      U     DB3.DBX   52.4; //Cmd1[4]=CmdNewValue
+      S     #Ma.CmdNewValue; 
+      U     DB3.DBX   52.5; //Cmd1[5]=CmdNewJob
+      S     #Ma.CmdNewJob; 
+
+      UN    DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aIni; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic data
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+
+      NOP   0; 
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManual
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+// Continue after Empyting
+      U     #Ma.CmdNewJob; 
+      O     #Ma.CmdOn; 
+      ON    #tmpEnable; 
+      R     #Ma.InOutEmptyingHopperScale; //[4.0]
+
+//---- Low level 
+      U     #HLInlet.StFalse; 
+      O     #HLInlet.StFault; 
+      O     #HLInlet.StCtoTrue; 
+      =     #Ma.OutEmptyInlet; 
+
+      U     #Ma.OutEmptyInlet; 
+      UN    #Ma.InOutEmptyingHopperScale; //[4.0]
+      U     #Ma.Par.ParWithHLInlet; 
+      =     #tmpEmpty; 
+
+      U     #LLOutlet.StFalse; 
+      O     #LLOutlet.StCtoTrue; 
+      =     #Ma.OutEmptyOutlet; 
+
+//--- Fault----
+      O     #HLInlet.StFault; 
+      O     #LLOutlet.StFault; 
+      O     #Airlock.StFault; 
+      O     #Scale.StFault; 
+      =     #tmpFaultSum; 
+// 
+//--- Interlocking Airlock
+      U     #Ma.OutEmptyOutlet; 
+      UN    #Ma.InOutEmptyingHopperScale; //[4.0]
+      U     #Ma.Par.ParStopAirlockByLL; 
+      O     #Ma.InDisableAirlock; 
+      =     #tmpDisableAirlock; 
+      UN    #tmpDisableAirlock; 
+      U     #tmpEnable; 
+      =     #Airlock.InEnableFwd; 
+
+//[4.0->] Sequence stop DUMP scale
+      UN    #Ma.InManual; 
+      U     #Ma.InSeqStop; 
+      =     #Scale.InSeqStopDUMP; //Emptying scale, but not hopper above scale
+      U     #Scale.InSeqStopDUMP; 
+      UN    #Scale.StDosing; 
+      UN    #Scale.StStarting; //[<-4.0]
+      =     #Airlock.InSeqStop; 
+// 
+      U     #Ma.StStarted; 
+      O     #Ma.StEmptying; 
+      O     #Ma.StEmptied; 
+      O     #Ma.StWaiting; 
+      UN    #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      O     #tmpNext; 
+      S     #Airlock.CmdNext; 
+      =     #tmpNext2; 
+// 
+//--- Interlocking Scale
+//[2.1]      UN    #Ma.InDisableAirlock        //[4.0] Stop scale,
+//[2.1]      O     #Ma.Par.ParWithLLOutlet     //[4.0]  if no HLOutlet is used
+      UN    #Airlock.StFault; 
+      U(    ; 
+      ON    #Airlock.StStopped; 
+      ON    #Ma.Par.ParWithAirlock; 
+      ON    #Ma.InSeqStop; 
+      )     ; 
+      U     #tmpEnable; 
+      =     #Scale.InEnable; 
+//[2.1] Scale.InDisableDischargeDUMP moved to last netzwerk
+// 
+      U     #Ma.InOutEmptyingHopperScale; //[4.0]
+      UN    #Scale.InManual; 
+      O     ; 
+      U     #Scale.InManual; 
+      U     #Scale.InOutRestdischargeBin; //[4.0]
+      =     #Scale.InOutRestdischargeBin; //[4.0]
+// 
+      UN    #Airlock.InEnableFwd; 
+      O     #Airlock.StStartedFwd; 
+      O     #tmpDisableAirlock; 
+      ON    #Ma.Par.ParWithAirlock; 
+      U     #tmpNext2; 
+      S     #Scale.CmdNext; 
+
+      U     #Ma.CmdOff; 
+      S     #Scale.CmdOff; 
+
+//New job 
+      U     #Ma.CmdNewJob; 
+      S     #Scale.CmdNewJob; 
+      U     #Ma.CmdNewValue; 
+      S     #Scale.CmdNewValue; 
+// 
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Scale.InLocal; 
+      =     #Airlock.InLocal; 
+      =     #HLInlet.InLocal; 
+      U     #Scale.InLocal; //[4.0]
+      O     #Ma.Par.ParHLOutletLocal; //[4.0]
+      =     #LLOutlet.InLocal; 
+
+//--- Monitoring -------------
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithAirlock; 
+      O     #Scale.StDosing; 
+      =     #LLOutlet.InMonFalse; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Scale.CmdFaultReset; 
+      S     #Airlock.CmdFaultReset; 
+      S     #HLInlet.CmdFaultReset; 
+      S     #LLOutlet.CmdFaultReset; 
+
+//--- Stop Point -------------
+      U     #Scale.OutStopPoint; 
+      =     #Ma.OutStopPoint; 
+
+NETWORK
+TITLE =Call Scale
+
+      CALL #Scale ;// Call Scale
+
+NETWORK
+TITLE =Call Motor: Airlock
+
+      UN    #Ma.Par.ParWithAirlock; 
+      SPB   el3; 
+      CALL #Airlock ;
+
+NETWORK
+TITLE =Call Digital Input: HLOutlet
+
+el3:  UN    #Ma.Par.ParWithLLOutlet; 
+      SPB   el4; 
+      CALL #LLOutlet ;
+
+NETWORK
+TITLE =Call Digital Input: LLInlet
+
+el4:  UN    #Ma.Par.ParWithHLInlet; 
+      SPB   StJ0; 
+      CALL #HLInlet ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+      U     #Ma.StWaiting; 
+      SPB   S5; // ===> State
+      U     #Ma.StEmptying; 
+      SPB   S6; // ===> State
+      U     #Ma.StEmptied; 
+      SPB   S7; // ===> State
+NETWORK
+TITLE =Stopped
+
+xxS0: S     #Ma.StStopped; // any Transition ===> Initialisation
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #Airlock.StStopped; 
+      U     #Ma.Par.ParWithAirlock; 
+      ON    #Scale.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+// Condition for StWaiting
+      U     #tmpNext; 
+      U     #tmpEnable; 
+      U     #tmpEmpty; 
+      R     #Ma.StStopped; 
+      SPB   xxS5; //--> StWaiting
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStarting
+
+xxS1: S     #Ma.StStarting; //any Transition 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Scale.StDosing; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StEmptying
+      U     #Scale.StEmptying; 
+      O     #Scale.StEmptied; 
+      R     #Ma.StStarting; 
+      SPB   xxS6; //--> StEmptying
+// Condition for StStopping
+      UN    #Airlock.StStartedFwd; 
+      O     #Airlock.InSeqStop; 
+      UN    #Airlock.StStarting; 
+      UN    #Scale.StStarting; 
+      UN    #Scale.InEnable; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+
+xxS2: S     #Ma.StStarted; //any Transition 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StEmptying
+      U     #Scale.StEmptying; 
+      O     #Scale.StEmptied; 
+      R     #Ma.StStarted; 
+      SPB   xxS6; //-->StEmptying
+// Condition for StWaiting
+//[4.0]   U     #tmpEmpty;     
+      UN    #Ma.OutEmptyOutlet; 
+      ON    #Ma.Par.ParWithLLOutlet; //[4.0]
+      UN    #Ma.InOutEmptyingHopperScale; //[4.0]
+      U(    ; //[5.0][PE]
+      UN    #Scale.StDosing; 
+      O     #Scale.InDisableDischargeDUMP; //[5.0][PE]
+      )     ; //[5.0][PE]
+      R     #Ma.StStarted; 
+      SPB   xxS5; //-->StWaiting
+// Condition for StStopping
+      UN    #Scale.StDosing; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Stopping
+
+xxS3: S     #Ma.StStopping; //any Transition 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Airlock.StStopped; 
+      ON    #Ma.Par.ParWithAirlock; 
+      U     #Scale.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      U     #Airlock.StStartedFwd; 
+      UN    #Airlock.InSeqStop; 
+      O     #Scale.StDosing; 
+      O     #Scale.InEnable; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; //any Transition 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS3; //-->StStopping 
+
+
+NETWORK
+TITLE =StWaiting
+
+xxS5: S     #Ma.StWaiting; //any Transition 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StWaiting; 
+      SPB   xxS4; //--> StFault
+// Condition for StDosing
+      U     #Scale.StDosing; 
+      UN    #Scale.InDisableDischargeDUMP; //[5.0][PE]
+      R     #Ma.StWaiting; 
+      SPB   xxS2; //-->StDosing
+// Condition for StEmptying             // [4.1]
+      U     #Scale.StEmptying; // [4.1]
+      U     #LLOutlet.StFalse; // [4.1]
+      R     #Ma.StWaiting; // [4.1]
+      SPB   xxS6; //-->StEmptying // [4.1]
+// Condition for StEmptied              // [4.1]
+      U     #Scale.StEmptied; // [4.1]
+      U     #LLOutlet.StFalse; // [4.1]
+      R     #Ma.StWaiting; // [4.1]
+      SPB   xxS7; //-->StEmptied  // [4.1]
+// Condition for StStopping
+      UN    #tmpEnable; 
+      R     #Ma.StWaiting; 
+      SPB   xxS0; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StEmptying
+
+xxS6: S     #Ma.StEmptying; //any Transition 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StEmptying; 
+      SPB   xxS4; //--> StFault
+// Condition for StEmptied
+      U     #Scale.StEmptied; 
+      R     #Ma.StEmptying; 
+      SPB   xxS7; //-->StEmptied
+// Condition for StStopping
+      UN    #Scale.StEmptying; 
+      R     #Ma.StEmptying; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StEmptied
+
+xxS7: S     #Ma.StEmptied; //any Transition 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S7:   U     #tmpFaultSum; 
+      R     #Ma.StEmptied; 
+      SPB   xxS4; //--> StFault
+// Condition for StStarted
+      U     #Scale.StDosing; 
+      R     #Ma.StEmptied; 
+      SPB   xxS2; //-->StStarted
+// Condition for StStopping
+      UN    #Scale.StEmptied; 
+      UN    #Scale.StStarting; 
+      R     #Ma.StEmptied; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StWaiting    3
+// StStarted    4
+// StStopping    7
+// StEmptying     9
+// StEmptied        10
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     4; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StWaiting; 
+      L     3; //Code=StWaiting
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping
+      SPB   Code; 
+      U     #Ma.StEmptying; 
+      L     9; //Code=StEmptying
+      SPB   Code; 
+      U     #Ma.StEmptied; 
+      L     10; //Code=StEmptied
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    FC     2; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNewValue; 
+      =     #Ma.CmdNewJob; 
+//[2.1] Scale.InDisableDischargeDUMP moved to last netzwerk
+      U     #Ma.InDisableAirlock; //[2.1] Stop scale,
+      UN    #Ma.Par.ParWithLLOutlet; //[2.1]  if no HLOutlet is used
+      O(    ; 
+      U     #LLOutlet.StFault; //[5.0][PE]
+      O     #LLOutlet.StTrue; //[5.0][PE]
+      O     #LLOutlet.StCtoFalse; //[5.0][PE]
+      U     #Ma.Par.ParWithLLOutlet; //[2.1]
+      )     ; //[2.1]
+      =     #Scale.InDisableDischargeDUMP; //[5.0][PE]
+END_FUNCTION_BLOCK
+

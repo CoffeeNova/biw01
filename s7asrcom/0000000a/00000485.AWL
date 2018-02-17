@@ -1,0 +1,381 @@
+FUNCTION_BLOCK "AAA"
+TITLE =G285M MAIN ASPIRATION 6181 - DEC1
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        MAIN ASPIRATION 6181 - DEC1
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB385.1.0 K.Renz              CSB41                              22.Dez.2011
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_6181_MXZ01_MA : "A_6181_MXZ01_MA_Code";	// Aspiration A 
+  A_6183_BSA11 : "GCS7_E_DigInput";	// DigInpCont 
+  A_6185_MXZ01 : "GCS7_E_Motor";	// Motor 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[285]; 
+      R     "GCS7_GrCtrlDB".ParWGR[285]; 
+      R     "GCS7_GrCtrlDB".ParGGR[285]; 
+      R     "GCS7_GrCtrlDB".ParFeed[285]; 
+      S     "GCS7_GrCtrlDB".ParShare[285]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[285]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[285]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[285]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[285]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[285]; 
+      R     "GCS7_GrCtrlDB".CmdNext[285]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[285]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[285]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[285]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[285]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[285]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[285]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+//-Enable idling when fluidlifts and waygroups are stopped---
+      U     "ENG_RemarkFlag"; 
+      =     "ENG_RemarkFlag"; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.DEC1_EXP1; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-6181-MXZ01_MA : CENTRAL ASPIRATION 6181 - DEC1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_6181_MXZ01_MA.Ma.InLocal; 
+// 
+//-Interlocking---
+
+      U     #Gr.OutEnableEl; 
+      =     #A_6181_MXZ01_MA.Ma.InEnable; 
+// 
+
+      U     #tmpCmdNext; 
+      S     #A_6181_MXZ01_MA.Ma.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_6181_MXZ01_MA.Ma.InSeqStop; 
+// 
+//-Additional commands---
+      UN    #Gr.OutEnableEl; 
+      =     #A_6181_MXZ01_MA.Ma.InDisableAirlock; 
+// 
+      L     #A_6181_MXZ01_MA.A_6118_KFC10_R.Par.ParIdlingTime; 
+      +     3000; 
+      T     #A_6181_MXZ01_MA.A_6183_MXZ01.Par.ParIdlingTime; 
+// 
+//=Values and commands of elements===
+// 
+//-Read inputs of elements---
+      U     "A_6183_MXZ01_I1"; 
+      =     #A_6181_MXZ01_MA.A_6183_MXZ01.InpRunFwd; 
+
+      U     "PLC_SystemDB".GlobalFlags.DEC1_EXP1; 
+      =     #A_6181_MXZ01_MA.A_6183_MXZ01.InHWStop; 
+      U     "A_6184_MXZ01_I1"; 
+      =     #A_6181_MXZ01_MA.A_6184_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".GlobalFlags.DEC1_EXP1; 
+      =     #A_6181_MXZ01_MA.A_6184_MXZ01.InHWStop; 
+      U     "PLC_SystemDB".GlobalFlags.DEC1_EXP1; 
+      =     #A_6181_MXZ01_MA.A_6118_KFC10_R.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_6181_MXZ01_MA ;
+// 
+//-Write outputs---
+      U     #A_6181_MXZ01_MA.A_6183_MXZ01.OutpRunFwd; 
+      =     "A_6183_MXZ01_O1"; 
+      U     #A_6181_MXZ01_MA.A_6184_MXZ01.OutpRunFwd; 
+      =     "A_6184_MXZ01_O1"; 
+
+      U     #A_6181_MXZ01_MA.A_6118_KFC10_R.OutpRun; 
+      =     "A_6118_KFC10_O1"; 
+
+      U     #A_6181_MXZ01_MA.A_6184_MXZ01.StStopped; 
+      =     "A_6118_KFC10_O2"; 
+NETWORK
+TITLE ==A-6183-BSA11 : AIRLOCK 6183 - SPEED CONTROL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_6183_BSA11.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      U     #A_6181_MXZ01_MA.A_6183_MXZ01.StStartedFwd; 
+      =     #A_6183_BSA11.InMonTrue; 
+      CLR   ; 
+      =     #A_6183_BSA11.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_6183_BSA11.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_6183_BSA11.InPreAlarmFalse; 
+// 
+//-Additional commands---
+      UN    #A_6183_BSA11.InLocal; 
+      S     #A_6183_BSA11.CmdRunTimeoutTime; 
+// 
+//-Read inputs---
+      U     "A_6183_BSA11_I1"; 
+      =     #A_6183_BSA11.InpTrue; 
+
+      U     "PLC_SystemDB".GlobalFlags.DEC1_EXP1; 
+      =     #A_6183_BSA11.InHWStop; 
+
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_6183_BSA11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-6185-MXZ01 : Forced ventilation 6185 Alarm only
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_6185_MXZ01.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_6185_MXZ01.InEnableFwd; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_6185_MXZ01.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_6185_MXZ01.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2460_MXZ01_I1"; 
+      =     #A_6185_MXZ01.InpRunFwd; 
+      U     #tmpHWStop; 
+      =     #A_6185_MXZ01.InHWStop; 
+//   U     "PLC_DPInfo".Master[1].SlavesError[48]
+// =     #A_6185_MXZ01.InDPFault
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_6185_MXZ01 ;
+// 
+//-Write outputs---
+
+
+
+
+NETWORK
+TITLE =Test Fault
+
+      U     #A_6181_MXZ01_MA.Ma.StFault; 
+      O     #A_6183_BSA11.StFault; 
+//   O     #A_6185_MXZ01.StFault
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_6181_MXZ01_MA.Ma.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_6181_MXZ01_MA.Ma.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U(    ; 
+      U     #A_6181_MXZ01_MA.Ma.StStarted; 
+      ON    #A_6181_MXZ01_MA.Ma.InEnable; 
+      )     ; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[285]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[285]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[285]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[285]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[285]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[285]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[285]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[285]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[285]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[285]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

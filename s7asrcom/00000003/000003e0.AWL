@@ -1,0 +1,57 @@
+	DATA_BLOCK DB119
+	TITLE =DBG019M  CCOMPRESSED AIR PRESSURE STEEP 17 - 20
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        CCOMPRESSED AIR PRESSURE STEEP 17 - 20
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB119.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG019M 
+	VERSION : 00.00
+	
+	FB119
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=1900; 
+	      #Gr.Par.ParIdling      	:=30; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter =A-1155-MXZ11 : COMPRESSED AIR ST 17 - 20
+	      #A_1155_MXZ11.Par.ParObjectNo                             :=1901;
+	      #A_1155_MXZ11.Par.ParMsgType                              :=7053;
+	      #A_1155_MXZ11.Par.ParHornCode                             :=1;
+	      #A_1155_MXZ11.Par.ParMonTime                              :=20;
+	      #A_1155_MXZ11.Par.ParStartingTime                         :=20;
+	      #A_1155_MXZ11.Par.ParStoppingTime                         :=0;
+	      #A_1155_MXZ11.Par.ParIdlingTime                           :=0;
+	      #A_1155_MXZ11.Par.ParDelayTime                            :=10;
+	      #A_1155_MXZ11.Par.ParLogOff                               :=False;
+	      #A_1155_MXZ11.Par.ParManual                               :=True;
+	      #A_1155_MXZ11.Par.ParRestartDelay                         :=False;
+	      #A_1155_MXZ11.Par.Par2Speed                               :=False;
+	      #A_1155_MXZ11.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	END_DATA_BLOCK

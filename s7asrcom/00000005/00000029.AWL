@@ -1,0 +1,37 @@
+FUNCTION FC 9 : VOID
+TITLE =Call Groups 
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Aufruf Gruppen
+//              Call Groups
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//FC009.1A      A_Egli              AEE61             28-Jan-98
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : GCSOSMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : ASW
+NAME : DEF
+VERSION : 0.0
+
+BEGIN
+NETWORK
+TITLE =
+
+
+
+END_FUNCTION
+

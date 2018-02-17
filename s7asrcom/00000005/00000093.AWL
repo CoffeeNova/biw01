@@ -1,0 +1,507 @@
+FUNCTION_BLOCK FB 63
+TITLE =
+//
+//COPYRIGHT:    (C) 2001  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Machine DFCA, DFCB, DFBB Control
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB63.4.0      A. Egli             CT3                         08-Dez-2003
+//              FB73 with A202 
+//FB63.3.0      A. Egli             CT3                         17-Jun-2002
+//              DFCB, DFBB 
+//FB63.2.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB63.1.1      Ph. Engler          MU664                       31-Oct-2001
+//              No Press.cmdStart if InSuspend
+//FB63.1.0      A. Egli             CT3                         17-Jul-2001
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MxxMAN]
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MA_DFCA
+VERSION : 4.0
+
+
+VAR
+  Ma : UDT 20630;	
+  ElRemote : FB 14;	//Input from DFCA: (DP or Dig. Input) : Freigabe Fernbetrieb 
+  ElRunning : FB 14;	//Input from DFCA: (DP or Dig. Input) : Betrieb, Ganze Maschine läuft 
+  ElSumFault : FB 14;	//Input from DFCA: (DP or Dig. Input) : Sammelalarm 
+  ElFireAlarm : FB 14;	//Input from DFCA: (Dig. Input      ) : Branschutzalarm 
+  ElPressStart : FB 11;	//Output to DFCA : (DP or Dig. Output): Start an Presse
+  ElDischargerRunning : FB 11;	//*O Output to DFCA : (DP or Dig. Output): Abtransport in Betrieb
+  ElDPFault : FB 14;	//                    (Internal signal  ): DP Communication fault
+  DFxx : FB 73;	//Communication modul
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     20; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =Call Communication DFCA
+
+      CALL #DFxx (
+           IOByteNr                 := #Ma.Par.ParIOByteNr);
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2063; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; // Handshake.FExamine
+      SPB   aExa; 
+      U     DB3.DBX   43.0; // Handshake.FDefineCmd
+      O     DB3.DBX   43.1; // Handshake.FDefinePara
+      SPB   aCmd; 
+aIni: L     2; // FcInit
+      UC    FC     3; 
+      SPA   aEnd; 
+// Write new commands from PC to Interface of group 
+aCmd: U     DB3.DBX   52.5; //Cmd1[8]=CmdNewJob
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.0; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   55.5; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     DB3.DBX   52.6; //Cmd1[6]=InOutCoolerOnMan.On
+      S     #Ma.InOutCoolerOnMan; 
+      U     DB3.DBX   54.6; //Cmd2[6]=Ma.InOutCoolerOnMan.Off
+      R     #Ma.InOutCoolerOnMan; 
+      U     DB3.DBX   52.7; //Cmd1[6]=Ma.InOutHeaterOnMan.On
+      S     #Ma.InOutHeaterOnMan; 
+      U     DB3.DBX   54.7; //Cmd2[6]=Ma.InOutHeaterOnMan.Off
+      R     #Ma.InOutHeaterOnMan; 
+      U     DB3.DBX   52.4; //Cmd1[6]=InOutFanOnMan.On    //[3.0]
+      S     #Ma.InOutFanOnMan; 
+      U     DB3.DBX   54.4; //Cmd2[6]=Ma.InOutFanOnMan.Off   //[3.0]
+      R     #Ma.InOutFanOnMan; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     DB3.DBD   24; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     DB3.DBW   22; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; // -->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManual
+//--- Local mode --
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+      U     #tmpLocal; 
+      =     #ElRemote.InLocal; 
+      =     #ElRunning.InLocal; 
+      =     #ElSumFault.InLocal; 
+      =     #ElFireAlarm.InLocal; 
+      CLR   ; 
+      =     #ElPressStart.InLocal; 
+      =     #ElDischargerRunning.InLocal; 
+      U     #tmpLocal; 
+      ON    #Ma.Par.ParDP; 
+      =     #ElDPFault.InLocal; 
+
+
+//--- Monitoring
+      U     #Ma.InRemoteMode; 
+      =     #ElRemote.InMonTrue; 
+      SET   ; 
+      =     #ElSumFault.InMonTrue; 
+      SET   ; 
+      =     #ElFireAlarm.InMonTrue; 
+      U     #Ma.Par.ParDP; 
+      =     #ElDPFault.InMonTrue; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #ElRemote.CmdFaultReset; 
+      S     #ElRunning.CmdFaultReset; 
+      S     #ElPressStart.CmdFaultReset; 
+      S     #ElDischargerRunning.CmdFaultReset; 
+      S     #ElDPFault.CmdFaultReset; 
+      S     #DFxx.InCommand.CmdFaultResetAll; 
+
+      UN    #Ma.CmdFaultReset; 
+      SPB   FRJ1; 
+      L     #Ma.Par.ParFaultResetTime; 
+      T     #Ma.Par.OutFaultResetTime; 
+FRJ1: L     #Ma.Par.OutFaultResetTime; 
+      L     0; 
+      <=I   ; 
+      ON    M     10.3; 
+      SPB   FRJ2; 
+      L     #Ma.Par.OutFaultResetTime; 
+      -I    ; 
+      T     #Ma.Par.OutFaultResetTime; 
+      L     0; 
+      >I    ; 
+      SPB   FRJ2; 
+      S     #ElSumFault.CmdFaultReset; 
+      S     #ElFireAlarm.CmdFaultReset; 
+FRJ2: NOP   0; 
+//=============================================
+//ElPressStart: Start/Stop
+//=============================================
+      U     #Ma.Par.ParManual; 
+      U     #Ma.InManual; 
+      O     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+      U     #Ma.InManual; 
+      U     #Ma.CmdOn; 
+      U     #tmpEnable; 
+      O     ; 
+      UN    #Ma.InManual; 
+      U     #Ma.CmdNext; 
+      U     #tmpEnable; 
+      S     #ElPressStart.InEnable; 
+      S     #ElPressStart.CmdNext; 
+      UN    #tmpEnable; 
+      O     #Ma.CmdOff; 
+      R     #ElPressStart.InEnable; 
+//=============================================
+//ElDischargerRunning
+//=============================================
+      U     #Ma.InDischargerRunning; 
+      =     #ElDischargerRunning.InEnable; 
+      S     #ElDischargerRunning.CmdNext; 
+
+NETWORK
+TITLE =Commands to DFCA
+
+      U     #ElPressStart.InEnable; 
+      UN    #Ma.InSuspend; //[PE]
+      =     #DFxx.InCommand.StartPress; 
+//------------------------------
+      UN    #ElPressStart.InEnable; 
+      =     #DFxx.InCommand.StopPress; 
+//------------------------------
+      U     #Ma.InDischargerRunning; 
+      =     #DFxx.InCommand.DischargerRunning; 
+//------------------------------
+      U     #Ma.InOutCoolerOnMan; 
+      =     #DFxx.InCommand.CoolerOnMan; 
+//------------------------------
+      U     #Ma.InOutHeaterOnMan; 
+      =     #DFxx.InCommand.HeaterOnMan; 
+//------------------------------
+      U     #Ma.InOverrideLLHopper; 
+      =     #DFxx.InCommand.OverwriteLLHopper; 
+//------------------------------
+      U     #Ma.InSuspend; 
+      =     #DFxx.InCommand.Suspend; 
+//------------------------------
+      U     #Ma.InOutFanOnMan; //[3.0]
+      =     #DFxx.InCommand.FanOnMan; //[3.0]
+//------------------------------
+      U     #Ma.CmdNewJob; 
+      S     #DFxx.InCommand.CmdResetTotal; 
+      S     #DFxx.InCommand.CmdResetTotalLiquid1; //[3.0]
+      S     #DFxx.InCommand.CmdResetTotalLiquid2; //[3.0]
+      R     #Ma.CmdNewJob; 
+//------------------------------
+      U     #Ma.CmdResetHorn; 
+      S     #DFxx.InCommand.CmdResetHorn; 
+//------------------------------
+      CLR   ; 
+      S     #DFxx.InCommand.CmdFaultResetSingle; 
+//------------------------------
+      U     #Ma.CmdFaultReset; 
+      S     #DFxx.InCommand.CmdFaultResetAll; 
+//------------------------------
+      U     #Ma.CmdSendB101; 
+      R     #Ma.CmdSendB101; 
+      S     #DFxx.In.CmdSendB101; 
+//------------------------------
+      U     #Ma.CmdSendB102; 
+      R     #Ma.CmdSendB102; 
+      S     #DFxx.In.CmdSendB102; 
+//------------------------------
+      U     #Ma.CmdSendB103; 
+      R     #Ma.CmdSendB103; 
+      S     #DFxx.In.CmdSendB103; 
+//------------------------------
+      U     #Ma.CmdSendB104; 
+      R     #Ma.CmdSendB104; 
+      S     #DFxx.In.CmdSendB104; 
+
+NETWORK
+TITLE =Digital outputs to DFCA
+
+      U     #Ma.InpLL; 
+      =     #Ma.OutpLL; 
+      U     #Ma.InpLevelMiddle; 
+      =     #Ma.OutpLevelMiddle; 
+
+
+
+
+
+NETWORK
+TITLE =Input signal from DP modul
+
+      UN    #Ma.Par.ParDP; 
+      SPB   IPJ0; 
+//===================================
+      L     #DFxx.OutA101Ac.Mode; 
+      L     1; 
+      ==I   ; 
+      =     #ElRemote.InpTrue; 
+//===================================
+      L     #DFxx.OutA101Ac.State; 
+      L     4; 
+      ==I   ; 
+      =     #ElRunning.InpTrue; 
+//===================================
+      UN    #DFxx.OutA104Ac.SumAlarm; 
+      =     #ElSumFault.InpTrue; 
+IPJ0: NOP   0; 
+NETWORK
+TITLE =Call Digital Input: ElRemote
+
+      CALL #ElRemote ;
+
+NETWORK
+TITLE =Call Digital Input: ElRunning
+
+      CALL #ElRunning ;
+
+NETWORK
+TITLE =Call Digital Input: ElSumFault
+
+      CALL #ElSumFault ;
+
+NETWORK
+TITLE =Call Digital Input: ElFireAlarm
+
+      CALL #ElFireAlarm ;
+
+NETWORK
+TITLE =Call ElPressStart
+
+      CALL #ElPressStart ;
+
+NETWORK
+TITLE =Call ElDischargerRunning
+
+      CALL #ElDischargerRunning ;
+
+NETWORK
+TITLE =Call Digital Input: ElDPFault
+
+      ON    #Ma.Par.ParDP; 
+      ON    #DFxx.Out.DPFault; 
+      =     #ElDPFault.InpTrue; 
+
+      CALL #ElDPFault ;
+
+NETWORK
+TITLE =State
+//-Relais contro:
+// State:
+// -Idle
+// -Startup
+// -Operation
+// -Shutdown
+//
+      U     #ElRemote.StFault; 
+      O     #ElRunning.StFault; 
+      O     #ElSumFault.StFault; 
+      O     #ElFireAlarm.StFault; 
+      O     #ElPressStart.StFault; 
+      O     #ElDischargerRunning.StFault; 
+      O     #ElDPFault.StFault; 
+      =     #tmpFaultSum; 
+
+//=================================
+//State StFault
+//=================================
+      U     #tmpFaultSum; 
+      =     #Ma.StFault; 
+//=================================
+//State StIdle
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     0; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      O(    ; 
+      ON    #Ma.InpLL; 
+      ON    #Ma.InDischargerRunning; 
+      ON    #ElPressStart.StStarted; 
+      ON    #ElRemote.InpTrue; 
+      UN    #ElRunning.InpTrue; 
+      UN    #Ma.Par.ParDP; 
+      )     ; 
+      =     #Ma.StIdle; 
+//=================================
+//State StStartup
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     1; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      O(    ; 
+      UN    #Ma.StIdle; 
+      UN    #ElRunning.InpTrue; 
+      UN    #Ma.StFault; 
+      UN    #Ma.Par.ParDP; 
+      )     ; 
+      =     #Ma.StStartup; 
+//=================================
+//State StReady
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     2; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StReady; 
+//=================================
+//State StFeedStartup
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     3; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      =     #Ma.StFeedStartup; 
+//=================================
+//State StOperation
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     4; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      O(    ; 
+      UN    #Ma.Par.ParDP; 
+      U     #ElRunning.InpTrue; 
+      UN    #Ma.StIdle; 
+      UN    #Ma.StStartup; 
+      UN    #Ma.StFault; 
+      )     ; 
+      =     #Ma.StOperation; 
+//=================================
+//State StShutdown
+//=================================
+      L     #DFxx.OutA101Ac.State; 
+      L     5; 
+      ==I   ; 
+      U     #Ma.Par.ParDP; 
+      UN    #tmpFaultSum; 
+      O(    ; 
+      UN    #Ma.Par.ParDP; 
+      UN    #Ma.StIdle; 
+      UN    #Ma.StStartup; 
+      UN    #Ma.StFault; 
+      UN    #Ma.StOperation; 
+      )     ; 
+      =     #Ma.StShutdown; 
+
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdResetHorn; 
+NETWORK
+TITLE =Digital outputs Lamp
+//-----------------------------
+      U     #ElRunning.InpTrue; 
+      =     #Ma.OutpLampRunning; 
+//-----------------------------
+      UN    #ElSumFault.InpTrue; 
+      =     #Ma.OutpLampFault; 
+//-----------------------------
+      UN    #ElFireAlarm.InpTrue; 
+      =     #Ma.OutpLampFireAlarm; 
+
+NETWORK
+TITLE =State Code
+// Same as motor
+      U     #Ma.StIdle; 
+      L     1; //  StCode 1=StIdle
+      SPB   Code; 
+      U     #Ma.StStartup; 
+      L     2; //  StCode 2=StStartup
+      SPB   Code; 
+      U     #Ma.StReady; 
+      L     3; //  StCode 3=StReady
+      SPB   Code; 
+      U     #Ma.StFeedStartup; 
+      L     4; //  StCode 4=StFeedStartup
+      SPB   Code; 
+      U     #Ma.StOperation; 
+      L     5; //  StCode 5=StOperation
+      SPB   Code; 
+      U     #Ma.StShutdown; 
+      L     6; //  StCode 6=StShutdown
+      SPB   Code; 
+      L     32; // StCode=Fault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    FC     2; //Set change bit
+
+END_FUNCTION_BLOCK
+

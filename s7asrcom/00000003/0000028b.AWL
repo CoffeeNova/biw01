@@ -1,0 +1,54 @@
+	DATA_BLOCK DB897
+	TITLE =Section parameter DB : STEEPING ROW 3 (ST17-24)
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section parameter : STEEPING ROW 3 (ST17-24)
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB897.1.0 K.Renz              CSB41                       30.Sep.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	  STRUCT 	
+	   SectionStatus : WORD ;	//Sektionszustand [1=Beladen; 2=Prozess aktiv; 3=Entladen; 4=reinigen]
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   Spare6 : WORD ;	
+	   Spare8 : WORD ;	
+	   Par   : "SSA_Steep_Par";	
+	   Cmd    : "SSA_Steep_Cmd";
+	   AnalogValues : SSA_Steep_Analog;
+	   ActTimeStepProcess : SSA_MH_StepTime;
+	   Processtime : SSA_MH_ProcessTime;
+	   Spare980 : ARRAY  [980 .. 1499 ] OF BYTE ;	
+	   RecipeHeader : SSA_Steep_Recipe_Header;
+	   StepAct: SSA_Steep_Step;
+	   tmpStepPrev: SSA_Steep_Step;
+	  END_STRUCT ;	
+	BEGIN
+	END_DATA_BLOCK

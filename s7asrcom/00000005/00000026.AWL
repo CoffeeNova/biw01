@@ -1,0 +1,187 @@
+ORGANIZATION_BLOCK "PLC_StUpRestart"
+TITLE =Startup program on restart
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      PROJECT
+//
+//TITLE:        Startup program on restart
+//                 After voltage returned
+//              Anlaufprogramm  bei Wiederanlauf
+//                 Nach Spannungswiederkehr
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//Pxx_OB101.3.0 A.Egli              CT3                               15-Jul-2004
+//              The following lines are moved to OB1
+//                R     "PLC_SystemDB".Startup.CmdRestartMan
+//                R     "PLC_SystemDB".Startup.CmdRestartAuto
+//Pxx_OB101.2.0 A.Egli              CT3                               15-Jul-2004
+//              Log Message
+//Pxx_OB101.1.0 Ph. Engler          MU664                             05-Jan-2000
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : PE
+FAMILY : ASW
+NAME : StUpRest
+VERSION : 3.0
+
+
+VAR_TEMP
+  OB101_EV_CLASS : BYTE ;	//16#13, Event class 1, Entering event state, Event logged in diagnostic buffer
+  OB101_STRTUP : BYTE ;	//16#81/82/83/84 Method of startup
+  OB101_PRIORITY : BYTE ;	//27 (Priority of 1 is lowest)
+  OB101_OB_NUMBR : BYTE ;	//101 (Organization block 101, OB101)
+  OB101_RESERVED_1 : BYTE ;	//Reserved for system
+  OB101_RESERVED_2 : BYTE ;	//Reserved for system
+  OB101_STOP : WORD ;	//Event that caused CPU to stop (16#4xxx)
+  OB101_STRT_INFO : DWORD ;	//Information on how system started
+  OB101_DATE_TIME : DATE_AND_TIME ;	//Date and time OB101 started
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	// 
+  tmpDate : WORD ;	
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Create startup flags
+
+      L     #OB101_STRTUP; 
+      L     B#16#83; 
+      ==I   ; 
+      S     "PLC_SystemDB".Startup.CmdRestartMan; 
+
+      L     #OB101_STRTUP; 
+      L     B#16#84; 
+      ==I   ; 
+      S     "PLC_SystemDB".Startup.CmdRestartAuto; 
+NETWORK
+TITLE =Startup counters
+
+      UN    "PLC_SystemDB".Startup.CmdRestartMan; 
+      SPB   n2n1; 
+      L     "PLC_SystemDB".StartupCounter.RestartMan; 
+      +     1; 
+      T     "PLC_SystemDB".StartupCounter.RestartMan; 
+      SPA   n2e; 
+n2n1: UN    "PLC_SystemDB".Startup.CmdRestartAuto; 
+      SPB   n2e; 
+      L     "PLC_SystemDB".StartupCounter.RestartAuto; 
+      +     1; 
+      T     "PLC_SystemDB".StartupCounter.RestartAuto; 
+n2e:  NOP   0; 
+NETWORK
+TITLE =General plc startup functions
+
+      CALL "SYS_GeneralPLCStartup" ;
+
+NETWORK
+TITLE =Special plant startup functions
+
+
+
+NETWORK
+TITLE =Reset startup flags
+
+//[3.0]      SET   
+//[3.0]      R     "PLC_SystemDB".Startup.CmdRestartMan
+//[3.0]      R     "PLC_SystemDB".Startup.CmdRestartAuto
+NETWORK
+TITLE =Log Message: Header
+
+//Header
+      L     3; // Operator
+      SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//Para1: Object Number
+//--System Message---
+      L     #OB101_OB_NUMBR; 
+      T     #tmpObjNo; 
+
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB101_STRTUP; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB101_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB101_OB_NUMBR; 
+      T     #tmpPara3; 
+
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB101_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+
+NETWORK
+TITLE =Log Message: Entry
+
+//Entre Log Message
+
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / STRTUP
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := W#16#0,//Para4:
+           Para5                    := W#16#0,//Para5: 
+           Para6                    := W#16#0,//Para6: 
+           Para7                    := W#16#0,//Para7:
+           Para8                    := W#16#0,//Para8: 
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

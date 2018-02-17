@@ -1,0 +1,305 @@
+FUNCTION "SYS_DirectCtrl" : VOID
+TITLE =PCControl
+//COPYRIGHT:   (C) 1994 BY  BUHLER LTD
+//                          CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:     GCS7
+//
+//TITLE:       FC3  Help Function Diagnositc interface
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:       AUTOR:              DEPT:                           DATE:
+//
+//FC3.1.3      A.Egli              CT3                            13-Jun-2002
+//              FCDone: Reset VarAnswerTime for PC 1 to 4
+//FC3.1.2      A.Egli              CT3                            22-Mai-2002
+//              FCDone: Reset VarAnswerTime
+//FC3.1.1      A.Egli              CT3                             5-Feb-2002
+//              Field DB3.GC.Revision: Is set to -1 in methode FcExamine
+//FC3.1A       A.Egli              AEE61                           5-Jun-96
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:     MANUAL : ....... .DOC
+//             
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : PCD_Main
+VERSION : 1.3
+
+
+VAR_TEMP
+  Code : INT ;	
+  Len : INT ;	
+  tmpByteNr : INT ;	
+  tmpFault : BOOL ;	
+  tmpBytePara : INT ;	
+  tmpDBSource : INT ;	
+  BitNr : INT ;	
+  tmpErrCode : INT ;	
+  tmpDBLen : WORD ;	
+  tmpWrite : BOOL ;	
+  tmpLen : INT ;	
+  tmpLenClear : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Save
+
+      T     #Code; // Code
+
+NETWORK
+TITLE =FcControl: Code=0
+//Control is interface to long locked (ParAnswerTime)
+//
+      L     #Code; 
+      L     0; 
+      <>I   ; 
+      SPB   F1; 
+      L     DB3.DBW   42; //PC.Hsk
+      <>I   ; 
+      SPB   X2; 
+      T     "SYS_DirectCtrlDB".VarAnswerTime; //VarAnswerTime
+      BEA   ; 
+//== Test Read DB
+X2:   L     860; // ObjectType=DB
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //ObjectType
+      <>I   ; 
+      SPB   X2c; 
+//- Test if DB existis
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := "SYS_DirectCtrlDB".PC.ObjectNo,
+           ByteSource               := 0,
+           DBDest                   := 3,
+           ByteDest                 := 20,
+           NoOfByte                 := 1,
+           Fault                    := #tmpFault);
+      U     #tmpFault; 
+      SPB   aX3; 
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; 
+      T     #tmpDBSource; 
+      AUF   DI [#tmpDBSource]; 
+      L     "SYS_DirectCtrlDB".PC.Value[2]; //Len in Byte
+      T     #tmpLen; 
+      L     "SYS_DirectCtrlDB".PC.Value[1]; //FirstByte
+      T     #tmpByteNr; 
+      L     "SYS_DirectCtrlDB".PC.Value[2]; 
+      +I    ; 
+      L     DILG; 
+      <=I   ; 
+      SPB   aX3a; 
+      L     "SYS_DirectCtrlDB".PC.Value[1]; //First Byte
+      -I    ; 
+      T     #tmpLen; 
+      T     "SYS_DirectCtrlDB".PC.Value[2]; //Len in Byte
+aX3a: UN    "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; 
+      SPB   exam; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 3,
+           ByteSource               := 62,
+           DBDest                   := "SYS_DirectCtrlDB".PC.ObjectNo,
+           ByteDest                 := #tmpByteNr,
+           NoOfByte                 := #tmpLen,
+           Fault                    := #tmpFault);
+      SPA   ini; 
+exam: L     P#DBX 62.0; 
+      T     #tmpLenClear; 
+loCr: L     0; 
+      T     DBD [#tmpLenClear]; 
+      L     #tmpLenClear; 
+      L     P#4.0; 
+      +D    ; 
+      T     #tmpLenClear; 
+      L     P#DBX 252.0; 
+      <=D   ; 
+      SPB   loCr; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := "SYS_DirectCtrlDB".PC.ObjectNo,
+           ByteSource               := #tmpByteNr,
+           DBDest                   := 3,
+           ByteDest                 := 62,
+           NoOfByte                 := #tmpLen,
+           Fault                    := #tmpFault);
+ini:  SET   ; 
+      S     "SYS_DirectCtrlDB".ChangeBit.CBit1; 
+      L     0; 
+      T     DB3.DBW   42; 
+      T     "SYS_DirectCtrlDB".PC.ErrCode; 
+      T     "SYS_DirectCtrlDB".PC.ErrObj; 
+      T     "SYS_DirectCtrlDB".VarAnswerTime; 
+      BEA   ; //CBitWrite
+X2c:  L     0; 
+      L     "SYS_DirectCtrlDB".ParAnswerTime; //Hsk
+      <I    ; //->PC.ErrCode
+      SPB   aOK2; //->PC.ErrCode
+      L     1; //--> VarAnswerTime
+aOK2: L     "SYS_DirectCtrlDB".VarAnswerTime; 
+//===================================
+      <I    ; 
+      SPB   aX3; //ParAnswerTime
+      +     1; 
+      T     "SYS_DirectCtrlDB".VarAnswerTime; 
+      BEA   ; //Init: ParAnswerTime
+aX3:  L     0; //VarAnswerTime
+      T     DB3.DBW    9; 
+      L     21; 
+      T     "SYS_DirectCtrlDB".PC.ErrCode; 
+      L     0; //--> VarAnswerTime
+      T     DB3.DBW   42; //=== error ===================
+      S     "SYS_DirectCtrlDB".ChangeBit.CBit1; 
+      BEA   ; //--> VarAnswerTime
+NETWORK
+TITLE =FcExamine : Code=1
+//Copy datas from object to PcControl DB
+//
+//Input: InDynAddr: 1st byte of dynamic data
+//       InDynLen : length of dynamic data in byte
+//       InParaAddr: 1st byte of parameter
+//       InParaLen : length of parameter in byte
+//
+F1:   L     1; 
+      L     #Code; 
+      <>I   ; 
+      SPB   F2; 
+//--- Copy Dynamic Datas
+      L     DINO; 
+      T     #tmpDBSource; 
+      T     "SYS_DirectCtrlDB".GC.InDBNr; 
+      L     DW#16#FFFFF; 
+      L     "SYS_DirectCtrlDB".GC.InDynAddr; //GC.InDynAddr
+      UD    ; 
+      SRD   3; 
+      T     #tmpByteNr; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := #tmpDBSource,
+           ByteSource               := #tmpByteNr,
+           DBDest                   := 3,//DB3
+           ByteDest                 := 58,
+           NoOfByte                 := "SYS_DirectCtrlDB".GC.InDynLen,//GC.InDynLen
+           Fault                    := #tmpFault);
+//--- Copy Parameters
+      L     DW#16#FFFFFF; 
+      L     "SYS_DirectCtrlDB".GC.InParaAddr; //GC.InParAddr
+      UD    ; 
+      SRD   3; 
+      T     #tmpByteNr; 
+      L     "SYS_DirectCtrlDB".GC.InDynLen; //GC.InDynLen
+      +     58; 
+      T     #tmpBytePara; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := #tmpDBSource,
+           ByteSource               := #tmpByteNr,
+           DBDest                   := 3,//DB3
+           ByteDest                 := #tmpBytePara,
+           NoOfByte                 := "SYS_DirectCtrlDB".GC.InParaLen,//GC.InParLen
+           Fault                    := #tmpFault);
+      L     -1; 
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+      SPA   Done; 
+NETWORK
+TITLE =FcDone
+
+F2:   L     2; 
+      L     #Code; 
+      <>I   ; 
+      SPB   F5; 
+Done: L     DB3.DBW   42; //Ksk
+      L     0; 
+      ==I   ; 
+      BEB   ; 
+      S     "SYS_DirectCtrlDB".ChangeBit.CBit1; //CBitWrite
+      T     DB3.DBW   42; //Hsk
+      T     "SYS_DirectCtrlDB".PC.ErrCode; //->PC.ErrCode
+      T     "SYS_DirectCtrlDB".PC.ErrObj; //->PC.ErrCode
+      T     "SYS_DirectCtrlDB".VarAnswerTime; //[1.2]
+      BEA   ; 
+NETWORK
+TITLE =FcControlPC1to4 : Code 5
+//DB by call = Actual Control DB of PC
+//
+F5:   L     5; 
+      L     #Code; 
+      <>I   ; 
+      BEB   ; 
+      TDB   ; //Instanz DB = Actual Control DB
+      L     DIW   42; //CtrDB.PC.Hsk
+      L     0; 
+      <>I   ; 
+      SPB   dX2; 
+      T     DIW   18; //CtrDB.VarAnswerTime
+      SPA   dOK; 
+dX2:  L     0; 
+      L     DIW   14; //CtrDB.ParAnswerTime
+      <I    ; 
+      SPB   dOK2; 
+      L     1; //Init:ParAnswerTime
+dOK2: L     DIW   18; //CtrDB.VarAnswerTime
+      <I    ; 
+      SPB   dERR; 
+      +     1; 
+      T     DIW   18; // --> CtrDB.VarAnswerTime
+      SPA   dOK; // === error ===================
+dERR: L     0; // 
+      T     DIW   18; // --> CtrDB.VarAnswerTime
+      L     22; // Illegal object
+      T     DIW   46; // ->err_code
+      L     0; //  
+      T     DIW   42; // ->CtrDB.Hsk
+// === Handshake with DB3 ======
+dOK:  L     DIW   42; // CtrDB.Hsk
+      L     0; // 
+      ==I   ; // 
+      SPB   dTST; // 
+      L     DB3.DBW   42; // DB3.Hsk
+      L     0; // 
+      <>I   ; // 
+      BEB   ; // -->locked
+      U     "SYS_DirectCtrlDB".ChangeBit.CBit1; // DB3.CBit1
+      SPB   dTST; 
+//=== Move data to DB3 ===============
+      L     DINO; 
+      T     #tmpDBSource; 
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := #tmpDBSource,
+           ByteSource               := 42,
+           DBDest                   := 3,// DB3
+           ByteDest                 := 42,
+           NoOfByte                 := 216,
+           Fault                    := #tmpFault);//GC.InDynLen
+      L     DINO; 
+      T     "SYS_DirectCtrlDB".VarActControlDB; //VarActControlDB
+      BEA   ; 
+//=== Read data back from DB 3 =====
+dTST: L     DINO; 
+      L     "SYS_DirectCtrlDB".VarActControlDB; //DB3.VarActControlDB
+      <>I   ; 
+      U(    ; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      ON    "SYS_DirectCtrlDB".ChangeBit.CBit1; //DB3.CBit1
+      BEB   ; 
+      L     DINO; 
+      T     #tmpDBSource; 
+      CALL "SYS_Copy_DBtoDB" (//Copy back include handshake
+           DBSource                 := 3,//DB3
+           ByteSource               := 20,
+           DBDest                   := #tmpDBSource,//DB3
+           ByteDest                 := 20,
+           NoOfByte                 := 238,
+           Fault                    := #tmpFault);
+      L     0; //[1.3]
+      T     DIW   18; //CtrDB.VarAnswerTime       [1.3]
+      U     "SYS_DirectCtrlDB".ChangeBit.CBit1; //DB3.CBit1
+      R     "SYS_DirectCtrlDB".ChangeBit.CBit1; //DB3.CBit1
+      S     DIX   41.0; //CtrDB.CBit1
+      BEA   ; 
+END_FUNCTION
+

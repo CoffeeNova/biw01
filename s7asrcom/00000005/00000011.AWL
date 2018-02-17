@@ -1,0 +1,46 @@
+TYPE "GCS7_FB9_Communication"
+VERSION : 0.1
+
+
+  STRUCT 	
+   StStopped : BOOL ;	//to virtual group
+   StStarting : BOOL ;	//to virtual group
+   StStarted : BOOL ;	//to virtual group
+   StStopping : BOOL ;	//to virtual group
+   StFault : BOOL ;	//to virtual group
+   OutWarning : BOOL ;	//to virtual group
+   InManual : BOOL ;	//to virtual group
+   InHWStop : BOOL ;	//to virtual group
+   InDPFault : BOOL ;	//to virtual group
+   InLoaded : BOOL ;	//to virtual group
+   InAutoStart : BOOL ;	//to virtual group
+   InStartWarning : BOOL ;	//to virtual group
+   SelectedForPLC7 : BOOL ;	//to virtual group
+   SelectedForPLC8 : BOOL ;	//to virtual group
+   SelectedForPLC1 : BOOL ;	//to virtual group
+   SelectedForPLC2 : BOOL ;	//to virtual group
+   SelectedForPLC3 : BOOL ;	//to virtual group
+   SelectedForPLC4 : BOOL ;	//to virtual group
+   MultipleUsed : BOOL ;	//to virtual group
+   SelectedForPLC5 : BOOL ;	//to virtual group
+   SelectedForPLC6 : BOOL ;	//to virtual group
+   StCode : INT ;	//to virtual group
+   InEnableGr : BOOL ;	//to real group
+   SelectedForPLC9 : BOOL ;	//to real group
+   CmdNext : BOOL ;	//to real group
+   CmdFaultReset : BOOL ;	//to real group
+   InOccupied : BOOL ;	//to real group
+   CmdManualOff : BOOL ;	//to real group
+   CmdNewJob : BOOL ;	//to real group
+   CmdNewValue : BOOL ;	//to real group
+   CmdRestartIdling : BOOL ;	//to real group
+   CmdContinue : BOOL ;	//to real group
+   SelectedForPlcX : BOOL ;	//to real group : Is selected for this PLC
+   ASW33 : BOOL ;	//to real group
+   ASW34 : BOOL ;	//to real group
+   ASW35 : BOOL ;	//to real group
+   InClose : BOOL ;	//to real group
+   InOpen : BOOL ;	//to real group
+  END_STRUCT ;	
+END_TYPE
+

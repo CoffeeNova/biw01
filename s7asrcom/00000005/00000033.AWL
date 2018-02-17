@@ -1,0 +1,365 @@
+FUNCTION FC 69 : VOID
+TITLE =Scale Control: Subroutines
+//COPYRIGHT:    (C) 1994 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        SCALE CONTROL: SOUBROUTINS
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC69.2.0      A.Egli              CT3                           07-Okt-2002
+//              New release with 64 Scales
+//FC69.1.3      A.Egli              CT3                           06-Nov-01
+//              Test Refill Level: Set bit InLevelMiddle,InPreselected
+//
+//FC69.1.2      A.Egli              AEE61                         21-Sep-98
+//              Fault search recipe place
+//
+//FC69.1.1      A.Egli              AEE61                         25-Sep-96
+//              Convert from S5 Version 1F
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : SCALEMAN
+//
+//RESTRICTIONS: only for 32-Bit CWA
+//
+//-------------------------------------------------------------------------
+//
+//
+//FC-PARAMETER:
+//------------
+//  CODE: CODE OF CALLED FUNCTION
+//        0  : Subroutine SearchFreeRecipePlace
+//        2  : Subroutine Test Scale Recipe
+//        3  : ScaleDB
+//        5  : Test Level
+//
+//
+AUTHOR : EA
+FAMILY : GCSUL
+NAME : SCC_SUB
+VERSION : 2.0
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+END_VAR
+VAR_TEMP
+  tmpScaleDB : INT ;	
+  tmpScaleNr : DINT ;	
+  tmpBitAdr : DINT ;	
+  tmpRecipePlace : INT ;	
+  tmpBitNr : INT ;	
+  tmpUsedRecipe : DINT ;	
+  tmpNrOfIngr : INT ;	
+  tmpNrOfBitIngr : INT ;	
+  tmpNrOfBin : INT ;	
+  tmpNrOfBitBin : INT ;	
+  tmpCntBin : INT ;	
+  tmpCntIngr : INT ;	
+  tmpDBRecipe : INT ;	
+  tmpDBBin : INT ;	
+  tmpAddrIngr : DINT ;	
+  tmpAddrBin : DINT ;	
+  tmpBinControlDB : INT ;	
+  tmpBinNr : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+
+
+
+
+NETWORK
+TITLE =Subroutine ScaleDB: Code3
+//ACTUAL DB BY CALL: not used
+//
+//Input:
+//  DB8.DBW20 : ScaleNr
+//Output:
+//  DB8.DBW22 : ScaleDB
+//
+//======================================
+//
+//
+      L     #CODE; 
+      L     3; 
+      <>I   ; 
+      SPB   rEND; 
+      L     DB8.DBW   20; //Inp.ScaleNr
+      SLD   4; 
+      LAR1  ; //Bit-Nr.Pointer 
+      L     DBW [AR1,P#40.0]; 
+      T     DB8.DBW   22; //-->Out.ScaleDB
+      BEA   ; 
+rEND: NOP   0; 
+NETWORK
+TITLE = Subroutine Search free recipe: Code 0
+//ACTUAL DB BY CALL: Line-DB
+//
+//Input:
+//  L_DB.DBW20: RecipePlace
+//Output:
+//  L_DB.DBW20: RecipePlace
+//
+      L     #CODE; 
+      L     0; 
+      <>I   ; 
+      SPB   aEND; 
+      L     DBW   20; //  input.recipe_place
+      T     #tmpRecipePlace; 
+      L     0; 
+      T     #tmpUsedRecipe; 
+      AUF   DI [DBW 4]; // >>>CALL SECTION-DB DB["LineDB".Para.ParFirstSecDB]
+aLOP: UN    DIX   45.7; // "SecDB".ToASW.InfDataReady
+      ON    DIX  200.7; // "SecDB".JobAc.StaBatch.StaScaleRecipeValid
+      SPB   aNXT; // 
+      UN    DIX   44.7; // "SecDB".ToASW.InfSameJobLineDB
+      SPB   aT2; // 
+      L     DIW  230; // "SecDB".JobAc.RecipePlace
+      T     #tmpRecipePlace; 
+aT2:  L     DIW  230; // "SecDB".JobAc.RecipePlace
+      L     DBW   10; // "LineDB".Para.ParFirstRecipePlace
+      -I    ; // --> Bit-Nr.
+      L     2#1; 
+      SLD   ; 
+      L     #tmpUsedRecipe; 
+      OD    ; 
+      T     #tmpUsedRecipe; 
+aNXT: L     0; 
+      L     DIW    8; // "SecDB".Para.ParNextSecDB
+      ==I   ; 
+      SPB   aFID; 
+      AUF   DI [DIW 8]; // >>> CALL SECTION-DB  "SecDB".Para.ParNextSecDB]
+      SPA   aLOP; 
+// (--- End LOOP SECTION ------)
+aFID: L     #tmpRecipePlace; 
+      T     DBW   20; // InputRecipePlace
+      L     DBW   10; // "LineDB".Para.ParFirstRecipePlace
+      <I    ; // 
+      SPB   aNEW; 
+      -I    ; // 
+      T     #tmpBitNr; // -->bit-number in mask
+      L     DBW    8; //  "LineDB".Para.ParNoOfRecipePlace
+      >I    ; // 
+      SPB   aNEW; // 
+      L     #tmpBitNr; 
+      L     #tmpUsedRecipe; 
+      SSD   ; 
+      SSD   1; //   )
+      SPP   aNEW; //   )->1=used
+      BEB   ; //   )
+//----- Start loop find -----
+aNEW: L     0; // 
+aLO2: T     #tmpRecipePlace; 
+      L     DBW    8; // "LineDB".Para.ParNoOfRecipePlace
+      >=I   ; // 
+      SPB   aERO; // ->no free recipe_place
+      L     #tmpRecipePlace; // RelRecipePlace
+      L     #tmpUsedRecipe; 
+      SSD   ; 
+      SSD   1; //   )
+      SPP   aNX2; //   )->1=used
+      L     #tmpRecipePlace; 
+      L     DBW   10; // "LineDB".Para.ParFirstRecipePlace
+      +I    ; // 
+      T     DBW   20; // ->output.RecipePlace
+      BEA   ; 
+aNX2: L     #tmpRecipePlace; 
+      +     1; // 
+      SPA   aLO2; // 
+//---- End Loop find --------
+aERO: L     -1; // error_no free_recipe_place 
+      T     DBW   20; 
+      BEA   ; 
+aEND: NOP   0; 
+NETWORK
+TITLE = Subroutine TestScaleRecipe Code 2
+//ACTUAL DB BY CALL: not used
+//Input:
+//  DB8.DBW20   : ScaleDB
+//  DB8.DBW22   : DB-Number source
+//  DB8.DBW24   : DW-Number source
+//  DB8.DBX27.0 : SingleIngrTest
+//
+//Output:
+//  DB8.DW26  : err_bin
+//  DB8.DBW28 : err_code
+//  DB8.DBX39.0: err_fault
+//
+//
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      SPB   bEND; 
+      R     DB8.DBX   39.0; // ->output.fault
+      L     DB8.DBW   22; // DB Source 
+      T     #tmpDBRecipe; 
+      L     DB8.DBW   24; // ByteSource
+      SLD   3; 
+      T     #tmpAddrIngr; 
+      L     DB8.DBW   20; // ScaleDB
+      T     #tmpScaleDB; 
+      AUF   DI [#tmpScaleDB]; // >>> Call ScaleDB
+      L     DIW  108; // SCDB.ParDBBinData
+      T     #tmpDBBin; 
+      L     DIW  110; // SCDB.ParDWNrBinData
+      SLD   3; 
+      T     #tmpAddrBin; 
+      L     DIB  105; // ParNrOfIngrPerRecipe
+      T     #tmpNrOfIngr; 
+      L     DIW  106; // SCDB.ParNrOfByPerIngr
+      SLD   3; 
+      T     #tmpNrOfBitIngr; 
+      L     DIB  113; // ParNrOfBin
+      T     #tmpNrOfBin; 
+      L     DIW  114; // SCDB.ParNrOfByPerBin
+      SLD   3; 
+      T     #tmpNrOfBitBin; 
+// --- Begin Loop ingredient ------
+      L     0; 
+bLOI: T     #tmpCntIngr; 
+      L     #tmpNrOfIngr; 
+      >=I   ; 
+      SPB   bOUT; 
+      AUF   DI [#tmpDBRecipe]; //  
+      L     DIW [#tmpAddrIngr]; // Ingr[n].bin_nr
+      T     #tmpBinNr; 
+      L     0; // 
+      ==I   ; // -->end of recipe
+      SPB   bOUT; // 
+      <=I   ; // Special bin
+      SPB   bNXI; // 
+      AUF   DI [#tmpDBBin]; 
+      LAR1  #tmpAddrBin; 
+// ---Begin loop bin -----------
+      L     0; 
+bLOB: T     #tmpCntBin; 
+      L     #tmpNrOfBin; 
+      >=I   ; // 
+      SPB   bER0; // => bin_not_found
+      L     DIW [AR1,P#0.0]; // BinDB.bin[n].bin_nr
+      L     #tmpBinNr; 
+      ==I   ; // 
+      SPB   bNXI; // -> next ingr.
+      L     #tmpNrOfBitBin; 
+      +AR1  ; 
+      L     #tmpCntBin; // -> var_bin_counter
+      +     1; // 
+      SPA   bLOB; // 
+//--- end loop bin ------------
+bNXI: L     #tmpAddrIngr; 
+      L     #tmpNrOfBitIngr; 
+      +D    ; // (increment read address)
+      T     #tmpAddrIngr; 
+      U     DB8.DBX   27.0; // test single ingr.
+      SPB   bOUT; // ende
+      L     #tmpCntIngr; 
+      +     1; 
+      SPA   bLOI; 
+// --- end loop ingredient------
+bER0: L     30; // code: err_ingr_not_found
+      SPA   bERO; 
+      L     44; // code: err_cfg_fault_bin_list
+bERO: T     DB8.DBW   28; // ErrorCode
+      S     DB8.DBX   39.0; // --> output.fault
+      L     #tmpBinNr; 
+      T     DB8.DBW   26; // var_bin_nr
+      BEA   ; 
+bOUT: L     0; 
+      T     DB8.DBW   28; // --> error_code
+      T     DB8.DBW   26; // var_bin_nr
+      BEA   ; 
+bEND: NOP   0; 
+NETWORK
+TITLE = Subroutine TestLevel: Code 5
+//ACTUAL DB BY CALL: not used
+//Input:
+//  DB8.DBW22  : tmpVar[2]  :=RecipePlace
+//  DB8.DBW36  : tmpVar[9]  :=Scale-DB
+//Output:
+//  DB8.DBW26  : tmpVar[4]  :=err_bin
+//  DB8.DBX39.0: tmpFault[8]:=OutFault
+//               1= BinNotFound 
+//  DB8.DBW24  : tmpVar[3]  :=par_DB-Nr_BinControl
+//
+      L     #CODE; // )
+      L     5; // )  CODE= KF+5
+      <>I   ; // )
+      SPB   cEND; 
+      R     DB8.DBX   39.0; // )->output.fault
+      AUF   DI [DBW 36]; // >>> Call ScaleDB
+      L     DIW   98; // ParDBNrRecipe
+      T     #tmpDBRecipe; 
+      L     DIW  104; // ParNrOfIngrPerRecipe
+      T     #tmpNrOfIngr; 
+      L     DIW  106; // SCDB.ParNrOfByPerIngr
+      SLD   3; 
+      T     #tmpNrOfBitIngr; 
+      L     DIW   32; // CWA.ParDBBinControl
+      T     DB8.DBW   24; // OutputFB69.VarDBBinControl
+      T     #tmpBinControlDB; 
+      L     0; // 
+      ==I   ; // 
+      SPB   cOUT; // -->NoDBBin-Control
+      L     DIW  104; // SCDB.par_NoOfIngrPerRecipe
+      L     DIW  106; // SCDB.par_NoOfByPerIngr
+      *I    ; // 
+      L     DB8.DBW   22; // Input.RecipeMemory
+      *I    ; // 
+      L     DIW  100; // ParDWNrFirstRecipe
+      +D    ; // 
+      SLD   3; 
+      T     #tmpAddrIngr; // -> Address recipe
+// --- Begin Loop ingredient ------
+      L     0; 
+cLOI: T     #tmpCntIngr; 
+      L     #tmpNrOfIngr; 
+      >=I   ; 
+      SPB   cOUT; 
+      AUF   DI [#tmpDBRecipe]; //  
+      L     0; // 
+      L     DIW [#tmpAddrIngr]; // Ingr[n].bin_nr
+      ==I   ; // End of recipe
+      SPB   cOUT; 
+      >=I   ; // Discharge scale
+      SPB   cNXI; 
+      AUF   DB [#tmpBinControlDB]; // >>>CALL DB-BinControl
+      T     DBW   20; // VarBinNr
+      CALL FC    67 (//   Methode ReadBin
+           CODE                     := 2);
+      U     DBX   39.0; // Bin.ErrBinNotFound
+      SPB   cNXI; 
+      S     DBX   25.1; // Bin.InfPreselected [1.3]
+      U     DBX   24.5; // Bin.InfLowLevel
+      S     DBX   24.6; // Bin.InfLevelMiddle [1.3]
+      L     DBW   20; // VarBinNr     [1.3]
+      UN    DBX   24.5; // Bin.InfLowLevel
+      O     DB8.DBX   39.0; // --> output.fault
+      SPB   cStr; // [1.3]
+      S     DB8.DBX   39.0; // --> output.fault
+      T     DB8.DBW   26; // Var_bin_nr   [1.3]
+cStr: AUF   DB [#tmpBinControlDB]; // >>>CALL DB-BinControl
+      CALL FC    67 (//   Methode StoreBin [1.3]
+           CODE                     := 3);
+cNXI: L     #tmpAddrIngr; // (increment read address)
+      L     #tmpNrOfBitIngr; 
+      +D    ; 
+      T     #tmpAddrIngr; 
+      L     #tmpCntIngr; 
+      +     1; 
+      SPA   cLOI; 
+// --- end loop ingredient------
+cOUT: BEA   ; 
+cEND: NOP   0; 
+END_FUNCTION
+

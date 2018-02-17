@@ -1,0 +1,806 @@
+FUNCTION "GCS7_ScaleCtrlMain" : VOID
+TITLE =ScCtr
+//COPYRIGHT:    (C) 1994 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        SCALE CONTROL: MAIN PROGRAM
+//
+//Revision: 10
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC68.3.0      A.Egli              CT3                           07-Okt-2002
+//              New release with 64 Scales
+//FC68.2.0      A.Egli              CT3                           12-Mar-2000
+//              Any offset in section DB: GCPROVB: Revision 2
+//              Test Refill Level: Set InfLevelMiddle if LLevel is uncovered
+//FC68.1.5      A.Egli              CT3                           12-Mar-2000
+//              Replace DBW120 with DBD120
+//FC68.1E       A.Egli              CT3                           11-Aug-99
+//              PC Direct Control: Check commands
+//              Release scale for dosing if scale not in recipe mode
+//FC68.1D       A.Egli              CT3                           13-Aug-98
+//              PC Direct Control DBB52 replace by DBD52
+//FC68.1C       A.Egli              CT3                           24-Jun-98
+//              Start only used scales
+//FC68.1B       A.Egli              AEE61                         16-Jan-98
+//              Update to S5 Version 2G
+//
+//FC68.1A       A.Egli              AEE61                         25-Sep-96
+//              Convert from S5 Version 2F
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : SCMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//FC-PARAMETER:
+//------------
+//  CODE: CODE DER AUSZUFUEHRENDEN FUNKTION    Format: D    examp. KF+ 1
+//        KF +0    : METHODE CONTROL-SECTION
+//        KF +1    : METHODE DECODER
+//        KF +2    : METHODE INIT DATA
+//        KF +7    : METHODE O_SCALE
+//        KF +8    : METHODE DIAGNOSE
+//        KF +12   : METHODE TestRefillLevel
+//
+//
+{ GCS90_Revision := '20' }
+AUTHOR : EA
+FAMILY : GCS7UL
+NAME : SCC_MAN
+VERSION : 3.0
+
+
+VAR_INPUT
+  CODE : INT ;	// CODE
+  Sec : "GCS7_UDT_ScaleControl";	
+END_VAR
+VAR_TEMP
+  ParScaleInSection : ARRAY  [1 .. 2 ] OF //Must be at LD0
+  DINT ;	
+  ToASW : STRUCT 	
+   spare0 : BOOL ;	
+   EsRefillLevel : BOOL ;	
+   CmdTestRefillDone : BOOL ;	
+   spare3 : BOOL ;	
+   spare4 : BOOL ;	
+   spare5 : BOOL ;	
+   spare6 : BOOL ;	
+   spare7 : BOOL ;	
+   InfActive : BOOL ;	
+   InfEmptying : BOOL ;	
+   CmdReady : BOOL ;	
+   CmdEmptied : BOOL ;	
+   InfFault : BOOL ;	
+  END_STRUCT ;	
+  ToSSW : STRUCT 	
+   InfEnableDosing : BOOL ;	
+   spare1 : BOOL ;	
+   spare2 : BOOL ;	
+   spare3 : BOOL ;	
+   spare4 : BOOL ;	
+   spare5 : BOOL ;	
+   spare6 : BOOL ;	
+   spare7 : BOOL ;	
+   CmdReset : BOOL ;	
+   CmdAbortBatch : BOOL ;	
+   CmdAcceptWt : BOOL ;	
+   CmdRetry : BOOL ;	
+  END_STRUCT ;	
+  CmdStartScales : ARRAY  [1 .. 2 ] OF //Must be at LD12
+  DINT ;	
+  InfActiveScales : ARRAY  [1 .. 2 ] OF //Must be at LD20
+  DINT ;	
+  InfEmptiedScales : ARRAY  [1 .. 2 ] OF //Must be at LD28
+  DINT ;	
+  tmpFinalyDischarge : ARRAY  [1 .. 2 ] OF //Must be at LD36
+  DINT ;	
+  tmpScaleUsed : ARRAY  [1 .. 2 ] OF //Must be at LD44
+  DINT ;	
+  tmpFault : BOOL ;	
+  tmpScaleDB : INT ;	
+  tmpScaleNr : DINT ;	
+  tmpScaleIdx : INT ;	
+  tmpLineNr : INT ;	
+  tmpScaleBit : DINT ;	
+  tmpLineDB : INT ;	
+  tmpRecipePlace : INT ;	
+  tmpOffsetRecipe : INT ;	
+  tmpRecipeLen : INT ;	
+  tmpRecipeDB : INT ;	
+  tmpRecipeAddrSCDB : INT ;	
+  tmpRecipeAddrL_DB : INT ;	
+  tmpScalePara : BOOL ;	
+  tmpBinPara : BOOL ;	
+  tmpDBSource : INT ;	
+  tmpDWSource : INT ;	
+  tmpDBDestination : INT ;	
+  tmpDWDestination : INT ;	
+  tmpLenCopy : INT ;	
+  tmpDBPointer : DINT ;	
+  tmpSecDB : INT ;	
+  tmpInstanzDB : INT ;	
+  tmpInstanzPointer : DINT ;	
+  tmpBinDB : INT ;	
+  tmpBinControlDB : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     P##Sec; 
+      LAR1  ; 
+      L     W [AR1,P#0.0]; 
+      T     #tmpInstanzDB; 
+      L     D [AR1,P#2.0]; 
+      T     #tmpInstanzPointer; 
+
+
+NETWORK
+TITLE = Methode Diagnose CODE 8
+//ACTUAL DB BY CALL: not used
+      L     #CODE; 
+      L     8; 
+      <>I   ; 
+      SPB   fEnd; 
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//Illegal function: This function is now part of the FC41
+//                  Remove call FC68.Code=8
+      CALL "SIEMENS_STP" ;
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+fEnd: NOP   0; 
+NETWORK
+TITLE = METHODE DECODER : Code 1
+//ACTUAL DB BY CALL: Line DB
+      L     #CODE; 
+      L     1; 
+      <>I   ; 
+      SPB   dEnd; 
+      UN    DBX  145.0; // "LineDB".JobWrite.Hsk.F_Define
+      UN    DBX  145.1; // "LineDB".JobWrite.Hsk.F_Execute
+      UN    DBX  145.2; // "LineDB".JobWrite.Hsk.F_Modify
+      BEB   ; 
+//--- Test object data for scale
+      U(    ; 
+      L     DBD  170; // "LineDB".JobNom.ScaleUsed[1..32]
+      L     DBD   12; // "LineDB".Para.ParScale[1..32]
+      UD    ; 
+      L     DBD  170; // "LineDB".JobNom.ScaleUsed[1..32]
+      <>D   ; 
+      )     ; 
+      U(    ; 
+      L     DBD  174; // "LineDB".JobNom.ScaleUsed[33..64]
+      L     DBD   16; // "LineDB".Para.ParScale[33..64]
+      UD    ; 
+      L     DBD  174; // "LineDB".JobNom.ScaleUsed[33..64]
+      <>D   ; 
+      )     ; 
+      SPB   dERs; // illigel scale
+      U(    ; 
+      L     DBD   12; // "LineDB".Para.ParScale[1..32]
+      L     DBD  146; //  "LineDB".JobWrite.ObjMask[1..32]
+      UD    ; //  
+      L     0; //  
+      ==D   ; //  
+      )     ; 
+      U(    ; 
+      L     DBD   16; // "LineDB".Para.ParScale[33..64]
+      L     DBD  150; // "LineDB".JobWrite.ObjMask [33..64]
+      UD    ; //  
+      L     0; //  
+      ==D   ; //  
+      )     ; 
+      BEB   ; // -->no scale_recipe ------------
+      L     DBNO; 
+      T     #tmpLineDB; 
+      L     2#1; // Mode=Copare with Job in L-DB
+      T     DBW   22; // "LineDB".VarTemp[2]= var_mode
+//--- SUBROUTINE SEARCH_SECTION ---------
+      CALL "GCS7_SecCtrlSub" (
+           CODE                     := 4);
+      L     0; 
+      L     DBW   22; //  "LineDB".VarTemp[2]  =OutSectionDB
+      ==I   ; 
+      SPB   dINI; 
+      T     #tmpSecDB; // )->Target SectionDB
+      AUF   DI [#tmpSecDB]; // >>>CALL Section_DB
+      L     DIW  230; // "SecDB".JobAc.RecipePlace
+      U     DIX  200.7; // "SecDB".JobAc.StaBatch.StaScaleRecipeValid
+      T     #tmpRecipePlace; 
+      SPB   dMOV; // 
+      T     DBW   20; // ->L_DB.VarStartRecipePlace
+      U     DBX  145.2; // "LineDB".JobWrite.Hsk.F_Modify
+      SPB   dINI; // 
+//----Search recipe place-------------- 
+//    SUBROUTINE SEARCH_RECIPE_PLAC
+      CALL "GCS7_ScaleCtrlSub" (
+           CODE                     := 0);
+      L     0; //  
+      L     DBW   20; //  L_DB.VarRecipePlace
+      >I    ; //  
+      SPB   dER3; //  
+//----End Search recipe place ------------- 
+      T     #tmpRecipePlace; 
+      AUF   DI [#tmpSecDB]; // >>>CALL section-DB
+      T     DIW  230; // ->"SecDB".JobAc.RecipePlace
+      SET   ; // 
+      S     DIX  200.7; // ->"SecDB".JobAc.StaBatch.StaScaleRecipeValid
+dMOV: UN    DBX  145.2; // "LineDB".JobWrite.Hsk.F_Modify 
+      SPB   dCOP; 
+//--- IF Modify: Test Scale dosing ---------- 
+      L     1; 
+dLPS: T     #tmpScaleNr; //  
+      +     -1; 
+      +AR1  ; 
+      UN    DBX [AR1,P#12.0]; // "LineDB".Para.ParScale[x]
+      ON    DBX [AR1,P#146.0]; // "LineDB".JobWrite.ObjMask[x]
+      SPB   dNXS; 
+      AUF   DI     8; 
+      L     #tmpScaleNr; 
+      T     DIW   20; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     DIW   22; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      L     DBNO; // L_DB.lineNr
+      AUF   DI [#tmpScaleDB]; 
+      L     DIW  266; // SCDB.lineNr
+      ==I   ; // 
+      U(    ; 
+      L     DBD  160; //  "LineDB".JobNom.JobNr
+      L     DID  258; // SCDB.job-number
+      ==D   ; // 
+      )     ; 
+      U     DIX   43.7; // SCDB.ScaleActive
+      SPB   dER2; // 
+dNXS: NOP   0; 
+      L     64; 
+      L     #tmpScaleNr; 
+      +     1; // )
+      >=I   ; // )
+      SPB   dLPS; 
+      SPA   dCOP; 
+//--- End Test Modify -------------------
+//=== Copy data to Scale DB =============
+dCOP: L     1; 
+dLop: T     #tmpScaleNr; 
+      +     -1; 
+      T     #tmpScaleIdx; 
+      LAR1  ; 
+      UN    DBX [AR1,P#12.0]; // "LineDB".Para.ParScale[x]
+      SPB   dNxt; 
+//----Line.Subroutine BlockAdr
+      L     #tmpScaleNr; 
+      T     DBW   20; //-> "LineDB".VarTemp[1]= InObjNr
+      CALL "GCS7_LineCtrlSub" (
+           CODE                     := 1);
+      L     DBW   22; // L_DB.VarDWNr
+      T     #tmpRecipeAddrL_DB; 
+      L     0; // 
+      ==I   ; // (not datablock for scale)
+      SPB   dNxt; 
+//----Soubroutine Recipe_pointer
+      AUF   DI     8; 
+      L     #tmpScaleNr; 
+      T     DIW   20; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     DIW   22; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      AUF   DI [#tmpScaleDB]; // >>> CALL Scale-DB
+      L     DIW  104; // REC .ParNrOfIngrPerRecipe
+      L     DIW  106; // SCDB.ParNrOfBytePerIngr
+      *I    ; // 
+      T     #tmpRecipeLen; 
+      L     #tmpRecipePlace; 
+      *I    ; // 
+      L     DIW  100; // REC.ParDwNrFirstRecipe
+      +I    ; // 
+      T     #tmpRecipeAddrSCDB; 
+      L     DIW   98; // REC.ParDBNrRecipe
+      T     #tmpRecipeDB; 
+// -------------------------------
+      AUF   DI     8; // >>> DB8
+      L     #tmpScaleDB; 
+      T     DIW   20; // --> DB8.ScaleDB
+      L     #tmpLineDB; 
+      T     DIW   22; // -->DB8.VarSourceDB
+      L     #tmpRecipeAddrL_DB; 
+      T     DIW   24; // -->DB8.VarDWSource
+//----Soubroutine Test_recipe---
+      SET   ; 
+      R     DIX   27.0; // -->DB8.TestSingleIngr.
+      CALL "GCS7_ScaleCtrlSub" (
+           CODE                     := 2);
+      U     DIX   39.0; // <-FB69.DB8.fault
+      SPBN  dOk; 
+      L     DIW   26; // <-FB69.DB8.error_bin
+      T     DBW  138; // -->"LineDB".JobRead.ErrElement
+      L     DIW   28; // <-FB69.DB8.error_code
+      SPA   dERO; 
+dOk:  CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := #tmpLineDB,
+           ByteSource               := #tmpRecipeAddrL_DB,
+           DBDest                   := #tmpRecipeDB,
+           ByteDest                 := #tmpRecipeAddrSCDB,
+           NoOfByte                 := #tmpRecipeLen,
+           Fault                    := #tmpFault);
+      U     #tmpFault; 
+      SPB   dER1; 
+dNxt: L     64; 
+      L     #tmpScaleNr; 
+      +     1; 
+      >=I   ; 
+      SPB   dLop; 
+// -- END LOOP SCALE -----------
+dINI: L     DBD   12; // "LineDB".Para.ParScale[1..32]
+      INVD  ; //  
+      L     DBD  146; // "LineDB".JobWrite.ObjMask[1..32]
+      UD    ; // 
+      T     DBD  146; // "LineDB".JobWrite.ObjMask[1..32]
+      L     DBD   16; // "LineDB".Para.ParScal[33..64]
+      INVD  ; // 
+      L     DBD  150; // "LineDB".JobWrite.ObjMask[33..64]
+      UD    ; // 
+      T     DBD  150; // "LineDB".JobWrite.ObjMask [33..64]
+      BEA   ; 
+//=== ErrCode ======================
+dERs: L     20; // err_code:illige objects
+      SPA   dERO; 
+dER3: L     40; // err_code:no_recipe_memory
+      SPA   dERO; 
+dER2: L     #tmpScaleNr; 
+      T     DBW   20; // L_DB.var_scale_nr
+      L     43; // err_code:no_read_recipe_mod
+      SPA   dERO; 
+dER1: L     42; // err_code:cfg_fault_scale
+dERO: T     DBW  140; //-> "LineDB".JobRead.ErrCode 
+      L     DBW   20; //    L_DB.Scale-Nr
+      T     DBW  142; //-> "LineDB".JobRead.ErrObject
+      BEA   ; 
+dEnd: NOP   0; 
+NETWORK
+TITLE = METHODE Init_Data: CODE:2
+//ACTUAL DB BY CALL: Section-DB
+//
+      L     #CODE; 
+      L     2; 
+      <>I   ; 
+      SPB   eEnd; 
+      LAR1  #tmpInstanzPointer; 
+      L     0; 
+      T     DBD [AR1,P#8.0]; // S_DB.ToASW/ToSSW
+      T     DBD [AR1,P#12.0]; // S_DB.CmdStartScales
+      T     DBD [AR1,P#20.0]; // S_DB.InfActiveScales[1]
+      T     DBD [AR1,P#24.0]; // S_DB.InfActiveScales[2]
+      T     DBD [AR1,P#28.0]; // S_DB.InfEmptiedScales[1]
+      T     DBD [AR1,P#32.0]; // S_DB.InfEmptiedScales[2]
+      BEA   ; 
+eEnd: NOP   0; 
+NETWORK
+TITLE = Copy to Stack: Code 0,12
+
+//--Copy to temporare memory
+      LAR1  #tmpInstanzPointer; 
+      L     DBD [AR1,P#0.0]; 
+      T     #ParScaleInSection[1]; 
+      L     DBD [AR1,P#4.0]; 
+      T     #ParScaleInSection[2]; 
+      L     DBD [AR1,P#8.0]; 
+      T     LD     8; //-->ToASW
+      L     DBD [AR1,P#12.0]; 
+      T     #CmdStartScales[1]; 
+      L     DBD [AR1,P#16.0]; 
+      T     #CmdStartScales[2]; 
+      L     DBD [AR1,P#20.0]; 
+      T     #InfActiveScales[1]; 
+      L     DBD [AR1,P#24.0]; 
+      T     #InfActiveScales[2]; 
+      L     DBD [AR1,P#28.0]; 
+      T     #InfEmptiedScales[1]; 
+      L     DBD [AR1,P#32.0]; 
+      T     #InfEmptiedScales[2]; 
+NETWORK
+TITLE = METHODE CONTROL SECTION: CODE  0
+//ACTUAL DB BY CALL: Section-DB
+      L     #CODE; 
+      L     0; 
+      <>I   ; 
+      SPB   aEND; 
+      U     #ToSSW.CmdRetry; 
+      R     #ToASW.EsRefillLevel; 
+//--Test active Scale -------- 
+      R     #ToASW.InfEmptying; 
+      R     #ToASW.InfFault; 
+      L     0; // )
+      T     #tmpFinalyDischarge[1]; 
+      T     #tmpFinalyDischarge[2]; 
+      T     DBD   32; // )   output total weigth registr.
+      AUF   DI [DBW 4]; // >>> "SecDB".Para.ParLineDB
+      L     DIW    2; // "LineDB".Para.ParLineNr
+      T     #tmpLineNr; 
+      L     1; 
+bLOP: T     #tmpScaleNr; 
+      +     -1; 
+      T     #tmpScaleBit; 
+      L     #tmpScaleNr; 
+      T     "GCS7_ScaleControlDB".VarTemp[1]; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     "GCS7_ScaleControlDB".VarTemp[2]; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      LAR1  #tmpScaleBit; 
+      AUF   DB [#tmpInstanzDB]; 
+      UN    L [AR1,P#0.0]; // ParScaleInSection[x]
+      SPB   bDon; 
+      AUF   DI [#tmpScaleDB]; // >>> CALL scale-DB
+      UN    DIX   42.5; // SCDB.outp_readyForDischarge
+      UN    DIX  232.1; // Handshake.SendResult
+      R     DIX   80.0; // --> SCDB.FlagRegistation
+      UN    DIX  249.0; //StaRecipeAc [1D]
+      U     DIX  253.0; //StaSingleIngrMode [1D]
+      S     DIX   54.2; // ->SCDB.cmd_EnableDosingSec [1D]
+      UN    DIX   55.0; // CmdStartRecipe
+      UN    DIX  249.0; // StaRecipeAc
+      SPB   bDon; 
+      L     DBD  160; // "SecDB".JobNom.JobNr
+      L     DID  258; // Scale.JobNumber
+      <>D   ; // 
+      SPB   bDon; 
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      L     DIW  264; // SCDB.BatchNr
+      <>I   ; // 
+      SPB   bDon; 
+      L     DIW  266; // SCDB.LineNr
+      L     #tmpLineNr; 
+      <>I   ; // 
+      SPB   bDon; 
+//--- Active Scales -----------------------
+      UN    DBX  119.3; // "SecDB".PCRead.Status.StaOnline
+      =     DIX   55.7; // ->SCDB.InpOffline
+      U     #ToSSW.CmdReset; 
+      S     DIX   59.6; // ->SCDB.cmd_reset
+      U     #ToSSW.CmdAbortBatch; 
+      S     DIX   58.1; // ->SCDB.abortBatch
+      U     #ToSSW.CmdAcceptWt; 
+      S     DIX   58.0; // ->SCDB.cmd_acceptWt
+      U     #ToSSW.CmdRetry; 
+      S     DIX   59.7; // ->SCDB.retry
+      U     #ToSSW.InfEnableDosing; 
+      =     DIX   54.2; // ->SCDB.cmd_EnableDosingSec
+      UN    DIX   42.5; // )   SCDB.outp_readyForDischarge
+      O     DIX   54.5; // )   SCDB.inp_closed
+      ON    DIX  251.2; // )   SCDB.sta_DischargeFinal
+      UN    DIX  232.1; // )   Handshake.SendResult
+      O     DIX   80.0; // )   SCDB.flag_registation
+      SPB   FLAG; // )
+      S     DIX   80.0; // --> SCDB.flag_registation
+      L     DIW   30; // )   par_NrOfDecPoint
+      L     0; // )
+      ==I   ; // )
+      L     1000; // )   units
+      SPB   REG; // )
+      L     DIW   30; // )   par_NrOfDecPoint
+      L     1; // )
+      ==I   ; // )
+      L     100; // )   units
+      SPB   REG; // )
+      L     DIW   30; // )   par_NrOfDecPoint
+      L     2; // )
+      ==I   ; // )
+      L     10; // )   units
+      SPB   REG; // )
+      L     1; // )   units
+      SPA   REG; 
+REG:  DTR   ; 
+      L     DID  278; // )   SCDB.TotalWtActual
+      DTR   ; // )
+      *R    ; // )
+      RND   ; 
+      L     DBD   32; // )   output total weigth
+      +D    ; // )
+      T     DBD   32; // --> output total weigth
+FLAG: U     DIX   42.5; // SCDB.outp_readyForDischarge
+      S     #ToASW.InfEmptying; 
+      U     DIX   43.4; // SCDB.InfFault
+      S     #ToASW.InfFault; 
+      LAR1  #tmpScaleBit; 
+      SET   ; 
+      S     L [AR1,P#20.0]; // InfActiveActive[x]
+      U     DIX  251.2; // SCDB.StaFinalDischarge
+      LAR1  #tmpScaleBit; 
+      S     L [AR1,P#36.0]; // Out.tmpFinalDischarge[x]
+      SPA   bNXT; 
+bDon: LAR1  #tmpScaleBit; 
+      U     L [AR1,P#20.0]; // InfActiveScale[x]
+      R     L [AR1,P#20.0]; // InfActiveScale[x]
+      S     L [AR1,P#28.0]; // InfEmptiedScale[x]
+bNXT: L     64; 
+      L     #tmpScaleNr; 
+      +     1; 
+      >I    ; 
+      SPB   bLOP; 
+//======End Test active Scale ========== 
+      U(    ; 
+      L     DBD  170; //"SecDB".JobNom.ScaleUsed[32..1]
+      L     #ParScaleInSection[1]; 
+      UD    ; 
+      T     #tmpScaleUsed[1]; 
+      L     #InfEmptiedScales[1]; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     DBD  174; //"SecDB".JobNom.ScaleUsed[64..33]
+      L     #ParScaleInSection[2]; 
+      UD    ; 
+      T     #tmpScaleUsed[2]; 
+      L     #InfEmptiedScales[2]; 
+      ==D   ; 
+      )     ; 
+      =     #ToASW.CmdEmptied; 
+
+      U(    ; 
+      L     #InfEmptiedScales[1]; 
+      L     #tmpFinalyDischarge[1]; 
+      OD    ; 
+      L     #tmpScaleUsed[1]; 
+      ==D   ; 
+      )     ; 
+      U(    ; 
+      L     #InfEmptiedScales[2]; 
+      L     #tmpFinalyDischarge[2]; 
+      OD    ; 
+      L     #tmpScaleUsed[2]; 
+      ==D   ; 
+      )     ; 
+      O     #ToASW.CmdEmptied; 
+      =     #ToASW.CmdReady; 
+      L     0; 
+      L     DBD   32; // Input: Weight for registration
+      <>D   ; 
+      SPBN  b000; 
+      CALL "GCS7_SecCtrlMain" (// Sec : Methode SEC.ResultBatch
+           CODE                     := 10);
+b000: NOP   0; 
+//==== start scales =============
+      UN    DBX   45.7; // Sec.InfDataReady
+      SPB   TEST; // 
+      L     1; 
+bLo2: T     #tmpScaleNr; 
+      +     -1; 
+      T     #tmpScaleBit; 
+      LAR1  #tmpScaleBit; 
+      U     L [AR1,P#0.0]; // ParScaleInSection[x]
+      U     L [AR1,P#12.0]; // CmdStartScale[x]
+      U     L [AR1,P#44.0]; // tmpScaleUsed[x]
+      UN    L [AR1,P#28.0]; // InfEmptiedScale[x]
+      UN    L [AR1,P#20.0]; // InfActiveScale[x]
+      SPBN  NEXT; // 
+//--- Start Scale --------
+      AUF   DI     8; 
+      L     #tmpScaleNr; // scale-nr
+      T     DIW   20; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     DIW   22; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      AUF   DI [#tmpScaleDB]; // >>> call scale-DB
+      UN    DIX   43.0; //  SCDB.Inf_RecipeReq
+      O     DIX   55.0; //  SCDB.Cmd_StartRecipe
+      BEB   ; // 
+      L     DBD  160; // "SecDB".JobNom.JobNr
+      T     DID  258; // 
+      L     DBW  178; // "SecDB".JobNom.RecipeNr
+      T     DIW  262; // --> Scale.JobNumber
+      L     DBW  206; // "SecDB".JobAc.BatchNo
+      T     DIW  264; // --> Scale.BatchNr
+      L     DBW  230; // "SecDB".JobAc.RecipePlace
+      T     DIW   70; // --> Scale.Inf_RecipePlace
+      L     DBW  218; //  "SecDB".JobAc.BatchSizePpm
+      T     DIW  268; // --> Scale.BatchSizePc
+      L     DBD  210; // "SecDB".JobAc.BatchWeightTarget
+      T     DID  270; // --> Scale.BatchWtRecipe
+      L     #tmpLineNr; 
+      T     DIW  266; // --> Scale.LineNr
+      SET   ; 
+      S     DIX   55.0; // --> Scale.CmdStartRecipe
+      LAR1  #tmpScaleBit; 
+      S     L [AR1,P#20.0]; // InfActiveActive[x]
+//--- End Start Scale
+NEXT: L     64; 
+      L     #tmpScaleNr; 
+      <=I   ; 
+      SPB   TEST; 
+      +     1; 
+      SPA   bLo2; 
+// ==== end loop scale ============
+TEST: L     #InfActiveScales[1]; 
+      L     0; 
+      <>D   ; 
+      O(    ; 
+      L     #InfActiveScales[2]; 
+      L     0; 
+      <>D   ; 
+      )     ; 
+      =     #ToASW.InfActive; 
+
+      L     0; 
+      T     #CmdStartScales[1]; 
+      T     #CmdStartScales[2]; 
+      SET   ; 
+      R     #ToSSW.CmdReset; 
+      R     #ToSSW.CmdAbortBatch; 
+      R     #ToSSW.CmdAcceptWt; 
+      R     #ToSSW.CmdRetry; 
+      SPA   Save; 
+aEND: NOP   0; 
+NETWORK
+TITLE = Methode TestRefilLevel: Code 12
+//ACTUAL DB BY CALL: Section-DB for testing
+//Input:
+//  S-DB: CmdTestRefillDone  : Flankenbit Meldung an PC erfolgt
+//Output:
+//  S-DB: EsRefillLevel      : Bin with level is found
+//  S-DB: CmdTestRefillDone  : Flankenbit Meldung an PC erfolgt
+//  S-DB: DBW 26             : BinNr with level-fault
+      L     #CODE; 
+      L     12; 
+      <>I   ; 
+      SPB   hEND; 
+      UN    #ToASW.EsRefillLevel; 
+      R     #ToASW.CmdTestRefillDone; 
+      SET   ; 
+      R     #ToASW.EsRefillLevel; 
+//======================================
+//Init Bin Control
+//[Rel 2.0 -->
+      L     DBNO; 
+      T     #tmpSecDB; // )->Target SectionDB
+      L     1; // 
+//----LOOP:
+hLo1: T     #tmpScaleNr; 
+      +     -1; 
+      LAR1  ; 
+      UN    DBX [AR1,P#170.0]; //"SecDB".JobNom.ScaleUsed[x]
+      SPB   hNx1; 
+      AUF   DI     8; 
+      L     #tmpScaleNr; // )   scale-nr
+      T     DIW   20; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     DIW   22; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      AUF   DI [#tmpScaleDB]; 
+      L     DIW   32; // CWA.ParDBBinControl
+      T     #tmpBinControlDB; 
+      L     0; 
+      ==I   ; 
+      SPB   hNx1; 
+      AUF   DB [#tmpBinControlDB]; 
+      CALL "GCS7_BinCtrlSub" (// Methode Init Test Refill
+           CODE                     := 14);
+      AUF   DB [#tmpSecDB]; 
+hNx1: L     64; 
+      L     #tmpScaleNr; // S_DB.VarCntScale
+      +     1; 
+      >=I   ; 
+      SPB   hLo1; 
+//<--Rel 2.0]
+//End Init Bin Control
+//======================================
+      L     1; // 
+//----LOOP:
+hLop: T     #tmpScaleNr; 
+      +     -1; 
+      LAR1  ; 
+      AUF   DB [#tmpInstanzDB]; 
+      UN    DBX [AR1,P#170.0]; // "SecDB".JobNom.ScaleUsed[x]
+      SPB   hNxt; 
+      L     #tmpScaleNr; 
+      T     "GCS7_ScaleControlDB".VarTemp[1]; //--> DB8.ScaleNr
+      CALL "GCS7_ScaleCtrlSub" (// Subroutine ScalePointer
+           CODE                     := 3);
+      L     "GCS7_ScaleControlDB".VarTemp[2]; //<--DB8.ScaleDB
+      T     #tmpScaleDB; 
+      T     "GCS7_ScaleControlDB".VarTemp[9]; // -> DB8.var_scale_DB_nr
+      AUF   DB [#tmpInstanzDB]; 
+      L     DBW  230; //    Sec.InfRecipePlace
+      T     "GCS7_ScaleControlDB".VarTemp[2]; // -> DB8.VarRecipePlace
+// Subrotine TestLevel
+      CALL "GCS7_ScaleCtrlSub" (
+           CODE                     := 5);
+      L     "GCS7_ScaleControlDB".VarTemp[3]; //OutputFB69.VarDBBinControl
+      T     #tmpBinDB; 
+
+      U     DB8.DBX   39.0; // DB8.ErrorLevel
+      SPB   hErr; 
+hNxt: L     64; 
+      L     #tmpScaleNr; // S_DB.VarCntScale
+      +     1; 
+      >=I   ; 
+      SPB   hLop; 
+      SPA   Save; 
+hErr: L     "GCS7_ScaleControlDB".VarTemp[4]; // ErrBin
+      AUF   DB [#tmpInstanzDB]; 
+      T     DBW   26; // SecDB.ErrBin
+      S     #ToASW.EsRefillLevel; 
+      U     #ToASW.CmdTestRefillDone; 
+      O     DBX  102.0; // "SecDB".PCRead.Hsk.F_Status
+      SPB   hNxt; 
+      S     DBX  102.0; // "SecDB".PCRead.Hsk.F_Status
+      S     DBX   41.0; // "SecDB".ChangeBit.CBit1
+      L     DBW   26; // "SecDB".OutErrBin
+      T     DBW  104; // -> SecDB.PCRead.ErrElement
+      L     48; // Code=RefillLevel
+      T     DBW  106; // ->"SecDB".PCRead.ErrCode
+      L     #tmpScaleNr; 
+      T     DBW  108; // ->"SecDB".PCRead.ErrObject
+      S     #ToASW.CmdTestRefillDone; 
+      SPA   hNxt; 
+//      U     #ToASW.CmdTestRefillDone
+//      AUF   DI [#tmpBinDB]              // >>> CALL DB Bin Control
+//      O     DIX   94.0                  // "BinDB".PCRead.Hsk.F_Status
+//      SPB   hNxt
+//      S     DIX   94.0                  // "BinDB".PCRead.Hsk.F_Status
+//      S     DIX  103.1                  // "BinDB".PCRead.Fault.EsLevelFault
+//      S     DIX   41.0                  // "BinDB".ChangeBit.CBit1
+//      L     DBD  160                    // "SecDB".JobNom.JobNr
+//      T     DID  106                    // ->"BinDB".PCRead.JobNr
+//      L     DBW  206                    // "SecDB".JobAc.BatchNo
+//      T     DIW  110                    // "BinDB".PCRead.BatchNr
+//      L     DBW   26                    // S_DB.OutErrBin
+//      T     DIW   96                    // -> Bin.err_element
+//      L     48                          // Code=RefillLevel
+//      T     DIW   98                    // ->"BinDB".PCRead.ErrCode
+//      S     #ToASW.CmdTestRefillDone
+      SPA   hNxt; 
+hEND: NOP   0; 
+NETWORK
+TITLE = Save:  Code 0,12
+
+Save: NOP   0; 
+//--Copy to temporare memory
+      AUF   DB [#tmpInstanzDB]; 
+      LAR1  #tmpInstanzPointer; 
+      L     LD     8; // ToASW
+      T     DBD [AR1,P#8.0]; // S_DB.ToASW
+
+      L     #CmdStartScales[1]; 
+      T     DBD [AR1,P#12.0]; 
+      L     #CmdStartScales[2]; 
+      T     DBD [AR1,P#16.0]; 
+
+      L     #InfActiveScales[1]; 
+      T     DBD [AR1,P#20.0]; 
+      L     #InfActiveScales[2]; 
+      T     DBD [AR1,P#24.0]; 
+
+
+      L     #InfEmptiedScales[1]; 
+      T     DBD [AR1,P#28.0]; 
+      L     #InfEmptiedScales[2]; 
+      T     DBD [AR1,P#32.0]; 
+
+NETWORK
+TITLE =
+
+
+
+
+
+
+
+
+
+
+
+END_FUNCTION
+

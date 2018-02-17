@@ -1,0 +1,81 @@
+TYPE "GCS7_FB85_Data"
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnableDown : BOOL ;	//Enable to move downwards
+   InEnableUp : BOOL ;	//Enable to move upwards
+   InInterlocked : BOOL ;	//Interlocked mode
+   InPowerOk : BOOL ;	//Power is ok
+   InPowerOkDelayDone : BOOL ;	//Delay time power ok is done 
+   InUnloading : BOOL ;	//Moving with pulsing
+   spare26 : BOOL ;	// 
+   spare27 : BOOL ;	// 
+   CmdOff : BOOL ;	//Pulse to stop motor immediately in manual mode
+   CmdUp : BOOL ;	//Pulse to start upwards in manual mode
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   CmdDown : BOOL ;	//Pulse to start downwards in manual mode
+   spare37 : BOOL ;	// 
+   OutAdjustedLeft : BOOL ;	//Left side is adjusted
+   OutAdjustedRight : BOOL ;	//Right side is adjusted
+   OutPositionLeftToHigh : BOOL ;	//Left motor must stop until both side are on same level 
+   OutPositionRightToHigh : BOOL ;	//Left motor must stop until both side are on same level 
+   OutDifferenceFault : BOOL ;	//Difference to high, stop both motor
+   OutHigherMinPos : BOOL ;	//Actual position > minimum position
+   OutPulseOn : BOOL ;	//Pulsing: Pulse On 
+   spare47 : BOOL ;	// 
+   StStopped : BOOL ;	//Motors are stopped
+   StStarting : BOOL ;	//Motors are starting
+   StStartedUP : BOOL ;	//Motors is started in upwards
+   StStopping : BOOL ;	//Motors are stopping
+   StFault : BOOL ;	//Machine has a fault
+   StStartedDown : BOOL ;	//Machine is started downwards
+   StAdjusted : BOOL ;	//Machine is enabled and in target psoition
+   spare57 : BOOL ;	// 
+   OutManStartReqDown : BOOL ;	//Manual Mode Start request downwards
+   OutManStartReqUp : BOOL ;	//Manual Mode Start request upwards
+   InPositionTarget : INT ;	//Target position in [mm]
+   OutPositionLeft : INT ;	//Actual position left in [mm]
+   OutPositionRight : INT ;	//Actual position right in [mm]
+   OutPositionDifference : INT ;	
+   OutIncrementLeft : DINT ;	//Copy of 32Bit from incremental counter left side
+   OutIncrementRight : DINT ;	//Copy of 32Bit from incremental counter right side
+   OutPulseTime : INT ;	//Actual Pulse Time [0.1s]
+   spare2 : INT ;	
+   spare3 : INT ;	
+   spare4 : INT ;	
+   spare5 : INT ;	
+   spare6 : INT ;	
+   spare7 : INT ;	
+   spare8 : INT ;	
+   spare9 : INT ;	
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    spare : BOOL ;	
+    ParPositionTopLeftInc : INT  := 693;	//Position Top Left [Increments]
+    ParPositionTopRightInc : INT  := 690;	//Position Top Right [Increments]
+    ParPositionTopLeftUnits : INT  := 1665;	//Position Top Left [mm]
+    ParPositionTopRightUnits : INT  := 1665;	//Position Top Right [mm]
+    ParPositionMin : INT ;	//Minimum Psoition [mm]
+    ParTolPosition : INT ;	//Tolerance for target position [mm] 
+    ParMaxOffTrackPause : INT ;	//Maximum off-track before one motor must stop [mm]
+    ParMaxOffTrackFault : INT ;	//Maximum off-track before machine changes to fault [mm]
+    ParMonTime : INT  := 50;	//t0 Monitoring time for moving [0.1s]
+    ParIOByteNoCounterLeft : INT ;	//First byte of IO of counter module left side
+    ParIOByteNoCounterRight : INT ;	//First byte of IO of counter module right side
+    OutMonTimeLeft : INT ;	//Monitoring time left side
+    OutMonTimeRight : INT ;	//Monitoring time right side
+    OutUnitsPerIncLeft : REAL ;	//Number of [mm] per increment
+    OutUnitsPerIncRight : REAL ;	//Number of [mm] per increment
+    ParPulseOnTime : INT ;	//Pulse lenght time [0.1s]
+    ParPulseOffTime : INT ;	//Pausing time between to pulses [0.1s]
+    spare3 : INT ;	
+    spare4 : INT ;	
+    spare5 : INT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

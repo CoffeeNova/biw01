@@ -1,0 +1,123 @@
+TYPE "GCS7_FB9_Section"
+TITLE =Group Control with 320 Groups
+{ GCPRO_Revision := '20' }
+
+
+  STRUCT 	
+   All : STRUCT 	
+    CmdClearIdling : BOOL ;	//Stop al groups of this section which are in idling
+    OutAutoStartOkShared : BOOL ;	//All multiple used group has autostart bit set
+    InASWFlagAutostart : BOOL ;	//Free for ASW
+    Spare03 : BOOL ;	
+    Spare04 : BOOL ;	
+    Spare05 : BOOL ;	
+    OutPreStarted : BOOL ;	//All relevant prestarted groups are started
+    OutPreStarting : BOOL ;	//Any group is pre-starting
+    Spare10 : BOOL ;	
+    CmdContinue : BOOL ;	//(*new*)
+    CmdManualOffRel : BOOL ;	
+    CmdFaultReset : BOOL ;	//Command to fault reset
+    CmdManualOff : BOOL ;	//Switch off maunual mode of all object 
+    OutStartwarning : BOOL ;	//Any selected group is in startwarning mode
+    OutManualAny : BOOL ;	//Any object of this PLC is in manual mode
+    InOutASWSelectionOK : BOOL ;	//Used by ASW
+    OutSelectionValid : BOOL ;	//Any object is occupied for this section
+    CmdNewSelection : BOOL ;	//An new object is occupied
+    OutGrConflict : BOOL ;	//An object is not available
+    OutGrIsLocked : BOOL ;	//An object is locked by ASW
+    OutAutoStartOk : BOOL ;	//(*new*) All relevant Groups are in mode AutoStart
+    OutManual : BOOL ;	//Any object of this section is in manual mode
+    OutDPFault : BOOL ;	//(*new*)
+    OutHWStop : BOOL ;	//(*new*)
+    OutStoppedRel : BOOL ;	
+    OutStoppedAll : BOOL ;	
+    OutLoaded : BOOL ;	//(*new*)
+    OutFaultIdling : BOOL ;	
+    OutFaultRel : BOOL ;	
+    OutFaultAll : BOOL ;	
+    OutIdling : BOOL ;	
+    OutWarning : BOOL ;	
+   END_STRUCT ;	
+   Feed : STRUCT 	
+    InEnable : BOOL ;	
+    Spare01 : BOOL ;	
+    CmdNext : BOOL ;	
+    Spare03 : BOOL ;	
+    Spare04 : BOOL ;	
+    Spare05 : BOOL ;	
+    Spare06 : BOOL ;	
+    Spare07 : BOOL ;	
+    OutStoppedRel : BOOL ;	
+    OutStoppedAll : BOOL ;	
+    OutStartedRel : BOOL ;	
+    OutFaultIdling : BOOL ;	
+    OutFaultRel : BOOL ;	
+    OutFaultAll : BOOL ;	
+    OutIdling : BOOL ;	
+    OutSelected : BOOL ;	
+   END_STRUCT ;	
+   Mgr : STRUCT 	
+    InEnable : BOOL ;	
+    Spare01 : BOOL ;	
+    CmdNext : BOOL ;	
+    Spare03 : BOOL ;	
+    Spare04 : BOOL ;	
+    Spare05 : BOOL ;	
+    Spare06 : BOOL ;	
+    Spare07 : BOOL ;	
+    OutStoppedRel : BOOL ;	
+    OutStoppedAll : BOOL ;	
+    OutStartedRel : BOOL ;	
+    OutFaultIdling : BOOL ;	
+    OutFaultRel : BOOL ;	
+    OutFaultAll : BOOL ;	
+    OutIdling : BOOL ;	
+    OutSelected : BOOL ;	
+   END_STRUCT ;	
+   Wgr : STRUCT 	
+    InEnable : BOOL ;	
+    Spare01 : BOOL ;	
+    CmdNext : BOOL ;	
+    Spare03 : BOOL ;	
+    Spare04 : BOOL ;	
+    Spare05 : BOOL ;	
+    Spare06 : BOOL ;	
+    Spare07 : BOOL ;	
+    OutStoppedRel : BOOL ;	
+    OutStoppedAll : BOOL ;	
+    OutStartedRel : BOOL ;	
+    OutFaultIdling : BOOL ;	
+    OutFaultRel : BOOL ;	
+    OutFaultAll : BOOL ;	
+    OutIdling : BOOL ;	
+    OutSelected : BOOL ;	
+   END_STRUCT ;	
+   Ggr : STRUCT 	
+    InEnable : BOOL ;	
+    Spare01 : BOOL ;	
+    CmdNext : BOOL ;	
+    Spare03 : BOOL ;	
+    Spare04 : BOOL ;	
+    Spare05 : BOOL ;	
+    Spare06 : BOOL ;	
+    Spare07 : BOOL ;	
+    OutStoppedRel : BOOL ;	
+    OutStoppedAll : BOOL ;	
+    OutStartedRel : BOOL ;	
+    OutFaultIdling : BOOL ;	
+    OutFaultRel : BOOL ;	
+    OutFaultAll : BOOL ;	
+    OutIdling : BOOL ;	
+    OutSelected : BOOL ;	
+   END_STRUCT ;	
+   InPreselect : ARRAY  [1 .. 320 ] OF BOOL ;	
+   OutSelected : ARRAY  [1 .. 320 ] OF BOOL ;	
+   OutIdling : ARRAY  [1 .. 320 ] OF BOOL ;	
+   ParNotRelForStarted : ARRAY  [1 .. 320 ] OF BOOL  := FALSE;	
+   ParNotRelForFault : ARRAY  [1 .. 320 ] OF BOOL  := FALSE;	
+   InManual : ARRAY  [1 .. 320 ] OF BOOL  := FALSE;	
+   InPreStart : ARRAY  [1 .. 320 ] OF //Input from section: These groups are pre-starting
+   BOOL  := FALSE;	
+  END_STRUCT ;	
+END_TYPE
+

@@ -1,0 +1,429 @@
+DATA_BLOCK "MAl1S034RCV36"
+TITLE =BIN-DB : KILNED MALT BINS
+//
+//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      PLC1BIW01_02
+//
+//TITLE:        Bin control: KILNED MALT BINS
+//
+//
+//
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//P01_DB846.1.0 K.Renz              CSB41                       09.Okt.2009
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: FC 66,67
+//
+//MANUAL : BINMAN
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+//
+//Bitmaske inf_scale_active[48..0]
+//========================
+AUTHOR : KR
+FAMILY : GCS7
+VERSION : 0.0
+
+
+  STRUCT 	
+   Para : STRUCT 	
+    Spare : INT ;	//Reserved for InCode
+    ParObjNr : INT  := 36;	
+    ParSecDB : INT  := 834;	
+    ParTypeDef : STRUCT 	
+     spare : BYTE ;	
+     ParBlend : BOOL ;	
+     ParLoopIngr : BOOL  := TRUE;	
+     ParSenderList : BOOL ;	
+     ParWithTargetValue : BOOL  := TRUE;	
+    END_STRUCT ;	
+    ParByteFirstBin : INT  := 130;	
+    ParNoOfBytePerBin : INT  := 20;	
+    ParNoOfBin : INT  := 1;	
+    ParByteRecipeMemory : INT  := 13206;	
+    ParNoOfBytePerIngr : INT  := 6;	
+    ParNoOfIngr : INT  := 16;	
+   END_STRUCT ;	
+   VarTemp : STRUCT 	
+    InValue : INT ;	
+    Bin : STRUCT 	//Bin21        Index= 1
+     BinNrByteNr : INT ;	
+     InfLocked : BOOL ;	
+     InfLevelFault : BOOL ;	//Sender empty, Receiver full
+     InFeedOff : BOOL ;	//HWStop or DPFault of the connected level probe (*new*)
+     OutDryFillingDone : BOOL ;	//Is copied from central bin list
+     VarFlagOverrideLevel : BOOL ;	
+     InfLowLevel : BOOL ;	
+     InfLevelMiddle : BOOL ;	
+     InfHighLevel : BOOL ;	
+     InfActiveBin : BOOL ;	
+     InfPreselect : BOOL ;	
+     InfDeselect : BOOL ;	
+     spare13 : BOOL ;	
+     spare14 : BOOL ;	
+     spare15 : BOOL ;	
+     VarFlagLocked : BOOL ;	
+     VarFlagLevelFault : BOOL ;	
+     ParEmptyingTime : INT ;	//ParEmptying Time
+     WeightActual : DINT ;	//Actual weight active job
+     WeightTarget : DINT ;	//Target weight active job
+    END_STRUCT ;	
+    Value9 : INT ;	
+    Value10 : STRUCT 	
+     Flag8 : BYTE ;	
+     tmpBinNotFound1 : BOOL ;	// or tmpLevelWarning
+     tmpLevelFault : BOOL ;	
+     tmpBinNotFound2 : BOOL ;	
+     tmpEmptyRecipe : BOOL ;	
+     tmpFull : BOOL ;	
+     tmpLevelWarning : BOOL ;	
+     tmpLocked : BOOL ;	
+     Flag7 : BOOL ;	
+    END_STRUCT ;	
+   END_STRUCT ;	
+   ChangeBit : STRUCT 	
+    spare : BYTE ;	
+    CBit1 : BOOL ;	
+    CBit2 : BOOL ;	
+    CBit3 : BOOL ;	
+    CBit4 : BOOL ;	
+   END_STRUCT ;	
+   ToASW : STRUCT 	
+    spare00 : BOOL ;	
+    spare01 : BOOL ;	
+    InfAllLocked : BOOL ;	
+    InfAllLevelFault : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    spare06 : BOOL ;	
+    CmdNewData : BOOL ;	
+    InfActive : BOOL ;	
+    InfPreselect : BOOL ;	
+    InfDeselect : BOOL ;	
+    CmdNewWay : BOOL ;	
+    OutDryFillingDone : BOOL ;	//from active bin
+    spare15 : BOOL ;	
+    OutJobChange : BOOL ;	
+    InfEmptyingEnd : BOOL ;	
+    VarTaraWeight : DINT ;	
+    BinActual : INT ;	
+    BinPreselected : INT ;	
+    OutEmptyingTimeBin : INT ;	
+    OutIngrCnt : INT ;	
+    OutActiveBinsCnt : INT ;	
+    spare160 : WORD ;	
+   END_STRUCT ;	
+   VarCommand : STRUCT 	
+    spare00 : BOOL ;	
+    spare01 : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    InfFlagEsNoNextBin : BOOL ;	
+    InfBinNotInRecipe : BOOL ;	
+    InfEmptyRecipe : BOOL ;	
+    CmdNewValue : BOOL ;	
+    CmdFirst : BOOL ;	
+    CmdNext : BOOL ;	
+    VarSpecialBin : BOOL ;	
+   END_STRUCT ;	
+   ToSSW : STRUCT 	
+    spare00 : BOOL ;	
+    CmdSendResult : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    tmpNewBinRequest : BOOL ;	//ASW
+    CmdFirst : BOOL ;	
+    CmdNext : BOOL ;	
+    CmdReadNewValue : BOOL ;	
+    spare11 : BOOL ;	
+    CmdReadyForSelect : BOOL ;	
+    CmdReadyForDeselect : BOOL ;	
+    spare13 : BOOL ;	
+    CmdPulseTimer : BOOL ;	
+    spare15 : BOOL ;	
+    spare16 : BOOL ;	
+    InfReleaseEmptyingTime : BOOL ;	
+    WeightTotal : DINT ;	//Actul weight
+    spare6 : DWORD ;	
+    spare10 : WORD ;	
+    spare12 : DWORD ;	
+    WeightTotalNom : DINT ;	//Nominal weight from reciep
+   END_STRUCT ;	
+   PCWrite : STRUCT 	//PC Write : 
+    Hsk : STRUCT 	
+     Q_Status : BOOL ;	
+     Q_Result : BOOL ;	
+     Q_ResultPrev : BOOL ;	//(*new*)
+     Q_NewBinRequest : BOOL ;	//ASW:FU
+     spare04 : BOOL ;	
+     spare05 : BOOL ;	
+     spare06 : BOOL ;	
+     spare07 : BOOL ;	
+     F_Define : BOOL ;	
+    END_STRUCT ;	
+    Func : STRUCT 	
+     spare : BYTE ;	
+     CmdFirst : BOOL ;	
+     CmdNext : BOOL ;	
+    END_STRUCT ;	
+    Para1 : WORD ;	
+    Para2 : WORD ;	
+    Para3 : WORD ;	
+    ParEmptyingTime : INT ;	
+   END_STRUCT ;	
+   PCRead : STRUCT 	//PC Read :
+    Hsk : STRUCT 	//== PC: Read Write
+     F_Status : BOOL ;	
+     F_Result : BOOL ;	
+     F_ResultPrev : BOOL ;	//(*new*)
+     F_NewBinRequest : BOOL ;	//ASW:FU
+    END_STRUCT ;	
+    ErrElement : INT ;	
+    ErrCode : INT ;	
+    State : WORD ;	//spare
+    Fault : STRUCT 	
+     spare : BYTE ;	
+     EsLocked : BOOL ;	
+     EsLevelFault : BOOL ;	
+     EsNoNextBin : BOOL ;	
+     EsCfgFault : BOOL ;	
+    END_STRUCT ;	
+    Status : STRUCT 	
+     StaLastBinActive : BOOL ;	
+     StaFeeding : BOOL ;	//Corresponging feed element is feeding 
+     StaOverrideLevel : BOOL ;	//Override Level is active
+     StaDPFault : BOOL ;	//DPFault of an active Bin
+     spare4 : BOOL ;	
+     spare5 : BOOL ;	
+     spare6 : BOOL ;	
+     spare7 : BOOL ;	
+     StaLoaded : BOOL ;	
+     StaEmptying : BOOL ;	
+     StaSpecialBin : BOOL ;	
+     StaRegistrated : BOOL ;	
+     StaSameSndRcv : BOOL ;	
+     StaListNotUsed : BOOL ;	
+     StaRegistratedPrev : BOOL ;	//(*new*)
+     StaFeedOff : BOOL ;	//Stop feeding: HWStop or DPFault of the connected level probe (*new*)
+    END_STRUCT ;	
+    JobNr : DINT ;	//Active job
+    BatchNr : INT ;	//Active job
+    Value2 : INT ;	//Active job
+    Value3 : INT ;	//Active job
+    OutEmptyingTime : INT ;	
+    StatusRec : STRUCT 	//Status Recipe (*new*)
+     StaFirst : BOOL ;	//First igredient active
+     StaLast : BOOL ;	//Last ingredient active, no next bin available
+     StaListNotUsed : BOOL ;	//List not used for this job
+     StaOverrideLevel : BOOL ;	//Override Level
+     Spare1 : BOOL ;	
+     Spare2 : BOOL ;	
+     Spare3 : BOOL ;	
+     Spare4 : BOOL ;	
+    END_STRUCT ;	
+    WeightTotalRec : DINT ;	//Target Value form Reciep
+    JobNrPrev : DINT ;	//Previous job (*new*)
+    BatchNrPrev : INT ;	//Previous job (*new*)
+   END_STRUCT ;	
+   MAL1S34_RCV : "GCS7_UDT_BINList3";	//MAL1S34_RCV  Index= 1
+  END_STRUCT ;	
+BEGIN
+   Para.Spare := 0; 
+   Para.ParObjNr := 36; 
+   Para.ParSecDB := 834; 
+   Para.ParTypeDef.spare := B#16#0; 
+   Para.ParTypeDef.ParBlend := FALSE; 
+   Para.ParTypeDef.ParLoopIngr := TRUE; 
+   Para.ParTypeDef.ParSenderList := FALSE; 
+   Para.ParTypeDef.ParWithTargetValue := TRUE; 
+   Para.ParByteFirstBin := 130; 
+   Para.ParNoOfBytePerBin := 20; 
+   Para.ParNoOfBin := 1; 
+   Para.ParByteRecipeMemory := 13206; 
+   Para.ParNoOfBytePerIngr := 6; 
+   Para.ParNoOfIngr := 16; 
+   VarTemp.InValue := 0; 
+   VarTemp.Bin.BinNrByteNr := 0; 
+   VarTemp.Bin.InfLocked := FALSE; 
+   VarTemp.Bin.InfLevelFault := FALSE; 
+   VarTemp.Bin.InFeedOff := FALSE; 
+   VarTemp.Bin.OutDryFillingDone := FALSE; 
+   VarTemp.Bin.VarFlagOverrideLevel := FALSE; 
+   VarTemp.Bin.InfLowLevel := FALSE; 
+   VarTemp.Bin.InfLevelMiddle := FALSE; 
+   VarTemp.Bin.InfHighLevel := FALSE; 
+   VarTemp.Bin.InfActiveBin := FALSE; 
+   VarTemp.Bin.InfPreselect := FALSE; 
+   VarTemp.Bin.InfDeselect := FALSE; 
+   VarTemp.Bin.spare13 := FALSE; 
+   VarTemp.Bin.spare14 := FALSE; 
+   VarTemp.Bin.spare15 := FALSE; 
+   VarTemp.Bin.VarFlagLocked := FALSE; 
+   VarTemp.Bin.VarFlagLevelFault := FALSE; 
+   VarTemp.Bin.ParEmptyingTime := 0; 
+   VarTemp.Bin.WeightActual := L#0; 
+   VarTemp.Bin.WeightTarget := L#0; 
+   VarTemp.Value9 := 0; 
+   VarTemp.Value10.Flag8 := B#16#0; 
+   VarTemp.Value10.tmpBinNotFound1 := FALSE; 
+   VarTemp.Value10.tmpLevelFault := FALSE; 
+   VarTemp.Value10.tmpBinNotFound2 := FALSE; 
+   VarTemp.Value10.tmpEmptyRecipe := FALSE; 
+   VarTemp.Value10.tmpFull := FALSE; 
+   VarTemp.Value10.tmpLevelWarning := FALSE; 
+   VarTemp.Value10.tmpLocked := FALSE; 
+   VarTemp.Value10.Flag7 := FALSE; 
+   ChangeBit.spare := B#16#0; 
+   ChangeBit.CBit1 := FALSE; 
+   ChangeBit.CBit2 := FALSE; 
+   ChangeBit.CBit3 := FALSE; 
+   ChangeBit.CBit4 := FALSE; 
+   ToASW.spare00 := FALSE; 
+   ToASW.spare01 := FALSE; 
+   ToASW.InfAllLocked := FALSE; 
+   ToASW.InfAllLevelFault := FALSE; 
+   ToASW.spare04 := FALSE; 
+   ToASW.spare05 := FALSE; 
+   ToASW.spare06 := FALSE; 
+   ToASW.CmdNewData := FALSE; 
+   ToASW.InfActive := FALSE; 
+   ToASW.InfPreselect := FALSE; 
+   ToASW.InfDeselect := FALSE; 
+   ToASW.CmdNewWay := FALSE; 
+   ToASW.OutDryFillingDone := FALSE; 
+   ToASW.spare15 := FALSE; 
+   ToASW.OutJobChange := FALSE; 
+   ToASW.InfEmptyingEnd := FALSE; 
+   ToASW.VarTaraWeight := L#0; 
+   ToASW.BinActual := 0; 
+   ToASW.BinPreselected := 0; 
+   ToASW.OutEmptyingTimeBin := 0; 
+   ToASW.OutIngrCnt := 0; 
+   ToASW.OutActiveBinsCnt := 0; 
+   ToASW.spare160 := W#16#0; 
+   VarCommand.spare00 := FALSE; 
+   VarCommand.spare01 := FALSE; 
+   VarCommand.spare02 := FALSE; 
+   VarCommand.spare03 := FALSE; 
+   VarCommand.InfFlagEsNoNextBin := FALSE; 
+   VarCommand.InfBinNotInRecipe := FALSE; 
+   VarCommand.InfEmptyRecipe := FALSE; 
+   VarCommand.CmdNewValue := FALSE; 
+   VarCommand.CmdFirst := FALSE; 
+   VarCommand.CmdNext := FALSE; 
+   VarCommand.VarSpecialBin := FALSE; 
+   ToSSW.spare00 := FALSE; 
+   ToSSW.CmdSendResult := FALSE; 
+   ToSSW.spare02 := FALSE; 
+   ToSSW.spare03 := FALSE; 
+   ToSSW.tmpNewBinRequest := FALSE; 
+   ToSSW.CmdFirst := FALSE; 
+   ToSSW.CmdNext := FALSE; 
+   ToSSW.CmdReadNewValue := FALSE; 
+   ToSSW.spare11 := FALSE; 
+   ToSSW.CmdReadyForSelect := FALSE; 
+   ToSSW.CmdReadyForDeselect := FALSE; 
+   ToSSW.spare13 := FALSE; 
+   ToSSW.CmdPulseTimer := FALSE; 
+   ToSSW.spare15 := FALSE; 
+   ToSSW.spare16 := FALSE; 
+   ToSSW.InfReleaseEmptyingTime := FALSE; 
+   ToSSW.WeightTotal := L#0; 
+   ToSSW.spare6 := DW#16#0; 
+   ToSSW.spare10 := W#16#0; 
+   ToSSW.spare12 := DW#16#0; 
+   ToSSW.WeightTotalNom := L#0; 
+   PCWrite.Hsk.Q_Status := FALSE; 
+   PCWrite.Hsk.Q_Result := FALSE; 
+   PCWrite.Hsk.Q_ResultPrev := FALSE; 
+   PCWrite.Hsk.Q_NewBinRequest := FALSE; 
+   PCWrite.Hsk.spare04 := FALSE; 
+   PCWrite.Hsk.spare05 := FALSE; 
+   PCWrite.Hsk.spare06 := FALSE; 
+   PCWrite.Hsk.spare07 := FALSE; 
+   PCWrite.Hsk.F_Define := FALSE; 
+   PCWrite.Func.spare := B#16#0; 
+   PCWrite.Func.CmdFirst := FALSE; 
+   PCWrite.Func.CmdNext := FALSE; 
+   PCWrite.Para1 := W#16#0; 
+   PCWrite.Para2 := W#16#0; 
+   PCWrite.Para3 := W#16#0; 
+   PCWrite.ParEmptyingTime := 0; 
+   PCRead.Hsk.F_Status := FALSE; 
+   PCRead.Hsk.F_Result := FALSE; 
+   PCRead.Hsk.F_ResultPrev := FALSE; 
+   PCRead.Hsk.F_NewBinRequest := FALSE; 
+   PCRead.ErrElement := 0; 
+   PCRead.ErrCode := 0; 
+   PCRead.State := W#16#0; 
+   PCRead.Fault.spare := B#16#0; 
+   PCRead.Fault.EsLocked := FALSE; 
+   PCRead.Fault.EsLevelFault := FALSE; 
+   PCRead.Fault.EsNoNextBin := FALSE; 
+   PCRead.Fault.EsCfgFault := FALSE; 
+   PCRead.Status.StaLastBinActive := FALSE; 
+   PCRead.Status.StaFeeding := FALSE; 
+   PCRead.Status.StaOverrideLevel := FALSE; 
+   PCRead.Status.StaDPFault := FALSE; 
+   PCRead.Status.spare4 := FALSE; 
+   PCRead.Status.spare5 := FALSE; 
+   PCRead.Status.spare6 := FALSE; 
+   PCRead.Status.spare7 := FALSE; 
+   PCRead.Status.StaLoaded := FALSE; 
+   PCRead.Status.StaEmptying := FALSE; 
+   PCRead.Status.StaSpecialBin := FALSE; 
+   PCRead.Status.StaRegistrated := FALSE; 
+   PCRead.Status.StaSameSndRcv := FALSE; 
+   PCRead.Status.StaListNotUsed := FALSE; 
+   PCRead.Status.StaRegistratedPrev := FALSE; 
+   PCRead.Status.StaFeedOff := FALSE; 
+   PCRead.JobNr := L#0; 
+   PCRead.BatchNr := 0; 
+   PCRead.Value2 := 0; 
+   PCRead.Value3 := 0; 
+   PCRead.OutEmptyingTime := 0; 
+   PCRead.StatusRec.StaFirst := FALSE; 
+   PCRead.StatusRec.StaLast := FALSE; 
+   PCRead.StatusRec.StaListNotUsed := FALSE; 
+   PCRead.StatusRec.StaOverrideLevel := FALSE; 
+   PCRead.StatusRec.Spare1 := FALSE; 
+   PCRead.StatusRec.Spare2 := FALSE; 
+   PCRead.StatusRec.Spare3 := FALSE; 
+   PCRead.StatusRec.Spare4 := FALSE; 
+   PCRead.WeightTotalRec := L#0; 
+   PCRead.JobNrPrev := L#0; 
+   PCRead.BatchNrPrev := 0; 
+   MAL1S34_RCV.BinNr := 9005; 
+   MAL1S34_RCV.InfLocked := FALSE; 
+   MAL1S34_RCV.InfLevelFault := FALSE; 
+   MAL1S34_RCV.InFeedOff := FALSE; 
+   MAL1S34_RCV.OutDryFillingDone := FALSE; 
+   MAL1S34_RCV.VarFlagOverwriteLevel := FALSE; 
+   MAL1S34_RCV.InfLowLevel := FALSE; 
+   MAL1S34_RCV.InfLevelMiddle := FALSE; 
+   MAL1S34_RCV.InfHighLevel := FALSE; 
+   MAL1S34_RCV.InfActiveBin := FALSE; 
+   MAL1S34_RCV.InfPreselect := FALSE; 
+   MAL1S34_RCV.InfDeselect := FALSE; 
+   MAL1S34_RCV.spare13 := FALSE; 
+   MAL1S34_RCV.InOutDPFault := FALSE; 
+   MAL1S34_RCV.InfIsInRecipe := FALSE; 
+   MAL1S34_RCV.VarFlagLocked := FALSE; 
+   MAL1S34_RCV.VarFlagLevelFault := FALSE; 
+   MAL1S34_RCV.ParEmptyingTime := 0; 
+   MAL1S34_RCV.WeightActual := L#0; 
+   MAL1S34_RCV.WeightTarget := L#0; 
+   MAL1S34_RCV.WeightActualPrev := L#0; 
+   MAL1S34_RCV.tmpIndex := 3; 
+END_DATA_BLOCK
+

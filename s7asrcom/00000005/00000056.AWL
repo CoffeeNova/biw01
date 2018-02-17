@@ -1,0 +1,275 @@
+FUNCTION "CWA_ScaleSimul" : VOID
+TITLE =CWA SCALE SIMULATION
+//
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      CWA
+//
+//TITLE:        SCALE CONTROL: SCALE SIMULATION
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTOR:              DEPT:                         DATE:
+//
+//FC39.2.1      A. Egli            CT3                            06-Nov-2004
+//              Negative Weighing: Invert Flowrate when slow dosing
+//FC39.2.0      A. Egli            CT3                            26-Jun-2000
+//              New release, without timer
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : CWAMAN
+//
+//RESTRICTIONS:
+//
+//-------------------------------------------------------------------------
+//
+//$EJECT
+AUTHOR : EA
+FAMILY : CWA
+NAME : CWASim
+VERSION : 2.1
+CODE_VERSION1
+
+
+VAR_INPUT
+  Reset : BOOL ;	//Reset weight
+  Refill : BOOL ;	//1= Refill doubt
+  ErrorFill : BOOL ;	//Error Filling
+  ErrorEmpty : BOOL ;	//Error Emptying
+  ParIntervall : INT ;	//Calling intervall (ms)
+  ParFlowrateFastDos : DINT ;	//Flowrate at fast dosing (gr/s)
+  ParFlowrateSlowDos : DINT ;	//Flowrate at slow dosing (gr/s)
+  ParFlowrateEmptying : DINT ;	//Flowrate emptying/refill (gr/s)
+  ParDlyFastDos : INT ;	//Switch off delay fast Dosing [ms]
+  ParDlySlowDos : INT ;	//Switch off delay slow Dosing [ms]
+END_VAR
+VAR_IN_OUT
+  InOutTimerValue1 : INT ;	//Internal used
+  InOutTimerValue2 : INT ;	//Internal used
+  InOutDeltaWeight : REAL ;	//Internal used [kg]
+END_VAR
+VAR_TEMP
+  tmpFlowrate : DINT ;	
+  tmpDosing : BOOL ;	
+  tmpDosingFast : BOOL ;	
+  tmpDigits : DINT ;	
+  tmpScaleUnit : REAL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =FC-PARAMETER
+//
+//
+//ACTUAL DB BY CALL: SCALE DB
+//
+//
+
+
+NETWORK
+TITLE =Timer
+
+      L     0; 
+      T     #tmpFlowrate; 
+
+      L     0; 
+      L     #InOutTimerValue1; 
+      >=I   ; 
+      SPB   I2; 
+      L     #ParIntervall; 
+      -I    ; 
+      T     #InOutTimerValue1; 
+I2:   L     0; 
+      L     #InOutTimerValue2; 
+      >=I   ; 
+      SPB   I3; 
+      L     #ParIntervall; 
+      -I    ; 
+      T     #InOutTimerValue2; 
+I3:   NOP   0; 
+NETWORK
+TITLE =Reset
+
+      UN    #Reset; 
+      SPB   RJ0; 
+      L     0; 
+      T     DBD  148; // --> "CWA01".ME.VarScaleValueInput
+      T     #InOutTimerValue1; 
+      T     #InOutTimerValue2; 
+      BEA   ; 
+RJ0:  NOP   0; 
+NETWORK
+TITLE =Refill
+
+      UN    DBX  251.4; //"CWA01".Status.StaRefillReq
+      ON    #Refill; 
+      SPB   RFJ0; 
+      L     #ParFlowrateEmptying; 
+      T     #tmpFlowrate; 
+      SPA   CALC; 
+RFJ0: NOP   0; 
+
+NETWORK
+TITLE =Emptying
+
+      U     DBX    7.0; //  "CWA01".ParScalceCfg1.ParNegWeighing 
+      SPB   EPJ0; 
+      U     DBX   54.5; // "CWA01".ToCWA.InpClosed
+      O     DBX    7.1; // "CWA01".ParScalceCfg1.ParNoEmptying
+      SPB   EPJ0; 
+      L     DBD  254; 
+      L     DBD  180; // "CWA01".ScalePara.ParEmptyWt
+      <D    ; 
+      O     #ErrorEmpty; 
+      SPB   CALC; 
+      L     #ParFlowrateEmptying; 
+      NEGD  ; 
+      T     #tmpFlowrate; 
+      SPA   CALC; //--> Calculate
+EPJ0: NOP   0; 
+
+NETWORK
+TITLE =Dosing
+
+//===========================================
+//=Switch off Delay Time
+//===========================================
+//Reconveying
+      UN    DBX  248.1; // "CWA01".Status.StaReconveying 
+      SPB   DFas; 
+      UN    DBX   42.7; // "CWA01".ToASW.OutpDosing
+      SPB   DFas; 
+      L     200; //[ms]
+      T     #InOutTimerValue2; 
+      L     #ParFlowrateSlowDos; 
+      T     #tmpFlowrate; 
+      SPA   DJ1; //[2.1]
+//===========================================
+//Switch Off Delay Fast Dosing
+DFas: UN    DBX   42.6; // "CWA01".ToASW.OutpDosingFast
+      SPB   DSlo; 
+      L     #ParDlyFastDos; // DelayFastDosing
+      T     #InOutTimerValue1; 
+      L     #ParFlowrateFastDos; 
+      T     #tmpFlowrate; 
+      SPA   DJ1; 
+//===========================================
+//Switch Off Delay Slow Dosing
+//===========================================
+DSlo: UN    DBX   42.7; // "CWA01".ToASW.OutpDosing
+      SPB   DDly; 
+      L     #ParDlySlowDos; // DelaySlowDosing
+      T     #InOutTimerValue2; 
+      L     1; 
+      >=I   ; 
+      SPB   DDly; 
+      T     #InOutTimerValue2; 
+//==========================================
+//Switch off delay
+DDly: L     #InOutTimerValue1; 
+      L     0; 
+      >I    ; 
+      L     #ParFlowrateFastDos; 
+      T     #tmpFlowrate; 
+      SPB   DJ1; 
+      L     #InOutTimerValue2; 
+      L     0; 
+      >I    ; 
+      L     #ParFlowrateSlowDos; 
+      T     #tmpFlowrate; 
+      SPB   DJ1; 
+      L     0; 
+      T     #tmpFlowrate; 
+DJ1:  UN    DBX    7.0; //"CWA01".ParScalceCfg1.ParNegWeighing
+      SPB   DJ0; 
+      L     #tmpFlowrate; 
+      NEGD  ; 
+      T     #tmpFlowrate; 
+DJ0:  NOP   0; 
+NETWORK
+TITLE =Calculate delta weight
+
+      U     #ErrorFill; 
+      O     DBX  244.2; // "CWA01".Fault.EsReading
+      SPB   cJ0; 
+CALC: L     DBW   30; 
+      L     0; 
+      ==I   ; 
+      L     1.000000e+000; 
+      SPB   cC1; 
+      L     DBW   30; 
+      L     1; 
+      ==I   ; 
+      L     1.000000e-001; 
+      SPB   cC1; 
+      L     DBW   30; 
+      L     2; 
+      ==I   ; 
+      L     1.000000e-002; 
+      SPB   cC1; 
+      L     1.000000e-003; 
+cC1:  T     #tmpScaleUnit; //  [gr /1000]
+      L     #ParIntervall; //[ms]
+      DTR   ; 
+      L     1.000000e+003; 
+      /R    ; //-->[s]
+      L     #tmpFlowrate; // [gr/s]
+      DTR   ; 
+      *R    ; 
+      L     1.000000e-003; 
+      *R    ; 
+      L     #tmpScaleUnit; 
+      /R    ; 
+      L     #InOutDeltaWeight; //InOutDeltaWeight [kg]
+      +R    ; 
+      T     #InOutDeltaWeight; //InOutDeltaWeight [kg]
+      L     DBD  126; 
+      /R    ; 
+      RND   ; 
+      T     #tmpDigits; 
+      L     0; 
+      ==D   ; 
+      SPB   cJ0; 
+      L     #tmpDigits; 
+      DTR   ; 
+      L     DBD  126; 
+      *R    ; 
+      L     #InOutDeltaWeight; //InOutDeltaWeight
+      TAK   ; 
+      -R    ; 
+      T     #InOutDeltaWeight; //InOutDeltaWeight
+// Calculate value in digits
+      L     DBD  148; // "CWA01".ME.VarScaleValueInput
+      L     #tmpDigits; 
+      +D    ; 
+      T     DBD  148; // -->"CWA01".ME.VarScaleValueInput
+//Scale weight >= 0
+      L     0; 
+      >=D   ; 
+      SPB   cJ0; 
+      T     DBD  148; // "CWA01".ME.VarScaleValueInput
+cJ0:  NOP   0; 
+NETWORK
+TITLE =Simulate Alarm EsReading 
+
+//========================
+//Test maximum Value
+      L     DBD   12; // "CWA01".ParScaleCapacityWt
+      +     L#30; // +30
+      L     DBD  254; // "CWA01".ScaleWt
+      <D    ; 
+      S     DBX  244.2; // "CWA01".Fault.EsReading
+// Test Minimum Value
+      L     DBD  254; // "CWA01".ScaleWt
+      L     L#-30; 
+      <D    ; 
+      S     DBX  244.2; // "CWA01".Fault.EsReading
+
+NETWORK
+TITLE =
+
+      BE    ; 
+
+END_FUNCTION
+

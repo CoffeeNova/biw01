@@ -1,0 +1,70 @@
+TYPE "GCS7_FB86_Data"
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnableRev : BOOL ;	//Enable to run machine reverse
+   InEnableFwd : BOOL ;	//Enable to run machine forward
+   InInterlocked : BOOL ;	//Interlocked mode
+   InPowerOk : BOOL ;	//Power is ok
+   InPowerOkDelayDone : BOOL ;	//Delay time power ok is done 
+   CmdNewJob : BOOL ;	//Set OutCntRound=0, Set OutStartPosition
+   InAdjusting : BOOL ;	//1=Adjusting 0=Endless
+   InLoading : BOOL ;	//1=Loging is active
+   CmdOff : BOOL ;	//Pulse to stop motor immediately in manual mode
+   CmdOnFwd : BOOL ;	//Pulse to start forward in manual mode
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   CmdOnRev : BOOL ;	//Pulse to start reverse in manual mode
+   spare37 : BOOL ;	// 
+   CmdSetZeroPoint : BOOL ;	//Set Counter modul to 0
+   OutAdjusted : BOOL ;	//Machine is adjusted in target position
+   OutEdgeLoading : BOOL ;	//Internal used to generate alarm when Flowdetector is covered at start
+   OutEdgeCntRoundFwd : BOOL ;	//Internal used to count round
+   OutEdgeCntRoundRev : BOOL ;	//Internal used to count round
+   spare45 : BOOL ;	// 
+   spare46 : BOOL ;	// 
+   spare47 : BOOL ;	// 
+   StStopped : BOOL ;	//Motors are stopped
+   StStarting : BOOL ;	//Motors are starting
+   StStartedFwd : BOOL ;	//Motors is started in upwards
+   StStopping : BOOL ;	//Motors are stopping
+   StFault : BOOL ;	//Machine has a fault
+   StStartedRev : BOOL ;	//Machine is started downwards
+   StAdjusted : BOOL ;	//Machine is enabled and in target psoition
+   spare57 : BOOL ;	// 
+   OutManStartReqRev : BOOL ;	//Manual Mode Start request reverse
+   OutManStartReqFwd : BOOL ;	//Manual Mode Start request forward
+   VarDetaGrt170 : BOOL ;	//Internal used for round counter: Delta angle > 170 °
+   InPositionTarget : INT ;	//Target position in [0.1°]
+   InSpeed : INT ;	//Target speed [0.01%]
+   OutPositionAngle : INT ;	//Actual position in [0.1°]
+   OutPositionRel : INT ;	//Actual position in [0.1%]
+   OutCntRound : DINT ;	//Actual numbers of round
+   OutIncrement : DINT ;	//Copy 32Bit from incremental counter
+   OutPositionStart : INT ;	//Start position for round counter
+   spare1 : DINT ;	
+   spare2 : DINT ;	
+   spare3 : DINT ;	
+   spare4 : DINT ;	
+   spare5 : DINT ;	
+   spare6 : DINT ;	
+   spare7 : DINT ;	
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    ParEndless : BOOL ;	//Endless rotation
+    ParIncrementsPerRound : DINT ;	//Number of increment per round (360°)
+    ParTolPosition : INT ;	//Tolerance for target position [0.1°] 
+    ParMonTime : INT ;	//t0 Monitoring time for moving [0.1s]
+    ParIOByteNoCounter : INT ;	//First byte of IO of counter module
+    OutMonTime : INT ;	//Monitoring time left side
+    spare1 : DINT ;	
+    spare2 : INT ;	
+    spare3 : INT ;	
+    spare4 : INT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

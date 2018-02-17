@@ -1,0 +1,493 @@
+FUNCTION_BLOCK "GCS7_E_MZAF"
+TITLE =Flowbalancer MZAF
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Control MZAF
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB32.3.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB32.2.1      A. Egli             CT3                         11-Oct-1999
+//              M12.2 "Gr.OutCmdNext removed
+//FB32.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB32.1A       A.Egli              AEE61                       31-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MZAxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0   stopped
+// 1   started
+// 9   fault cancelled
+//10  fault adjust
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32   StFault                 
+// 1   StStopped                    Stopped
+//41   Stopped.HWStop               StStopped + InHWStop 
+//51   Stopped.DPFault              StStopped + DPFault
+// 2   StAdjusting             
+// 3   StStarted               
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MZAF
+VERSION : 3.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run 
+  spare0201 : BOOL ;	
+  spare0202 : BOOL ;	
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  CmdNewJob : BOOL ;	//Pulse to erase OutJobWeight
+  InFlapOpen : BOOL ;	//Flap is open, command to count up OutJobWeight 
+  InpAdjusted : BOOL ;	//Digital input element is adjusted
+  CmdOff : BOOL ;	//Pulse to start in manual mode  
+  CmdOn : BOOL ;	//Pulse to stop in manual mode
+  CmdNext : BOOL ;	//Start next element (Automatic mode)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//ALL : HW stop is detected, no fault
+  InDPFault : BOOL ;	//ALL : DP-Fault is detected, no fault
+  spare0402 : BOOL ;	
+  spare0403 : BOOL ;	
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  spare0406 : BOOL ;	
+  OutpAirValve : BOOL ;	//Digital output air valve
+  StStopped : BOOL ;	//Element is stopped
+  StAdjusting : BOOL ;	//Element is adjusting
+  StStarted : BOOL ;	//Element is adjusted
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Element has a fault
+  InOutFlowratePpm : INT ;	//Flowrate target value in [0.1 %]
+  InOutFlowrate : DINT ;	//Flowrate target value in [kg/h]
+  OutJobWeight : DINT ;	//Total feeded weight [kg]
+  OutpFlowrate : INT ;	//Analog value to set flowrate [digits]
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParFlowratePc : BOOL ;	//Target value for flowrate in Pc
+   ParSpare0403 : BOOL ;	
+   ParWago : BOOL ;	//Wago analog module format
+   ParMonTime : INT ;	//After this time the element must be adjusted [0.1 s]
+   ParFlowrate100Pc : DINT  := L#10000;	//Flow rate by 100 % of analog output [kg/h]
+   OutMonTime : INT  := 100;	//Actual monitoring time [0.1 s]
+   OutWtCorrection : REAL ;	//Correction weight for calcuation of OutWtTotal [kg]
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnable : BOOL ;	
+  tmpEndTime : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpMaxDigits : REAL ;	//ParWago=0: 27'648 / ParWago=1: 32'767
+  tmpLocalFault : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     38; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1032; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; //PCControl.Value[1]
+      L     #tmpLenDyn; 
+      SLD   3; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; //PCControl.Value
+      T     #Par.ParMonTime; 
+// Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8] =CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9] =CmdOn
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10] =CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; //Cmd2[14]=CmdReportOff
+      R     #InReport; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBW [AR1,P#6.0]; 
+      T     #InOutFlowratePpm; 
+      L     DBD [AR1,P#8.0]; 
+      T     #InOutFlowrate; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+Ctrl: U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManualMode
+//---Local---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+
+//---Report is on---
+      U     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---tmpEnable---
+      U     #InEnable; 
+      UN    #InLocal; 
+      UN    #InManual; 
+      O(    ; 
+      U     #InEnable; 
+      O     #Par.ParManual; 
+      U     #InManual; 
+      )     ; 
+      UN    #CmdOff; 
+      =     #tmpEnable; 
+//---tmpMaxDigits
+      L     2.764800e+004; //Siemens fullrange MaxDigits
+      UN    #Par.ParWago; 
+      SPB   Ctr2; 
+      L     3.276700e+004; //Wago fullrange MaxDigits
+Ctr2: T     #tmpMaxDigits; 
+
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StAdjusting; 
+      SPB   S1; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; // Init    
+      SPA   S0; 
+NETWORK
+TITLE =StStopped
+// Any transition to StStopped
+xxS0: S     #StStopped; 
+      UN    #InReport; 
+      SPB   OUT; 
+      L     B#(4, 0); // Message ('stopped' )
+      SPA   LOG; 
+//=== Logic ====
+//Transition to StStarted 
+S0:   U     #CmdNext; 
+      UN    #InManual; 
+      U     #tmpEnable; 
+      O     ; 
+      U     #CmdOn; 
+      U     #InManual; 
+      U     #tmpEnable; 
+      R     #StStopped; 
+      SPB   xxS2; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StAdjusting
+// Any transition to StAdjusting
+xxS1: S     #StAdjusting; 
+      L     0; 
+      T     #Par.OutMonTime; 
+      SPA   OUT; 
+//=== Logic ====
+S1:   UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1s
+      O     #tmpLocal; 
+      L     #Par.OutMonTime; 
+      SPB   S1J3; 
+      +     10; 
+      T     #Par.OutMonTime; 
+S1J3: L     #Par.ParMonTime; 
+      >=I   ; 
+      =     #tmpEndTime; 
+// Transition to StStopped
+      UN    #tmpEnable; 
+      R     #StAdjusting; 
+      SPB   xxS0; 
+// Transition to StStarted
+      U     #InpAdjusted; 
+      R     #StAdjusting; 
+      SPB   xxS2; 
+// Transition to StFault
+      U     #tmpEndTime; 
+      UN    #tmpLocal; 
+      R     #StAdjusting; 
+      SPB   xxS4; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+// Any transition to StStarted
+xxS2: S     #StStarted; 
+      S     #StStarted; 
+      UN    #tmpReport; 
+      SPB   OUT; 
+      L     B#(4, 1); // Message ('started')
+      SPA   LOG; 
+//=== Logic ====
+//Transition to StStopped
+S2:   UN    #tmpEnable; 
+      R     #StStarted; 
+      SPB   xxS0; 
+//Transition to StAdjusting
+      UN    #InpAdjusted; 
+      R     #StStarted; 
+      SPB   xxS1; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StFault
+// Any transiton to Fault  
+xxS4: S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      S     #StFault; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1032,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     B#(1, 10); // Message ('fault adjust')
+      SPA   LOG; 
+
+//=== Logic ====
+S4:   UN    #CmdFaultReset; 
+      UN    "GCS7_Gr_OutFaultReset"; //  Gr.OutFaultReset
+      UN    #tmpLocalFault; 
+      SPB   OUT; 
+// retry of fault message
+      UN    #InpAdjusted; 
+      UN    #tmpLocal; 
+      SPB   xxS4; 
+      R     #StFault; 
+      S     #StStopped; 
+      L     B#(3, 9); // Message ('fault cancelled' )
+      SPA   LOG; 
+NETWORK
+TITLE =LOG
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   OUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1032);
+
+NETWORK
+TITLE =Calculate Flow rate
+
+OUT:  U     #Par.ParFlowratePc; 
+      SPB   frPc; 
+      L     #InOutFlowrate; 
+      DTR   ; 
+      L     #Par.ParFlowrate100Pc; 
+      DTR   ; 
+      /R    ; 
+      L     1.000000e+003; 
+      *R    ; 
+      RND   ; 
+      T     #InOutFlowratePpm; 
+      SPA   avJ0; 
+frPc: L     #InOutFlowratePpm; 
+      DTR   ; 
+      L     1.000000e+003; 
+      /R    ; 
+      L     #Par.ParFlowrate100Pc; 
+      DTR   ; 
+      *R    ; 
+      RND   ; 
+      T     #InOutFlowrate; 
+
+NETWORK
+TITLE =Calculate Analog value
+
+avJ0: L     0; 
+      U     #StFault; 
+      SPB   avJ1; 
+      L     #InOutFlowrate; // kg/h    
+      DTR   ; // Integer to real
+      L     #Par.ParFlowrate100Pc; 
+      DTR   ; // Integer to real
+      <=R   ; 
+      SPB   avJ2; 
+      L     1.000000e+000; // 100%          
+      SPA   avJ3; 
+avJ2: /R    ; 
+avJ3: L     #tmpMaxDigits; // Units maximum
+      *R    ; 
+      RND   ; // Real to Integer
+avJ1: T     #OutpFlowrate; 
+
+NETWORK
+TITLE =Calculate OutWtTotal
+
+      UN    #CmdNewJob; 
+      SPB   wtJ1; 
+      L     0; 
+      T     #OutJobWeight; 
+      L     0.000000e+000; 
+      T     #Par.OutWtCorrection; 
+      SPA   clJ1; 
+wtJ1: ON    #InFlapOpen; 
+      ON    "GCS7_Gr_OutTick1s"; //Gr.OutTick1s
+      SPB   clJ1; 
+      L     #InOutFlowrate; 
+      DTR   ; // Integer to Real
+      L     3.600000e+003; // [3600s]  
+      /R    ; 
+      L     #Par.OutWtCorrection; 
+      +R    ; 
+      T     #Par.OutWtCorrection; 
+      RND-  ; 
+      L     #OutJobWeight; 
+      +D    ; 
+      T     #OutJobWeight; 
+      L     #Par.OutWtCorrection; 
+      L     #Par.OutWtCorrection; 
+      RND-  ; 
+      DTR   ; // Integer to Real
+      -R    ; 
+      T     #Par.OutWtCorrection; //New rest 
+//---Clear all commands
+
+NETWORK
+TITLE =Global End
+
+clJ1: SET   ; 
+      R     #CmdOn; 
+      R     #CmdOff; 
+      R     #CmdNewJob; 
+      R     #CmdFaultReset; 
+      R     #CmdNext; 
+//---Digital output
+      U     #StStarted; 
+      O     #StAdjusting; 
+      =     #OutpAirValve; 
+//--Output for group 
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; // Code: stopped
+      SPB   STC; 
+//--------------------
+STC2: L     2; // Code: adjusting
+      U     #StAdjusting; 
+      SPB   STC; 
+      L     3; // Code: started
+      U     #StStarted; 
+      SPB   STC; 
+      L     32; // Code: fault
+STC:  L     #StCode; // Old state code    
+      TAK   ; 
+      T     #StCode; // Save state code    
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

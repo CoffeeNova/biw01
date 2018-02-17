@@ -1,0 +1,1370 @@
+FUNCTION_BLOCK "GCS7_E_DFCA_Com"
+TITLE =Element Control DFCA, DFCB, DFBB
+//
+//COPYRIGHT:    (C) 2000  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        DFCA, DFCB, DFBB: Control 
+//              (Revision 13)
+//-------------------------------------------------------------------------
+//
+//IDENT:       AUTHOR:             DEPT:                       DATE:
+//FB73.7.1     A.Egli              CT3                         20-Jun-2005
+//               DFCB_6A: Command: Bit 5.6 , A202, B105: Word 4
+//FB73.7.0     A.Egli              CT3                         10-Mar-2005
+//               - A107: for DFCA (ParReadA107)
+//FB73.6.0     A.Egli              CT3                         23-Dec-2004
+//               - A202: Bit 31.0: Enable Prestart
+//FB73.5.0     A.Egli              CT3                         26-Okt-2004
+//               - B106: DFCB Specific Gravity
+//FB73.4.1     A.Egli              CT3                         15-Mar-2004
+//               - A104: Bit SumWarning
+//FB73.4.0     A.Egli              CT3                         05-Dec-2003
+//               - A202, B105, Command byte 7 and 8
+//               - Reporting changing nominla values
+//FB73.3.1     A.Egli              CT3                         26-Aug-2003
+//               A104: FirePreWarning
+//FB73.3.0     A.Egli              CT3                         04-Aug-2003
+//               DFBB, DFCB
+//FB73.2.3     A.Egli              CT3                         06-Jan-2003
+//               PumpXRequested,CmdCoolerRestdischarge
+//FB73.2.2     A.Egli              CT3                         23-Mai-2002
+//               PC Direct Control
+//FB73.2.1     A.Egli              CT3                         16-Mar-2002
+//               Set HeavyStartup flag
+//FB73.2.0     A.Egli              CT3                         05-Feb-2002
+//               With Alarm messages
+//FB73.1.1     A.Egli              CT3                         10-Sep-2001
+//               Send Stop also in state 0
+//FB73.1.0     A.Egli              CT3                         30-Jul-2001
+//               Integration in Machine
+//FB73.1C      B.Thoma             FU53                        09-Jan-2001
+//               Dosierunterbruch keine Flanke generieren !
+//FB73.1B      B.Thoma             FU53                        10-Nov-2000
+//               Fehler in Telex B102 und B103 nur wenn AKN=0 (see V1.B:)
+//FB73.1A      A. Egli             CT3                         24-Mai-2000
+//              1st Release in S7 (Original = FB80)
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MxxMAN]
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DFCA_COM
+VERSION : 7.1
+
+
+VAR_INPUT
+  IOByteNr : INT ;	//1.Byte der zugehörigen Ein- und Ausgänge
+END_VAR
+VAR
+  Spare : INT ;	
+  In : STRUCT 	
+   CmdSendB101 : BOOL ;	//Command to send telegram B101
+   CmdSendB102 : BOOL ;	//Command to send telegram B102
+   CmdSendB103 : BOOL ;	//Command to send telegram B103
+   Simulation : BOOL ;	//Simulation is on
+   CmdSendB104 : BOOL ;	//DFBB, DFCB: Command to send telegram B104
+   CmdSendB105 : BOOL ;	//DFCB: Command to send telegram B105
+   InReportingOff : BOOL ;	//No reporting local changes of nominal values
+   CmdSendB106 : BOOL ;	
+   spare10 : BOOL ;	
+   spare11 : BOOL ;	
+   spare12 : BOOL ;	
+   spare13 : BOOL ;	
+   spare14 : BOOL ;	
+   spare15 : BOOL ;	
+   spare16 : BOOL ;	
+   spare17 : BOOL ;	
+   spare20 : INT ;	
+  END_STRUCT ;	
+  Out : STRUCT 	
+   ErrorSendB101 : BOOL ;	//LC rejects B101
+   ErrorSendB102 : BOOL ;	//LC rejects B102
+   ErrorSendB103 : BOOL ;	//LC rejects B103
+   DPFault : BOOL ;	//SFC14 or SFC15 returns with error code
+   ErrorSendB104 : BOOL ;	//LC rejects B104 (DFBB, DFCB)
+   ErrorSendB105 : BOOL ;	//LC rejects B105 (DFCB)
+   ErrorSendB106 : BOOL ;	//LC rejects B106 (DFCB)
+   FlagStartPress : BOOL ;	
+   FlagStopPress : BOOL ;	
+   FlagResetTotal : BOOL ;	
+   FlagResetHorn : BOOL ;	
+   FlagFaultResetSingle : BOOL ;	
+   FaultResetAll : BOOL ;	
+   FlagHeavyStartup : BOOL ;	
+   FlagResetTotalLiquid1 : BOOL ;	
+   FlagResetTotalLiquid2 : BOOL ;	
+  END_STRUCT ;	
+  InCommand : STRUCT 	//Command are sent to LC
+   StartPress : BOOL ;	
+   StopPress : BOOL ;	
+   DischargerRunning : BOOL ;	//de:Abtransport läuft
+   CoolerOnMan : BOOL ;	//de:Austrag Gegenstromkuehler manuell ein
+   HeaterOnMan : BOOL ;	//de:Pressenheizung und -heissluft manuell ein
+   OverwriteLLHopper : BOOL ;	//de:Ueberbrueckung Vordepot Leerstand
+   Suspend : BOOL ;	//de:Dosierunterbruch
+   CmdResetTotal : BOOL ;	//de:Reset Mehlmenge
+   CmdResetHorn : BOOL ;	//de:Reset Horn
+   CmdFaultResetSingle : BOOL ;	//de:Reset einzelne Alarme
+   CmdFaultResetAll : BOOL ;	//de:Reset alle Alarme
+   CmdCoolerRestdischarge : BOOL ;	//de:Gegenstromkühler Restentleerung (CoolerOnMan must be =1)
+   PumpLiquid1Running : BOOL ;	//DFCB, DFBB de:1=Pimpe Flüssigkeit 1 läuft 
+   PumpLiquid2Running : BOOL ;	//DFCB, DFBB de:1=Pimpe Flüssigkeit 2 läuft 
+   PumpLiquid3Running : BOOL ;	//DFCB, DFBB de:1=Pimpe Flüssigkeit 3 läuft 
+   StopDischargerDFKG : BOOL ;	//DFCB, DFBB de: 1=Austarg Gegenstopkühler unterbrechen 
+   AlarmNummer : BYTE ;	
+   HeavyStartupActive : BOOL ;	//DFCB, DFBB de: 1=Scheranlauf, Start nicht möglich
+   FlapCoolerToBypass : BOOL ;	//DFCB, DFBB de: 1=Klappe Einlauf/Umgehung Kühler auf Umgehung 
+   CmdResetTotalLiquid1 : BOOL ;	//DFCB, DFBB de: 1=Reset Flüssigkeits 1
+   CmdResetTotalLiquid2 : BOOL ;	//DFCB, DFBB de: 1=Reset Flüssigkeits 2
+   FanOnMan : BOOL ;	//DFCB, DFBB de: 1=Ventilator Heissluft manuell ein
+   FlapToBag : BOOL ;	//DFCB, DFBB de: 1=Klappe auf Sack
+   SuspendConditoner : BOOL ;	//DFCB: de: 1=Konditionierunterbruch
+   spare : BOOL ;	
+   PumpLiquid4Running : BOOL ;	//DFCB de:1=Pimpe Flüssigkeit 4 läuft 
+   CmdResetTotalLiquid3 : BOOL ;	//DFCB de: 1=Reset Flüssigkeits 3
+   CmdResetTotalLiquid4 : BOOL ;	//DFCB de: 1=Reset Flüssigkeits 4
+   spare_63 : BOOL ;	
+   spare_64 : BOOL ;	
+   spare_65 : BOOL ;	
+   spare_66 : BOOL ;	
+   spare_67 : BOOL ;	
+   spare_70 : BOOL ;	
+   spare_71 : BOOL ;	
+   spare_72 : BOOL ;	
+   spare_73 : BOOL ;	
+   spare_74 : BOOL ;	
+   spare_75 : BOOL ;	
+   spare_76 : BOOL ;	
+   spare_77 : BOOL ;	
+  END_STRUCT ;	
+  OutA101Ac : STRUCT 	//A101: Actuals value are read from LC
+   PressCurrent : INT ;	//de: Pressenstrom
+   DosingSpeed : INT ;	//de: Dosierdrehzahl
+   ConditionerTemperature : INT ;	//de: Konditioniertemperatur
+   Liquid1 : INT ;	//de: Fluessigkeit 1
+   Liquid2 : INT ;	//de: Fluessigkeit 2
+   Liquid3 : INT ;	//DFCA,DFCB: de: Fluessigkeit 3
+   WorkingGap : INT ;	//de: Arbeitsspalt
+   PhaseState3 : BYTE ;	//DFCB, DFBB de: Phase Betriebszustand 3
+   State : BYTE ;	//de: Betriebszustand
+   ModeRetention : BYTE ;	//DFCB, DFBB de: Betriebsmode Verweiler
+   Mode : BYTE ;	//de: Betriebsmode
+   PositionDischarger : INT ;	//de: Position Auslaufschieber Gegebstromkühler
+   Liquid4 : INT ;	//DFCB: de: Fluessigkeit 4
+   FlouerWt : DINT ;	//de: Mehlmenge
+   Flowrate : DINT ;	//de: Dosierleistung
+  END_STRUCT ;	
+  OutA102Ac : STRUCT 	//A102: Actual value are read from LC
+   FormName : ARRAY  [1 .. 10 ] OF //de: Formname
+   CHAR ;	
+   RecipeIdent : ARRAY  [1 .. 16 ] OF //de: Rezeptident
+   CHAR ;	
+   Reserve28 : INT ;	
+   Reserve30 : BYTE ;	
+   EnablePresstart : BOOL ;	//de: Startfreigabe/Vorstart Presse
+   Spare311 : BOOL ;	
+   Spare312 : BOOL ;	
+   Spare313 : BOOL ;	
+   Spare314 : BOOL ;	
+   Spare315 : BOOL ;	
+   Spare316 : BOOL ;	
+   Spare317 : BOOL ;	
+  END_STRUCT ;	
+  OutA103Ac : STRUCT 	//A103: Actual values are read from LC : Recipe name
+   RecipeName : ARRAY  [1 .. 30 ] OF //de: Rezeptname
+   CHAR ;	
+  END_STRUCT ;	
+  OutA104Ac : STRUCT 	//A104: Actual values are read from LC : Status for visualisation
+   MotorPress : BYTE ;	//de: MotorPresse
+   DoorPress : BYTE ;	//de: TuerePresse
+   HLInletPresss : BYTE ;	//de: EinlaufsondePresse
+   HLOutletPress : BYTE ;	//de: AuslaufsondePresse
+   FatPumpPress : BYTE ;	//de: FettpumpePresse
+   OverflowFlap : BYTE ;	//DFCA: de: Ueberlaufklappe
+   MotorMixer1 : BYTE ;	//de: MotorMischer1
+   MotorMixer2 : BYTE ;	//DFCA: de: MotorMischer2
+   MotorMixer3 : BYTE ;	//DFCA: de: MotorMischer3
+   DoorMixer1 : BYTE ;	//de: TuereMischer1
+   DoorMixer2 : BYTE ;	//DFCA: de: TuereMischer2
+   DoorMixer3 : BYTE ;	//DFCA: de: TuereMischer3
+   MotorDosing : BYTE ;	//de: MotorDosierung
+   DoorDosing : BYTE ;	//DFCA: de: TuereDosierung
+   Heater : BYTE ;	//DFCA: de: Heizung
+   HotAirFan : BYTE ;	//de: Heissluft
+   LSProductFlowCooler : BYTE ;	//de: ProduktmelderKuehler
+   HLCooler : BYTE ;	//de: VollstandKuehler
+   VibroCooler : BYTE ;	//de: VibromotorKuehler
+   HydraulicPump : BYTE ;	//DFCA: de: Hydraulikpumpe
+   FireProtectionFlap : BYTE ;	//de: BrandschutzSchieber
+   LLInletHopper : BYTE ;	//de: LeerstandVordepot
+   LLBin : BYTE ;	//de: LeerstandSilo
+   MiidleLevlBin : BYTE ;	//de: MittelstandSilo
+   HornOn : BOOL ;	//de: HornEin
+   SumAlarm : BOOL ;	//de: SammelAlarm
+   Pump1Requested : BOOL ;	//de: Pumpe Flüssigkeit 1 einschalten
+   Pump2Requested : BOOL ;	//de: Pumpe Flüssigkeit 2 einschalten
+   Pump3Requested : BOOL ;	//DFCA: de: Pumpe Flüssigkeit 3 einschalten
+   Pump4Requested : BOOL ;	//DFCA: de: Pumpe Flüssigkeit 4 einschalten
+   SumWarning : BOOL ;	//de: SammelWarnung
+   FirePreWarning : BOOL ;	//DE: Brandfrüherkennung angesprochen
+   LLInletHopperReal : BYTE ;	//de: LeerstandVordepot unabhängig von Ueberbrueckung
+   Messages : ARRAY  [200 .. 231 ] OF //de: Meldungen
+   BOOL ;	
+  END_STRUCT ;	
+  OutA201Nom : STRUCT 	//A201: Nominal values are read from LC : Status for visualisation
+   Pressenstrom : INT ;	//de: Pressenstrom
+   DosingSpeed : INT ;	//de: Dosierdrehzahl
+   DosingSpeed2 : INT ;	//de: Dosierdrehzahl Stufe 2
+   DosingSpeed3 : INT ;	//de: Dosierdrehzahl Stufe 3
+   ConditionerTemperature : INT ;	//de: Konditioniertemperatur
+   Liquid1 : INT ;	//de: Fluessigkeit 1
+   Liquid2 : INT ;	//de: Fluessigkeit 2
+   Liquid3 : INT ;	//DFCA, DFCB: de: Fluessigkeit 3
+   WorkingGap : INT ;	//de: Arbeitsspalt
+   ParameterSet : INT ;	//de: Parametersatz
+   CapacityCooler : INT ;	//de: DurchsatzKuehler
+   RetentionTime : INT ;	//DFBB, DFCB: de: Sollwert Verweilzeit
+   BulkDensity : INT ;	//de: Schüettgewicht
+   Capacity100Pc : DINT ;	//de: Durchsatz100Pc
+  END_STRUCT ;	
+  OutA301Ac : STRUCT 	//A301: Actual values are read from LC : Alarmstatus
+   Alarms : ARRAY  [1 .. 15 ] OF //de: Alarme
+   STRUCT 	
+    Number : BYTE ;	
+    Status : BYTE ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+  InB101Nom : STRUCT 	//B101: Nominal values are sent to LC : Part 1
+   PressCurrent : INT ;	//de: Pressenstrom
+   DosingSpeed : INT ;	//de: Dosierdrehzahl
+   DosingSpeed2 : INT ;	//de: Dosierdrehzahl Stufe 2
+   DosingSpeed3 : INT ;	//DFCA: de: Dosierdrehzahl Stufe 3
+   ConditionerTemperature : INT ;	//de: Konditioniertemperatur
+   Liquid1 : INT ;	//de: Fluessigkeit 1
+   Liquid2 : INT ;	//de: Fluessigkeit 2
+   Liquid3 : INT ;	//DFCA, DFCB: de: Fluessigkeit 3
+   WorkingGap : INT ;	//de: Arbeitsspalt
+   CapacityCooler : INT ;	//de: DurchsatzKuehler
+   ParameterSet : INT ;	//de: Parametersatz
+   RetentionTime : INT ;	//DFBB, DFCB: de: Sollwert Verweilzeit
+   BulkDensity : INT ;	//DFBB, DFCB: de: Schüttgewicht
+   Capacity100Pc : DINT ;	//DFCA, DFBB:  de: Durchsatz100Pc
+  END_STRUCT ;	
+  InB102Nom : STRUCT 	//B102: Nominal values are sent to LC : Part 2
+   FormName : ARRAY  [1 .. 10 ] OF CHAR ;	
+   RecipeIdent : ARRAY  [1 .. 16 ] OF //de:Rezeptident
+   CHAR ;	
+   Spare28 : INT ;	
+   Spare30 : INT ;	
+  END_STRUCT ;	
+  InB103Nom : STRUCT 	//B103: Nominal values are sent to LC: Part 3
+   RecipeName : ARRAY  [1 .. 30 ] OF //de: Rezeptname
+   CHAR ;	
+  END_STRUCT ;	
+  OutAnswerB101 : ARRAY  [1 .. 15 ] OF STRUCT 	
+   AKN : BYTE ;	
+   ErrorCode : BYTE ;	
+  END_STRUCT ;	
+  OutA105Ac : STRUCT 	//DFCB, DFBB: A105: Actuals value are read from LC
+   InletPressTemperature : INT ;	//de: Istwert Temperatur Einlauf
+   PressTemperature : INT ;	//de: Istwert Temperatur Pressenraum
+   CoolerInletTemperature : INT ;	//de: Istwert Temperatur Kühlereinlauf
+   ExhaustHootTemperature : INT ;	//de: Istwert Temperatur Absaughaube
+   HeaterPressTemperature : INT ;	//de: Istwert Temperatur Heizmatte Presse
+   HeaterMixerTemperature : INT ;	//de: Istwert Temperatur Heizmatte Mischer
+   Retention1Temperature : INT ;	//de: Istwert Temperatur Heizmatte Verweiler 1
+   Retention2Temperature : INT ;	//de: Istwert Temperatur Heizmatte Verweiler 2
+   SteamFlow : INT ;	//de: Istwert Dampfmenge [kg/h]
+   RetentionProductTemp : INT ;	//de: Istwert Produkttemperatur Verweiler
+   TotalLiquid1 : INT ;	//de: Dosierte Fluessigkeitsmenge 1
+   TotalLiquid2 : INT ;	//de: Dosierte Fluessigkeitsmenge 2
+   TotalLiquid3 : INT ;	//DFCB de: Dosierte Fluessigkeitsmenge 3
+   TotalLiquid4 : INT ;	//DFCB de: Dosierte Fluessigkeitsmenge 4
+   spare30 : INT ;	
+  END_STRUCT ;	
+  OutA106Ac : STRUCT 	//DFCB, DFBB: A106: Actual value are read from LC
+   RecipeGroup : ARRAY  [1 .. 10 ] OF //de: Formname
+   CHAR ;	
+   Spare12 : ARRAY  [12 .. 31 ] OF //de: Formname
+   CHAR ;	
+  END_STRUCT ;	
+  OutA107Ac : STRUCT 	//DFCB, DFBB: A107: Actual values are read from DFCA : Status for visualisation
+   LevelInletDFKC : BYTE ;	//de: Einlaufsonde Bandkühler DFKC
+   LevelOutlnletDFKC : BYTE ;	//de: Auslaufsonde Bandkühler DFKC
+   MotorDFKC : BYTE ;	//de: Antriebsmotor Bandkühler
+   FlapBypassCooler : BYTE ;	//de: Klappe Einlauf/Umgehung Kühler
+   FlapBag : BYTE ;	//de: Klappe Sack
+   HeaterPress : BYTE ;	//de: Heizmatten Presse
+   HeaterMixer : BYTE ;	//de: Heizmatten Mischer
+   HeaterRetention : BYTE ;	//de: Heizmatten Verweiler
+   MotorRetention1 : BYTE ;	//de: Motor Verweiler 1
+   MotorRetention2 : BYTE ;	//de: Motor Verweiler 2
+   FlapBypassPress : BYTE ;	//de: Klappe Einlauf/Umgehung Presse
+   MotorScrewFat : BYTE ;	//DFCA de: Motor Schnecke Fettaufspruehung
+   spare14 : BYTE ;	
+   spare15 : BYTE ;	
+   spare16 : BYTE ;	
+   spare17 : BYTE ;	
+   spare18 : BYTE ;	
+   spare19 : BYTE ;	
+   spare20 : BYTE ;	
+   spare21 : BYTE ;	
+   spare22 : BYTE ;	
+   spare23 : BYTE ;	
+   RollLeftTemperature : INT ;	//de: Temperatur Pressrolle links
+   RollRightTemperature : INT ;	//de: Temperatur Pressrolle rechts
+   PelletChamberTemperature : INT ;	//de: Temperatur Brandüberwachunf Pressenraum 
+   PelletInletTemperature : INT ;	//de: Temperatur Brandüberwachung Pressebeinlauf
+  END_STRUCT ;	
+  InB104Nom : STRUCT 	//DFCB, DFBB: B104: Nominal values are sent to LC : Part 4
+   RecipeGroup : ARRAY  [1 .. 10 ] OF //DFBB, DFBC: de:Rezeptgroup
+   CHAR ;	
+   spare12 : ARRAY  [12 .. 31 ] OF CHAR ;	
+  END_STRUCT ;	
+  InB105Nom : STRUCT 	//B105: Nominal values are sent to LC: Part 5
+   Liquid4 : INT ;	//DFCB: de: Fluessigkeit 4
+   CorrFactorFlowrate : INT ;	//DFCB: de: Korrekturfaktor Berechung max. Mehldurchsatz
+   spare6 : INT ;	
+   spare8 : INT ;	
+   spare10 : INT ;	
+   spare12 : INT ;	
+   spare14 : INT ;	
+   spare16 : INT ;	
+   spare18 : INT ;	
+   spare20 : INT ;	
+   spare22 : INT ;	
+   spare24 : INT ;	
+   spare26 : INT ;	
+   spare28 : INT ;	
+   spare30 : INT ;	
+  END_STRUCT ;	
+  OutAnswerB105 : ARRAY  [1 .. 15 ] OF STRUCT 	
+   AKN : BYTE ;	
+   ErrorCode : BYTE ;	
+  END_STRUCT ;	
+  OutA202Nom : STRUCT 	//A202: Nominal values are read from LC : Status for visualisation
+   Liquid4 : INT ;	//DFCB: de: Fluessigkeit 4
+   CorrFactorFlowrate : INT ;	//DFCB: de: Korrekturfaktor Berechung max. Mehldurchsatz
+   spare6 : INT ;	
+   spare8 : INT ;	
+   spare10 : INT ;	
+   spare12 : INT ;	
+   spare14 : INT ;	
+   spare16 : INT ;	
+   spare18 : INT ;	
+   spare20 : INT ;	
+   spare22 : INT ;	
+   spare24 : INT ;	
+   spare26 : INT ;	
+   spare28 : INT ;	
+   spare30 : INT ;	
+  END_STRUCT ;	
+  InB106Nom : STRUCT 	//B105: Nominal values are sent to LC: Part 5
+   SpecificGravityLiquid1 : INT ;	//DFCB: Specific Gravity Liquid 1
+   SpecificGravityLiquid2 : INT ;	//DFCB: Specific Gravity Liquid 2
+   SpecificGravityLiquid3 : INT ;	//DFCB: Specific Gravity Liquid 3
+   SpecificGravityLiquid4 : INT ;	//DFCB: Specific Gravity Liquid 4
+   spare10 : INT ;	//de: Arbeitsspalt
+   spare12 : INT ;	//de: Arbeitsspalt
+   spare14 : INT ;	//de: Arbeitsspalt
+   spare16 : INT ;	//de: Arbeitsspalt
+   spare18 : INT ;	//de: Arbeitsspalt
+   spare20 : INT ;	//de: Arbeitsspalt
+   spare22 : INT ;	//de: Arbeitsspalt
+   spare24 : INT ;	//de: Arbeitsspalt
+   spare26 : INT ;	//de: Arbeitsspalt
+   spare28 : INT ;	//de: Arbeitsspalt
+   spare30 : INT ;	//de: Arbeitsspalt
+  END_STRUCT ;	
+  OutAnswerB106 : ARRAY  [1 .. 15 ] OF STRUCT 	
+   AKN : BYTE ;	
+   ErrorCode : BYTE ;	
+  END_STRUCT ;	
+  spare336 : INT ;	//Step Communication: Internal used
+  spare338 : INT ;	//Step Communication: Internal used
+  Out2 : STRUCT 	//Step Communication: Internal used
+   FlagResetTotalLiquid3 : BOOL ;	
+   FlagResetTotalLiquid4 : BOOL ;	
+   spare02 : BOOL ;	
+   spare03 : BOOL ;	
+   spare04 : BOOL ;	
+   spare05 : BOOL ;	
+   spare06 : BOOL ;	
+   spare07 : BOOL ;	
+   spare08 : BOOL ;	
+  END_STRUCT ;	
+  Step : INT ;	//Step Communication: Internal used
+  SendIdent : WORD ;	
+  RetValueSFCRead : INT ;	//Parameter RET_VAL of SFC14: DPRD_DAT
+  RetValueSFCSend : INT ;	//Parameter RET_VAL of SFC15: DPWR_DAT
+  OutTimeOut : INT ;	//Timeout communication
+  OutLogA201Nom : STRUCT 	//Internel used when reporting local changes
+   Pressenstrom : INT ;	//de: Pressenstrom
+   DosingSpeed : INT ;	//de: Dosierdrehzahl
+   DosingSpeed2 : INT ;	//de: Dosierdrehzahl Stufe 2
+   DosingSpeed3 : INT ;	//de: Dosierdrehzahl Stufe 3
+   ConditionerTemperature : INT ;	//de: Konditioniertemperatur
+   Liquid1 : INT ;	//de: Fluessigkeit 1
+   Liquid2 : INT ;	//de: Fluessigkeit 2
+   Liquid3 : INT ;	//DFCA, DFCB: de: Fluessigkeit 3
+   WorkingGap : INT ;	//de: Arbeitsspalt
+   ParameterSet : INT ;	//de: Parametersatz
+   CapacityCooler : INT ;	//de: DurchsatzKuehler
+   RetentionTime : INT ;	//DFBB, DFCB: de: Sollwert Verweilzeit
+   BulkDensity : INT ;	//de: Schüettgewicht
+   Capacity100Pc : DINT ;	//de: Durchsatz100Pc
+  END_STRUCT ;	
+  OutLogA202Nom : STRUCT 	//Internel used when reporting local changes
+   Liquid4 : INT ;	//DFCB: de: Fluessigkeit 4
+   spare4 : INT ;	//de: Arbeitsspalt
+   spare6 : INT ;	//de: Arbeitsspalt
+   spare8 : INT ;	//de: Arbeitsspalt
+   spare10 : INT ;	//de: Arbeitsspalt
+   spare12 : INT ;	//de: Arbeitsspalt
+   spare14 : INT ;	//de: Arbeitsspalt
+   spare16 : INT ;	//de: Arbeitsspalt
+   spare18 : INT ;	//de: Arbeitsspalt
+   spare20 : INT ;	//de: Arbeitsspalt
+   spare22 : INT ;	//de: Arbeitsspalt
+   spare24 : INT ;	//de: Arbeitsspalt
+   spare26 : INT ;	//de: Arbeitsspalt
+   spare28 : INT ;	//de: Arbeitsspalt
+   spare30 : INT ;	//de: Arbeitsspalt
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	
+   ParMsgType : INT ;	//Reporting Element state
+   ParHornCode : INT ;	//Not Used
+   ParDFCA : BOOL ;	
+   ParDFCB : BOOL ;	
+   ParDFBB : BOOL ;	
+   ParReadA107 : BOOL ;	//Only for DFCA
+   ParMsgTypeNom : INT ;	//Reporting Nominal values
+   spare : INT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddr : WORD ;	
+  tmpRetVal : INT ;	
+  tmpErrorSnd : BOOL ;	
+  tmpFound : BOOL ;	
+  ComData : STRUCT 	//Receive Data Block
+   Ident : WORD ;	
+   Data : ARRAY  [2 .. 16 ] OF INT ;	
+  END_STRUCT ;	
+  tmpCnt : INT ;	
+  tmpAlarm : WORD ;	
+  tmpValueOld : DINT ;	
+  tmpValueNew : DINT ;	
+  tmpLOGvalue : WORD ;	//LOG value
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1073; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; //Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; //Handshake.FDefinePara
+      SPB   pPar; 
+      SPA   Ctrl; //[1.1]
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: NOP   0; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; //-->PCControl.GC.InDynAddr
+      L     330; //Length dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; //-->PCControl.GC.InDynLen
+      L     0; //Address parameter data
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; //-->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     12; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =Read Data
+
+      L     #IOByteNr; 
+      T     #tmpAddr; 
+      U     #In.Simulation; 
+      SPB   r001; 
+//read from DFCA
+      CALL "SIEMENS_DPRD_DAT" (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #RetValueSFCRead,
+           RECORD                   := #ComData);
+      SPA   r002; 
+//read from Simulation
+r001: L     0; 
+      T     #RetValueSFCSend; 
+      T     #RetValueSFCRead; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   "TEST_IOSimuliInput"; 
+      L     P#DBX 0.0; 
+rDB1: L     #IOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     W [AR1,P#0.0]; 
+      T     #ComData.Ident; 
+      L     W [AR1,P#2.0]; 
+      T     #ComData.Data[2]; 
+      L     W [AR1,P#4.0]; 
+      T     #ComData.Data[3]; 
+      L     W [AR1,P#6.0]; 
+      T     #ComData.Data[4]; 
+      L     W [AR1,P#8.0]; 
+      T     #ComData.Data[5]; 
+      L     W [AR1,P#10.0]; 
+      T     #ComData.Data[6]; 
+      L     W [AR1,P#12.0]; 
+      T     #ComData.Data[7]; 
+      L     W [AR1,P#14.0]; 
+      T     #ComData.Data[8]; 
+      L     W [AR1,P#16.0]; 
+      T     #ComData.Data[9]; 
+      L     W [AR1,P#18.0]; 
+      T     #ComData.Data[10]; 
+      L     W [AR1,P#20.0]; 
+      T     #ComData.Data[11]; 
+      L     W [AR1,P#22.0]; 
+      T     #ComData.Data[12]; 
+      L     W [AR1,P#24.0]; 
+      T     #ComData.Data[13]; 
+      L     W [AR1,P#26.0]; 
+      T     #ComData.Data[14]; 
+      L     W [AR1,P#28.0]; 
+      T     #ComData.Data[15]; 
+      L     W [AR1,P#30.0]; 
+      T     #ComData.Data[16]; 
+r002: NOP   0; 
+
+NETWORK
+TITLE =Store received Data
+// Reset Edge commands----------------
+// -Test send command
+      L     #SendIdent; 
+      L     W#16#F000; 
+      UW    ; 
+      L     W#16#A000; 
+      <>I   ; 
+      SPB   AJ0; 
+// -condition
+      L     #ComData.Ident; 
+      L     #SendIdent; 
+      <>I   ; 
+      SPB   AJ0; 
+      U     #Out.FlagResetTotal; 
+      R     #InCommand.CmdResetTotal; 
+      U     #Out.FlagResetTotalLiquid1; 
+      R     #InCommand.CmdResetTotalLiquid1; 
+      U     #Out.FlagResetTotalLiquid2; 
+      R     #InCommand.CmdResetTotalLiquid2; 
+      U     #Out2.FlagResetTotalLiquid3; 
+      R     #InCommand.CmdResetTotalLiquid3; 
+      U     #Out2.FlagResetTotalLiquid4; 
+      R     #InCommand.CmdResetTotalLiquid4; 
+// -uncondition
+AJ0:  L     #ComData.Ident; 
+      L     #SendIdent; 
+      <>I   ; 
+      U(    ; 
+      L     #RetValueSFCSend; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      SPB   AJ1; 
+      U     #Out.FlagStartPress; 
+      R     #InCommand.StartPress; 
+      U     #Out.FlagStopPress; 
+      R     #InCommand.StopPress; 
+      U     #Out.FlagResetHorn; 
+      R     #InCommand.CmdResetHorn; 
+      U     #Out.FlagFaultResetSingle; 
+      R     #InCommand.CmdFaultResetSingle; 
+      U     #Out.FaultResetAll; 
+      R     #InCommand.CmdFaultResetAll; 
+//---Test Error----------------
+AJ1:  L     #RetValueSFCRead; 
+      L     0; 
+      <>I   ; 
+      SPB   BXXX; 
+      L     #RetValueSFCSend; 
+      L     0; 
+      ==I   ; 
+      <>I   ; 
+      SPB   BXXX; 
+//---Store recevie Data--------
+//A101------------------------
+      L     #ComData.Ident; 
+      L     W#16#A101; 
+      <>I   ; 
+      SPB   A102; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA101Ac);
+//A102------------------------
+A102: L     #ComData.Ident; 
+      L     W#16#A102; 
+      <>I   ; 
+      SPB   A103; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA102Ac);
+//A103------------------------
+A103: L     #ComData.Ident; 
+      L     W#16#A103; 
+      <>I   ; 
+      SPB   A104; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA103Ac);
+//A104------------------------
+A104: L     #ComData.Ident; 
+      L     W#16#A104; 
+      <>I   ; 
+      SPB   A105; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA104Ac);
+
+//A105------------------------ //[3.0]
+A105: L     #ComData.Ident; //[3.0]
+      L     W#16#A105; //[3.0]
+      <>I   ; //[3.0]
+      SPB   A106; //[3.0]
+      CALL "SIEMENS_BLKMOV" (//[3.0]
+           SRCBLK                   := #ComData.Data,//[3.0]
+           RET_VAL                  := #tmpRetVal,//[3.0]
+           DSTBLK                   := #OutA105Ac);//[3.0]
+//A106------------------------ //[3.0]
+A106: L     #ComData.Ident; //[3.0]
+      L     W#16#A106; //[3.0]
+      <>I   ; //[3.0]
+      SPB   A107; //[3.0]
+      CALL "SIEMENS_BLKMOV" (//[3.0]
+           SRCBLK                   := #ComData.Data,//[3.0]
+           RET_VAL                  := #tmpRetVal,//[3.0]
+           DSTBLK                   := #OutA106Ac);//[3.0]
+//A107------------------------ //[3.0]
+A107: L     #ComData.Ident; //[3.0]
+      L     W#16#A107; //[3.0]
+      <>I   ; //[3.0]
+      SPB   A201; //[3.0]
+      CALL "SIEMENS_BLKMOV" (//[3.0]
+           SRCBLK                   := #ComData.Data,//[3.0]
+           RET_VAL                  := #tmpRetVal,//[3.0]
+           DSTBLK                   := #OutA107Ac);//[3.0]
+//A201------------------------
+A201: L     #ComData.Ident; 
+      L     W#16#A201; 
+      <>I   ; 
+      SPB   A202; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA201Nom);
+//A202------------------------
+A202: L     #ComData.Ident; 
+      L     W#16#A202; 
+      <>I   ; 
+      SPB   A301; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA202Nom);
+//A301------------------------
+A301: L     #ComData.Ident; 
+      L     W#16#A301; 
+      <>I   ; 
+      SPB   B101; 
+//===========================================
+//Send Alarm Message to PC
+      L     #Par.ParObjectNo; 
+      L     0; 
+      ==I   ; 
+      SPB   alNO; //--> NoAlarm
+      L     P##ComData; 
+      L     P#2.0; 
+      +D    ; 
+      LAR1  ; 
+      L     B [AR1,P#0.0]; 
+      T     #tmpAlarm; 
+      L     0; 
+      ==I   ; 
+      SPB   alNO; //--> NoAlarm
+      L     B [AR1,P#1.0]; 
+      L     0; 
+      ==I   ; 
+      SPB   alNO; //--> NoAlarm
+      TAR2  ; 
+      L     DW#16#FFFFFF; //Clear Memory type
+      UD    ; 
+      L     P##OutA301Ac; 
+      +D    ; 
+      LAR1  ; 
+      L     15; 
+alNx: T     #tmpCnt; 
+      L     B [AR1,P#0.0]; 
+      L     #tmpAlarm; 
+      ==I   ; 
+      U(    ; 
+      L     B [AR1,P#1.0]; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      SPB   alNO; // If old Alrman the --> NoAlarm
+      +AR1  P#2.0; 
+      L     #tmpCnt; 
+      LOOP  alNx; 
+      L     #tmpAlarm; 
+      L     W#16#100; //Error Class
+      OW    ; 
+      T     #tmpAlarm; 
+      CALL "GCS7_LogConvert_10" (//LOG Message Convert
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpAlarm,//Contains Class and TextNo
+           OType                    := 1073,
+           MsgFormat                := 13,
+           OldValue                 := L#0,
+           NewValue                 := L#0);
+//============================================
+alNO: CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutA301Ac);
+//B101------------------------
+B101: L     #ComData.Ident; 
+      L     W#16#EE00; //Error code Wrong Mode
+      ==I   ; 
+      =     #tmpErrorSnd; 
+      L     #SendIdent; 
+      L     W#16#B101; 
+      <>I   ; 
+      SPB   B102; 
+      U     #tmpErrorSnd; 
+      S     #Out.ErrorSendB101; 
+      SPB   B102; 
+      L     #ComData.Ident; 
+      L     W#16#B101; 
+      <>I   ; 
+      SPB   B102; 
+      R     #In.CmdSendB101; 
+      R     #Out.ErrorSendB101; 
+//=============================================
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #ComData.Data,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutAnswerB101);
+//B102------------------------
+B102: L     #SendIdent; 
+      L     W#16#B102; 
+      <>I   ; 
+      SPB   B103; 
+      U     #tmpErrorSnd; 
+      S     #Out.ErrorSendB102; 
+      SPB   B103; 
+      L     #ComData.Ident; 
+      L     W#16#B102; 
+      ==I   ; 
+      R     #In.CmdSendB102; 
+      R     #Out.ErrorSendB102; 
+//B103------------------------
+B103: L     #SendIdent; 
+      L     W#16#B103; 
+      <>I   ; 
+      SPB   B104; //[3.0]
+      U     #tmpErrorSnd; 
+      S     #Out.ErrorSendB103; 
+      SPB   BXXX; 
+      L     #ComData.Ident; 
+      L     W#16#B103; 
+      ==I   ; 
+      R     #In.CmdSendB103; 
+      R     #Out.ErrorSendB103; 
+//B104------------------------       //[3.0] -->
+B104: L     #SendIdent; 
+      L     W#16#B104; 
+      <>I   ; 
+      SPB   B105; 
+      U     #tmpErrorSnd; 
+      S     #Out.ErrorSendB104; 
+      SPB   B105; 
+      L     #ComData.Ident; 
+      L     W#16#B104; 
+      ==I   ; 
+      R     #In.CmdSendB104; 
+      R     #Out.ErrorSendB104; //<---[3.0]
+//B105------------------------          //[4.0]
+B105: L     #ComData.Ident; //[4.0]
+      L     W#16#EE00; //[4.0] Error code Wrong Mode
+      ==I   ; //[4.0]
+      =     #tmpErrorSnd; //[4.0]
+      L     #SendIdent; //[4.0]
+      L     W#16#B105; //[4.0]
+      <>I   ; //[4.0]
+      SPB   B106; //[4.0]
+      U     #tmpErrorSnd; //[4.0]
+      S     #Out.ErrorSendB105; //[4.0]
+      SPB   B106; //[4.0]
+      L     #ComData.Ident; //[4.0]
+      L     W#16#B105; //[4.0]
+      <>I   ; //[4.0]
+      SPB   B106; //[4.0]
+      R     #In.CmdSendB105; //[4.0]
+      R     #Out.ErrorSendB105; //[4.0]
+//=============================================
+      CALL "SIEMENS_BLKMOV" (//[4.0]
+           SRCBLK                   := #ComData.Data,//[4.0]
+           RET_VAL                  := #tmpRetVal,//[4.0]
+           DSTBLK                   := #OutAnswerB105);//[4.0]
+//B106------------------------          //[4.0]
+B106: L     #ComData.Ident; //[5.0]
+      L     W#16#EE00; //[5.0] Error code Wrong Mode
+      ==I   ; //[5.0]
+      =     #tmpErrorSnd; //[5.0]
+      L     #SendIdent; //[5.0]
+      L     W#16#B106; //[5.0]
+      <>I   ; //[5.0]
+      SPB   B107; //[5.0]
+      U     #tmpErrorSnd; //[5.0]
+      S     #Out.ErrorSendB106; //[5.0]
+      SPB   B107; //[5.0]
+      L     #ComData.Ident; //[5.0]
+      L     W#16#B106; //[5.0]
+      <>I   ; //[5.0]
+      SPB   B107; //[5.0]
+      R     #In.CmdSendB106; //[5.0]
+      R     #Out.ErrorSendB106; //[5.0]
+//=============================================
+      CALL "SIEMENS_BLKMOV" (//[5.0]
+           SRCBLK                   := #ComData.Data,//[5.0]
+           RET_VAL                  := #tmpRetVal,//[5.0]
+           DSTBLK                   := #OutAnswerB106);//[5.0]
+B107: NOP   0; 
+BXXX: NOP   0; 
+NETWORK
+TITLE =Send Data
+// ===================================
+// Wait for answer telegramm
+// ===================================
+      UN    "GCS7_Gr_OutTick500ms"; 
+      SPB   SnTo; 
+      L     #OutTimeOut; 
+      +     5; 
+      T     #OutTimeOut; 
+SnTo: NOP   0; 
+      L     #SendIdent; 
+      L     #ComData.Ident; 
+      <>I   ; 
+      U(    ; 
+      L     #ComData.Ident; 
+      L     W#16#EE01; 
+      <>I   ; 
+      )     ; 
+      U(    ; 
+      L     #ComData.Ident; 
+      L     W#16#EE00; 
+      <>I   ; 
+      )     ; 
+      U(    ; 
+      L     #SendIdent; 
+      L     W#16#0; 
+      <>I   ; 
+      )     ; 
+      U(    ; 
+      L     #OutTimeOut; 
+      L     20; //Egli
+      <I    ; 
+      )     ; 
+      SPB   SnEn; //--> Not Done
+//==================================================
+//Prepare Data for Next Telegram
+LOOP: L     0; 
+      T     #OutTimeOut; 
+      L     #Step; 
+      SPL   SnEs; //Else
+      SPA   Sn0; 
+      SPA   Sn1; 
+      SPA   Sn2; 
+      SPA   Sn3; 
+      SPA   Sn4; 
+      SPA   Sn5; 
+      SPA   Sn6; 
+      SPA   Sn7; 
+      SPA   Sn8; 
+      SPA   Sn9; //[3.0]
+      SPA   Sn10; //[3.0]
+      SPA   Sn11; //[3.0]
+      SPA   Sn12; //[3.0]
+      SPA   Sn13; //[4.0] A202
+      SPA   Sn14; //[4.0] B105
+      SPA   Sn15; //[5.0] B106
+//Else: Init Step
+SnEs: L     0; 
+      T     #Step; 
+//A101:Read Betriebswerte:
+Sn0:  NOP   0; 
+      L     W#16#A101; 
+      SPA   Snd1; 
+//A102:Read Formname und Rezeptident
+Sn1:  NOP   0; 
+      L     W#16#A102; 
+      SPA   Snd1; 
+//A103:Read Rezeptname
+Sn2:  NOP   0; 
+      L     W#16#A103; 
+      SPA   Snd1; 
+//A104:Read Visualisierung
+Sn3:  NOP   0; 
+      L     W#16#A104; 
+      SPA   Snd1; 
+//A201:Read Eingestellte Sollwerte
+Sn4:  NOP   0; 
+      L     W#16#A201; 
+      SPA   Snd1; 
+//A301:Read AlarmStaten
+Sn5:  NOP   0; 
+      L     W#16#A301; 
+      SPA   Snd1; 
+//B101:Send Sollwerte Anlage
+Sn6:  UN    #In.CmdSendB101; 
+      SPB   SnNx; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #InB101Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #ComData.Data);
+      L     W#16#B101; 
+      SPA   Snd2; 
+//B102:Send Formname + Rezeptident
+Sn7:  UN    #In.CmdSendB102; 
+      O     #In.CmdSendB101; 
+      SPB   SnNx; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #InB102Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #ComData.Data);
+      L     W#16#B102; 
+      SPA   Snd2; 
+//B103:Send Rezeptname
+Sn8:  UN    #In.CmdSendB103; 
+      O     #In.CmdSendB101; 
+      O     #In.CmdSendB102; 
+      SPB   SnNx; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #InB103Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #ComData.Data);
+      L     W#16#B103; 
+      SPA   Snd2; 
+//B103:Send Recipe group          //[3.0] -->
+Sn9:  UN    #In.CmdSendB104; 
+      O     #In.CmdSendB101; 
+      O     #In.CmdSendB102; 
+      O     #In.CmdSendB103; 
+      SPB   SnNx; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #InB104Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #ComData.Data);
+      L     W#16#B104; 
+      SPA   Snd2; //<<--[3.0]
+//A105:Read Visualisierung
+Sn10: UN    #Par.ParDFCB; //[3.0]
+      UN    #Par.ParDFBB; //[3.0]
+      SPB   SnNx; //[3.0]
+      L     W#16#A105; //[3.0]
+      SPA   Snd1; //[3.0]
+//A106:Read Visualisierung
+Sn11: UN    #Par.ParDFCB; //[3.0]
+      UN    #Par.ParDFBB; //[3.0]
+      SPB   SnNx; //[3.0]
+      L     W#16#A106; //[3.0]
+      SPA   Snd1; //[3.0]
+//A106:Read Visualisierung
+Sn12: UN    #Par.ParDFCB; //[3.0]
+      UN    #Par.ParDFBB; //[3.0]
+      UN    #Par.ParReadA107; //[7.0]
+      SPB   SnNx; //[3.0]
+      L     W#16#A107; //[3.0]
+      SPA   Snd1; //[3.0]
+//A106:Read Visualisierung
+Sn13: UN    #Par.ParDFCB; //[4.0]
+      SPB   SnNx; //[4.0]
+      L     W#16#A202; //[4.0]
+      SPA   Snd1; //[4.0]
+//B105:Send Sollwerte Anlage 2          //[4.0]
+Sn14: UN    #In.CmdSendB105; //[4.0]
+      SPB   SnNx; //[4.0]
+      CALL "SIEMENS_BLKMOV" (//[4.0]
+           SRCBLK                   := #InB105Nom,//[4.0]
+           RET_VAL                  := #tmpRetVal,//[4.0]
+           DSTBLK                   := #ComData.Data);//[4.0]
+      L     W#16#B105; //[4.0]
+      SPA   Snd2; 
+//B106:Send Parameter                   //[5.0]
+Sn15: UN    #In.CmdSendB106; //[5.0]
+      SPB   SnNx; //[5.0]
+      CALL "SIEMENS_BLKMOV" (//[5.0]
+           SRCBLK                   := #InB106Nom,//[5.0]
+           RET_VAL                  := #tmpRetVal,//[5.0]
+           DSTBLK                   := #ComData.Data);//[5.0]
+      L     W#16#B106; //[5.0]
+      SPA   Snd2; 
+//Prepare for all Axxx
+Snd1: T     #SendIdent; 
+      L     #OutA101Ac.State; 
+      L     0; 
+      <>I   ; 
+      O     #InCommand.StopPress; 
+      R     #InCommand.StartPress; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #InCommand,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #ComData.Data);
+      U     #InCommand.StartPress; 
+      =     #Out.FlagStartPress; 
+      U     #InCommand.StopPress; 
+      =     #Out.FlagStopPress; 
+      U     #InCommand.CmdResetTotal; 
+      =     #Out.FlagResetTotal; 
+      U     #InCommand.CmdResetHorn; 
+      =     #Out.FlagResetHorn; 
+      U     #InCommand.CmdFaultResetSingle; 
+      =     #Out.FlagFaultResetSingle; 
+      U     #InCommand.CmdFaultResetAll; 
+      =     #Out.FaultResetAll; 
+      U     #InCommand.CmdResetTotalLiquid1; 
+      =     #Out.FlagResetTotalLiquid1; 
+      U     #InCommand.CmdResetTotalLiquid2; 
+      =     #Out.FlagResetTotalLiquid2; 
+      U     #InCommand.CmdResetTotalLiquid3; 
+      =     #Out2.FlagResetTotalLiquid3; 
+      U     #InCommand.CmdResetTotalLiquid4; 
+      =     #Out2.FlagResetTotalLiquid4; 
+      SPA   Snd3; 
+//Prepare for all Bxxx
+//Send
+Snd2: T     #SendIdent; 
+Snd3: L     #SendIdent; 
+      T     #ComData.Ident; 
+//write to DFCA
+      U     #In.Simulation; 
+      SPB   Snd4; 
+      CALL "SIEMENS_DPWR_DAT" (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #ComData,
+           RET_VAL                  := #RetValueSFCSend);
+      SPA   Snd5; 
+//write to Simulation
+Snd4: U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   "TEST_IOSimuliOutput"; 
+      L     P#DBX 0.0; 
+rDB2: L     #IOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     #ComData.Ident; 
+      T     W [AR1,P#0.0]; 
+      L     #ComData.Data[2]; 
+      T     W [AR1,P#2.0]; 
+      L     #ComData.Data[3]; 
+      T     W [AR1,P#4.0]; 
+      L     #ComData.Data[4]; 
+      T     W [AR1,P#6.0]; 
+      L     #ComData.Data[5]; 
+      T     W [AR1,P#8.0]; 
+      L     #ComData.Data[6]; 
+      T     W [AR1,P#10.0]; 
+      L     #ComData.Data[7]; 
+      T     W [AR1,P#12.0]; 
+      L     #ComData.Data[8]; 
+      T     W [AR1,P#14.0]; 
+      L     #ComData.Data[9]; 
+      T     W [AR1,P#16.0]; 
+      L     #ComData.Data[10]; 
+      T     W [AR1,P#18.0]; 
+      L     #ComData.Data[11]; 
+      T     W [AR1,P#20.0]; 
+      L     #ComData.Data[12]; 
+      T     W [AR1,P#22.0]; 
+      L     #ComData.Data[13]; 
+      T     W [AR1,P#24.0]; 
+      L     #ComData.Data[14]; 
+      T     W [AR1,P#26.0]; 
+      L     #ComData.Data[15]; 
+      T     W [AR1,P#28.0]; 
+      L     #ComData.Data[16]; 
+      T     W [AR1,P#30.0]; 
+//=Next Telegramm===========================
+Snd5: L     #Step; 
+      +     1; 
+      T     #Step; 
+      SPA   SnEn; 
+//Next Telegram
+SnNx: L     #Step; 
+      +     1; 
+      T     #Step; 
+      SPA   LOOP; 
+SnEn: NOP   0; 
+NETWORK
+TITLE =DPFault
+
+      O(    ; 
+      L     #RetValueSFCRead; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      O(    ; 
+      L     #RetValueSFCSend; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      =     #Out.DPFault; 
+      SPBN  DPF1; 
+// [4.0] Delete actual values when Profibus is not connected !!
+      L     0; //Lade NULL
+      T     #tmpCnt; // in ein temp. DW
+      CALL "SIEMENS_FILL" (//A101 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA101Ac);
+      CALL "SIEMENS_FILL" (//A102 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA102Ac);
+      CALL "SIEMENS_FILL" (//A103 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA103Ac);
+      CALL "SIEMENS_FILL" (//A104 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA104Ac);
+      CALL "SIEMENS_FILL" (//A105 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA105Ac);
+      CALL "SIEMENS_FILL" (//A106 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA106Ac);
+      CALL "SIEMENS_FILL" (//A107 Nutzdaten auf Nullsetzen !!
+           BVAL                     := #tmpCnt,
+           RET_VAL                  := #tmpRetVal,
+           BLK                      := #OutA107Ac);
+DPF1: NOP   0; 
+NETWORK
+TITLE =Heavy Startup
+
+      L     #OutA104Ac.MotorPress; 
+      L     2; 
+      ==I   ; 
+      UN    "GCS7_Gr_InHeavyStartup"; 
+      S     #Out.FlagHeavyStartup; 
+      S     "GCS7_Gr_InHeavyStartup"; 
+      <>I   ; 
+      U     #Out.FlagHeavyStartup; 
+      R     #Out.FlagHeavyStartup; 
+      R     "GCS7_Gr_InHeavyStartup"; 
+
+NETWORK
+TITLE =Remote Mode: Nominal Values
+
+      L     #OutA101Ac.Mode; 
+      L     1; 
+      <>I   ; 
+      UN    #In.InReportingOff; 
+      SPB   Loc; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #OutA201Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutLogA201Nom);
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #OutA202Nom,
+           RET_VAL                  := #tmpRetVal,
+           DSTBLK                   := #OutLogA202Nom);
+      BEA   ; 
+NETWORK
+TITLE =Local Mode: Log Parameter Modification
+
+Loc:  L     #OutLogA201Nom.Pressenstrom; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.Pressenstrom; 
+      <>I   ; 
+      T     #OutLogA201Nom.Pressenstrom; 
+      L     1; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.DosingSpeed; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.DosingSpeed; 
+      <>I   ; 
+      T     #OutLogA201Nom.DosingSpeed; 
+      L     2; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.DosingSpeed2; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.DosingSpeed2; 
+      <>I   ; 
+      T     #OutLogA201Nom.DosingSpeed2; 
+      L     3; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.DosingSpeed3; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.DosingSpeed3; 
+      <>I   ; 
+      T     #OutLogA201Nom.DosingSpeed3; 
+      L     4; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.ConditionerTemperature; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.ConditionerTemperature; 
+      <>I   ; 
+      T     #OutLogA201Nom.ConditionerTemperature; 
+      L     5; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.Liquid1; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.Liquid1; 
+      <>I   ; 
+      T     #OutLogA201Nom.Liquid1; 
+      L     6; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.Liquid2; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.Liquid2; 
+      <>I   ; 
+      T     #OutLogA201Nom.Liquid2; 
+      L     7; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.Liquid3; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.Liquid3; 
+      <>I   ; 
+      T     #OutLogA201Nom.Liquid3; 
+      L     8; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.WorkingGap; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.WorkingGap; 
+      <>I   ; 
+      T     #OutLogA201Nom.WorkingGap; 
+      L     9; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.ParameterSet; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.ParameterSet; 
+      <>I   ; 
+      T     #OutLogA201Nom.ParameterSet; 
+      L     10; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.CapacityCooler; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.CapacityCooler; 
+      <>I   ; 
+      T     #OutLogA201Nom.CapacityCooler; 
+      L     11; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.RetentionTime; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.RetentionTime; 
+      <>I   ; 
+      T     #OutLogA201Nom.RetentionTime; 
+      L     12; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.BulkDensity; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.BulkDensity; 
+      <>I   ; 
+      T     #OutLogA201Nom.BulkDensity; 
+      L     13; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA201Nom.Capacity100Pc; 
+      T     #tmpValueOld; 
+      L     #OutA201Nom.Capacity100Pc; 
+      <>I   ; 
+      T     #OutLogA201Nom.Capacity100Pc; 
+      L     14; 
+      SPB   Log; 
+//-----------
+      L     #OutLogA202Nom.Liquid4; 
+      T     #tmpValueOld; 
+      L     #OutA202Nom.Liquid4; 
+      <>I   ; 
+      T     #OutLogA202Nom.Liquid4; 
+      L     15; 
+      SPB   Log; 
+//-----------
+      BEA   ; 
+NETWORK
+TITLE = MESSAGE
+
+Log:  TAK   ; 
+      T     #tmpValueNew; 
+      TAK   ; 
+      L     B#(3, 0); //Class Operator
+      OW    ; 
+      T     #tmpLOGvalue; 
+      CALL "GCS7_LogConvert_10" (
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgTypeNom,
+           ClassMsgTxt              := #tmpLOGvalue,
+           OType                    := 1073,
+           MsgFormat                := 10,
+           OldValue                 := #tmpValueOld,
+           NewValue                 := #tmpValueNew);
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,10 @@
+TYPE "SSA_Steep_Recipe"
+VERSION : 0.1
+
+
+  STRUCT 	
+   RecipeHeader : "SSA_Steep_Recipe_Header";	
+   Step : ARRAY  [1 .. 7 ] OF "SSA_Steep_Step";	
+  END_STRUCT ;	
+END_TYPE
+

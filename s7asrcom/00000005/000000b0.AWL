@@ -1,0 +1,443 @@
+FUNCTION_BLOCK "GCS7_M_Mixer"
+TITLE =Mixer: Motor with 2 Digital Input
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 54 MACHINE-CONTROL:Mixer:Motor with 2 Digital Input
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB54.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB54.3.1      A. Egli             CT3                         20-Mar-2000
+//              Reset after mix done if mixer is open 
+//FB54.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB54.2B       K. Tischer          MU664                       06-Mar-1999
+//              CC FC2 not UC FC2
+//FB54.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB54.1A       A.Egli              AEE61                       5-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.MIXxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Mixer
+VERSION : 4.0
+
+
+VAR
+  Ma : "GCS7_M_FB54_Data";	
+  Mon1 : "GCS7_E_DigInput";	//Element
+  Mon2 : "GCS7_E_DigInput";	//Element
+  Motor : "GCS7_E_Motor";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     22; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2054; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+aPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParAfterMixTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; //Cmd1[14]=SlowOn
+      S     #Motor.InOutManSlow; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[6]; //Cmd2[14]=SlowOff
+      R     #Motor.InOutManSlow; 
+//Define Value
+      UN    "SYS_DirectCtrlDB".PC.Hsk.FDefineValue; // PC.Hsk.FDefineValue
+      ON    #Ma.InManual; 
+      SPB   aIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.InPreMixTime; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Ma.InMainMixTime; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+//---Emptied
+      U     #Ma.OutMainMixDone; 
+      U     #Ma.InOpen; 
+      S     #Ma.OutEmptied; 
+      UN    #Ma.OutMainMixDone; 
+      R     #Ma.OutEmptied; 
+//----New batch
+      UN    #Ma.InRunPreMix; 
+      UN    #Ma.InRunMainMix; 
+      O     #Ma.CmdNewBatch; 
+      R     #Ma.OutEmptied; 
+      R     #Ma.OutPreMixIsOn; 
+      R     #Ma.OutPreMixDone; 
+//--- Fault----
+      U     #Mon1.StFault; 
+      O     #Mon2.StFault; 
+      O     #Motor.StFault; 
+      =     #tmpFaultSum; 
+      =     #tmpFaultStop; 
+//--- Motor----
+      UN    #Ma.OutAfterMixDone; 
+      O     #Ma.OutEmptied; 
+      O     #Ma.InManual; 
+      U     #Ma.InEnable; 
+      UN    #tmpFaultStop; 
+      U(    ; 
+      U     #Mon2.InpTrue; 
+      O     #Ma.Par.ParMon2IsLS; 
+      ON    #Ma.Par.ParWithMon2; 
+      )     ; 
+      U(    ; 
+      U     #Mon1.InpTrue; 
+      ON    #Ma.Par.ParWithMon1; 
+      )     ; 
+      UN    #Ma.CmdOff; 
+      =     #Motor.InEnableFwd; 
+
+      UN    #Ma.OutMainMixDone; 
+      O     #Ma.OutEmptied; 
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.CmdOn; 
+      S     #Motor.CmdNext; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #Motor.InSeqStop; 
+
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #Motor.InLocal; 
+      U     #Motor.StStopped; 
+      U     #tmpLocal; 
+      =     #Mon1.InLocal; 
+      =     #Mon2.InLocal; 
+//--- Monitoring
+      SET   ; 
+      =     #Mon1.InMonTrue; 
+      U     #Motor.StStartedFwd; 
+      O     #Motor.StStartedRev; 
+      O     #Ma.Par.ParMon2IsLS; 
+      =     #Mon2.InMonTrue; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Motor.CmdFaultReset; 
+      S     #Mon1.CmdFaultReset; 
+      S     #Mon2.CmdFaultReset; 
+
+NETWORK
+TITLE =Mixing time
+
+      L     0; 
+      L     #Ma.OutMixTime; 
+      >=I   ; 
+      SPB   mix; 
+      UN    "GCS7_Gr_OutTick1s"; //Gr.OutTick1s
+      ON    #Motor.StStartedFwd; 
+      SPB   mix; 
+      +     -1; 
+      T     #Ma.OutMixTime; 
+//Pre mixing time 
+mix:  UN    #Ma.InRunPreMix; 
+      UN    #Ma.InRunMainMix; 
+      R     #Ma.OutPreMixIsOn; 
+      R     #Ma.OutPreMixDone; 
+      SPB   m2; 
+      U     #Ma.OutPreMixDone; 
+      SPB   m2; 
+      U     #Ma.OutPreMixIsOn; 
+      SPB   m12; 
+      S     #Ma.OutPreMixIsOn; 
+      L     #Ma.InPreMixTime; 
+      T     #Ma.OutMixTime; 
+m12:  L     #Ma.OutMixTime; 
+      L     0; 
+      <=I   ; 
+      R     #Ma.OutPreMixIsOn; 
+      S     #Ma.OutPreMixDone; 
+
+//Main mixing time 
+m2:   UN    #Ma.InRunMainMix; 
+      ON    #Ma.OutPreMixDone; 
+      R     #Ma.OutMainMixIsOn; 
+      R     #Ma.OutMainMixDone; 
+      SPB   m3; 
+      U     #Ma.OutMainMixDone; 
+      SPB   m3; 
+      U     #Ma.OutMainMixIsOn; 
+      SPB   m22; 
+      S     #Ma.OutMainMixIsOn; 
+      L     #Ma.InMainMixTime; 
+      T     #Ma.OutMixTime; 
+m22:  L     #Ma.OutMixTime; 
+      L     0; 
+      <=I   ; 
+      R     #Ma.OutMainMixIsOn; 
+      S     #Ma.OutMainMixDone; 
+//After mixing time 
+m3:   UN    #Ma.OutMainMixDone; 
+      O     #Ma.InOpen; 
+      O     #Ma.OutEmptied; 
+      R     #Ma.OutAfterMixIsOn; 
+      R     #Ma.OutAfterMixDone; 
+      SPB   m4; 
+      U     #Ma.OutAfterMixDone; 
+      SPB   m4; 
+      U     #Ma.OutAfterMixIsOn; 
+      SPB   m32; 
+      S     #Ma.OutAfterMixIsOn; 
+      L     #Ma.Par.ParAfterMixTime; 
+      T     #Ma.OutMixTime; 
+m32:  L     #Ma.OutMixTime; 
+      L     0; 
+      <=I   ; 
+      R     #Ma.OutAfterMixIsOn; 
+      S     #Ma.OutAfterMixDone; 
+NETWORK
+TITLE =Call Digital Input: Monitor B1
+
+m4:   UN    #Ma.Par.ParWithMon1; 
+      SPB   m5; 
+      CALL #Mon1 ;
+
+NETWORK
+TITLE =Call Digital Input: Monitor B2
+
+m5:   UN    #Ma.Par.ParWithMon2; 
+      SPB   Moto; 
+      CALL #Mon2 ;
+
+NETWORK
+TITLE =Call Motor
+
+Moto: CALL #Motor ;
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+
+NETWORK
+TITLE =Stopped
+
+xxS0: S     #Ma.StStopped; 
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> StFault
+      UN    #Motor.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Starting
+
+xxS1: S     #Ma.StStarting; 
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      U     #Motor.StStopped; 
+      O     #Motor.StStopping; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+      UN    #Mon1.StTrue; 
+      U     #Ma.Par.ParWithMon1; 
+      O     ; 
+      UN    #Mon2.StTrue; 
+      U     #Ma.Par.ParWithMon2; 
+      SPB   S2En; 
+// Condition for StStartedFwd
+      U     #Motor.StStartedFwd; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //--> StStartedFwd
+S2En: SPA   OUT; 
+
+NETWORK
+TITLE =StartedFwd
+
+xxS2: S     #Ma.StStarted; 
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #Motor.StStartedFwd; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =Stopping
+
+xxS3: S     #Ma.StStopping; 
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #Motor.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+// Condition for StStarting
+      UN    #Motor.StStopping; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; 
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Global End
+
+OUT:  CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNewBatch; 
+NETWORK
+TITLE =State Code
+// Same as motor
+      L     32; // StCode=Fault
+      U     #Ma.StFault; 
+      SPB   Code; 
+//Started
+      UN    #Ma.StStarted; 
+      SPB   C2; 
+      U     #Ma.OutPreMixIsOn; 
+      UN    #Ma.OutEmptied; 
+      L     4; // StCode=Premix
+      SPB   Code; 
+      U     #Ma.OutMainMixIsOn; 
+      UN    #Ma.OutEmptied; 
+      L     5; // StCode=MainMix
+      SPB   Code; 
+      U     #Ma.OutAfterMixIsOn; 
+      UN    #Ma.OutEmptied; 
+      L     6; // StCode=AfterMix
+      SPB   Code; 
+      L     3; // StCode=Started
+      SPA   Code; 
+//Stopped
+C2:   UN    #Ma.StStopped; 
+      SPB   C1; 
+      U     #Ma.OutMainMixDone; 
+      UN    #Ma.OutEmptied; 
+      L     8; // StCode=Wait
+      SPB   Code; 
+      L     1; // StCode=Stopped
+      SPA   Code; 
+//Starting
+C1:   U     #Ma.StStarting; 
+      L     2; // StCode=Starting
+      SPB   Code; 
+//Stopping
+      L     7; // StCode=Stopping
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+END_FUNCTION_BLOCK
+

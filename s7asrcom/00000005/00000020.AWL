@@ -1,0 +1,202 @@
+ORGANIZATION_BLOCK "SYS_IO_FLT2"
+TITLE = "I/O Point Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        OB83 
+//              
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//OB083.2.0     A.Egli              CT3                               26-Jul-2004
+//              Log message added
+//OB83.1B       Tho                 FU53                              16-Dez-99
+//              FU-Version erstellt
+//OB83.1A       TIK                 MU664                             13-Apr-99
+//              1st Release
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+NAME : GCS90
+VERSION : 2.0
+
+
+VAR_TEMP
+  OB83_EV_CLASS : BYTE ;	//16#38/39, Event class 3, module inserted/removed (8/9)
+  OB83_FLT_ID : BYTE ;	//16#XX, Fault identifcation code
+  OB83_PRIORITY : BYTE ;	//26/28 (Priority of 1 is lowest)
+  OB83_OB_NUMBR : BYTE ;	//83 (Organization block 83, OB83)
+  OB83_RESERVED_1 : BYTE ;	//Reserved for system
+  OB83_MDL_ID : BYTE ;	//Input module (01010100), Output module (01010101)
+  OB83_MDL_ADDR : WORD ;	//Base address of module with point fault
+  OB83_RACK_NUM : WORD ;	//Number of rack that has module with point fault
+  OB83_MDL_TYPE : WORD ;	//Module type with point fault
+  OB83_DATE_TIME : DATE_AND_TIME ;	//Date and time OB83 started   
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	//Reserved 1 for system
+  tmpPara4 : WORD ;	//Input module (01010100), Output module (01010101)
+  tmpPara5 : WORD ;	//Base address of module with point fault
+  tmpPara6 : WORD ;	//Module type with point fault
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Log Message: Header
+
+      U(    ; 
+      L     #OB83_EV_CLASS; 
+      L     B#16#38; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//--System Message---
+      L     83; 
+      T     #tmpObjNo; 
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB83_FLT_ID; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB83_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB83_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para4: Input module (01010100), Output module (01010101)
+      L     #OB83_MDL_ID; 
+      T     #tmpPara4; 
+
+//Para5: Base address of module with point fault
+      L     #OB83_MDL_ADDR; 
+      T     #tmpPara5; 
+
+//Para6: Module type with point fault
+      L     #OB83_MDL_TYPE; 
+      T     #tmpPara6; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB83_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+NETWORK
+TITLE =Log Message: Entry
+
+//Log Meldung eintragen
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := #tmpPara4,//OB83_MDL_ID
+           Para5                    := #tmpPara5,//OB83_MDL_ADDR
+           Para6                    := #tmpPara6,//OB83_MDL_TYPE
+           Para7                    := W#16#0,
+           Para8                    := W#16#0,
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =Faults without STOP
+//// alle auskommentierten Einträge führen in STOP
+      CLR   ; 
+// 61 Module removed or not responding
+//      O(    
+//      L     #OB83_FLT_ID
+//      L     B#16#61                     // 
+//      ==I   
+//      )     
+// 63 Module inserted but incorrect module type
+//      O(    
+//      L     #OB83_FLT_ID
+//      L     B#16#63                     // 
+//      ==I   
+//      )     
+// 64 Module inserted but problem
+//      O(    
+//      L     #OB83_FLT_ID
+//      L     B#16#64                     // 
+//      ==I   
+//      )     
+// 65 Module inserted but error in module parameter assignment
+//      O(    
+//      L     #OB83_FLT_ID
+//      L     B#16#65                     // 
+//      ==I   
+//      )     
+      BEB   ; 
+NETWORK
+TITLE =Stop PLC
+
+
+//**********************
+//Read Log Message to PC Interface
+      CALL "SYS_LOG_CtrlQueue" (
+           DBNumber                 := 5);
+
+//**********************
+// CPU auf Stop bringen
+      CALL "SIEMENS_STP" ;
+//**********************
+
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

@@ -1,0 +1,38 @@
+TYPE "GCS7_FB13_Communication"
+VERSION : 0.1
+
+
+  STRUCT 	
+   InEnableLN : BOOL ;	//Target position is LN   
+   InEnableHN : BOOL ;	//Target position is HN
+   spare0202 : BOOL ;	
+   spare0203 : BOOL ;	
+   spare0204 : BOOL ;	
+   InpLN : BOOL ;	//Digital input: limit switch low  position (closed)
+   InpHN : BOOL ;	//Digital input: limit switch high position (open)
+   InpFaultDev : BOOL ;	//Digital input: fault device
+   CmdLN : BOOL ;	//Pulse to set position LN (manual mode)
+   CmdHN : BOOL ;	//Pulse to set position HN (manual mode)
+   CmdNext : BOOL ;	//Open next element
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0= Automatic
+   InReport : BOOL ;	//Report of all state transition
+   InSeqStop : BOOL ;	//Stop automatically after idling time
+   InHWStop : BOOL ;	//HW stop is detected, no fault
+   InDPFault : BOOL ;	//DP-Fault is detected, no fault
+   OutIdling : BOOL ;	//Idling time is running
+   OutDelayFault : BOOL ;	//Delay time is running
+   OutMonFault : BOOL ;	//Monitoring time is running
+   OutpLN : BOOL ;	//Digital output: valve low  position (closed)
+   OutpHN : BOOL ;	//Digital output: valve high position (open)
+   spare0407 : BOOL ;	
+   StLN : BOOL ;	//Element is in position LN
+   StCtoHN : BOOL ;	//Changing to position HN
+   StHN : BOOL ;	//Element is in position HN
+   StCtoLN : BOOL ;	//Changing to position LN
+   StFault : BOOL ;	//Element has a fault (time-out by positioning)
+   StNoPosition : BOOL ;	//Element is not in a final position (only in local mode)
+  END_STRUCT ;	
+END_TYPE
+

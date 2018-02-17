@@ -1,0 +1,658 @@
+TYPE "SSA_Germ_Par"
+VERSION : 0.1
+
+
+  STRUCT 	
+   Switches1 : STRUCT 	
+    StaOn24 : BOOL ;	//Example for comment: StaOn24WaterPumpA
+    StaOn25 : BOOL ;	
+    StaOn26 : BOOL ;	
+    StaOn27 : BOOL ;	
+    StaOn28 : BOOL ;	
+    StaOn29 : BOOL ;	
+    StaOn30 : BOOL ;	
+    StaOn31 : BOOL ;	
+    StaOn16 : BOOL ;	
+    StaOn17 : BOOL ;	
+    StaOn18 : BOOL ;	
+    StaOn19 : BOOL ;	
+    StaOn20 : BOOL ;	
+    StaOn21 : BOOL ;	
+    StaOn22 : BOOL ;	
+    StaOn23 : BOOL ;	
+    StaOn08 : BOOL ;	
+    StaOn09 : BOOL ;	
+    StaOn10 : BOOL ;	
+    StaOn11 : BOOL ;	
+    StaOn12 : BOOL ;	
+    StaOn13 : BOOL ;	
+    StaOn14 : BOOL ;	
+    StaOn15 : BOOL ;	
+    StaOn00 : BOOL ;	
+    StaOn01 : BOOL ;	
+    StaOn02 : BOOL ;	
+    StaOn03 : BOOL ;	
+    StaOn04 : BOOL ;	
+    StaOn05 : BOOL ;	
+    StaOn06 : BOOL ;	
+    StaOn07 : BOOL ;	
+   END_STRUCT ;	
+   Switches2 : STRUCT 	
+    StaOn24 : BOOL ;	
+    StaOn25 : BOOL ;	
+    StaOn26 : BOOL ;	
+    StaOn27 : BOOL ;	
+    StaOn28 : BOOL ;	
+    StaOn29 : BOOL ;	
+    StaOn30 : BOOL ;	
+    StaOn31 : BOOL ;	
+    StaOn16 : BOOL ;	
+    StaOn17 : BOOL ;	
+    StaOn18 : BOOL ;	
+    StaOn19 : BOOL ;	
+    StaOn20 : BOOL ;	
+    StaOn21 : BOOL ;	
+    StaOn22 : BOOL ;	
+    StaOn23 : BOOL ;	
+    StaOn08 : BOOL ;	
+    StaOn09 : BOOL ;	
+    StaOn10 : BOOL ;	
+    StaOn11 : BOOL ;	
+    StaOn12 : BOOL ;	
+    StaOn13 : BOOL ;	
+    StaOn14 : BOOL ;	
+    StaOn15 : BOOL ;	
+    StaOn00 : BOOL ;	
+    StaOn01 : BOOL ;	
+    StaOn02 : BOOL ;	
+    StaOn03 : BOOL ;	
+    StaOn04 : BOOL ;	
+    StaOn05 : BOOL ;	
+    StaOn06 : BOOL ;	
+    StaOn07 : BOOL ;	
+   END_STRUCT ;	
+   Values1 : STRUCT 	//Lineparameter data written by Host-System
+    Value01 : DINT ;	//Example for comment: TurnoverTime [xxxs]
+    Value02 : DINT ;	
+    Value03 : DINT ;	
+    Value04 : DINT ;	
+    Value05 : DINT ;	
+    Value06 : DINT ;	
+    Value07 : DINT ;	
+    Value08 : DINT ;	
+    Value09 : DINT ;	
+    Value10 : DINT ;	
+    Value11 : DINT ;	
+    Value12 : DINT ;	
+    Value13 : DINT ;	
+    Value14 : DINT ;	
+    Value15 : DINT ;	
+    Value16 : DINT ;	
+    Value17 : DINT ;	
+    Value18 : DINT ;	
+    Value19 : DINT ;	
+    Value20 : DINT ;	
+    Value21 : DINT ;	
+    Value22 : DINT ;	
+    Value23 : DINT ;	
+    Value24 : DINT ;	
+    Value25 : DINT ;	
+    Value26 : DINT ;	
+    Value27 : DINT ;	
+    Value28 : DINT ;	
+    Value29 : DINT ;	
+    Value30 : DINT ;	
+   END_STRUCT ;	
+   FlagSec : STRUCT 	
+    Flag00 : BOOL ;	
+    Flag001 : BOOL ;	
+    Flag002 : BOOL ;	
+    Flag003 : BOOL ;	
+    Flag004 : BOOL ;	
+    Flag005 : BOOL ;	
+    Flag006 : BOOL ;	
+    Flag007 : BOOL ;	
+    Flag008 : BOOL ;	
+    Flag009 : BOOL ;	
+    Flag0010 : BOOL ;	
+    Flag0011 : BOOL ;	
+    Flag0012 : BOOL ;	
+    Flag0013 : BOOL ;	
+    Flag0014 : BOOL ;	
+    Flag0015 : BOOL ;	
+    Flag0016 : BOOL ;	
+    Flag0017 : BOOL ;	
+    Flag0018 : BOOL ;	
+    Flag0019 : BOOL ;	
+    Flag0020 : BOOL ;	
+    Flag0021 : BOOL ;	
+    Flag0022 : BOOL ;	
+    Flag0023 : BOOL ;	
+    Flag0024 : BOOL ;	
+    Flag0025 : BOOL ;	
+    Flag0026 : BOOL ;	
+    Flag0027 : BOOL ;	
+    Flag0028 : BOOL ;	
+    Flag0029 : BOOL ;	
+    Flag0030 : BOOL ;	
+    Flag0031 : BOOL ;	
+   END_STRUCT ;	
+   FlagGen : STRUCT 	
+    WindAlarm : BOOL ;	//Wind speed is too high
+    TurningStarted : BOOL ;	//Germination turning is started
+    Underhorden_Clean_aktiv : BOOL ;	//Unterhordenreinigung aktiv
+    WetStep : BOOL ;	//Active Step is Wet Step
+    Flag004 : BOOL ;	
+    Flag005 : BOOL ;	
+    Flag006 : BOOL ;	
+    Flag007 : BOOL ;	
+    LOAD_VAL_HUB1 : BOOL ;	//Counter lifting device 1
+    LOAD_VAL_HUB2 : BOOL ;	//Counter lifting device 2
+    LOAD_VAL_DRIVE : BOOL ;	//Counter driving device
+    LOAD_VAL_AFTER_FAILURE : BOOL ;	//Counter saved datas after failure
+    Flag0012 : BOOL ;	
+    Flag0013 : BOOL ;	
+    Flag0014 : BOOL ;	
+    Flag0015 : BOOL ;	
+    InterlockedFunktionMode : BOOL ;	
+    ILO_CmdResetFault : BOOL ;	
+    Flag0018 : BOOL ;	
+    Flag0019 : BOOL ;	
+    Flag0020 : BOOL ;	
+    Flag0021 : BOOL ;	
+    Flag0022 : BOOL ;	
+    Flag0023 : BOOL ;	
+    Flag0024 : BOOL ;	
+    Flag0025 : BOOL ;	
+    Flag0026 : BOOL ;	
+    Flag0027 : BOOL ;	
+    Flag0028 : BOOL ;	
+    Flag0029 : BOOL ;	
+    Flag0030 : BOOL ;	
+    Flag0031 : BOOL ;	
+   END_STRUCT ;	
+   Spare140 : ARRAY  [148 .. 194 ] OF BYTE ;	
+   FlagMachine_0 : STRUCT 	//flags machine funktion
+    FloorFwdPlus : BOOL ;	//Hordendrehrichtung Vorwärts, Rundenzaehler +1
+    FloorFwdMinus : BOOL ;	//Hordendrehrichtung Vorwärts, Rundenzaehler -1
+    FloorRevPlus : BOOL ;	//Hordendrehrichtung Rückwärts, Rundenzaehler +1
+    FloorRevMinus : BOOL ;	//Hordendrehrichtung Rückwärts, Rundenzaehler -1
+    OneShotGeenVrygVlr : BOOL ;	//Opkomende Flank geen vrijgave vloer
+    HulpOneShotGeenVrygVlr : BOOL ;	//Hulp Opkomende Flank geen vrijgave vloer
+    Flag006 : BOOL ;	// 
+    Flag007 : BOOL ;	// 
+    RotatPulseNotZero : BOOL ;	// 
+    ReducedSpeed : BOOL ;	// 
+    Speed2ndRound : BOOL ;	//Speed 2nd round during loading
+    Flag013 : BOOL ;	// 
+    Flag014 : BOOL ;	// 
+    Flag015 : BOOL ;	// 
+    Flag016 : BOOL ;	// 
+    Flag017 : BOOL ;	// 
+    CmdTurnRevAfterUnloading : BOOL ;	// 
+    Flag021 : BOOL ;	// 
+    Flag022 : BOOL ;	// 
+    Flag023 : BOOL ;	//  
+    Flag024 : BOOL ;	// 
+    Flag025 : BOOL ;	// 
+    Flag026 : BOOL ;	// 
+    Flag027 : BOOL ;	// 
+    Flag030 : BOOL ;	// 
+    Flag031 : BOOL ;	// 
+    Flag032 : BOOL ;	// 
+    Flag033 : BOOL ;	
+    Flag034 : BOOL ;	
+    Flag035 : BOOL ;	
+    Flag036 : BOOL ;	// 
+    Flag037 : BOOL ;	// 
+   END_STRUCT ;	
+   ParIntProcess : STRUCT 	//Processparameter data 
+    UnloadungRounds : INT  := 2;	
+    LoadungRounds : INT  := 2;	// 
+    LoadingOverlap : INT  := 10;	//Impulse overlap by loading
+    UnloadingOverlap : INT  := 20;	//Impulse overlap by unloading
+    ReactTimeTempContr : S5TIME  := S5T#10S;	//Delay reaction temperature control below floor
+    ReactTimeCO2Contr1 : S5TIME  := S5T#10S;	//Delay reaction CO2 control below floor
+    BreakTimeFlapContr1 : S5TIME  := S5T#10S;	//Break time control fresh air flap
+    DelayContrDelta_T : INT  := 10;	//Delay alarm control Delta-t in min
+    DelayDeltaTemp : INT  := 2;	//Delay control Delta-t between temperature above and below floor, in min
+    DelayMaxTemp : INT  := 2;	//Delay control temperature above below floor, in min
+    Speed_ILO_FloorRotating : INT  := 22;	//Rotating speed floor from ILO-Rotating Floor Drives
+    Speed_ILO_UnderCleaning : INT  := 80;	//Rotating speed floor from ILO-Floor Cleaning from below
+    Speed_ILO_WallCleaning : INT  := 80;	//Rotating speed floor from ILO-WallCleaning
+    ProcessActivVisuGerm : INT ;	//Display that Process is Active
+    StateWordGerm : INT ;	//State-Number of the active Step
+    TarPos_ILO_LiftDev : INT ;	//Target positon lifting devices from ILO-Mode
+    TarPos_ILO_FreshAir : INT ;	//Target positon fresh air flap from ILO-Mode
+    TarPos_ILO_RecycAir : INT ;	//Target positon recycling air flap from ILO-Mode
+    Speed_ILO_Fan : INT ;	//Target speed germinatimng fan from ILO-Mode
+    Speed_ILO_TravelDrive : INT ;	//Target speed travelling drive from ILO-Mode
+    TarPos_ILO_WasteAir : INT ;	//Target positon waste air flap from ILO-Mode
+    TargetTemperature_ILO : INT ;	//Target temperature from ILO-Mode
+    Value23 : INT ;	
+    Value24 : INT ;	
+    Value25 : INT ;	
+    Value26 : INT ;	
+    Value27 : INT ;	
+    Value28 : INT ;	
+    Value29 : INT ;	
+    Value30 : INT ;	
+    Value31 : INT ;	
+    NextLevelLoading : INT ;	//Next level loading round
+    Value33 : INT ;	
+    Value34 : INT ;	
+    Value35 : INT ;	
+    Value36 : INT ;	
+    CounterPosLoadingBeam : INT ;	//external counter beam position
+    Value38 : INT ;	
+    Value39 : INT ;	
+    NumberOpenValves : INT ;	//number of opened spray valves air humidifikation
+    SpeedProdSprayPump : INT ;	//setpoint speed pump product spray
+    Value42 : INT ;	
+    Value43 : INT ;	
+    Value44 : INT ;	
+    PrevStep1stTurn : INT ;	//Store turning commands from prev. step
+    PrevStep2ndTurn : INT ;	//Store turning commands from prev. step
+    Value47 : INT ;	
+    Value48 : INT ;	
+    Value49 : INT ;	
+    ActualStep : INT ;	//Actual Step for visu
+   END_STRUCT ;	
+   ParIntMachine : STRUCT 	//Machine parameter data 
+    ActualStep : INT ;	//Actual process step
+    MAX_HUB_DIFF : INT  := 36;	//Max. Hubdifferenz zwischen Hubzug 1 + 2
+    REINIGUNGSHOEHE : INT  := 100;	//Reinigungshoehe in mm
+    MAX_SCHIEFLAGE : INT  := 150;	//Max. Schieflage zwischen Hubzug 1 + 2
+    IMPULSE_HUBZUG1_OBEN : INT  := 480;	//Impulse : Hubantrieb 1 normieren bei Endpos.oben
+    IMPULSE_HUBZUG2_OBEN : INT  := 480;	//Impulse : Hubantrieb 2 normieren bei Endpos.oben
+    POSITION_HUBZUG1_OBEN : INT  := 1055;	//Hoehe in mm
+    POSITION_HUBZUG2_OBEN : INT  := 1055;	//Hoehe in mm
+    IMPULSE_RUNDE : INT  := 816;	//Impulse : Fahrantriebantrieb eine Runde (Diesen Wert bei der IBS ermitteln!!)
+    SollwertFahrantrWenden : WORD  := W#16#DEF;	//21,7% von 100 Hz
+    LiftDevMinPos : INT  := 100;	//Lifting device minimal position for rotation backwards
+    FUELLHOEHE_PRODUKT : INT ;	//Produkt-Füllhöhe
+    TargetPosTravDriveLoad : INT ;	//Soll-Position Fahrantrieb im Prozess
+    RunTimeCleanDrive : S5TIME  := S5T#10M;	//Runing time drive floor cleaning from below
+    DelayMonFlowContr : S5TIME  := S5T#10M;	//Delay monitoring flow control by loading
+    RunTimeTurnScrews : INT  := 2;	//Time short run turning screws every 6 hours, in min
+    LiftDevLowPos : INT  := 1000;	//Lifting device lowered position after turning round, in mm
+    CutOffPointDosing : INT ;	//Cut-off point dosing 
+    GerminatingBoxNumber : INT ;	
+    TargetPosTravDriTurnLeft : INT ;	
+    TargetPosTravDriTurnRigt : INT ;	
+    TargetPosTravDriveUnload : INT ;	
+    Help1StartTurning : INT ;	//hulpwoord 1 tbv  wenderen
+    Resetbreaktime : INT ;	//tbv resetten wenderpauze
+    Help2StartTurning : INT ;	//hulpwoord 2 tbv  wenderen
+    TurningHourOneOrTwo : INT ;	//wenderuur 1 of 2
+    Timer_tbv_opk_wend_spr : INT ;	//timer tbv het opkomen van het wenderen of sproeien
+    TargetPosFreshAir : INT ;	//Target position fresh air flap/jalousie/louver
+    TargetPosRecyclingAir : INT ;	//Target position recycling air flap/jalousie/louver
+    TargetPosWasteAir : INT ;	//Target position waste air flap/jalousie/louver
+    TargetSpeedGermFan : INT ;	//Target speed fan germinating box
+    TargetSpeedLoadScrew : INT ;	//Target speed loading/unloading screw germinating box
+    Value33 : INT ;	
+    Value34 : INT ;	
+    Value35 : INT ;	
+    Value36 : INT ;	
+    Value37 : INT ;	
+    HulpwoordTbvTelpulsbewak : INT ;	//Hulpwoord tbv telpulsbewaking vloer
+    PresetWaardeTimerTelpVlR : INT ;	//Preset waarde van timer tbv telpulsbewaking vloer.
+    GemiddeldeHoogteHefwerk : INT ;	//De gemiddelde hoogte van de hefwerken
+    GewensteOntlaadhoogte : INT ;	//Gewenste Ontlaadhoogte Hefwerken
+    Value42 : INT ;	
+    Value43 : INT ;	
+    Value44 : INT ;	
+    Value45 : INT ;	
+    Value46 : INT ;	
+    Value47 : INT ;	
+    Value48 : INT ;	
+    GrowingOffset : INT ;	
+    LastLoadingLevel : INT ;	
+   END_STRUCT ;	
+   FlagFunction_0 : STRUCT 	//Flags section 
+    FlagLoadingFinishedFP : BOOL ;	// 
+    FlagFirstTurning : BOOL ;	//First turning round after loading
+    FlagNextStep : BOOL ;	
+    FlagLoadingFinished : BOOL ;	
+    StartTurningForMGR : BOOL ;	//Enable start turning for group control
+    Inf29 : BOOL ;	
+    FlagLoadingOverlap : BOOL ;	
+    FlagUnloadingOverlap : BOOL ;	
+    ImpulsUnloadLevelReached : BOOL ;	//Unloading level has been reached
+    UnloadLevelReachedFP : BOOL ;	//FP unloading level has been reached
+    ShortRunTurnScrews : BOOL ;	//Short run turning screws every 6 hours
+    LowerLiftDevAfterTurn : BOOL ;	//To lower lifting device after every turning round
+    UnloadingLevelAdjusted : BOOL ;	// 
+    FlagWallCleanStopFP : BOOL ;	// 
+    Spare2 : BOOL ;	// 
+    FlagLoadingStartedFP : BOOL ;	
+    ImpulseLoadingStarted : BOOL ;	
+    FlagUnloadingStartedFP : BOOL ;	
+    ImpulseUnloadingStarted : BOOL ;	
+    FlagCleaningStartedFP : BOOL ;	
+    ImpulseCleaningStarted : BOOL ;	
+    FlagTurningStartedFP : BOOL ;	
+    ImpulseTurningStarted : BOOL ;	
+    FlagTurningStartedRight : BOOL ;	
+    FlagTurningStartedLeft : BOOL ;	
+    FlagStep14FN : BOOL ;	
+    ImpulseUnloadFirstPart : BOOL ;	
+    FlagStepFirstTurning : BOOL ;	//First turning round in this step is finished
+    FlagStepSecondTurning : BOOL ;	//Second turning round in this step is finished
+    ReleaseUnloadFirstPart : BOOL ;	
+    InfReleaseUnloading : BOOL ;	
+   END_STRUCT ;	
+   FlagMachine : STRUCT 	//flags machine funktion
+    Hubzug1_Low : BOOL ;	//Hubzug 1 Richtungsvorwahl senken
+    Hubzug1_High : BOOL ;	//Hubzug 1 Richtungsvorwahl heben
+    Hubzug2_Low : BOOL ;	//Hubzug 2 Richtungsvorwahl senken
+    Hubzug2_High : BOOL ;	//Hubzug 2 Richtungsvorwahl heben
+    Stop_Hubzuege : BOOL ;	//Differenz Hub1-Hub2>Vorgabewert
+    Hubzug1_Speed_Ctr : BOOL ;	//Hubantrieb 1 innen Drehueberwachung
+    Hubzug2_Speed_Ctr : BOOL ;	//Hubantrieb 2 aussen Drehueberwachung
+    Hubzuege_ueber_MinPos : BOOL ;	//Hubzug 1 und Hubzug 2 mehr als 100mm ueber ihrer Nullposition
+    Hubzug1_Stop_NullPos_man : BOOL ;	//Hoehe Hubzug 1 <= NULL-Position
+    Hubzug2_Stop_NullPos_man : BOOL ;	//Hoehe Hubzug 2 <= NULL-Position
+    Hubdiff1_2 : BOOL ;	//Hubdifferenz Hub1 > Hub2
+    Hubdiff2_1 : BOOL ;	//Hubdifferenz Hub2 > Hub1
+    Hubzug1_Hoch : BOOL ;	//Hubzug 1 Isthoehe > 300mm (Freigabe Ausraeumglocke schliessen) und Hubzuege heb
+    Hubzug2_Hoch : BOOL ;	//Hubzug 2 Isthoehe > 300mm (Freigabe Ausraeumglocke schliessen) und Hubzuege heb
+    Start_Hubzuege_Heben : BOOL ;	//Hubzuege heben
+    Hubdiff1_2_NegAlt : BOOL ;	//Hubdifferenz Hub1 > Hub2 Alt-Signal 
+    Hubdiff1_2_NegFlag : BOOL ;	//Hubdifferenz Hub1 > Hub2 Flanken-Signal 
+    Hubdiff2_1_NegAlt : BOOL ;	//Hubdifferenz Hub2 > Hub1 Alt-Signal 
+    Hubdiff2_1_NegFlag : BOOL ;	//Hubdifferenz Hub2 > Hub1 Flanken-Signal 
+    Fahrantrieb_Speed_Ctr1 : BOOL ;	//Fahrantrieb Drehueberwachung
+    Fahrantrieb_Start_ok : BOOL ;	//Es sind weniger als 2 Fahrantriebe nicht gestartet 
+    Fahrantrieb_FU_Fault : BOOL ;	//Sammelstörung von allen 12 FU's
+    Fahrantriebe_Fwd_Rev : BOOL ;	//Aktuelle Drehrichtung Fahrantriebe (0=Fwd; 1=Rev)
+    Fahrantriebe_Vorwaerts : BOOL ;	//Fahrantriebe Ausgang Richtung Vorwärts
+    Fahrantriebe_Rueckwaerts : BOOL ;	//Fahrantriebe Ausgang Richtung Rückwärts
+    NULL_INDEX_FP : BOOL ;	
+    ImpulsNullstellung : BOOL ;	
+    ImpulsNullstellungFP : BOOL ;	
+    WEGMESSUNG_0 : BOOL ;	
+    WEGMESSUNG_0_FLAG : BOOL ;	
+    HubzuegeUeberProdukt : BOOL ;	//Schnecke ueber Produktschicht
+    HubzuegeParkposition : BOOL ;	//Beide Hubzuege in Parkposition
+   END_STRUCT ;	
+   FlagFunction_1 : STRUCT 	//Flags functions
+    StepLoading : BOOL ;	//Function Loading is active
+    StepUnloading : BOOL ;	//Function Unloading is active
+    StepCleaning : BOOL ;	//Function Cleaning is active
+    LoadingBreak : BOOL ;	//Function Loading is interrupted
+    UnloadingBreak : BOOL ;	//Function Unloading is interrupted
+    CleaningBreak : BOOL ;	//Function Cleaning is interrupted
+    FinishLoading : BOOL ;	//Function Loading is finished
+    FinishUnloading : BOOL ;	//Function Unloading is finished
+    FinishCleaning : BOOL ;	//Function Cleaning is finished
+    LoadingStarted : BOOL ;	//Germination loading is started
+    UnloadingStarted : BOOL ;	//Germination unloading is started
+    CleaningStarted : BOOL ;	//Germination cleaning is started
+    Round_1 : BOOL ;	//Fahrantrieb 1.Runde
+    Round_2 : BOOL ;	//Fahrantrieb 2.Runde
+    Round_3 : BOOL ;	//Fahrantrieb 3.Runde
+    Round_4 : BOOL ;	//Fahrantrieb 4.Runde
+    Round_5 : BOOL ;	//Fahrantrieb 5.Runde
+    Round_6 : BOOL ;	//Fahrantrieb 6.Runde
+    Beladung_beendet : BOOL ;	//Fahrantrieb; Beladung_beendet
+    Entladerunden_erreicht : BOOL ;	//Fahrantrieb; Entladerunden erreicht
+    Reinigungsrunde_erreicht : BOOL ;	//Fahrantrieb; Reinigungsrunde erreicht
+    TurningStart : BOOL ;	//Start turning
+    TurningStop : BOOL ;	//Stop turning
+    TurningLeft : BOOL ;	//Germination turning left
+    TurningRight : BOOL ;	//Germination turning right
+    LoadFirstPartEnd : BOOL ;	//Grundschicht ist bedeckt, prozess kann starten
+    TurningWithSpraying : BOOL ;	//Turning-round in this step with spraying
+    TurningWithoutSpraying : BOOL ;	//Turning-round in this step without spraying
+    UnloadFirstPartEnd : BOOL ;	//First half of germinating box is unloaded
+    UnloadSecondPartEnd : BOOL ;	//Second half of germinating box is unloaded
+    UnloadFirstPart : BOOL ;	//Unload first half of germinating box
+    UnloadSecondPart : BOOL ;	//Unload second half of germinating box
+   END_STRUCT ;	
+   FlagProcess : STRUCT 	//Flags process
+    ProcessActive : BOOL ;	//Process is active
+    ProcessStartFP : BOOL ;	//Flank start process
+    ProcessStartScan : BOOL ;	//Impulse first step
+    MessageNoNextStep : BOOL ;	//Message "No next step"
+    FP_SendResultToPIC : BOOL ;	
+    Vraag_menu_wenderen : BOOL ;	//Vraag vanuit het recept om te wenderen
+    Vraag_menu_sproeien : BOOL ;	//Vraag vanuit het recept om te sproeien
+    Vraag_menu_doseren : BOOL ;	//Vraag vanuit het recept om te doseren
+    FlagWallCleanStartFP : BOOL ;	//Hulp one shot wandreinigen gestart
+    ImpulseWallCleanStarted : BOOL ;	//One shot wandreinigen gestart
+    Inf18 : BOOL ;	
+    VrijgaveWenderFunctie : BOOL ;	//Geen vrijgave om wenderbits in FC2019 aan te zetten 
+    Aussenluft_zu_warm : BOOL ;	
+    Cooling : BOOL ;	
+    AirHumidificationValve1 : BOOL ;	
+    AirHumidificationValve2 : BOOL ;	
+    Breakpoint_Aktiv : BOOL ;	
+    ProcessEnd : BOOL ;	
+    Cooling_Activ : BOOL ;	
+    Abkuehlen : BOOL ;	
+    Inf24 : BOOL ;	
+    Vent_ReglerAusg_Plus : BOOL ;	
+    Vent_ReglerAusg_PlusFP : BOOL ;	
+    Vent_ReglerAusg_Minus : BOOL ;	
+    Vent_ReglerAusg_MinusFP : BOOL ;	
+    Ventilator_Drehzahl_HH : BOOL ;	// Drehzahlbereich HH [85 - 100%]
+    Ventilator_Drehzahl_H : BOOL ;	// Drehzahlbereich  H [65 -  84%]
+    Ventilator_Drehzahl_L : BOOL ;	// Drehzahlbereich  L [55 -  64%]
+    Ventilator_Drehzahl_LL : BOOL ;	// Drehzahlbereich LL [40 -  54%]
+    VentilatorDrehzahlMin : BOOL ;	
+    VentilatorDrehzahlMax : BOOL ;	
+    Inf37 : BOOL ;	
+   END_STRUCT ;	
+   FlagProcess1 : STRUCT 	//Flags process
+    FreshAirFlapCLOSE : BOOL ;	//Close fresh air flap
+    FreshAirFlapOPEN : BOOL ;	//Open fresh air flap
+    ControlFreshAirFlap : BOOL ;	//Control fresh air flap
+    ControlFlap_OPEN : BOOL ;	//Control - fresh air flap 1% open
+    ControlFlap_CLOSE : BOOL ;	//Control - fresh air flap 1% close
+    ControlTemperature : BOOL ;	//Priority temperature for control fresh air flap
+    ControlCO2 : BOOL ;	//Priority CO2 for control fresh air flap
+    BasicPosFreshAirFlap : BOOL ;	//Fresh air flap in basic position
+    ExhaustAirFlap_1_CLOSE : BOOL ;	//Close exhaust air flap 1
+    ExhaustAirFlap_1_OPEN : BOOL ;	//Open exhaust air flap 1
+    BasicPosExhaustAirFlap_1 : BOOL ;	//Exhaust air flap 1 in basic position
+    ExhaustAirFlap_2_CLOSE : BOOL ;	//Close exhaust air flap 2
+    ExhaustAirFlap_2_OPEN : BOOL ;	//Open exhaust air flap 2
+    BasicPosExhaustAirFlap_2 : BOOL ;	//Exhaust air flap 2 in basic position
+    DeltaTempPlus : BOOL ;	// 
+    DeltaTempMinus : BOOL ;	// 
+    InterlockedFunktionMode : BOOL ;	// 
+    Inf21 : BOOL ;	// 
+    Inf22 : BOOL ;	// 
+    Inf23 : BOOL ;	// 
+    Inf24 : BOOL ;	// 
+    Inf25 : BOOL ;	// 
+    DeltaTempNextStep : BOOL ;	//Delta Temperature go to next step
+    MaxTempNextStep : BOOL ;	//Max Temperature above floor go to next step
+    FlankeStartRecept_IN : BOOL ;	//ONE_SHOT_START_RECEPT
+    PT100Defect_IN : BOOL ;	//PT100_boven_vloer_stuk
+    FreigabeStartRezept_IN : BOOL ;	//VRIJGAVE_START_RECEPT
+    tm_Frequenzregler_IN : BOOL ;	//wanneer ventilator in bedrijf meldt
+    Flanke_FreigabeRezept_IO : BOOL ;	//One_shot_vent_op_basis
+    HandAutoVentilator_IO : BOOL ;	//Hand_automaat_kiemvent
+    Inf36 : BOOL ;	// 
+    TurnWithClean : BOOL ;	//Turning with floor cleaning from below 
+   END_STRUCT ;	
+   FlagProcess2 : STRUCT 	//Flags process
+    Turning1WithSpraying : BOOL ;	//First turning round in this step with spraying
+    Turning1WithDosing : BOOL ;	//First turning round in this step with spraying and dosing
+    Turning1WithoutSpraying : BOOL ;	//First turning round in this step without spraying
+    Turning2WithSpraying : BOOL ;	//Second turning round in this step with spraying
+    Turning2WithDosing : BOOL ;	//Second turning round in this step with spraying and dosing
+    Turning2WithoutSpraying : BOOL ;	//Second turning round in this step without spraying
+    MinBreakTimeFinish : BOOL ;	//Minimal break time is finished
+    MaxBreakTimeFinish : BOOL ;	//Maximal break time is finished
+    ReleaseSpraying : BOOL ;	//Release spraying for this germinating box
+    ReleaseDosing : BOOL ;	//Release dosing for this germinating box
+    Delta_T : BOOL ;	//Delta-t is > or < recipe value
+    StartSpraying : BOOL ;	//Store impulse start spraying
+    HighWindForce : BOOL ;	//Wind force too high
+    ReleaseTurning : BOOL ;	//Release turning for this germinating box
+    StartFirstTurningRound : BOOL ;	//Store impulse for start first turning round acc. recipe
+    StartSecondTurningRound : BOOL ;	//Store impulse for start second turning round acc. recipe
+    PauseBeforeSpraying_FP : BOOL ;	// 
+    PauseBeforeSpraying_IMP : BOOL ;	
+    PauseBeforeSprayingFin : BOOL ;	//Pause before spraying is finished
+    AlarmControlDelta_T : BOOL ;	//Alarm control Delta-t
+    StartFirstTurningFP : BOOL ;	
+    StartSecondTurningFP : BOOL ;	// 
+    StartFirstSprayingFP : BOOL ;	
+    StartFirstDosingFP : BOOL ;	
+    StartSecondSprayingFP : BOOL ;	
+    StartSecondDosingFP : BOOL ;	
+    StartFirstSpraying : BOOL ;	//Store impulse for start first turning round with spraying acc. recipe
+    StartFirstDosing : BOOL ;	//Store impulse for start first turning round with dosing acc. recipe
+    StartSecondSpraying : BOOL ;	//Store impulse for start second turning round with spraying acc. recipe
+    StartSecondDosing : BOOL ;	//Store impulse for start second turning round with dosing acc. recipe
+    Sonderwenden : BOOL ;	//Sonderwenden
+    FaultDB_Copy : BOOL ;	//Fault DB Copy FC49
+   END_STRUCT ;	
+   ProcessValue : STRUCT 	//Process values, used only in the PLC
+    Value01 : DINT ;	
+    Value02 : DINT ;	
+    Value03 : DINT ;	
+    SetpointDeltaTempDint : DINT ;	
+    ActValueDeltaTempDint : DINT ;	
+    ActValMaxTempAboveDint : DINT ;	
+    ResultDeltaTemp : DINT ;	
+    ConsumptionWater : DINT ;	//Water consumption per section
+    CurrentConsumCoolEnergy : DINT ;	//Aktueller Verbrauch Kühl-Energie 
+    ConsumptionCoolingEnergy : DINT ;	//Verbrauchte Menge Kühl-Energie
+    LevelGlycol : DINT ;	//something with glycol
+    Profimess_Command : DINT ;	//command to read data from Profimess
+    Value13 : DINT ;	
+    Value14 : DINT ;	
+    Value15 : DINT ;	
+    Value16 : DINT ;	
+    HelpConsumptionwater : DINT ;	//Tussenwoord voor opslag aantal M3 sproeien
+    RET_VAL_BreakTime : INT ;	
+    StepNrActCopy : INT ;	
+    StartStepAct : DATE_AND_TIME ;	
+    ActualTime : DATE_AND_TIME ;	
+    BreakTime : DATE_AND_TIME ;	
+    StartCooling : DATE_AND_TIME ;	
+    StepTimeAct : TIME ;	
+    BreakTimeAct : TIME ;	
+    TimeControlDelta_T : TIME ;	
+    PauseBeforeSpraying : TIME ;	
+   END_STRUCT ;	
+   ProcessValueReal : STRUCT 	//Process real values, used only in the PLC
+    SpeedVentilatorBasic : REAL ;	//Setpoint Fanspeed in %
+    PositFreshAirFlapBasic : REAL ;	//Setpoint basic flap position
+    ActTempBelowFloor : REAL ;	//Actual temperature below floor
+    TargTempBelowFloor : REAL ;	//Setpoint temperature below floor
+    ActTempAboveFloor : REAL ;	//Actual temperature above floor
+    TargTempAboveFloor : REAL ;	//Setpoint temperature above floor
+    NivoDoseertank : REAL ;	//Nivo doseertank in real
+    Value08 : REAL ;	// 
+    Value09 : REAL ;	// 
+    Value10 : REAL ;	// 
+    Value11 : REAL ;	// 
+    Value12 : REAL ;	// 
+    Value13 : REAL ;	// 
+    Value14 : REAL ;	
+    Value15 : REAL ;	
+    Value16 : REAL ;	
+    Value17 : REAL ;	
+    Value18 : REAL ;	
+    Value19 : REAL ;	
+    Value20 : REAL ;	
+    CoolingEnergyAct : REAL ;	
+    CoolingEnergySum : REAL ;	
+    Value23 : REAL ;	
+    Value24 : REAL ;	
+    Profimess_Wirkleistung : REAL ;	
+    Profimess_Blindleistung : REAL ;	
+    Profimess_Frequenz : REAL ;	
+    Profimess_Wirkleist_Psec : REAL ;	
+    Profimess_Arbeit_Batch : REAL ;	
+    EnergieKWs : REAL ;	
+   END_STRUCT ;	
+   MachineValue : STRUCT 	//Machine values, used only in the PLC
+    ISTWERT_FAHRANTRIEB_POSI : INT ;	//Ist-Position Fahrantrieb
+    FAHRANTRIEB_UMDREHUNGEN : INT ;	//Rundenzaehler Fahrantrieb
+    IST_HUB_DIFF : INT ;	//Istwert Hubdifferenz zwischen Hubzug 1 + 2
+    ISTWERT_HUBZUG1_Z_IMP : INT ;	//Istwert Zaehlimpulse Hubzug 1
+    ISTWERT_HUBZUG2_Z_IMP : INT ;	//Istwert Zaehlimpulse Hubzug 2
+    SCHRAEGE_HUB1_HUB2 : INT ;	//Schraege Hub 1 > Hub 2
+    SOLLWERT_HUBZUG1_HOEHE : INT ;	
+    SOLLWERT_HUBZUG2_HOEHE : INT ;	
+    ISTWERT_HUBZUG1_HOEHE : INT ;	
+    ISTWERT_HUBZUG2_HOEHE : INT ;	
+    SCHRAEGE_HUB1_MINUS_HUB2 : INT ;	//Schraege Hub 1 minus Hub 2
+    SCHRAEGE_HUB2_MINUS_HUB1 : INT ;	//Schraege Hub 2 minus Hub 1
+    BELADERUNDEN_START_HUB : INT ;	//Anhebeposition in Grad
+    ISTWERT_FAHRANTRIE_Z_IMP : INT ;	//Istwert Zaehlimpulse Fahrantrieb
+    Fahrantriebe_Gestartet : INT ;	//Zaehlwert der gestarteten Fahrantriebe
+    SollwertFahrantrieb : WORD ;	//an FU
+    Fahrzeit_Reinigungswagen : INT ;	//Fahrzeit des Reinigungswagens unter der Horde
+    Position_Reinigungswagen : INT ;	//Position der Reinigungswagens unter der Horde
+    ISTWERT_HUBZUG1_DOPPEL : DINT ;	//Hubzug 1 : Hoehe [mm] Rechenwert
+    ISTWERT_HUBZUG2_DOPPEL : DINT ;	//Hubzug 2 : Hoehe [mm] Rechenwert
+    BELADERUNDEN_HUB_IMP : DINT ;	//Anhebeposition in Pulsen
+    FAHR_GRAD_DOPPEL : DINT ;	//Fahrantrieb : Umdrehung in Grad Rechenwert
+    RotatingSpeed : DINT ;	//Rotating Speed temp
+    FloorPosAbs : DINT ;	//Floor absolute position
+    FloorPositionPercent : DINT ;	//Floor position percentagewise
+    RotatingPulseAbsolut : DINT ;	
+    RondgangWenderenSproeien : DINT ;	//Floor position percentagewise tbv nieuwe functie wenderen sproeien H.v.L.
+    MinimaleOntlaadSnelheid : DINT ;	//De minimale ontlaadsnelheid van de vloer
+    HulpwoordtTelStandVloer : DINT ;	//HulpwoordTellerstand Vloer
+    Value21 : DINT ;	
+    Value22 : DINT ;	
+    Value23 : DINT ;	
+    Value24 : DINT ;	
+    Value25 : DINT ;	
+    Value26 : DINT ;	
+    Value27 : DINT ;	
+    HUBZUG1_Z_IMP_HOLD : DINT ;	//Istwert Zaehlimpulse Hubzug 1 gespeichert
+    HUBZUG2_Z_IMP_HOLD : DINT ;	//Istwert Zaehlimpulse Hubzug 2 gespeichert
+    FAHRANTRIEB_Z_IMP_HOLD : DINT ;	//Istwert Zaehlimpulse Fahrantrieb gespeichert
+   END_STRUCT ;	
+   MachineValueReal : STRUCT 	//Machine real values, used only in the PLC
+    HUB1_MM_PRO_IMPULS : REAL  := 2.197917e+000;	//Hubzug 1 : Hoehe [mm] pro Hubimpuls
+    HUB2_MM_PRO_IMPULS : REAL  := 2.197917e+000;	//Hubzug 2 : Hoehe [mm] pro Hubimpuls
+    FAHRANTRIEB_IMP_GRAD : REAL  := 4.411765e-001;	//Winkelgrad pro Fahrimpuls (wird automatisch berechnet)
+    FAHR_GRAD_PRO_IMPULS : REAL ;	//Fahrantrieb : Umdrehung in Grad pro Fahrimpuls Real-Rechenwert
+    IMPULSE_RUNDE_REAL : REAL ;	//Impulse : Fahrantrieb eine Runde Real-Rechenwert
+    Faktor_Reinigungswagen_R : REAL ;	//Weg/Zeit-Faktor Reinigungswagens unter der Horde
+    Fahrzeit_Reinigungswag_R : REAL ;	//Fahrzeit der Reinigungswagens unter der Horde
+    Position_Reinigungswag_R : REAL ;	//Position der Reinigungswagens unter der Horde
+    FAHRANTRIEB_IMP_PROZ : REAL ;	//Prozentzahl pro Fahrimpuls (wird automatisch berechnet)
+    BELADERUNDEN_START_HUB : REAL ;	//Anhebeposition von % in Grad
+    Value11 : REAL ;	
+    Value12 : REAL ;	
+    Value13 : REAL ;	
+    Value14 : REAL ;	
+    Value15 : REAL ;	
+    Value16 : REAL ;	
+    Value17 : REAL ;	
+    Value18 : REAL ;	
+    Value19 : REAL ;	
+    Value20 : REAL ;	
+    Value21 : REAL ;	
+    Value22 : REAL ;	
+    Value23 : REAL ;	
+    Value24 : REAL ;	
+    Value25 : REAL ;	
+    Value26 : REAL ;	
+    Value27 : REAL ;	
+    Value28 : REAL ;	
+    Value29 : REAL ;	
+    Value30 : REAL ;	
+   END_STRUCT ;	
+   Spare892 : INT ;	
+   Spare894 : INT ;	
+   Error : STRUCT 	
+    Value : INT ;	
+    Bit : BOOL ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

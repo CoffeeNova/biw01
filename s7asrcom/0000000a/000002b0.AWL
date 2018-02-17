@@ -1,0 +1,1578 @@
+FUNCTION_BLOCK "G006G_Code"
+TITLE =G006G GENERAL ELEMENTS GERM 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        GENERAL ELEMENTS GERM 2
+//                General group control
+//                Allgemeine Gruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB106.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_1999_SHE01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_1999_SHE02 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_A040Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_A097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_K091Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_19_S_H097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2201_SHE20 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2201_SHE21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2201_SHE22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2201_SHE23 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE01 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE02 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE03 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE04 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE05 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE06 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE08 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE20 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2299_SHE21 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A040Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A098Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_K091Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_K738R1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_K838R1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_Q390Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_Q445Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_S_H097Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A458Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_D1B065 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A408Z1I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A408Z1O1 : "GCS7_E_DigOutput";	// DigOut
+  A_22_A700Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A800Z1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_22_A106Z1 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      R     "GCS7_GrCtrlDB".ParMGR[6]; 
+      R     "GCS7_GrCtrlDB".ParWGR[6]; 
+      S     "GCS7_GrCtrlDB".ParGGR[6]; 
+      R     "GCS7_GrCtrlDB".ParFeed[6]; 
+      S     "GCS7_GrCtrlDB".ParShare[6]; 
+      R     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      S     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[6]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[6]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[6]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[6]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[6]; 
+      R     "GCS7_GrCtrlDB".CmdNext[6]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[6]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[6]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[6]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[6]
+//      O     "GCS7_GrCtrlDB".OutOccupied[6]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[6]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[6]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[6]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[6]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-1999-SHE01 : EMERGENCY-OFF CONVEYOR GREEN MALT
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1999_SHE01.InLocal
+//// 
+////-Monitoring---
+//      SET   
+//      =     #A_1999_SHE01.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_1999_SHE01.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1999_SHE01.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1999_SHE01_I1"
+//      =     #A_1999_SHE01.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1999_SHE01
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-1999-SHE02 : EMERGENCY-OFF CONVEYOR GREEN MALT
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_1999_SHE02.InLocal
+//// 
+////-Monitoring---
+//      SET   
+//      =     #A_1999_SHE02.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_1999_SHE02.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_1999_SHE02.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_1999_SHE02_I1"
+//      =     #A_1999_SHE02.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_1999_SHE02
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-19-A040Z1 : POWER SUPPLY FAILURE +C19
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_19_A040Z1.InLocal
+//// 
+////-Monitoring---
+////====>BRT090310 - Nur AKTIV während Beladen!
+//      U     "MAL1S018".ToASW.InfDataReady
+//      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading
+////      SET   
+////<====BRT090310
+//      =     #A_19_A040Z1.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_19_A040Z1.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_19_A040Z1.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      U     "A_19_A040Z1_I1"
+//      =     #A_19_A040Z1.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_19_A040Z1
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-19-A097Z1_ : EMERGENCY-STOP +C19
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_19_A097Z1.InLocal
+//// 
+////-Monitoring---
+////====>BRT090310 - Nur AKTIV während Beladen!
+//      U     "MAL1S018".ToASW.InfDataReady
+//      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading
+////      SET   
+////<====BRT090310
+//      =     #A_19_A097Z1.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_19_A097Z1.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_19_A097Z1.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      UN    "A_19_A097Z1_I1"
+//      =     #A_19_A097Z1.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_19_A097Z1
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-19-K091Z1 : FUSE SWITCH OFF +C19
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_19_K091Z1.InLocal
+//// 
+////-Monitoring---
+////====>BRT090310 - Nur AKTIV während Beladen!
+//      U     "MAL1S018".ToASW.InfDataReady
+//      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading
+////      SET   
+////<====BRT090310
+//      =     #A_19_K091Z1.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_19_K091Z1.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_19_K091Z1.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      U     "A_19_K091Z1_I1"
+//      =     #A_19_K091Z1.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_19_K091Z1
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-19-S/H097Z1 : OPERATING ON +C19
+//      NOP   0
+////-InLocal---
+//      U     #tmpLocal
+//      =     #A_19_S_H097Z1.InLocal
+//// 
+////-Monitoring---
+//      SET   
+//      =     #A_19_S_H097Z1.InMonTrue
+//// 
+////-PreAlarm---
+////  CLR
+////  =      #A_19_S_H097Z1.InPreAlarmTrue 
+//// 
+////-Additional commands---
+////      CLR
+////      S     #A_19_S_H097Z1.CmdRunTimeOutTime
+//// 
+////-Read inputs---
+//      U     "A_19_S_H097Z1_I1"
+//      =     #A_19_S_H097Z1.InpTrue
+//// 
+////-Set Parameters---
+//// 
+////-Call object control---
+//      CALL  #A_19_S_H097Z1
+//// 
+////-Write outputs---
+//
+
+
+NETWORK
+TITLE ==A-2201-SHE20 : CABLE PULL SWITCH RIGHT 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2201_SHE20.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2201_SHE20.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2201_SHE20.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2201_SHE20.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+//      UN    "A_2201_SHE20_I1"
+      SET   ; 
+      =     #A_2201_SHE20.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2201_SHE20 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2201-SHE21 : CABLE PULL SWITCH RIGHT 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2201_SHE21.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2201_SHE21.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2201_SHE21.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2201_SHE21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+//      UN    "A_2201_SHE21_I1"
+      SET   ; 
+      =     #A_2201_SHE21.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2201_SHE21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2201-SHE22 : CABLE PULL SWITCH LEFT 1
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2201_SHE22.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2201_SHE22.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2201_SHE22.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2201_SHE22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+//      UN    "A_2201_SHE22_I1"
+      SET   ; 
+      =     #A_2201_SHE22.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2201_SHE22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2201-SHE23 : CABLE PULL SWITCH LEFT 2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2201_SHE23.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2201_SHE23.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2201_SHE23.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2201_SHE23.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+//      UN    "A_2201_SHE23_I1"
+      SET   ; 
+      =     #A_2201_SHE23.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2201_SHE23 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE01 : EMERGENCY OFF CUSTOMER
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE01.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE01.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE01.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE01_I1"; 
+      =     #A_2299_SHE01.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE02 : EMERGENCY OFF CUSTOMER
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE02.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE02.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE02.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE02_I1"; 
+      =     #A_2299_SHE02.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE03 : EMERGENCY STOP 1 BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE03.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE03.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE03.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE03.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE03_I1"; 
+      =     #A_2299_SHE03.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE03 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE04 : EMERGENCY STOP 1 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE04.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE04.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE04.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE04.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE04_I1"; 
+      =     #A_2299_SHE04.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE04 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE05 : EMERGENCY STOP 2 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE05.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE05.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE05.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE05.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE05_I1"; 
+      =     #A_2299_SHE05.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE06 : EMERGENCY STOP 2 BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE06.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE06.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE06.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE06.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE06_I1"; 
+      =     #A_2299_SHE06.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE06 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE08 : EMERGENCY STOP 3 DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE08.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE08.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE08.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE08.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE08_I1"; 
+      =     #A_2299_SHE08.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE08 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE20 : CABLE PULL SWITCH RIGHT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE20.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE20.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE20.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE20.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE20_I1"; 
+      =     #A_2299_SHE20.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE20 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2299-SHE21 : CABLE PULL SWITCH LEFT
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2299_SHE21.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2299_SHE21.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_2299_SHE21.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2299_SHE21.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_2299_SHE21_I1"; 
+      =     #A_2299_SHE21.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2299_SHE21 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A040Z1 : POWER SUPPLY FAILURE +C22
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A040Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A040Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A040Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A040Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_A040Z1_I1"; 
+      =     #A_22_A040Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A040Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A097Z1 : EMERGENCY STOP +C22
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_22_A097Z1_I1"; 
+      =     #A_22_A097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A098Z1 : EMERGENCY STOP +M221 M222
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A098Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A098Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A098Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A098Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_22_A098Z1_I1"; 
+      =     #A_22_A098Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A098Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-K091Z1 : FUSE SWITCH OFF +C22
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_K091Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_K091Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_K091Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_K091Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_K091Z1_I1"; 
+      =     #A_22_K091Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_K091Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-K738R1 : FUSE SWITCH OFF +M221
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_K738R1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_K738R1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_K738R1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_K738R1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_K738R1_I1"; 
+      =     #A_22_K738R1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_K738R1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-K838R1 : FUSE SWITCH OFF +M222
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_K838R1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_K838R1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_K838R1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_K838R1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_K838R1_I1"; 
+      =     #A_22_K838R1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_K838R1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-Q390Z1 : POWER SUPPLY MACHINE BMKE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_Q390Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_Q390Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_Q390Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_Q390Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_22_Q390Z1_I1"; 
+      =     #A_22_Q390Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_Q390Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-Q445Z1 : POWER SUPPLY MACHINE DBFL
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_Q445Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_Q445Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_Q445Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_Q445Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_22_Q445Z1_I1"; 
+      =     #A_22_Q445Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_Q445Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-S/H097Z1 : OPERATING ON +C22
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_S_H097Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_S_H097Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_S_H097Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_S_H097Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_S_H097Z1_I1"; 
+      =     #A_22_S_H097Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_S_H097Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A458Z1 : CLEANING FLAP 1/2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A458Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A458Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A458Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A458Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT220310      U     "A_22_A458Z1_I1"
+      UN    "A_22_A458Z1_I1"; 
+      =     #A_22_A458Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A458Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-D1B065 : CONTROL 24VDC LIMIT SWITCHES WAY
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_D1B065.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_D1B065.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_D1B065.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_D1B065.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_D1B065_I1"; 
+      =     #A_22_D1B065.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_D1B065 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A408Z1I1 : BUMPER SWITCHED-OFF
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A408Z1I1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A408Z1I1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A408Z1I1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A408Z1I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// 1.1
+      UN    "A_22_A408Z1_I1"; 
+      =     #A_22_A408Z1I1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A408Z1I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A408Z1O1 : RESET ALARM
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_22_A408Z1O1.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      =     #A_22_A408Z1O1.InEnable; 
+
+      U     #tmpCmdNext; 
+      S     #A_22_A408Z1O1.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      =     #A_22_A408Z1O1.InSeqStop; 
+// 
+//-Read inputs---
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_22_A408Z1O1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_22_A408Z1O1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A408Z1O1 ;
+// 
+//-Write outputs---
+      U     #A_22_A408Z1O1.OutpRun; 
+      =     "A_22_A408Z1_O1"; 
+NETWORK
+TITLE ==A-22-A700Z1 : POWER CIRCUIT CABLE CHAIN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A700Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A700Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A700Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A700Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_A700Z1_I1"; 
+      =     #A_22_A700Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A700Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A800Z1 : POWER CIRCUIT CABLE CHAIN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A800Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A800Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A800Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A800Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_22_A800Z1_I1"; 
+      =     #A_22_A800Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A800Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-22-A106Z1 : EMERGENCY STOP FROM +C21
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_22_A106Z1.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_22_A106Z1.InMonTrue; 
+// 
+//-PreAlarm---
+//  CLR
+//  =      #A_22_A106Z1.InPreAlarmTrue 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_22_A106Z1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//BRT090310      U     "A_22_A106Z1_I1"
+      UN    "A_22_A106Z1_I1"; 
+      =     #A_22_A106Z1.InpTrue; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_22_A106Z1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+//     U     #A_1999_SHE01.StFault
+//      O     #A_1999_SHE02.StFault
+//      O     #A_19_A040Z1.StFault
+//      O     #A_19_A097Z1.StFault
+//      O     #A_19_K091Z1.StFault
+//      O     #A_19_S_H097Z1.StFault
+//
+
+      O     #A_2201_SHE20.StFault; 
+      O     #A_2201_SHE21.StFault; 
+      O     #A_2201_SHE22.StFault; 
+      O     #A_2201_SHE23.StFault; 
+      O     #A_2299_SHE01.StFault; 
+      O     #A_2299_SHE02.StFault; 
+      O     #A_2299_SHE03.StFault; 
+      O     #A_2299_SHE04.StFault; 
+      O     #A_2299_SHE05.StFault; 
+      O     #A_2299_SHE06.StFault; 
+      O     #A_2299_SHE08.StFault; 
+      O     #A_2299_SHE20.StFault; 
+      O     #A_2299_SHE21.StFault; 
+      O     #A_22_A040Z1.StFault; 
+      O     #A_22_A097Z1.StFault; 
+      O     #A_22_A098Z1.StFault; 
+      O     #A_22_K091Z1.StFault; 
+      O     #A_22_K738R1.StFault; 
+      O     #A_22_K838R1.StFault; 
+      O     #A_22_Q390Z1.StFault; 
+      O     #A_22_Q445Z1.StFault; 
+      O     #A_22_S_H097Z1.StFault; 
+      O     #A_22_A458Z1.StFault; 
+      O     #A_22_D1B065.StFault; 
+      O     #A_22_A408Z1I1.StFault; 
+      O     #A_22_A408Z1O1.StFault; 
+      O     #A_22_A700Z1.StFault; 
+      O     #A_22_A800Z1.StFault; 
+      O     #A_22_A106Z1.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+//   U     #A_1999_SHE01.StFalse
+//      O     #A_1999_SHE02.StFalse
+//      O     #A_19_A040Z1.StFalse
+//      O     #A_19_A097Z1.StFalse
+//      O     #A_19_K091Z1.StFalse
+//      O     #A_19_S_H097Z1.StFalse
+//
+
+      O     #A_2201_SHE20.StFalse; 
+      O     #A_2201_SHE21.StFalse; 
+      O     #A_2201_SHE22.StFalse; 
+      O     #A_2201_SHE23.StFalse; 
+      O     #A_2299_SHE01.StFalse; 
+      O     #A_2299_SHE02.StFalse; 
+      O     #A_2299_SHE03.StFalse; 
+      O     #A_2299_SHE04.StFalse; 
+      O     #A_2299_SHE05.StFalse; 
+      O     #A_2299_SHE06.StFalse; 
+      O     #A_2299_SHE08.StFalse; 
+      O     #A_2299_SHE20.StFalse; 
+      O     #A_2299_SHE21.StFalse; 
+      O     #A_22_A040Z1.StFalse; 
+      O     #A_22_A097Z1.StFalse; 
+      O     #A_22_A098Z1.StFalse; 
+      O     #A_22_K091Z1.StFalse; 
+      O     #A_22_K738R1.StFalse; 
+      O     #A_22_K838R1.StFalse; 
+      O     #A_22_Q390Z1.StFalse; 
+      O     #A_22_Q445Z1.StFalse; 
+      O     #A_22_S_H097Z1.StFalse; 
+      O     #A_22_A458Z1.StFalse; 
+      O     #A_22_D1B065.StFalse; 
+      O     #A_22_A408Z1I1.StFalse; 
+      O     #A_22_A408Z1O1.OutWarning; 
+      O     #A_22_A700Z1.StFalse; 
+      O     #A_22_A800Z1.StFalse; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//      U     #A_22_A408Z1O1.StStopped
+//      SET   
+      UN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+//  U(    
+//      O     #A_1999_SHE01.StTrue
+//      O     #A_1999_SHE01.StCtoFalse
+//      )     
+//      U(    
+//      O     #A_1999_SHE02.StTrue
+//      O     #A_1999_SHE02.StCtoFalse
+//      )     
+//      U(    
+//      O     #A_19_A040Z1.StTrue
+//      O     #A_19_A040Z1.StCtoFalse
+//      )     
+//      U(    
+//      O     #A_19_A097Z1.StTrue
+//      O     #A_19_A097Z1.StCtoFalse
+//      )     
+//      U(    
+//      O     #A_19_K091Z1.StTrue
+//      O     #A_19_K091Z1.StCtoFalse
+//      )     
+//      U(    
+//      O     #A_19_S_H097Z1.StTrue
+//      O     #A_19_S_H097Z1.StCtoFalse
+//      )     
+//
+
+      U(    ; 
+      O     #A_2201_SHE20.StTrue; 
+      O     #A_2201_SHE20.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2201_SHE21.StTrue; 
+      O     #A_2201_SHE21.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2201_SHE22.StTrue; 
+      O     #A_2201_SHE22.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2201_SHE23.StTrue; 
+      O     #A_2201_SHE23.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE01.StTrue; 
+      O     #A_2299_SHE01.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE02.StTrue; 
+      O     #A_2299_SHE02.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE03.StTrue; 
+      O     #A_2299_SHE03.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE04.StTrue; 
+      O     #A_2299_SHE04.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE05.StTrue; 
+      O     #A_2299_SHE05.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE06.StTrue; 
+      O     #A_2299_SHE06.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE08.StTrue; 
+      O     #A_2299_SHE08.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE20.StTrue; 
+      O     #A_2299_SHE20.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_2299_SHE21.StTrue; 
+      O     #A_2299_SHE21.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A040Z1.StTrue; 
+      O     #A_22_A040Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A097Z1.StTrue; 
+      O     #A_22_A097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A098Z1.StTrue; 
+      O     #A_22_A098Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_K091Z1.StTrue; 
+      O     #A_22_K091Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_K738R1.StTrue; 
+      O     #A_22_K738R1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_K838R1.StTrue; 
+      O     #A_22_K838R1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_Q390Z1.StTrue; 
+      O     #A_22_Q390Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_Q445Z1.StTrue; 
+      O     #A_22_Q445Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_S_H097Z1.StTrue; 
+      O     #A_22_S_H097Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A458Z1.StTrue; 
+      O     #A_22_A458Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_D1B065.StTrue; 
+      O     #A_22_D1B065.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A408Z1I1.StTrue; 
+      O     #A_22_A408Z1I1.StCtoFalse; 
+      )     ; 
+//BRT080410      U     #A_22_A408Z1O1.StStarted
+      U(    ; 
+      O     #A_22_A700Z1.StTrue; 
+      O     #A_22_A700Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A800Z1.StTrue; 
+      O     #A_22_A800Z1.StCtoFalse; 
+      )     ; 
+      U(    ; 
+      O     #A_22_A106Z1.StTrue; 
+      O     #A_22_A106Z1.StCtoFalse; 
+      )     ; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[6]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[6]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[6]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[6]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[6]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[6]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[6]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[6]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[6]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[6]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,1105 @@
+FUNCTION_BLOCK "LL_RS485Ctrl"
+TITLE = Serial communication (RS485)
+//  
+//COPYRIGHT:    (C) 1997 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS90S7
+//
+//TITLE:        Serial communication (RS485)
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB7.3.0       A.Egli              CT3                        13-Jul-2003
+//              Emptying Buffer befor send telegram
+//FB7.2.11      A.Egli              CT3                        04-Nov-2002
+//              Negativ value: 'A' or '-' 
+//FB7.2.10      A.Egli              CT3                        13-Sep-2002
+//              Check if C-Return at last, 2nd last or 3th last postion 
+//FB7.2.9       A.Egli              CT3                        11-Jun-2002
+//              Set AR2 for elements FB
+//              GERSI: Check if '<' in telegram
+//FB7.2.8       A.Egli              CT3                        13-Sept-2001
+//              InCode=29: Convert String to DINT for lenght 9
+//FB7.2.7       A.Egli              CT3                        15-Mai-2001
+//              Retry Receive
+//FB7.2.6       A.Egli              CT3                        17-Mar-2000
+//              Check telegram length by revveive
+//FB7.2.5       A.Egli              CT3                        08-Feb-2000
+//              Exit FB before send next telegram
+//FB7.2.4       A.Egli              CT3                        10-Jan-2000
+//              Checksumme by answer telegram
+//FB7.2C        A.Egli              CT3                        04-Jun-1999
+//              Raplce HexFF with HexD in answer telegram
+//FB7.2B        A.Egli              CT3                        10-April-1999
+//              Maximum length 100 Byte not Word
+//FB7.2A        A.Egli              CT3                        14-Aug-1998
+//              LCArray 1..64, Timeout timebased
+//FB7.1B        A.Egli              CT3                        12-Aug-1998
+//              C-Return at last or second last position
+//FB7.1A        A.Egli              AEE61                       7-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [COMxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//CODE
+//====
+//  0 = Control
+//  1 = Read  data set of element
+//  2 = Store data set of element
+//
+//  Transparent mode:
+//  -----------------
+//  12= Convert Integer to ASCII (2 character)
+//  14= Convert Integer to ASCII (4 character)
+//  16= Convert Integer to ASCII (6 character)
+//  18= Convert Integer to ASCII (8 character)
+//  22= Convert ASCII to Integer (2 character)
+//  24= Convert ASCII to Integer (4 character)
+//  26= Convert ASCII to Integer (6 character)
+//  28= Convert ASCII to Integer (8 character)
+//  32= Convert Hex to ASCII     (2 character, 8  Bit)
+//  34= Convert Hex to ASCII     (4 character, 16 Bit)
+//  38= Convert Hex to ASCII     (8 character, 32 Bit)
+//  42= Convert ASCII to Hex     (2 character, 8  Bit)
+//  44= Convert ASCII to Hex     (4 character, 16 Bit)
+//  48= Convert ASCII to Hex     (8 character, 32 Bit)
+//
+// Output: Element.CODE:
+//  1 = SEND
+//  2 = DONE
+//  4 = FAULT
+AUTHOR : EA
+FAMILY : GCS90LL
+NAME : COMRS485
+VERSION : 3.0
+
+
+VAR_INPUT
+  InCode : INT ;	
+  InComID : WORD  := W#16#1000;	
+  InTick200ms : BOOL ;	// Tick is every 200ms for one scan high
+  InStepMode : BOOL ;	// Wait for command CmdNextStep
+  CmdNextStep : BOOL ;	// Enable to send  next telegram
+END_VAR
+VAR
+  ParRetryCnt : INT  := 5;	
+  OutAddrDataSnd : DINT ;	// is set by FB7
+  OutAddrDataRcv : DINT ;	// is set by FB7
+  InOutRestartTime : INT  := 50;	//Timebase 0.1 s
+  OutMaxIdx : INT  := 64;	
+  OutLenDataRecord : INT  := 20;	
+  Error : STRUCT 	
+   LCAddr : INT ;	
+   Command : CHAR ;	
+   Status : INT ;	
+   Code : CHAR ;	
+   Count : INT ;	
+  END_STRUCT ;	
+  Element : STRUCT 	// Handshake to element-control  
+   OutCode : INT ;	//Call back function   
+   Index : INT ;	//Index for read and write  
+   InOutValue : DINT ;	//Value  for convert   
+   AddrOffset : INT ;	//Offset for convert  
+   Spare1 : DWORD ;	
+   Spare2 : DWORD ;	
+  END_STRUCT ;	
+  LC0 : STRUCT 	
+   CmdPut : BOOL ;	// Command to send data
+   CmdGet : BOOL ;	// Command to read data
+   Command : CHAR ;	
+   FBNO : INT ;	
+   DINO : INT ;	
+   AddrDyn : DWORD ;	
+   AddrPara : DWORD ;	
+   LCAddr : DWORD ;	
+   RetryCnt : INT ;	
+   spare2 : INT ;	
+  END_STRUCT ;	
+  Telegram : STRUCT 	
+   Idx : INT ;	// Index of actual communication job 
+   LCAddr : INT ;	// Index of LC which data are send 	
+   Command : CHAR ;	//  
+   Len : INT ;	// 
+   TimeOut : INT ;	// 
+   Step : INT ;	
+   RetryCnt : INT ;	
+   LenAnswer : INT ;	
+   spare2 : INT ;	
+  END_STRUCT ;	
+  HeadSnd : ARRAY  [1 .. 4 ] OF BYTE ;	
+  DataSnd : ARRAY  [1 .. 100 ] OF BYTE ;	
+  DummyRcv : BYTE ;	
+  HeadRcv : BYTE ;	
+  DataRcv : ARRAY  [1 .. 100 ] OF BYTE ;	//Data of CFB ===== 
+  BSND : "BSEND";	//Data of CFB =====
+  BRCV : "BRCV";	//Data of LC
+  LCs : ARRAY  [1 .. 64 ] OF STRUCT 	
+   CmdPut : BOOL ;	// Command to send data
+   CmdGet : BOOL ;	// Command to read data
+   Command : CHAR ;	
+   FBNO : INT ;	
+   DINO : INT ;	
+   AddrDyn : DWORD ;	
+   AddrPara : DWORD ;	
+   LCAddr : DINT ;	//Set by ELement
+   RetryCnt : INT ;	
+  END_STRUCT ;	
+  ParTimeOut : INT  := 6;	//Timebase 0.1 s
+END_VAR
+VAR_TEMP
+  tmpstoreAR2 : DINT ;	
+  tmpComDB : INT ;	
+  tmpAddrLC : DINT ;	
+  tmpNo : INT ;	
+  tmpRestart : BOOL ;	
+  tmpCodeLen : DINT ;	
+  tmpWriteAddr : DINT ;	
+  tmpReadAddr : DINT ;	
+  tmpBCDValue : DINT ;	
+  tmpHexValue : DINT ;	
+  tmpSignNeg : BOOL ;	
+  tmpCheckCnt : INT ;	
+  tmpNibble9 : INT ;	
+  tmpAR2element : DINT ;	
+  tmpReadAddr2ndLast : DWORD ;	
+  tmpReadAddr3thLast : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Store
+
+      TAR2  #tmpstoreAR2; 
+      LAR2  P##InCode; 
+      L     P##DataSnd; 
+      L     DW#16#84FFFFFF; //Type=DB
+      UD    ; 
+      T     #OutAddrDataSnd; 
+      L     P##DataRcv; 
+      L     DW#16#84FFFFFF; //Type=DB
+      UD    ; 
+      T     #OutAddrDataRcv; 
+      L     DINO; 
+      T     #tmpComDB; 
+
+NETWORK
+TITLE =Convert ASCII to Hex
+//CODE: 40-48
+//Code length: CODE -40 [character]
+//                2 character: 1 BYTE
+//                4 character: 1 WORD
+//                8 character: 2 WORD
+//Convert:     highbyte -> lowbyte
+      L     #InCode; 
+      L     40; 
+      <I    ; 
+      SPB   F30; 
+      -I    ; 
+      T     #tmpCodeLen; 
+      L     0; 
+      T     #Element.InOutValue; 
+      L     #OutAddrDataRcv; 
+      L     #Element.AddrOffset; 
+      SLD   3; //Byte --> Bitadresse
+      +D    ; 
+      T     #tmpReadAddr; 
+F40L: L     DIB [#tmpReadAddr]; 
+      L     'A'; // Hex 'A' - 'F'
+      >=I   ; 
+      SPB   F40H; 
+      L     DIB [#tmpReadAddr]; 
+      L     '0'; 
+      SPA   F409; 
+F40H: +     -10; 
+F409: -I    ; 
+      L     #Element.InOutValue; 
+      SLD   4; 
+      OD    ; 
+      T     #Element.InOutValue; 
+      L     #tmpReadAddr; 
+      +     8; 
+      T     #tmpReadAddr; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      T     #tmpCodeLen; 
+      L     1; 
+      >=I   ; 
+      SPB   F40L; 
+      SPA   sav1; 
+
+NETWORK
+TITLE =Convert HEX to ASCII
+//CODE: 30-38
+//Code length: CODE -30 [character]
+//                2 character: 1 BYTE
+//                4 character: 2 BYTE
+//                8 character: 2 WORD
+//Convert:     lowbyte -> highbyte
+F30:  L     #InCode; 
+      L     30; 
+      <I    ; 
+      SPB   F20; 
+      -I    ; 
+      T     #tmpCodeLen; 
+      L     #Element.InOutValue; 
+      T     #tmpHexValue; 
+      L     #Element.AddrOffset; 
+      L     8; //Byte --> Bitadresse
+      *I    ; 
+      L     #OutAddrDataSnd; 
+      +D    ; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      SLD   3; //Byte --> Bitadresse
+      +D    ; 
+      T     #tmpWriteAddr; 
+F30L: L     #tmpHexValue; 
+      L     W#16#F; 
+      UD    ; 
+      L     10; 
+      <I    ; 
+      SPB   F309; 
+      -I    ; 
+      L     'A'; // Hex 'A' - 'F'
+      SPA   F30H; 
+F309: TAK   ; // Hex '0' - '9'
+      L     '0'; 
+F30H: +I    ; 
+      T     DIB [#tmpWriteAddr]; 
+      L     #tmpWriteAddr; 
+      +     -8; 
+      T     #tmpWriteAddr; 
+      L     #tmpHexValue; 
+      SRD   4; 
+      T     #tmpHexValue; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      T     #tmpCodeLen; 
+      L     0; 
+      >I    ; 
+      SPB   F30L; 
+      SPA   sav1; 
+
+NETWORK
+TITLE =Convert ASCII to Integer
+//Convert String to DINT:
+//String length: (1..9)
+//
+//InCode: 20-29
+//Code length: InCode -20 [character]
+//Convert:     Sign: if neg: -- / if pos: add number -> highbyte -> lowbyte -> 
+//sign
+F20:  L     #InCode; 
+      L     20; 
+      <I    ; 
+      SPB   F10; 
+      -I    ; 
+      T     #tmpCodeLen; 
+      L     0; 
+      T     #tmpBCDValue; 
+      L     #OutAddrDataRcv; 
+      L     #Element.AddrOffset; 
+      SLD   3; //Byte --> Bitadresse
+      +D    ; 
+      T     #tmpReadAddr; 
+      L     DIB [#tmpReadAddr]; 
+      T     #tmpNibble9; 
+      L     'A'; //neg-sign
+      ==I   ; 
+      O(    ; //[2.11]
+      L     #tmpNibble9; //[2.11]
+      L     '-'; //[2.11] neg-sign
+      ==I   ; //[2.11]
+      )     ; //[2.11]
+      =     #tmpSignNeg; 
+      SPB   F20n; 
+F20L: L     DIB [#tmpReadAddr]; 
+      L     '0'; 
+      -I    ; 
+      L     #tmpBCDValue; 
+      SLD   4; 
+      +D    ; 
+      T     #tmpBCDValue; 
+F20n: L     #tmpReadAddr; 
+      +     8; 
+      T     #tmpReadAddr; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      T     #tmpCodeLen; 
+      L     0; 
+      >I    ; 
+      SPB   F20L; 
+      L     #tmpBCDValue; 
+      SRD   16; // 
+      BTD   ; // Convert Digit 8..5
+      L     10000; 
+      *I    ; 
+      L     #tmpBCDValue; 
+      SLD   16; // Convert Digit 4..1 
+      SRD   16; // 
+      BTD   ; 
+      +D    ; 
+      T     #Element.InOutValue; 
+      UN    #tmpSignNeg; 
+      SPB   FPos; 
+      NEGD  ; 
+      T     #Element.InOutValue; 
+      SPA   sav1; 
+FPos: L     #InCode; //[2.8]  Nibble 9
+      L     29; //[2.8]
+      <>I   ; //[2.8]
+      SPB   sav1; //[2.8]
+      L     #tmpNibble9; //[2.8]
+      L     '0'; //[2.8]
+      -I    ; //[2.8]
+      L     L#100000000; //[2.8]
+      *D    ; //[2.8]
+      L     #Element.InOutValue; //[2.8]
+      +D    ; //[2.8]
+      T     #Element.InOutValue; //[2.8]
+      SPA   sav1; 
+
+NETWORK
+TITLE =Convert Integer to ASCII
+//InCode: 10-18
+//Code length: InCode -10 [character]
+//Convert:     Sign -> lowbyte -> highbyte -> sign: if neg: 'A' / if pos: 
+//'number'
+F10:  L     #InCode; 
+      L     10; 
+      <I    ; 
+      SPB   F1; 
+      -I    ; 
+      T     #tmpCodeLen; 
+      L     0; 
+      L     #Element.InOutValue; 
+      >D    ; 
+      =     #tmpSignNeg; 
+      DTB   ; 
+      T     #tmpBCDValue; 
+      L     #OutAddrDataSnd; 
+      L     #Element.AddrOffset; 
+      SLD   3; //Byte --> Bitadresse
+      +D    ; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      SLD   3; //Byte --> Bitadresse
+      +D    ; 
+      T     #tmpWriteAddr; 
+F10L: L     #tmpBCDValue; 
+      L     W#16#F; 
+      UD    ; 
+      L     '0'; 
+      +I    ; 
+      T     DIB [#tmpWriteAddr]; 
+      L     #tmpWriteAddr; 
+      +     -8; 
+      T     #tmpWriteAddr; 
+      L     #tmpBCDValue; 
+      SRD   4; 
+      T     #tmpBCDValue; 
+      L     #tmpCodeLen; 
+      +     -1; 
+      T     #tmpCodeLen; 
+      L     1; 
+      >I    ; 
+      O(    ; //With positive: send 'number'
+      L     #tmpCodeLen; 
+      L     0; 
+      >I    ; 
+      UN    #tmpSignNeg; 
+      )     ; 
+      SPB   F10L; 
+      UN    #tmpSignNeg; 
+      SPB   sav1; 
+      L     'A'; //With negative: send 'A'
+      T     DIB [#tmpWriteAddr]; 
+      SPA   sav1; 
+
+NETWORK
+TITLE =Methode 1: Read element data 
+
+F1:   L     #InCode; 
+      L     1; 
+      <>I   ; 
+      SPB   F2; 
+      L     1; 
+      L     #Element.Index; 
+      >I    ; 
+      SPB   sav1; 
+      L     #OutMaxIdx; 
+      >I    ; 
+      SPB   sav1; 
+      L     #Element.Index; 
+      +     -1; 
+      L     #OutLenDataRecord; 
+      SLD   3; 
+      *I    ; 
+      L     P##LCs; 
+      +D    ; 
+      T     #tmpAddrLC; 
+      LAR1  #tmpAddrLC; 
+      L     D [AR1,P#0.0]; 
+      LAR1  P##LC0; 
+      T     D [AR1,P#0.0]; 
+      LAR1  #tmpAddrLC; 
+      L     D [AR1,P#4.0]; 
+      LAR1  P##LC0; 
+      T     D [AR1,P#4.0]; 
+      LAR1  #tmpAddrLC; 
+      L     D [AR1,P#8.0]; 
+      LAR1  P##LC0; 
+      T     D [AR1,P#8.0]; 
+      LAR1  #tmpAddrLC; 
+      L     D [AR1,P#12.0]; 
+      LAR1  P##LC0; 
+      T     D [AR1,P#12.0]; 
+      LAR1  #tmpAddrLC; 
+      L     D [AR1,P#16.0]; 
+      LAR1  P##LC0; 
+      T     D [AR1,P#16.0]; 
+      SPA   sav1; 
+
+NETWORK
+TITLE =Methode 2: Store element data 
+
+F2:   L     #InCode; 
+      L     2; 
+      <>I   ; 
+      SPB   F0; 
+      L     1; 
+      L     #Element.Index; 
+      >I    ; 
+      SPB   sav1; 
+      L     #OutMaxIdx; 
+      >I    ; 
+      SPB   sav1; 
+      L     #Element.Index; 
+      +     -1; 
+      L     #OutLenDataRecord; 
+      SLD   3; 
+      *I    ; 
+      L     P##LCs; 
+      +D    ; 
+      T     #tmpAddrLC; 
+      LAR1  P##LC0; 
+      L     D [AR1,P#0.0]; 
+      LAR1  #tmpAddrLC; 
+      T     D [AR1,P#0.0]; 
+      LAR1  P##LC0; 
+      L     D [AR1,P#4.0]; 
+      LAR1  #tmpAddrLC; 
+      T     D [AR1,P#4.0]; 
+      LAR1  P##LC0; 
+      L     D [AR1,P#8.0]; 
+      LAR1  #tmpAddrLC; 
+      T     D [AR1,P#8.0]; 
+      LAR1  P##LC0; 
+      L     D [AR1,P#12.0]; 
+      LAR1  #tmpAddrLC; 
+      T     D [AR1,P#12.0]; 
+      LAR1  P##LC0; 
+      L     D [AR1,P#16.0]; 
+      LAR1  #tmpAddrLC; 
+      T     D [AR1,P#16.0]; 
+      SPA   sav1; 
+
+NETWORK
+TITLE =Methode 0: Control Step "Init" 
+
+F0:   L     #InCode; 
+      L     0; 
+      <>I   ; 
+      SPB   sav0; 
+//===================================================
+//Init Receive       [3.0]
+      L     #InComID; 
+      T     #BRCV.ID; 
+      LAR1  P##BRCV; 
+      L     W#16#1002; 
+      T     W [AR1,P#12.0]; //BRCV.RD_1.TYPE
+      L     100; 
+      T     W [AR1,P#14.0]; //BRCV.RD_1.LEN
+      L     DINO; 
+      T     W [AR1,P#16.0]; //BRCV.RD_1.DB
+      L     DW#16#84FFFFFF; 
+      L     P##HeadRcv; 
+      UD    ; 
+      T     D [AR1,P#18.0]; //BRCV.RD_1.DBX
+      SET   ; 
+      S     #BRCV.EN_R; 
+      CALL #BRCV ;
+//====Init if Restart PLC ========
+      L     0; 
+      L     #InOutRestartTime; 
+      <I    ; 
+      =     #tmpRestart; 
+      UN    #tmpRestart; 
+      SPB   S0; 
+      L     0; 
+      T     #Error.Count; 
+      R     #BRCV.NDR; 
+      R     #BRCV.ERROR; 
+// Set send and receive buffer 
+      UN    #InTick200ms; // 200ms second pulse
+      SPB   sav0; 
+      L     #InOutRestartTime; 
+      +     -2; 
+      T     #InOutRestartTime; 
+      SPA   sav0; 
+NETWORK
+TITLE =Methode 0:  Control: Step "Test queue"
+
+S0:   L     0; 
+      L     #Telegram.Step; 
+      ==I   ; 
+      SPB   xxS0; 
+
+// read element data of active element 
+// this part is done for Step 1,2,3
+      L     #Telegram.Idx; 
+      T     #Element.Index; 
+      L     1; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Subroutine read element data (LC[x]
+      SPA   S7; 
+// 
+// 
+//--Search next element ----
+xxS0: L     0; 
+      T     #Telegram.Step; 
+
+      U     #InStepMode; 
+      UN    #CmdNextStep; 
+      SPB   sav0; 
+      R     #CmdNextStep; 
+      L     1; 
+      L     #Telegram.Idx; 
+      +     1; 
+      T     #Telegram.Idx; 
+      <=I   ; 
+      SPB   S0o1; 
+S0o0: L     1; 
+      T     #Telegram.Idx; 
+S0o1: L     #OutMaxIdx; 
+      >I    ; 
+      SPB   S0o0; 
+
+// read element data  ---
+S0lo: L     #Telegram.Idx; 
+      T     #Element.Index; 
+      L     1; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Subroutine read element data (LC[x]
+//
+      U     #LC0.CmdGet; 
+      O     #LC0.CmdPut; 
+      SPB   xxS1; //-->Send telegram
+      L     #Telegram.Idx; 
+      +     1; 
+      T     #Telegram.Idx; 
+      L     #OutMaxIdx; 
+      <=I   ; 
+      SPB   S0lo; 
+      SPA   sav0; //--> Last LC;
+
+NETWORK
+TITLE =Methode Control: Transition to Step 1: Prepare Send Telegram
+//Call back element control before send
+xxS1: L     0; 
+      T     #Telegram.TimeOut; 
+      L     #LC0.FBNO; 
+      ==I   ; 
+      SPB   xxS0; //--> No call back FB
+      L     0; 
+      T     #Element.AddrOffset; 
+      T     #Telegram.Len; 
+      T     #Telegram.LenAnswer; 
+      L     #LC0.Command; 
+      T     #Telegram.Command; 
+      L     #LC0.LCAddr; 
+      T     #Telegram.LCAddr; 
+      L     #LC0.RetryCnt; 
+      T     #Telegram.RetryCnt; 
+// Call element control
+      L     1; //Code=Send
+      T     #Element.OutCode; 
+      L     #LC0.DINO; 
+      T     #tmpNo; 
+      AUF   DB [#tmpNo]; 
+      L     #LC0.FBNO; 
+      T     #tmpNo; 
+      L     #LC0.AddrDyn; 
+      T     #tmpAR2element; 
+      L     #LC0.AddrPara; 
+      TDB   ; 
+      LAR2  #tmpAR2element; 
+      UC    FB [#tmpNo]; 
+      LAR2  #tmpstoreAR2; 
+      AUF   DI [#tmpComDB]; 
+
+// If read telegram THEN telegramm.Len send 0
+      UN    #LC0.CmdGet; 
+      SPB   S1J3; 
+      L     #Telegram.Len; 
+      L     0; 
+      ==I   ; 
+      SPB   S1J3; 
+      L     #Telegram.LenAnswer; 
+      <>I   ; 
+      SPB   S1J9; 
+      L     #Telegram.Len; //Convert old programm
+      T     #Telegram.LenAnswer; 
+S1J9: L     0; 
+      T     #Telegram.Len; 
+//Start Telegram
+S1J3: L     '>'; 
+      T     #HeadSnd[1]; 
+//Address LC
+      L     #Telegram.LCAddr; 
+      T     #Element.InOutValue; 
+      L     -3; 
+      T     #Element.AddrOffset; 
+      L     32; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Covert  HEX to ASCII
+//Command
+      L     #Telegram.Command; 
+      T     #HeadSnd[4]; 
+
+//Calculate Check sum
+      L     P##HeadSnd; 
+      +     L#8; 
+      T     #tmpReadAddr; //--HeadSnd[2]            
+      L     0; 
+      T     #Element.InOutValue; 
+      L     2; 
+      T     #tmpCheckCnt; 
+      L     #Telegram.Len; // Add length of header
+      +     4; 
+      T     #Telegram.Len; 
+S1J0: L     #Telegram.Len; 
+      L     #tmpCheckCnt; 
+      <I    ; 
+      SPB   S1J2; 
+      +     1; 
+      T     #tmpCheckCnt; 
+      L     DIB [#tmpReadAddr]; 
+      L     #Element.InOutValue; 
+      +I    ; 
+      T     #Element.InOutValue; 
+      L     #tmpReadAddr; 
+      +     L#8; 
+      T     #tmpReadAddr; 
+      SPA   S1J0; 
+S1J2: L     #Telegram.Len; 
+      +     -4; 
+      T     #Element.AddrOffset; 
+      L     32; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Covert  HEX to ASCII
+
+//Telegramm end
+      L     #Telegram.Len; 
+      +     2; 
+      SLD   3; //Byte --> Bitadresse
+      L     P##HeadSnd; 
+      +D    ; 
+      T     #tmpWriteAddr; 
+      L     13; 
+      T     DIB [#tmpWriteAddr]; 
+
+//Update telegram length for send
+      L     #Telegram.Len; 
+      +     3; 
+      T     #Telegram.Len; 
+
+// store element data ---
+      L     2; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Subroutine store element data LC[x]
+
+//Set address send buffer
+      LAR1  P##BSND; 
+      L     W#16#1002; 
+      T     W [AR1,P#12.0]; //BSND.SD_1.TYPE
+      L     100; 
+      T     W [AR1,P#14.0]; //BSND.SD_1.LEN
+      L     DINO; 
+      T     W [AR1,P#16.0]; //BSND.SD_1.DB
+      L     DW#16#84FFFFFF; 
+      L     P##HeadSnd; 
+      UD    ; 
+      T     D [AR1,P#18.0]; //BSND.SD_1.DBX
+      L     #Telegram.Len; 
+      T     #BSND.LEN; 
+      L     #InComID; 
+      T     #BSND.ID; 
+//[3.0-->
+//Send Next step
+      L     7; //-->Emptying Buffer
+      T     #Telegram.Step; 
+      L     0; 
+      T     #Telegram.TimeOut; 
+//[<--3.0]
+      SPA   sav0; 
+NETWORK
+TITLE =Methode Control: Step7: Emptying buffer [3.0]
+
+S7:   L     #Telegram.Step; 
+      L     7; 
+      <>I   ; 
+      SPB   S7J0; 
+      U     #BRCV.NDR; 
+      O     #BRCV.ERROR; 
+      R     #BRCV.NDR; 
+      R     #BRCV.ERROR; 
+      SPBN  S7J1; 
+      CALL #BRCV ;
+S7J1: NOP   0; 
+//      UN    #InTick200ms                //[3.0]
+//      SPB   sav0                        //[3.0]
+//------------------------------------
+//Next Step  : Send Telegramm
+      L     1; 
+      T     #Telegram.Step; 
+      L     0; 
+      T     #Telegram.TimeOut; 
+      SET   ; 
+      R     #BSND.REQ; 
+      SPA   sav0; 
+S7J0: NOP   0; 
+NETWORK
+TITLE =Methode Control: Step 1 :Send telegram 
+
+      L     #Telegram.Step; 
+      L     1; 
+      <>I   ; 
+      SPB   S2; 
+S1J1: CALL #BSND ;// call with positiv flag
+      UN    #BSND.REQ; 
+      S     #BSND.REQ; 
+      SPB   S1J1; 
+// Test telegram done         
+      U     #BSND.DONE; 
+      SPB   xxS2; 
+// Test Nak         
+      U     #BSND.ERROR; 
+      L     #BSND.STATUS; 
+      SPB   NAK; 
+// Test TimeOut         
+      UN    #InTick200ms; 
+      SPB   sav0; 
+      L     #Telegram.TimeOut; 
+      +     2; 
+      T     #Telegram.TimeOut; 
+      L     #ParTimeOut; 
+      >I    ; 
+      L     128; // TimeOut 
+      SPB   NAK; //--> Time out 
+      SPA   sav0; 
+
+NETWORK
+TITLE =Methode Control: Step 2 : Wait for Answer Telegram  
+
+xxS2: SET   ; 
+      L     0; 
+      T     #Telegram.TimeOut; 
+      L     2; 
+      T     #Telegram.Step; 
+//----------------------
+//Step 2
+//----------------------
+S2:   L     #Telegram.Step; 
+      L     2; 
+      <>I   ; 
+      SPB   S3; 
+      U     #BRCV.NDR; 
+      SPB   xxS3; 
+      U     #BRCV.ERROR; 
+      L     #BSND.STATUS; 
+      SPB   NAK; 
+      UN    #InTick200ms; 
+      SPB   sav0; 
+      L     #Telegram.TimeOut; 
+      +     2; 
+      T     #Telegram.TimeOut; 
+      L     #ParTimeOut; 
+      >I    ; 
+      L     129; // TimeOut Answer
+      SPB   NAK; //--> Time out 
+      SPA   sav0; 
+NETWORK
+TITLE =Methode Control: Step 3 : Test answer telegram
+//Call back element control by answer
+xxS3: L     0; 
+      L     #LC0.FBNO; 
+      ==I   ; 
+      SPB   xxS0; //--> No call back FB
+      L     'A'; // Accept
+      L     #HeadRcv; 
+      ==I   ; 
+      SPB   S3OK; 
+      L     'N'; // Nak
+      ==I   ; 
+      SPB   S3NA; 
+//--> Retry Telegram
+      L     'O'; 
+      T     #Error.Code; 
+      L     140; 
+      SPA   NAK; 
+//NAK from LC
+S3NA: L     #DataRcv[2]; 
+      T     #Error.Code; 
+      L     130; 
+      SPA   NAK; 
+// Call element control
+S3OK: L     0; 
+      T     #Element.AddrOffset; 
+//--------------------------------------------
+//Prepare Check C-Return at last position
+      L     #Telegram.Command; 
+      L     'A'; 
+      >=I   ; 
+      U(    ; 
+      L     4; 
+      L     #BRCV.LEN; 
+      >=I   ; 
+      )     ; 
+      SPB   S3Rc; 
+      L     #BRCV.LEN; 
+      +     -1; 
+      SLD   3; //Byte --> Bitadresse
+      L     P##HeadRcv; 
+      +D    ; 
+      T     #tmpReadAddr; //---> last character
+//---------------------------------------------------
+// Check
+S3J0: L     #tmpReadAddr; 
+      +     -8; 
+      T     #tmpReadAddr2ndLast; //---> 2nd last character
+      +     -8; 
+      T     #tmpReadAddr3thLast; //---> 3th last character
+//---------------------------------------------------
+//If last char is chr(255) THEN last char = chr(13)
+      L     255; 
+      L     DIB [#tmpReadAddr]; 
+      <>I   ; 
+      SPB   S3R3; 
+      L     13; 
+      T     DIB [#tmpReadAddr]; 
+//---------------------------------------------------
+// Check C-Return at 3th  last position
+S3R3: L     13; 
+      L     DIB [#tmpReadAddr3thLast]; 
+      ==I   ; 
+      SPBN  S3R2; 
+      L     #BRCV.LEN; 
+      +     -2; 
+      T     #BRCV.LEN; 
+      L     #tmpReadAddr3thLast; 
+      T     #tmpReadAddr; 
+      SPA   S3J0; 
+//---------------------------------------------------
+// Check C-Return at 2nd  last position
+S3R2: L     13; 
+      L     DIB [#tmpReadAddr2ndLast]; 
+      ==I   ; 
+      SPBN  S3R0; 
+      L     #BRCV.LEN; 
+      +     -1; 
+      T     #BRCV.LEN; 
+      L     #tmpReadAddr2ndLast; 
+      T     #tmpReadAddr; 
+      SPA   S3J0; 
+//---------------------------------------------------
+// Check C-Return at last position
+S3R0: L     13; 
+      L     DIB [#tmpReadAddr]; 
+      <>I   ; 
+      L     140; 
+      SPB   NAK; 
+//===================================================
+//Calculate Check sum
+      L     P##DataRcv; 
+      T     #tmpReadAddr; 
+      L     0; 
+      T     #Element.InOutValue; 
+      L     0; 
+      T     #tmpCheckCnt; 
+
+      L     99; 
+      L     #BRCV.LEN; 
+      <I    ; 
+      L     140; 
+      SPB   NAK; 
+      L     4; 
+      L     #BRCV.LEN; 
+      >I    ; 
+      L     140; 
+      SPB   NAK; 
+S3C0: L     #BRCV.LEN; 
+      +     -4; 
+      L     #tmpCheckCnt; 
+      <=I   ; 
+      SPB   S3C2; 
+      +     1; 
+      T     #tmpCheckCnt; 
+      L     DIB [#tmpReadAddr]; 
+      L     #Element.InOutValue; 
+      +I    ; 
+      T     #Element.InOutValue; 
+      L     #tmpReadAddr; 
+      +     L#8; 
+      T     #tmpReadAddr; 
+      SPA   S3C0; 
+S3C2: L     97; 
+      T     #Element.AddrOffset; 
+      L     32; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Covert  HEX to ASCII
+//--> Checksumme is in DatSnd[98] and DatSnd[99]
+      L     #BRCV.LEN; 
+      +     -4; 
+      SLD   3; 
+      L     P##DataRcv; 
+      +D    ; 
+      T     #tmpReadAddr; 
+      LAR1  ; 
+      L     B [AR1,P#0.0]; 
+      L     #DataSnd[98]; 
+      <>I   ; 
+      O(    ; 
+      L     B [AR1,P#1.0]; 
+      L     #DataSnd[99]; 
+      <>I   ; 
+      )     ; 
+      L     140; 
+      SPB   NAK; 
+//====================================================
+//Compare telegram lenght with requestet answer length
+S3Rc: L     #Telegram.LenAnswer; 
+      L     0; 
+      ==I   ; 
+      SPB   S3Bk; 
+      L     #BRCV.LEN; 
+      +     -4; 
+      L     #Telegram.LenAnswer; 
+      <>I   ; 
+      L     140; 
+      SPB   NAK; 
+//====================================================
+//Call Back
+S3Bk: L     2; //Code=Receive
+      T     #Element.OutCode; 
+      L     0; 
+      T     #Element.AddrOffset; 
+      L     #LC0.DINO; 
+      T     #tmpNo; 
+      AUF   DB [#tmpNo]; 
+      L     #LC0.FBNO; 
+      T     #tmpNo; 
+      L     #LC0.AddrDyn; 
+      T     #tmpAR2element; 
+      L     #LC0.AddrPara; 
+      TDB   ; 
+      LAR2  #tmpAR2element; 
+      UC    FB [#tmpNo]; 
+      LAR2  #tmpstoreAR2; 
+      AUF   DI [#tmpComDB]; 
+
+NETWORK
+TITLE =Methode Control: Step 3: Init for next Telegram
+
+S3:   SET   ; 
+      R     #LC0.CmdGet; 
+      R     #LC0.CmdPut; 
+      L     0; 
+      T     #LC0.RetryCnt; 
+S3rt: SET   ; 
+      R     #BRCV.NDR; 
+      R     #BRCV.ERROR; 
+      R     #BSND.DONE; 
+      R     #BSND.ERROR; 
+//[3.0-->]
+      CALL #BRCV ;
+//[<--3.0]
+//store element data ---
+      L     2; 
+      T     #InCode; 
+      UC    "LL_RS485Ctrl"; // Subroutine store element data
+      L     0; 
+      T     #Telegram.Step; //--Step 0  [2.5]
+      SPA   sav0; //[2.5]
+
+NETWORK
+TITLE =Methode Control: NAK 
+///
+//Error send 
+NAK:  T     #Error.Status; 
+      L     #Telegram.Command; 
+      T     #Error.Command; 
+      L     #Telegram.LCAddr; 
+      T     #Error.LCAddr; 
+      L     #Error.Count; 
+      +     1; 
+      T     #Error.Count; 
+//Retry Receive if wrong answer //[2.7]
+      L     #Telegram.Step; 
+      L     2; 
+      <>I   ; 
+      O(    ; 
+      L     #Error.Status; 
+      L     140; 
+      <>I   ; 
+      )     ; 
+      SPB   NAK2; 
+      R     #BRCV.NDR; 
+      R     #BRCV.ERROR; 
+      R     #BRCV.EN_R; 
+      SPA   xxS2; 
+NAK2: L     #ParRetryCnt; 
+      L     #LC0.RetryCnt; 
+      >I    ; //--> Retry after fault 
+      O     #tmpRestart; //--> Retry during restart
+      SPB   naRt; //--> Retry after fault 
+      L     0; 
+      T     #LC0.RetryCnt; 
+// Call element with code NAK
+      L     4; //Code=Receive
+      T     #Element.OutCode; 
+      L     #LC0.DINO; 
+      T     #tmpNo; 
+      AUF   DB [#tmpNo]; 
+      L     #LC0.FBNO; 
+      T     #tmpNo; 
+      L     #LC0.AddrDyn; 
+      T     #tmpAR2element; 
+      L     #LC0.AddrPara; 
+      TDB   ; 
+      LAR2  #tmpAR2element; 
+      UC    FB [#tmpNo]; 
+      LAR2  #tmpstoreAR2; 
+      AUF   DI [#tmpComDB]; 
+      SPA   S3; 
+naRt: L     #LC0.RetryCnt; 
+      +     1; 
+      T     #LC0.RetryCnt; 
+      SPA   S3rt; 
+
+NETWORK
+TITLE =Restore
+
+sav0: L     0; 
+      T     #Element.OutCode; 
+sav1: LAR2  #tmpstoreAR2; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,430 @@
+	DATA_BLOCK DB 820
+	TITLE =SECTION-DB : LINE 1 SEC 20 GERM 4
+	AUTHOR  : KR      
+	FAMILY  : GCSS7
+	VERSION : 0.0
+	
+	//
+	//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Section DB: LINE 1 SEC 20 GERM 4
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB820.1.0 K.Renz              CSB41                       13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: CODE  FC56-FB62
+	//
+	//MANUAL : GCSOSMAN
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	//
+	//
+	
+	  STRUCT 	
+	   Para : STRUCT 	
+	    Spare    : INT  := 0;	//Reserved for InCode
+	    ParSecNr : INT  := 20;	
+	    ParLineDB : INT  := 800;	
+	    spare4   : INT ;
+	    ParNextSecDB : INT :=821;	//Next section DB of this project line
+	    ParSecDataFirstByte : INT  := 240;	
+	    ParSecDataLenNomValue : INT :=10950 ;	
+	    ParSecDataLenAcValue : INT :=100;	
+	    ParBinDataFirstByte : INT  := 12900;	
+	    ParBinDataLength : INT  := 306;	
+	   END_STRUCT ;	
+	   VarTemp : STRUCT 	
+	    InOutValue1 : INT ;	
+	    InOutValue2 : INT ;	
+	    InOutValue3 : DINT ;	
+	    InOutValue4 : DINT ;	
+	    InOutValue5 : DINT ;	
+	    InOutValue6 : DINT ;	
+	   END_STRUCT ;	
+	   ChangeBit : STRUCT 	
+	    spare : BYTE ;	
+	    CBit1 : BOOL ;	
+	    CBit2 : BOOL ;	
+	    CBit3 : BOOL ;	
+	    CBit4 : BOOL ;	
+	   END_STRUCT ;	
+	   ToASW : STRUCT 	
+	    spare00 : WORD ;	
+	    CmdModify : BOOL ;	
+	    CmdNewBatch : BOOL ;	
+	    CmdDataMoved : BOOL ;	
+	    InfSameJobPrevSec : BOOL ;	
+	    InfSameJobNextSec : BOOL ;	
+	    InfSameBatchPrevSec : BOOL ;	
+	    InfSameBatchNextSec : BOOL ;	
+	    InfSameJobLineDB : BOOL ;	//Job in reveive box is equal
+	    InfEmptyingTimeEnd : BOOL ;	
+	    InfWayAdjustTimeEnd : BOOL ;	
+	    InfSameJobAnyPrevSec : BOOL ;	
+	    InfSameBatchAnyPrevSec : BOOL ;	
+	    spare34 : BOOL ;	
+	    spare35 : BOOL ;	
+	    spare36 : BOOL ;	
+	    InfDataReady : BOOL ;	
+	    Func : UDT10601;	
+	    Transition : STRUCT 	
+	     spare00 : BYTE ;	
+	     ToPassive : BOOL ;	
+	     ToWait : BOOL ;	
+	     ToActive : BOOL ;	
+	     ToReady : BOOL ;	
+	     ToEmptying : BOOL ;	
+	     ToEmptied : BOOL ;	
+	     ToIdling : BOOL ;	
+	    END_STRUCT ;	
+	    spare10 : WORD ;	
+	    spare12 : DWORD ;	
+	    spare16 : DWORD ;	
+	   END_STRUCT ;	
+	   ToSSW : STRUCT 	
+	    InfStopped : BOOL ;	
+	    spare01 : BOOL ;	
+	    InfStarted : BOOL ;	
+	    spare03 : BOOL ;	
+	    spare04 : BOOL ;	
+	    InfFeeding : BOOL ;	
+	    spare06 : BOOL ;	
+	    spare07 : BOOL ;	
+	    spare00 : BOOL ;	
+	    CmdGotoActive : BOOL ;	
+	    CmdGotoReady : BOOL ;	
+	    CmdGotoEmptying : BOOL ;	
+	    CmdGotoEmptied : BOOL ;	
+	    CmdGotoIdling : BOOL ;	
+	    CmdGotoPassive : BOOL ;	
+	    spare17 : BOOL ;	
+	    InfReadyForNewBatch : BOOL ;	
+	    CmdSendResult : BOOL ;	
+	    InfPulseTimer : BOOL ;	
+	    CmdNewWay : BOOL ;	
+	    tmpTransferOff : BOOL ; //Internal used to store ASW condition	
+	    spare25 : BOOL ;	
+	    spare26 : BOOL ;	
+	    InfReleaseEmptyingTime : BOOL ;	
+	    Func : UDT10601;	
+	    InPrevSecDB : INT ;	//Previous section DB in product flow
+	    InNextSecDB : INT :=821;	//Next section DB in product flow
+	    spare12 : DWORD ;	
+	    spare16 : DWORD ;	
+	   END_STRUCT ;	
+	   PCWrite : STRUCT 	//PC Write : Section Data
+	    Hsk : STRUCT 	
+	     Q_Status : BOOL ;	
+	     Q_Result : BOOL ;	
+	     Q_ProductCheck : BOOL ;	//Request PCC to check product in receiver
+	     Q_Sampler     : BOOL ;	//Request PCC to register sampler bottle
+	     Q_ManAddition : BOOL ;	//Request PCC to register manual additions from the mixing line
+	     Q_5 : BOOL ;	
+	     Q_6 : BOOL ;	
+	     Q_7 : BOOL ;	
+	     F_Define : BOOL ;	
+	    END_STRUCT ;	
+	    spare2 : WORD ;	
+	    Func : UDT10601;	
+	    ExtFuncOn  : STRUCT 	 //Extended enable commands to section
+	     Cmd08YieldWithinLimits : BOOL ;
+	     Cmd09MYRAWithinLimits : BOOL ;
+	     Cmd10 : BOOL ;	//Not used
+	     Cmd11 : BOOL ;	//Not used
+	     Cmd12 : BOOL ;	//Not used
+	     Cmd13 : BOOL ;	//Not used
+	     Cmd14 : BOOL ;	//Not used
+	     Cmd15 : BOOL ;	//Not used
+	     Cmd00 : BOOL ;	//Not used
+	     StartLoading : BOOL ;	//Not used
+	     FinishLoading : BOOL ;	//Not used
+	     StartProcess : BOOL ;	//Not used
+	     StartUnLoading : BOOL ;	//Not used
+	     FinishCleanSurface : BOOL ;	//Not used
+	     StartCleaning : BOOL ;	//Not used
+	     FinishCleaning : BOOL ;	//Not used
+	    END_STRUCT ;	
+	    ExtFuncOff  : STRUCT 	 //Extended enable commands to section
+	     Cmd08YieldOutsideLimits : BOOL ;
+	     Cmd09MYRAOutsideLimits : BOOL ;
+	     Cmd10 : BOOL ;	//Not used
+	     Cmd11 : BOOL ;	//Not used
+	     Cmd12 : BOOL ;	//Not used
+	     Cmd13 : BOOL ;	//Not used
+	     Cmd14 : BOOL ;	//Not used
+	     Cmd15 : BOOL ;	//Not used
+	     Cmd00 : BOOL ;	//Not used
+	     StartLoading : BOOL ;	//Not used
+	     FinishLoading : BOOL ;	//Not used
+	     StartProcess : BOOL ;	//Not used
+	     StartUnLoading : BOOL ;	//Not used
+	     FinishCleanSurface : BOOL ;	//Not used
+	     StartCleaning : BOOL ;	//Not used
+	     FinishCleaning : BOOL ;	//Not used
+	    END_STRUCT ;	
+	    Value3 : INT ;	
+	    ParWayAdjustTime: INT :=40;	
+	    Value5 : INT ;	
+	    ParEmptyingTime : INT := 0;	
+	   END_STRUCT ;	
+	   PCRead : STRUCT 	//PC Read : Section Data
+	    Hsk : STRUCT 	
+	     F_Status : BOOL ;	
+	     F_Result : BOOL ;	
+	     F_ProductCheck : BOOL ;	//Request PCC to check product in receiver
+	     F_Sampler     : BOOL ;	//Request PCC to register sampler bottle
+	     F_ManAddition : BOOL ;	//Request PCC to register manual additions from the mixing line
+	     F_5 : BOOL ;	
+	     F_6 : BOOL ;	
+	     F_7 : BOOL ;	
+	    END_STRUCT ;	
+	    ErrElement : INT ;	
+	    ErrCode : INT ;	
+	    ErrObject : INT ;	//(*new*)
+	    Step : STRUCT 	
+	     spare : BYTE ;	
+	     StPassive : BOOL ;	
+	     StWait : BOOL ;	
+	     StActive : BOOL ;	
+	     StReady : BOOL ;	
+	     StEmptying : BOOL ;	
+	     StEmptied : BOOL ;	
+	     StIdling : BOOL ;	
+	    END_STRUCT ;	
+	    State : STRUCT 	
+	     spare : BYTE ;	
+	     StStopped : BOOL ;	
+	     StStarting : BOOL ;	
+	     StStarted : BOOL ;	
+	     StStopping : BOOL ;	
+	     spare04 : BOOL ;	
+	     StFeeding : BOOL ;	
+	    END_STRUCT ;	
+	    Fault : UDT10602;	
+	    Status : UDT10603;	
+	    InfoCode     : INT ;	//
+	    SectionState : UDT1002 ;	//
+	    ExtStatus  : STRUCT 	 //Extended enable commands to section
+	     Sta08 : BOOL ;	//Not used
+	     Sta09 : BOOL ;	//Not used
+	     Sta10 : BOOL ;	//Not used
+	     Sta11 : BOOL ;	//Not used
+	     Sta12 : BOOL ;	//Not used
+	     Sta13 : BOOL ;	//Not used
+	     Sta14 : BOOL ;	//Not used
+	     Sta15 : BOOL ;	//Not used
+	     Sta00OverrideLL : BOOL ;	//Override sender low levels
+	     Sta01 : BOOL ;	//Not used
+	     Sta02 : BOOL ;	//Not used
+	     Sta03 : BOOL ;	//Not used
+	     Sta04 : BOOL ;	//Not used
+	     Sta05 : BOOL ;	//Not used
+	     Sta06 : BOOL ;	//Not used
+	     Sta07 : BOOL ;	//Not used
+	    END_STRUCT ;	
+	    OutWayAdjustTime : INT ;	
+	    OutStartWarningTime : INT ;	//Copy of Startwarning modul
+	    OutEmptyingTime : INT ;	
+	    Value7 : INT ;	
+	    Value8 : INT ;	
+	    Value9 : INT ;	
+	    Value10 : INT ;	
+	    Value11 : INT ;	
+	    Value12 : INT ;	
+	    Value13 : INT ;	
+	    Value14 : INT ;	
+	    Value15 : INT ;	
+	    Value16 : INT ;	
+	    Value17 : INT ;	
+	    ExtFuncOn  : STRUCT 	 //Extended enable commands to section
+	     Pulse08 : BOOL ;	//Not used
+	     Pulse09 : BOOL ;	//Not used
+	     Pulse10 : BOOL ;	//Not used
+	     Pulse11 : BOOL ;	//Not used
+	     Pulse12 : BOOL ;	//Not used
+	     Pulse13 : BOOL ;	//Not used
+	     Pulse14 : BOOL ;	//Not used
+	     Pulse15 : BOOL ;	//Not used
+	     Pulse00OverrideLL : BOOL ;	//Override sender low levels
+	     Pulse01 : BOOL ;	//Not used
+	     Pulse02 : BOOL ;	//Not used
+	     Pulse03 : BOOL ;	//Not used
+	     Pulse04 : BOOL ;	//Not used
+	     Pulse05 : BOOL ;	//Not used
+	     Pulse06 : BOOL ;	//Not used
+	     Pulse07 : BOOL ;	//Not used
+	    END_STRUCT ;	
+	    OutDwellTime : INT ; //Actual dwelltime
+	   END_STRUCT ;	
+	   JobNom : STRUCT 	//PC Read: Job header: Nominal values
+	    JobNr : DINT ;	
+	    JobWeight : DINT ;	//Total Job weight
+	    BatchNo : INT  := 10;	//Number of batch requested form PC
+	    ScaleUsed : ARRAY  [1 .. 64 ] OF BOOL ;	
+	    RecipeNr : INT ;	
+	    BatchWeight : DINT ;	
+	    BatchMinPpm : INT ;	//Minimum batch size [0.1%]
+	    BatchMaxPpm : INT ;	//Maximum batch size [0.1%]
+	    BatchNoOffset : INT ;	//Batch number of first batch
+	    Value10 : INT ;	
+	    Value11 : INT ;	
+	    FeedingTime : INT ;	//Feeding Time
+	    Destination : INT ;	
+	    Value14 : INT ;	
+	   END_STRUCT ;	
+	   JobAc : STRUCT 	//PC Read: Job header: Actual values
+	    StaBatch : STRUCT 	
+	     spare0 : BOOL ;	
+	     spare1 : BOOL ;	
+	     spare2 : BOOL ;	
+	     spare3 : BOOL ;	
+	     spare4 : BOOL ;	
+	     StaProductCheckOk: BOOL ;	
+	     StaEmptyingBatch : BOOL ;	
+	     StaScaleRecipeValid : BOOL ;	
+	     StaErrBatch : BOOL ;	
+	     StaHandAddReady : BOOL ;	
+	     StaRegistrated : BOOL ;	
+	     StaLastBatch : BOOL ;	
+	     StaDone : BOOL ;	
+	    END_STRUCT ;	
+	    JobWeight : DINT ;	
+	    BatchNo : INT ;	
+	    BatchNoCal : INT ;	
+	    BatchWeightTarget : DINT ;	//Calculated target batch weight
+	    BatchWeightActual : DINT ;	//Actual weight of all dosed ingredient
+	    BatchSizePpm : INT ;	//Calculated batch size [1/1000]
+	    BatchSndBin : INT ; //FU: Actual Sender Bin 	
+	    BatchRcvBin : INT ; //FU: Actual Receiver Bin 	
+	    BatchMixingTime : INT ;	
+	    Value13 : INT ;	
+	    FeedingTime : INT ;	//Feeding Time
+	    RecipePlace : INT ;	//Actual recipe place
+	    Value16 : INT ;	
+	    Value17 : INT ;	
+	    Value18 : INT ;	
+	    Value19 : INT ;	
+	   END_STRUCT ;	
+	   SecAc  : UDT8002;	//PC Read: Job Data Actual  Values
+	   
+	   SecNom : UDT8001;	//PC Read: Job Data Nominal Values
+	   
+	   Spare11290 : Array[11290..12499] of BYTE;
+	   Gr : UDT 20090;	// Group control
+	   Spare12792 : Array[12792..12899] of BYTE;
+	   MAL1S001SND33 : STRUCT 	//MAL1S001SND33  Dummy sender
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..16] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   MAL1S001RCV34 : STRUCT 	//MAL1S001RCV34  Dummy receiver
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..15] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	    Special : STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   MAl1S034RCV36 : STRUCT 	//MAl1S034RCV36  KILNED MALT BINS
+	    StatusRec : STRUCT 	//Status Recipe
+	     StaFirst : BOOL ;	//First igredient active
+	     StaLast : BOOL ;	//Last ingredient active, no next bin available
+	     StaListNotUsed : BOOL ;	//List not used for this job
+	     StaOverrideLevel: BOOL ;	//Override Level
+	     Spare1 : BOOL ;	
+	     Spare2 : BOOL ;	
+	     Spare3 : BOOL ;	
+	     Spare4 : BOOL ;	
+	    END_STRUCT ;	
+	    WeightTotal : DINT ;	
+	    Ingr : ARRAY  [1 ..15] OF STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	    Special : STRUCT 	
+	     Bin : INT ;	
+	     WeightTarget : DINT ;	
+	    END_STRUCT ;	
+	   END_STRUCT ;	
+	   DelayEsFull : STRUCT 	//Delay Timer
+	    ET  : INT ;	
+	    EN  : BOOL;
+	    Q   : BOOL;
+	   END_STRUCT ;	
+	   DelayEsEmpty : STRUCT 	//Delay Timer
+	    ET  : INT ;	
+	    EN  : BOOL;
+	    Q   : BOOL;
+	   END_STRUCT ;	
+	   TimeoutAutostart: STRUCT 	//Timer Timeout
+	    ET  : INT ;	
+	    EN  : BOOL;
+	    Q   : BOOL;
+	   END_STRUCT ;	
+	END_STRUCT;
+	BEGIN
+	   Gr.InManual[8] := TRUE; 
+	   Gr.InManual[91] := TRUE; 
+	   Gr.InManual[92] := TRUE; 
+	   Gr.InManual[93] := TRUE; 
+	   Gr.InManual[94] := TRUE; 
+	   Gr.InManual[95] := TRUE; 
+	   Gr.InManual[161] := TRUE; 
+	   Gr.InManual[162] := TRUE; 
+	   Gr.InManual[163] := TRUE; 
+	   Gr.InManual[164] := TRUE; 
+	   Gr.InManual[165] := TRUE; 
+	   Gr.InManual[166] := TRUE; 
+	   Gr.InManual[167] := TRUE; 
+	   Gr.InManual[168] := TRUE; 
+	   Gr.InManual[169] := TRUE; 
+	   Gr.InManual[170] := TRUE; 
+	   Gr.InManual[171] := TRUE; 
+	   Gr.InManual[172] := TRUE; 
+	   Gr.InManual[173] := TRUE; 
+	   Gr.InManual[174] := TRUE; 
+	   Gr.InManual[175] := TRUE; 
+	   Gr.InManual[176] := TRUE; 
+	   Gr.InManual[177] := TRUE; 
+	   Gr.InManual[158] := TRUE; 
+	
+	END_DATA_BLOCK

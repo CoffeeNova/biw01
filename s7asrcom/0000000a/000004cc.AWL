@@ -1,0 +1,334 @@
+FUNCTION_BLOCK "GCS7_StartWarning"
+TITLE =StartWarning
+//  
+//COPYRIGHT:    (C) 2002  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS90
+//
+//TITLE:        FB 100 StartWarning 
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB100.1.2     A.Egli              CT3                        09-Mar-2004
+//              Store Group DBNO of last warning 
+//FB100.1.1     A.Egli              CT3                        21-Aug-2003
+//              1st Release in S7
+//FB100.1.0     A.Egli              CT3                         1-Jul-2002
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.M4IxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : StartWa
+VERSION : 1.2
+
+
+VAR_INPUT
+  InModeHigher : BOOL ;	//Higher    security : Every start
+  InArea : INT ;	
+  InEnable : BOOL ;	
+  InLocal : BOOL ;	
+  InStarted : BOOL ;	
+  InCmdNext : BOOL ;	
+END_VAR
+VAR_OUTPUT
+  OutCmdNext : BOOL ;	
+  OutStartwarning : BOOL ;	
+END_VAR
+VAR
+  ParStartwarningTime : INT  := 10;	//[s]
+  ParStartReleaseTimeL : INT  := 32767;	//[s] Low  security
+  ParStartReleaseTimeH : INT  := 30;	//[s] High security
+  ParRequestTime : INT  := 10;	//[0.1s]
+  OutWarningObjectDB : INT ;	//Last Group DB how has run Startwarning
+  OutWarningArea : INT ;	//Last Area how has run the Startwarning
+  Spare2 : INT ;	
+  Spare3 : INT ;	
+  Spare4 : INT ;	
+  Area : ARRAY  [0 .. 20 ] OF STRUCT 	
+   OutStartwarningRunning : BOOL ;	
+   OutStartReleaseRunningL : BOOL ;	
+   OutStartReleaseRunningH : BOOL ;	
+   CmdStartStartWarning : BOOL ;	
+   CmdResetStartWarning : BOOL ;	
+   tmpFlag200ms : BOOL ;	//flag of 200ms tag
+   tmpFlag1s : BOOL ;	//flag of 1 s tag
+   OutRequestTime : INT ;	//[0.1s]
+   OutStartwarningTime : INT ;	//[s]
+   OutStartReleaseTimeL : INT ;	//[s]
+   OutStartReleaseTimeH : INT ;	//[s]
+  END_STRUCT ;	
+  TmpArea : STRUCT 	
+   OutStartwarningRunning : BOOL ;	
+   OutStartReleaseRunningL : BOOL ;	
+   OutStartReleaseRunningH : BOOL ;	
+   CmdStartStartWarning : BOOL ;	
+   CmdResetStartWarning : BOOL ;	
+   tmpFlag200ms : BOOL ;	//flag of 200ms tag
+   tmpFlag1s : BOOL ;	//flag of 1 s tag
+   OutRequestTime : INT ;	//[0.1s]
+   OutStartwarningTime : INT ;	//[s]
+   OutStartReleaseTimeL : INT ;	//[s]
+   OutStartReleaseTimeH : INT ;	//[s]
+  END_STRUCT ;	
+  TmpEnd : INT ;	
+END_VAR
+VAR_TEMP
+  AddrReading : DINT ;	
+  tmpLenArea : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Read Area Data
+
+      L     #InArea; 
+      L     20; 
+      >I    ; 
+      BEC   ; 
+      L     P##TmpEnd; 
+      L     P##TmpArea; 
+      -D    ; 
+      T     #tmpLenArea; 
+      L     #InArea; 
+      *D    ; 
+      L     P##Area; 
+      +D    ; 
+      T     #AddrReading; 
+//====================================
+      LAR1  #AddrReading; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##TmpArea; 
+      T     DID [AR1,P#0.0]; 
+
+      LAR1  #AddrReading; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##TmpArea; 
+      T     DID [AR1,P#4.0]; 
+
+      LAR1  #AddrReading; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  P##TmpArea; 
+      T     DIW [AR1,P#8.0]; 
+
+NETWORK
+TITLE =Flag of tick 1s (all): Count  Timer 1s
+
+      A     "GCS7_Gr_OutTick1s"; // "Gr.OutTick1s"
+      FP    #TmpArea.tmpFlag1s; 
+      =     L      8.0; 
+      A     L      8.0; 
+      A     #TmpArea.OutStartwarningRunning; 
+      JNB   _001; 
+      L     #TmpArea.OutStartwarningTime; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartwarningTime; 
+_001: NOP   0; 
+      A     L      8.0; 
+      A     #TmpArea.OutStartReleaseRunningL; 
+      JNB   _002; 
+      L     #TmpArea.OutStartReleaseTimeL; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartReleaseTimeL; 
+_002: NOP   0; 
+      A     L      8.0; 
+      A     #TmpArea.OutStartReleaseRunningH; 
+      JNB   _003; 
+      L     #TmpArea.OutStartReleaseTimeH; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartReleaseTimeH; 
+_003: NOP   0; 
+NETWORK
+TITLE =Flag of tick 200ms (all): Count  Timer 200ms
+
+      A     "GCS7_Gr_OutTick200ms"; 
+      FP    #TmpArea.tmpFlag200ms; 
+      A(    ; 
+      L     #TmpArea.OutRequestTime; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      JNB   _004; 
+      L     #TmpArea.OutRequestTime; 
+      L     2; 
+      -I    ; 
+      T     #TmpArea.OutRequestTime; 
+_004: NOP   0; 
+NETWORK
+TITLE =OutRequestTime
+
+      A     #InEnable; 
+      AN    #InLocal; 
+      JNB   _005; 
+      L     #ParRequestTime; 
+      T     #TmpArea.OutRequestTime; 
+_005: NOP   0; 
+NETWORK
+TITLE =Condition to start Startwarning
+//Check if any elementet needs to start
+//
+      A(    ; 
+      AN    #InModeHigher; 
+      AN    #TmpArea.OutStartReleaseRunningL; 
+      O     ; 
+      A     #InModeHigher; 
+      AN    #TmpArea.OutStartReleaseRunningH; 
+      )     ; 
+      A     #InEnable; 
+      AN    #InLocal; 
+      AN    #InStarted; 
+      A     #InCmdNext; 
+      AN    #TmpArea.OutStartwarningRunning; 
+      S     #TmpArea.CmdStartStartWarning; 
+NETWORK
+TITLE =Start StartWarning
+
+      A     #TmpArea.CmdStartStartWarning; 
+      AN    #TmpArea.OutStartwarningRunning; 
+      =     L      8.0; 
+      A     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartwarningRunning; 
+      A     L      8.0; 
+      JNB   _006; 
+      L     0; 
+      T     #TmpArea.OutStartwarningTime; 
+_006: NOP   0; 
+NETWORK
+TITLE =Reset Startwaring time
+
+      O(    ; 
+      L     #TmpArea.OutRequestTime; 
+      L     0; 
+      <=I   ; 
+      )     ; 
+      O     #TmpArea.CmdResetStartWarning; 
+      R     #TmpArea.OutStartwarningRunning; 
+      R     #TmpArea.OutStartReleaseRunningL; 
+      R     #TmpArea.OutStartReleaseRunningH; 
+NETWORK
+TITLE =Start StartRelease (all)
+
+      A     #TmpArea.OutStartwarningRunning; 
+      A(    ; 
+      L     #TmpArea.OutStartwarningTime; 
+      L     #ParStartwarningTime; 
+      >=I   ; 
+      )     ; 
+      =     L      8.0; 
+      A     L      8.0; 
+      BLD   102; 
+      R     #TmpArea.OutStartwarningRunning; 
+      A     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartReleaseRunningL; 
+      A     L      8.0; 
+      JNB   _007; 
+      L     0; 
+      T     #TmpArea.OutStartReleaseTimeL; 
+_007: NOP   0; 
+      A     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartReleaseRunningH; 
+      A     L      8.0; 
+      JNB   _00b; 
+      L     0; 
+      T     #TmpArea.OutStartReleaseTimeH; 
+_00b: NOP   0; 
+NETWORK
+TITLE =StartRelease (Lower)
+
+      A(    ; 
+      L     #ParStartReleaseTimeL; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #TmpArea.OutStartReleaseTimeL; 
+      L     #ParStartReleaseTimeL; 
+      >=I   ; 
+      )     ; 
+      R     #TmpArea.OutStartReleaseRunningL; 
+NETWORK
+TITLE =StartRelease (Higher)
+
+      A(    ; 
+      L     #ParStartReleaseTimeH; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #TmpArea.OutStartReleaseTimeH; 
+      L     #ParStartReleaseTimeH; 
+      >=I   ; 
+      )     ; 
+      R     #TmpArea.OutStartReleaseRunningH; 
+NETWORK
+TITLE =OutNext (All)
+
+
+      A(    ; 
+      A     #InModeHigher; 
+      A     #TmpArea.OutStartReleaseRunningH; 
+
+      O     ; 
+      AN    #InModeHigher; 
+      A     #TmpArea.OutStartReleaseRunningL; 
+      O     #InStarted; //[1.1]
+      )     ; 
+      A     #InCmdNext; 
+      =     #OutCmdNext; 
+NETWORK
+TITLE =OutStartwarning
+
+      A     #InEnable; 
+      AN    #InLocal; 
+      AN    #InStarted; 
+      A     #TmpArea.OutStartwarningRunning; 
+      =     #OutStartwarning; 
+NETWORK
+TITLE =Init Tick 
+
+      A     "SYS_infLog1"; 
+      R     #TmpArea.CmdStartStartWarning; 
+      R     #TmpArea.CmdResetStartWarning; 
+NETWORK
+TITLE =Store Object Data of last warning
+
+      A     #OutStartwarning; 
+      JNB   _009; 
+      L     DBNO; 
+      T     #OutWarningObjectDB; 
+      L     #InArea; 
+      T     #OutWarningArea; 
+_009: NOP   0; 
+NETWORK
+TITLE =Store Area Data
+
+      LAR1  P##TmpArea; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #AddrReading; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  P##TmpArea; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #AddrReading; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  P##TmpArea; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  #AddrReading; 
+      T     DIW [AR1,P#8.0]; 
+
+
+END_FUNCTION_BLOCK
+

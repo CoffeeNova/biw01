@@ -1,0 +1,186 @@
+	DATA_BLOCK DB379
+	TITLE =DBG279M  HEATING KILN 1 + 2
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        HEATING KILN 1 + 2
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB379.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG279M 
+	VERSION : 00.00
+	
+	FB379
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=27900; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=10;
+	//Parameter =A-3161-KCL11 : BURNER 1 ALARM SUMMARY
+	      #A_3161_KCL11.Par.ParObjectNo                             :=27901;
+	      #A_3161_KCL11.Par.ParMsgType                              :=7154;
+	      #A_3161_KCL11.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11.Par.ParDelayChange                          :=20;
+	      #A_3161_KCL11.Par.ParDelayTrue                            :=10;
+	      #A_3161_KCL11.Par.ParDelayFalse                           :=0;
+	      #A_3161_KCL11.Par.ParTimeoutTrue                          :=0;
+	      #A_3161_KCL11.Par.ParTimeoutFalse                         :=0;
+	      #A_3161_KCL11.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11.Par.Par2WorkingCond                         :=False;
+	      #A_3161_KCL11.Par.ParFaultRetry                           :=False;
+	      #A_3161_KCL11.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_EXT_ON : BURNER 1 EXTERAL ON
+	      #A_3161_KCL11_EXT_ON.Par.ParObjectNo                             :=27902;
+	      #A_3161_KCL11_EXT_ON.Par.ParMsgType                              :=7002;
+	      #A_3161_KCL11_EXT_ON.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_EXT_ON.Par.ParOnTime                               :=10;
+	      #A_3161_KCL11_EXT_ON.Par.ParOffTime                              :=0;
+	      #A_3161_KCL11_EXT_ON.Par.ParIdlingTime                           :=0;
+	      #A_3161_KCL11_EXT_ON.Par.ParDelayTime                            :=0;
+	      #A_3161_KCL11_EXT_ON.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_EXT_ON.Par.ParManual                               :=True;
+	      #A_3161_KCL11_EXT_ON.Par.ParContinuous                           :=True;
+	      #A_3161_KCL11_EXT_ON.Par.ParPulse                                :=False;
+	      #A_3161_KCL11_EXT_ON.Par.ParPulsing                              :=False;
+	      #A_3161_KCL11_EXT_ON.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_ON : BURNER 1 ON
+	      #A_3161_KCL11_ON.Par.ParObjectNo                             :=27903;
+	      #A_3161_KCL11_ON.Par.ParMsgType                              :=7154;
+	      #A_3161_KCL11_ON.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_ON.Par.ParDelayChange                          :=20;
+	      #A_3161_KCL11_ON.Par.ParDelayTrue                            :=10;
+	      #A_3161_KCL11_ON.Par.ParDelayFalse                           :=0;
+	      #A_3161_KCL11_ON.Par.ParTimeoutTrue                          :=0;
+	      #A_3161_KCL11_ON.Par.ParTimeoutFalse                         :=0;
+	      #A_3161_KCL11_ON.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_ON.Par.Par2WorkingCond                         :=False;
+	      #A_3161_KCL11_ON.Par.ParFaultRetry                           :=False;
+	      #A_3161_KCL11_ON.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_RUN : BURNER 1 MAIN FAN RUNNING
+	      #A_3161_KCL11_RUN.Par.ParObjectNo                             :=27908;
+	      #A_3161_KCL11_RUN.Par.ParMsgType                              :=7002;
+	      #A_3161_KCL11_RUN.Par.ParHornCode                             :=0;
+	      #A_3161_KCL11_RUN.Par.ParOnTime                               :=10;
+	      #A_3161_KCL11_RUN.Par.ParOffTime                              :=0;
+	      #A_3161_KCL11_RUN.Par.ParIdlingTime                           :=0;
+	      #A_3161_KCL11_RUN.Par.ParDelayTime                            :=0;
+	      #A_3161_KCL11_RUN.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_RUN.Par.ParManual                               :=True;
+	      #A_3161_KCL11_RUN.Par.ParContinuous                           :=True;
+	      #A_3161_KCL11_RUN.Par.ParPulse                                :=False;
+	      #A_3161_KCL11_RUN.Par.ParPulsing                              :=False;
+	      #A_3161_KCL11_RUN.Par.ParFilter                               :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_AI : BURNER 1 INPUT SIGNAL ANALOG
+	      #A_3161_KCL11_AI.Par.ParObjectNo                             :=27904;
+	      #A_3161_KCL11_AI.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_AI.Par.ParMsgType                              :=7252;
+	      #A_3161_KCL11_AI.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3161_KCL11_AI.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_3161_KCL11_AI.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3161_KCL11_AI.Par.ParDelayTimeDown                        :=10;
+	      #A_3161_KCL11_AI.Par.ParDelayTimeUp                          :=10;
+	      #A_3161_KCL11_AI.Par.ParDelayTime                            :=30;
+	      #A_3161_KCL11_AI.Par.ParLimitLL                              :=L#-1;
+	      #A_3161_KCL11_AI.Par.ParLimitL                               :=L#0;
+	      #A_3161_KCL11_AI.Par.ParLimitH                               :=L#7000;
+	      #A_3161_KCL11_AI.Par.ParLimitHH                              :=L#8000;
+	      #A_3161_KCL11_AI.Par.ParMonTimeLL                            :=0;
+	      #A_3161_KCL11_AI.Par.ParMonTimeL                             :=0;
+	      #A_3161_KCL11_AI.Par.ParMonTimeMid                           :=0;
+	      #A_3161_KCL11_AI.Par.ParMonTimeH                             :=0;
+	      #A_3161_KCL11_AI.Par.ParMonTimeHH                            :=0;
+	      #A_3161_KCL11_AI.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_AI.Par.ParValueByUser                          :=False;
+	      #A_3161_KCL11_AI.Par.ParLimitsPc                             :=True;
+	      #A_3161_KCL11_AI.Par.ParWago                                 :=False;
+	      #A_3161_KCL11_AI.Par.ParNoHornByWarning                      :=False;
+	      #A_3161_KCL11_AI.Par.ParWarningLL                            :=False;
+	      #A_3161_KCL11_AI.Par.ParWarningL                             :=False;
+	      #A_3161_KCL11_AI.Par.ParWarningMid                           :=False;
+	      #A_3161_KCL11_AI.Par.ParWarningH                             :=False;
+	      #A_3161_KCL11_AI.Par.ParWarningHH                            :=False;
+	      #A_3161_KCL11_AI.Par.ParPreAlarmLL                           :=False;
+	      #A_3161_KCL11_AI.Par.ParPreAlarmL                            :=False;
+	      #A_3161_KCL11_AI.Par.ParPreAlarmMid                          :=False;
+	      #A_3161_KCL11_AI.Par.ParPreAlarmH                            :=False;
+	      #A_3161_KCL11_AI.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_AO : BURNER 1 OUTPUT SIGNAL ANALOG
+	      #A_3161_KCL11_AO.Par.ParObjectNo                             :=27905;
+	      #A_3161_KCL11_AO.Par.ParMsgType                              :=7241;
+	      #A_3161_KCL11_AO.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_AO.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_3161_KCL11_AO.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_3161_KCL11_AO.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_3161_KCL11_AO.Par.ParLimitMin                             :=L#0;
+	      #A_3161_KCL11_AO.Par.ParLimitMax                             :=L#27648;
+	      #A_3161_KCL11_AO.Par.ParDelayTime                            :=30;
+	      #A_3161_KCL11_AO.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_AO.Par.ParValuePc                              :=True;
+	      #A_3161_KCL11_AO.Par.ParLimitsPc                             :=True;
+	      #A_3161_KCL11_AO.Par.ParWago                                 :=False;
+	      #A_3161_KCL11_AO.Par.ParFU                                   :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_REG_ON : BURNER 1 REGULATOR ON
+	      #A_3161_KCL11_REG_ON.Par.ParObjectNo                             :=27906;
+	      #A_3161_KCL11_REG_ON.Par.ParMsgType                              :=7154;
+	      #A_3161_KCL11_REG_ON.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_REG_ON.Par.ParDelayChange                          :=20;
+	      #A_3161_KCL11_REG_ON.Par.ParDelayTrue                            :=10;
+	      #A_3161_KCL11_REG_ON.Par.ParDelayFalse                           :=0;
+	      #A_3161_KCL11_REG_ON.Par.ParTimeoutTrue                          :=0;
+	      #A_3161_KCL11_REG_ON.Par.ParTimeoutFalse                         :=0;
+	      #A_3161_KCL11_REG_ON.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_REG_ON.Par.Par2WorkingCond                         :=False;
+	      #A_3161_KCL11_REG_ON.Par.ParFaultRetry                           :=False;
+	      #A_3161_KCL11_REG_ON.Par.ParBinLevel                             :=False;
+	//
+	//
+	//Parameter =A-3161-KCL11_REM_OP : BURNER 1 REMOTE OPERATION
+	      #A_3161_KCL11_REM_OP.Par.ParObjectNo                             :=27907;
+	      #A_3161_KCL11_REM_OP.Par.ParMsgType                              :=7154;
+	      #A_3161_KCL11_REM_OP.Par.ParHornCode                             :=10;
+	      #A_3161_KCL11_REM_OP.Par.ParDelayChange                          :=20;
+	      #A_3161_KCL11_REM_OP.Par.ParDelayTrue                            :=10;
+	      #A_3161_KCL11_REM_OP.Par.ParDelayFalse                           :=0;
+	      #A_3161_KCL11_REM_OP.Par.ParTimeoutTrue                          :=0;
+	      #A_3161_KCL11_REM_OP.Par.ParTimeoutFalse                         :=0;
+	      #A_3161_KCL11_REM_OP.Par.ParLogOff                               :=False;
+	      #A_3161_KCL11_REM_OP.Par.Par2WorkingCond                         :=False;
+	      #A_3161_KCL11_REM_OP.Par.ParFaultRetry                           :=False;
+	      #A_3161_KCL11_REM_OP.Par.ParBinLevel                             :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,319 @@
+ORGANIZATION_BLOCK "SYS_RACK_FLT"
+TITLE = "Loss Of Rack Fault"
+//COPYRIGHT:    (C) 2000 BY  BUHLER AG
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      STD_MU664
+//
+//TITLE:        Loss of rack fault
+//               Extended rack faults
+//               DP-Master or slave faults
+//              Erweiterungsgerätanschaltungsfehler
+//               Erweiterungsgerätefehler
+//               Profibus-DB Master- und Slavefehler
+//
+//--------------------------------------------------------------------------------
+//IDENT:        AUTHOR:             DEPT:                             DATE:
+//
+//STD_OB086.2.0 A.Egli              CT3                               12-Jul-2004
+//              Log message added
+//GEN_OB086.1.0 Ph. Engler          MU664                             16-Jan-2002
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : STD
+NAME : Rack
+VERSION : 2.0
+
+
+VAR_TEMP
+  OB86_EV_CLASS : BYTE ;	//16#38/39 Event class 3
+  OB86_FLT_ID : BYTE ;	//16#C1/C4/C5, Fault identification code
+  OB86_PRIORITY : BYTE ;	//26/28 (Priority of 1 is lowest)
+  OB86_OB_NUMBR : BYTE ;	//86 (Organization block 86, OB86)
+  OB86_RESERVED_1 : BYTE ;	//Reserved for system
+  OB86_RESERVED_2 : BYTE ;	//Reserved for system
+  OB86_MDL_ADDR : WORD ;	//Depending on fault identification code
+  OB86_RACKS_FLTD : ARRAY  [0 .. 31 ] OF BOOL ;	//Racks in fault
+  OB86_DATE_TIME : DATE_AND_TIME ;	//Date and time OB86 started
+  tmpHeader : WORD ;	
+  tmpObjNo : WORD ;	//OB-Nummer [80..121]
+  EVClass_FLTID : WORD ;	//EV_Class / FLT_ID
+  tmpPara3 : WORD ;	// 
+  tmpPara4 : WORD ;	// 
+  tmpPara5 : WORD ;	// 
+  tmpPara6 : WORD ;	// 
+  tmpPara7 : WORD ;	// 
+  tmpDate : WORD ;	
+  tmpYearMonth : WORD ;	
+  tmpDayHour : WORD ;	
+  tmpMinSec : WORD ;	
+  tmp_Z23 : DWORD ;	
+  tmpSlave : INT ;	
+  tmpMaster : INT ;	
+  tmpNoStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Detailed Diagnosis in OB86 (interrupt)
+
+      CALL "SYS_DPDiagMain" ;
+
+NETWORK
+TITLE =Log Message: Header
+
+//Header
+      U(    ; 
+      L     #OB86_EV_CLASS; 
+      L     B#16#38; // going
+      ==I   ; 
+      )     ; 
+      SPBN  komm; 
+      L     3; 
+      SPA   tran; 
+komm: L     1; // coming
+tran: SLW   5; 
+      +     11; // NEW MessageFormatNo
+      T     #tmpHeader; 
+NETWORK
+TITLE =Log Message: Para1 = Object Number
+
+
+//Para1: Object Number
+      LAR1  P##OB86_RACKS_FLTD; 
+      L     LD [AR1,P#0.0]; 
+      T     #tmp_Z23; 
+      L     #tmp_Z23; 
+      SRD   8; 
+      L     DW#16#FF; 
+      UW    ; 
+      L     1000; 
+      *I    ; 
+      T     #tmpMaster; 
+      L     #tmp_Z23; 
+      L     DW#16#FF; 
+      UW    ; 
+      T     #tmpSlave; 
+
+//--DP Rack -----
+      L     #OB86_FLT_ID; 
+      L     B#16#C1; 
+      ==I   ; 
+      SPB   OJRA; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C2; 
+      ==I   ; 
+      SPB   OJRA; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C6; 
+      ==I   ; 
+      SPB   OJRA; 
+      SPA   OJC3; 
+OJRA: LAR1  P##OB86_RACKS_FLTD; 
+//    Check Bit 1..21 of OB86_Racks_FLTD
+      L     10001; 
+      T     #tmpObjNo; 
+OJR2: U     L [AR1,P#0.1]; 
+      SPB   OJJO; 
+      +AR1  P#0.1; 
+      L     121; 
+      L     #tmpObjNo; 
+      <=I   ; 
+      SPB   OJR2; 
+      SPA   OJSM; //-->Illegal RackNr-->  Print as System message
+
+//--DP Master -----
+OJC3: L     #OB86_FLT_ID; 
+      L     B#16#C3; 
+      ==I   ; 
+      SPB   OJMA; 
+      SPA   OJC4; 
+OJMA: L     #tmpMaster; 
+      T     #tmpObjNo; 
+      SPA   OJJO; 
+
+//---DP Station----
+OJC4: L     #OB86_FLT_ID; 
+      L     B#16#C4; 
+      ==I   ; 
+      SPB   OJSL; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C5; 
+      ==I   ; 
+      SPB   OJSL; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C7; 
+      ==I   ; 
+      SPB   OJSL; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C8; 
+      ==I   ; 
+      SPB   OJSL; 
+      SPA   OJSM; 
+OJSL: L     #tmpMaster; 
+      L     #tmpSlave; 
+      +I    ; 
+      T     #tmpObjNo; 
+      SPA   OJJO; 
+
+//--System Message---
+OJSM: L     86; 
+      T     #tmpObjNo; 
+OJJO: NOP   0; 
+
+NETWORK
+TITLE =Log Message: Para2 to 11
+////
+
+//Para2: EV_Class / FLT_ID
+      L     #OB86_FLT_ID; 
+      L     W#16#FF; // Only Low Byte
+      UW    ; 
+      L     #OB86_EV_CLASS; 
+      SLD   8; 
+      OW    ; 
+      T     #EVClass_FLTID; 
+
+//Para3: Depending on fault identification code
+      L     #OB86_OB_NUMBR; 
+      T     #tmpPara3; 
+
+//Para4:not used
+      L     0; 
+      T     #tmpPara4; 
+
+//Para5: MDL_ADDR
+      L     #OB86_MDL_ADDR; 
+      T     #tmpPara5; 
+
+//Para6: Z23 HW
+      LAR1  P##OB86_RACKS_FLTD; 
+      L     LW [AR1,P#0.0]; 
+      T     #tmpPara6; 
+
+//Para7: Z23 LW
+      L     LW [AR1,P#2.0]; 
+      T     #tmpPara7; 
+
+//Para9 to 11: Date/Time
+      LAR1  P##OB86_DATE_TIME; 
+      L     LB [AR1,P#0.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#1.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpYearMonth; 
+      L     LB [AR1,P#2.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#3.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpDayHour; 
+      L     LB [AR1,P#4.0]; 
+      BTI   ; 
+      SLD   8; 
+      L     LB [AR1,P#5.0]; 
+      BTI   ; 
+      OW    ; 
+      T     #tmpMinSec; 
+
+NETWORK
+TITLE =Faults without STOP
+// // alle auskommentierten Einträge führen in STOP
+//
+// C1 Expansion rack failure
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C1; // 
+      ==I   ; 
+      )     ; 
+// C2 Expansion rack operational again
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C2; // 
+      ==I   ; 
+      )     ; 
+// C3 Failure of  DP master
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C3; // 
+      ==I   ; 
+      )     ; 
+// C4 Failure of DP Slave
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C4; // 
+      ==I   ; 
+      )     ; 
+// C5 Fault in a DP Slave
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C5; // 
+      ==I   ; 
+      )     ; 
+// C6 Expansion rack with error in module parameter
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C6; // 
+      ==I   ; 
+      )     ; 
+// C7 Return DP Slave with error in modul parameter
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C7; // 
+      ==I   ; 
+      )     ; 
+// C8 DP Slave configuartion <> actual configuration
+      O(    ; 
+      L     #OB86_FLT_ID; 
+      L     B#16#C8; // 
+      ==I   ; 
+      )     ; 
+      =     #tmpNoStop; 
+NETWORK
+TITLE =Log Message: Entry
+
+//Entre Log Message
+      UN    #tmpNoStop; 
+      S     "SYS_LOG_Queue".CmdAddFastMsg; 
+
+      CALL "SYS_LOG_EntryQueue" (
+           DBNumber                 := 5,
+           Header                   := #tmpHeader,//Header
+           Para1                    := #tmpObjNo,//Para1: ObjectNo
+           Para2                    := #EVClass_FLTID,//Para2: Class / FLTID
+           Para3                    := #tmpPara3,//Para3: OB Number
+           Para4                    := W#16#0,//Para4:
+           Para5                    := #tmpPara5,//Para5: MDL_ADDR
+           Para6                    := #tmpPara6,//Para6: Z23 HW
+           Para7                    := #tmpPara7,//Para7: Z23 HW
+           Para8                    := W#16#0,//Para8: 
+           Para9                    := #tmpYearMonth,//Para9:  Year / Month
+           Para10                   := #tmpDayHour,//Para10: Day  / Hour
+           Para11                   := #tmpMinSec);//Para11: Min  / Sec 
+
+NETWORK
+TITLE =Stop PLC
+
+      U     #tmpNoStop; 
+      BEB   ; 
+//**********************
+// Bring CPU to Stop
+      CALL "SIEMENS_STP" ;
+//**********************
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_ORGANIZATION_BLOCK
+

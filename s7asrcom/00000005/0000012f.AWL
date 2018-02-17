@@ -1,0 +1,1075 @@
+FUNCTION_BLOCK FB 22
+TITLE =MZAG/MZAH Flowbalancer
+//  
+//COPYRIGHT:    (C) 1997 BY  BUHLER AG, CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element MZMN (Profibus) 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                      DATE:
+//
+//FB22.4.1      A.Egli              CT3                        03-Nov-2003
+//              - in local mode Change to StStopped, when OutComFault
+//FB22.4.0      A. Egli             CT3                        17-Jun-2002
+//              MZMN Micro Dosing
+//              LC Alarm 14 (DPFault) =Log Text number 12
+//FB22.1A       A. Egli             CT3                        16-Apr-1998
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MZGxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//0     = Fault Cannceled
+//1..79 = AlarmLC : Alarmnumber see manual of MEAF
+//91    = StStopped
+//92    = StDosing
+//93    = StEmptied
+//94    = Timeout starting
+//95    = Wrong value
+//96    = Communication fault
+//97    = 
+//98    = 
+//99    = Collected alarm
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32    StFault                 
+// 1    StStopped                   Stopped
+//41    Stopped.HWStop              StStopped + InHWStop 
+//51    Stopped.DPFault             StStopped + DPFault
+// 2    StStarting              
+// 3    StStarted               
+// 7    StStopping              
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : FBALMZMN
+VERSION : 4.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run the element (manual and automatic mode)
+  spare21 : BOOL ;	
+  spare22 : BOOL ;	
+  spare23 : BOOL ;	
+  CmdNewValue : BOOL ;	//Send new target values
+  spare25 : BOOL ;	
+  spare26 : BOOL ;	
+  spare27 : BOOL ;	
+  CmdOff : BOOL ;	//Pulse to stop the element (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual / 0= Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  spare0307 : BOOL ;	
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  InSimulation : BOOL ;	//Simulation with DPSim
+  OutComFault : BOOL ;	//Communication fault
+  spare44 : BOOL ;	
+  spare45 : BOOL ;	
+  spare46 : BOOL ;	
+  spare47 : BOOL ;	
+  StStopped : BOOL ;	//Element is stopped
+  StStarting : BOOL ;	//Element is starting
+  StStarted : BOOL ;	//Element is dosing
+  StStopping : BOOL ;	//Element is stopping
+  StFault : BOOL ;	//Element has a communication or device fault
+  spare55 : BOOL ;	
+  spare56 : BOOL ;	
+  spare57 : BOOL ;	
+  InFlowrate : DINT ;	//Flowrate target value [0.1%]
+  InRecipeNr : INT ;	//Is send to LC
+  OutFlowrate : DINT ;	//Is read from LC [10g/h]
+  OutRecipeNr : INT ;	//Is read from MEAF
+  OutLCStep : INT ;	//Is read from MEAF
+  OutAlarmNr : INT ;	//Is read from MEAF
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  RecipeMZMN : STRUCT 	
+   InRecipeNr : INT ;	//Recipe to read or write
+   CmdSend : BOOL ;	//1= Send Dataset 136
+   CmdRead : BOOL ;	//1= Read Dataset 136
+   OutSendDone : BOOL ;	//Send is done
+   OutReadDone : BOOL ;	//Read is done
+   OutWrongValue : BOOL ;	//MEAF has recipe rejected
+   Desity : INT ;	//de: Spezifisches Gewicht REC.DENS
+   CorrectionFactor : INT ;	//de: Korrekturfactor REC.FACT
+   NominalRate : INT ;	//de: Sollleistung REC.FLOS
+   MixerFrequency : INT ;	//de: Frequenz Wirbler REC.MIX
+   TypeRate : INT ;	//de: Volumetrische Typenleistung REC:FTYP
+   AgitatorCutoutMode : INT ;	//de: Aussetzbetrieb Rührwerk REC.IOFF
+   spare16 : INT ;	
+   spare18 : INT ;	
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode wihout interlocking
+   ParFilter : STRUCT 	//Filter to alarm 1=Ignore alarm
+    SumFault : BOOL ;	//de: Sammelalarm
+    A05_24VToLow : BOOL ;	
+    A07ADRange : BOOL ;	
+    A08ADCalibration : BOOL ;	
+    A09ADFunction : BOOL ;	
+    A10ADSupply : BOOL ;	
+    A11AnalogInput : BOOL ;	
+    A12SerialInterface : BOOL ;	
+    A13RemoteControl : BOOL ;	
+    A16Printer : BOOL ;	
+    A25FrequenceConverter : BOOL ;	
+    A54Relais : BOOL ;	
+   END_STRUCT ;	
+   ParIOByteNr : INT ;	//PROFIBUS: Address of first input and output byte
+   ParMonTime : INT ;	//Monitoring time starting and stopping
+   OutMonTime : INT ;	//Monitoring time starting and stopping
+   HelpFlags : STRUCT 	
+    OutAlarmTimeOut : BOOL ;	
+    CmdNewValue : BOOL ;	
+    CmdFaultReset : BOOL ;	
+    OutFaultResetDone : BOOL ;	
+    OutTestNewAlarm : BOOL ;	//Aux. signal to retry fault message
+    spare0007 : BOOL ;	
+    OutRelevantFault : BOOL ;	
+    OutNoAlarm : BOOL ;	//Alarmnumber 0 is read form LC
+    OutFlagFaultResetDone : BOOL ;	
+    OutComFaultRead : BOOL ;	
+    OutComFaultSend : BOOL ;	
+   END_STRUCT ;	
+   Command : STRUCT 	
+    Start : BOOL ;	//de: Start
+    spare01 : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    spare06 : BOOL ;	
+    AcceptNewDataReady : BOOL ;	//de: Quittierung neue Werte Bereit
+    spare10 : BOOL ;	
+    Recipe1 : BOOL ;	//MZMN: Command to select recipe 1
+    Recipe2 : BOOL ;	//MZMN: Command to select recipe 2
+    Recipe3 : BOOL ;	//MZMN: Command to select recipe 3
+    Recipe4 : BOOL ;	//MZMN: Command to select recipe 4
+    Recipe5 : BOOL ;	//MZMN: Command to select recipe 5
+    Recipe6 : BOOL ;	//MZMN: Command to select recipe 6
+    spare20 : BYTE ;	
+    CommandReady : BOOL ;	//de: Steuersignale gültig
+    spare31 : BOOL ;	
+    spare32 : BOOL ;	
+    spare33 : BOOL ;	
+    spare34 : BOOL ;	
+    ResetAlarm : BOOL ;	//de: Alarm löschen
+    NewSendData : BOOL ;	//de: Aenderung Sendedaten
+    AcceptNewRcvData : BOOL ;	//de: Quittierung Aenderung Empfangsdatensatz
+   END_STRUCT ;	
+   Status : STRUCT 	
+    Operation : BOOL ;	//de: Betrieb
+    spare01 : BOOL ;	
+    spare02 : BOOL ;	
+    spare03 : BOOL ;	
+    spare04 : BOOL ;	
+    spare05 : BOOL ;	
+    spare06 : BOOL ;	
+    NewDataReady : BOOL ;	//de: Neue Werte Bereit
+    spare10 : BOOL ;	
+    Recipe1 : BOOL ;	//MZMN2 , Recipe 2 is active
+    Recipe2 : BOOL ;	//MZMN3 , Recipe 3 is active
+    Recipe3 : BOOL ;	//MZMN3 , Recipe 3 is active
+    Recipe4 : BOOL ;	//MZMN4 , Recipe 4 is active
+    Recipe5 : BOOL ;	//MZMN5 , Recipe 5 is active
+    Recipe6 : BOOL ;	//MZMN6 , Recipe 6 is active
+    spare20 : BYTE ;	
+    spare30 : BOOL ;	
+    spare31 : BOOL ;	
+    spare32 : BOOL ;	
+    RemoteControl : BOOL ;	//de: Sollwertvorgabe Remote
+    WrongValue : BOOL ;	//de: Falscher Sollwert
+    SumFault : BOOL ;	//de: Sammelalarm
+    AcceptNewSendData : BOOL ;	//de: Quittierung Aenderung Sendedaten
+    NewRcvData : BOOL ;	//de: Aenderung Empfangsdaten
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpCommand : INT ;	
+  tmpFault : BOOL ;	
+  tmpOff : BOOL ;	
+  tmpOn : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  tmpReport : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpLenDyn : DINT ;	
+  tmpAddrOutComFlags : DWORD ;	//Pointer to OutComFlags
+  tmpWt : DINT ;	
+  tmpFilter : ARRAY  [0 .. 100 ] OF BOOL ;	
+  tmpAddrOffset : DINT ;	
+  tmpAddr : WORD ;	
+  tmpReturn : INT ;	
+  DPData : STRUCT 	
+   StatusCommand : DWORD ;	
+   NrSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   IdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   NrRcvDataSet : BYTE ;	//de: Nummer Empfangsdatensatz
+   IdxRcvDataSet : BYTE ;	//de: Index Empfangsdatensatz
+   Data : ARRAY  [1 .. 4 ] OF DINT ;	
+  END_STRUCT ;	
+  Set001 : STRUCT 	
+   FlowrateAc : DINT ;	//de: Istleistung kg/h
+   spare4 : DINT ;	//de: Isttotalgewicht kg
+   spare8 : DINT ;	//de: nochtlöschbarese Totalgewicht
+   spare12 : BYTE ;	
+   RecipeNr : BYTE ;	
+   Step : BYTE ;	
+   AlarmNr : BYTE ;	
+  END_STRUCT ;	
+  tmpHornOn : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     70; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+      SET   ; 
+      R     #tmpHornOn; 
+NETWORK
+TITLE =Filter
+
+      LAR1  P##tmpFilter; 
+      L     0; 
+      T     D [AR1,P#0.0]; //tmpFilter[00..31]
+      T     D [AR1,P#0.0]; //tmpFilter[32..63]
+      T     D [AR1,P#0.0]; //tmpFilter[64..95]
+
+      SET   ; //[4.1]
+      =     #tmpFilter[0]; 
+      U     #Par.ParFilter.A05_24VToLow; 
+      =     #tmpFilter[5]; 
+      U     #Par.ParFilter.A07ADRange; 
+      =     #tmpFilter[7]; 
+      U     #Par.ParFilter.A08ADCalibration; 
+      =     #tmpFilter[8]; 
+      U     #Par.ParFilter.A09ADFunction; 
+      =     #tmpFilter[9]; 
+      U     #Par.ParFilter.A10ADSupply; 
+      =     #tmpFilter[10]; 
+      U     #Par.ParFilter.A11AnalogInput; 
+      =     #tmpFilter[11]; 
+      U     #Par.ParFilter.A12SerialInterface; 
+      =     #tmpFilter[12]; 
+      =     #tmpFilter[14]; //[4.0]
+      U     #Par.ParFilter.A13RemoteControl; 
+      =     #tmpFilter[13]; 
+      U     #Par.ParFilter.A16Printer; 
+      =     #tmpFilter[16]; 
+      U     #Par.ParFilter.A25FrequenceConverter; 
+      =     #tmpFilter[25]; 
+      U     #Par.ParFilter.A54Relais; 
+      =     #tmpFilter[54]; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1033; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; //Handshake.FExamine
+      SPB   pExa; 
+      U     DB3.DBX   43.0; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     DB3.DBX   43.1; //Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; //FcInit
+      UC    FC     3; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBD [AR1,P#12.0]; 
+      T     #Par.ParMonTime; 
+//Write new commands from PC to Interface of group 
+pCmd: U     DB3.DBX   52.4; //Cmd1[4]  =CmdNewValue
+      S     #CmdNewValue; 
+      U     DB3.DBX   53.0; //Cmd1[8]  =CmdOff
+      S     #CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]  =CmdOn
+      S     #CmdOn; 
+      U     DB3.DBX   53.2; //Cmd1[10] =CmdNext
+      S     #CmdNext; 
+      U     DB3.DBX   53.3; //Cmd1[11] =CmdFaultReset
+      S     #CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13] =CmdManualOn
+      S     #InManual; 
+      U     DB3.DBX   55.5; //Cmd2[13] =CmdManualOff
+      R     #InManual; 
+      U     DB3.DBX   53.6; //Cmd1[14] =CmdReportOn
+      S     #InReport; 
+      U     DB3.DBX   55.6; //Cmd2[14] =CmdReportOff
+      R     #InReport; 
+//Define Value
+      UN    DB3.DBX   43.2; // PC.Hsk.FDefineValue
+      ON    #InManual; 
+      SPB   pIni; 
+      LAR1  P#DBX 58.0; 
+      L     DBD [AR1,P#6.0]; 
+      T     #InFlowrate; 
+      L     DBW [AR1,P#10.0]; 
+      T     #InRecipeNr; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     DB3.DBD   24; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     DB3.DBW   22; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; //-->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =(Profibus) Read data and store Data 
+
+      L     #Par.ParIOByteNr; 
+      T     #tmpAddr; 
+      U     #InSimulation; 
+      SPB   rSim; 
+      CALL SFC   14 (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #tmpReturn,
+           RECORD                   := #DPData);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultRead; 
+      SPB   rcv0; 
+      SPA   rDP; 
+//read from Simulation
+rSim: R     #Par.HelpFlags.OutComFaultRead; 
+      U     M     11.1; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   DB    16; 
+      L     P#DBX 0.0; 
+rDB1: L     #Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     D [AR1,P#0.0]; 
+      T     #DPData.StatusCommand; 
+      L     B [AR1,P#4.0]; 
+      T     #DPData.NrSndDataSet; 
+      L     B [AR1,P#5.0]; 
+      T     #DPData.IdxSndDataSet; 
+      L     B [AR1,P#6.0]; 
+      T     #DPData.NrRcvDataSet; 
+      L     B [AR1,P#7.0]; 
+      T     #DPData.IdxRcvDataSet; 
+      L     D [AR1,P#8.0]; 
+      T     #DPData.Data[1]; 
+      L     D [AR1,P#12.0]; 
+      T     #DPData.Data[2]; 
+      L     D [AR1,P#16.0]; 
+      T     #DPData.Data[3]; 
+      L     D [AR1,P#20.0]; 
+      T     #DPData.Data[4]; 
+//==Copy Status===============
+rDP:  L     #DPData.NrRcvDataSet; 
+      L     0; 
+      ==I   ; 
+      SPB   R001; 
+      CALL SFC   20 (
+           SRCBLK                   := #DPData.StatusCommand,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Par.Status);
+      UN    #Par.Status.NewRcvData; 
+      U     #InSimulation; 
+      SPB   rcv0; 
+//===============================
+//Answer Dataset 001
+      L     #DPData.NrRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r127; 
+      CALL SFC   20 (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Set001);
+      L     #Set001.FlowrateAc; 
+      T     #OutFlowrate; 
+      L     #Set001.RecipeNr; 
+      T     #OutRecipeNr; 
+      L     #Set001.Step; 
+      T     #OutLCStep; 
+
+//Reset old alarm flags with CmdFaultReset
+      U     #Par.HelpFlags.OutFlagFaultResetDone; 
+      U     M      9.4; 
+      R     #Par.HelpFlags.OutFlagFaultResetDone; 
+      R     #Par.HelpFlags.OutFaultResetDone; 
+      S     #Par.HelpFlags.OutTestNewAlarm; 
+      L     0; 
+      L     #Set001.AlarmNr; 
+      ==I   ; 
+      =     #Par.HelpFlags.OutNoAlarm; 
+      <>I   ; 
+      O     #Par.ParFilter.SumFault; 
+      =     #tmpFilter[0]; 
+//  keep old alalrm number
+      U     #Par.HelpFlags.OutNoAlarm; 
+      U     #Par.HelpFlags.OutRelevantFault; 
+      UN    #Par.HelpFlags.OutTestNewAlarm; 
+      UN    #InLocal; 
+      UN    #InManual; 
+      SPB   rA1; 
+      T     #OutAlarmNr; 
+rA1:  SPA   R127; 
+//===============================
+//Answer  dataset 127
+r127: L     #DPData.NrRcvDataSet; 
+      L     127; 
+      <>I   ; 
+      SPB   r128; 
+      SPA   R128; 
+//===============================
+//Answer  dataset 128
+r128: SPA   r136; 
+//===============================
+//Answer  dataset 136
+r136: L     #DPData.NrRcvDataSet; 
+      L     136; 
+      <>I   ; 
+      SPB   R001; // =no valide answer read dataset 001
+      L     #RecipeMZMN.InRecipeNr; 
+      L     #DPData.IdxRcvDataSet; 
+      ==I   ; 
+      SPBN  R001; 
+      R     #RecipeMZMN.CmdRead; 
+      S     #RecipeMZMN.OutReadDone; 
+
+      L     #DPData.Data[1]; 
+      T     #RecipeMZMN.CorrectionFactor; 
+      SRD   16; 
+      T     #RecipeMZMN.Desity; 
+
+      L     #DPData.Data[2]; 
+      T     #RecipeMZMN.NominalRate; 
+
+      L     #DPData.Data[3]; 
+      T     #RecipeMZMN.TypeRate; 
+      SRD   16; 
+      T     #RecipeMZMN.MixerFrequency; 
+
+      L     #DPData.Data[4]; 
+      L     W#16#FFFF; 
+      UW    ; 
+      SRD   8; 
+      T     #RecipeMZMN.AgitatorCutoutMode; 
+      SPA   R001; 
+//===============================
+//Read Dataset 001
+R001: L     1; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      U     #Par.HelpFlags.OutFaultResetDone; 
+      UN    M      9.4; 
+      S     #Par.HelpFlags.OutFlagFaultResetDone; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 127
+R127: L     127; 
+      T     #DPData.NrRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 128
+R128: SPA   R136; 
+//===============================
+//Read Dataset 136
+R136: UN    #RecipeMZMN.CmdRead; 
+      SPB   R001; 
+      L     136; 
+      T     #DPData.NrRcvDataSet; 
+      L     #RecipeMZMN.InRecipeNr; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+rcv0: NOP   0; 
+      NOP   0; 
+NETWORK
+TITLE =(Profibus) Status to ASW
+
+      U     #Par.HelpFlags.OutComFaultRead; 
+      O     #Par.HelpFlags.OutComFaultSend; 
+      =     #OutComFault; 
+//=======================================
+//Init in local mode  
+//=======================================
+      UN    #InLocal; 
+      UN    #InManual; 
+      ON    #OutComFault; 
+      SPB   alJL; 
+      L     0; 
+      T     #OutFlowrate; 
+alJL: NOP   0; 
+      NOP   0; 
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+      U     M     12.5; //Global.OutManualOn
+      S     #InManual; 
+      U     M     12.4; //Global.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     M     13.5; //Global.InManualMode
+//---Report is on---
+      O     M     12.6; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---FaultReset is on---
+      U     M     12.3; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//---Local---
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; 
+      U     #tmpLocalFault; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      =     #tmpLocal; 
+//---Off---
+      UN    #InManual; 
+      ON    #Par.ParManual; 
+      UN    #InEnable; 
+      O     #tmpLocal; 
+      O     #CmdOff; 
+      =     #tmpOff; 
+//---On---
+      U     #CmdNext; 
+      UN    #InManual; 
+      O     #CmdOn; 
+      UN    #tmpOff; 
+      =     #tmpOn; 
+//--- Send Recipe
+      U     #RecipeMZMN.CmdSend; 
+      R     #RecipeMZMN.OutSendDone; 
+//--- Read Recipe
+      U     #RecipeMZMN.CmdRead; 
+      R     #RecipeMZMN.OutReadDone; 
+//--- tmpFault   
+// Time out
+      UN    #StStarting; 
+      UN    #StStopping; 
+      UN    #StFault; 
+      R     #Par.HelpFlags.OutAlarmTimeOut; 
+      SPB   inJ1; 
+      U     #Par.HelpFlags.OutAlarmTimeOut; 
+      O     #StFault; 
+      SPB   inJ1; 
+      L     0; 
+      L     #Par.OutMonTime; 
+      >I    ; 
+      =     #Par.HelpFlags.OutAlarmTimeOut; 
+      UN    M     10.3; // Global Tick 200ms
+      SPB   inJ1; 
+      +     -2; // Decrement all 200ms
+      T     #Par.OutMonTime; 
+inJ1: NOP   0; 
+//=======================================
+//Fault   
+//=======================================
+      LAR1  P##tmpFilter; 
+      L     #OutAlarmNr; 
+      +AR1  ; //Pointer to #tmpFilter[OutAlarmNumber]
+
+      L     #OutAlarmNr; 
+      L     0; 
+      <>I   ; 
+      UN    L [AR1,P#0.0]; //#tmpFilter[OutAlarmNumber]
+      =     #Par.HelpFlags.OutRelevantFault; 
+
+      U     #Par.HelpFlags.OutRelevantFault; 
+      O     #OutComFault; 
+      O     #Par.HelpFlags.OutAlarmTimeOut; 
+      O     #Par.Status.WrongValue; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+
+      NOP   0; 
+NETWORK
+TITLE =(Profibus) Prepare Command for MEAF
+
+//==============================
+      U     #Par.Status.AcceptNewSendData; 
+      U     #Par.Command.ResetAlarm; 
+      R     #Par.Command.ResetAlarm; 
+      S     #Par.HelpFlags.OutFaultResetDone; 
+      U     #CmdFaultReset; 
+      UN    #Par.Status.AcceptNewSendData; 
+      R     #CmdFaultReset; 
+      S     #Par.Command.ResetAlarm; 
+      R     #Par.HelpFlags.OutAlarmTimeOut; 
+//================================
+      U     #tmpOn; 
+      UN    #Par.HelpFlags.CmdNewValue; 
+      S     #Par.Command.Start; 
+
+      U     #StFault; 
+      U     #Par.HelpFlags.OutNoAlarm; 
+      O     #tmpOff; 
+      R     #Par.Command.Start; 
+
+//==============================
+      U     #Par.Status.NewDataReady; 
+      =     #Par.Command.AcceptNewDataReady; 
+//==============================
+      SET   ; 
+      =     #Par.Command.CommandReady; 
+//==============================
+      U     #Par.Status.NewRcvData; 
+      =     #Par.Command.AcceptNewRcvData; 
+//==============================
+      UN    #Par.Status.AcceptNewSendData; 
+      =     #Par.Command.NewSendData; 
+//==============================
+//Command MZMN 
+      L     #InRecipeNr; 
+      L     1; 
+      ==I   ; 
+      =     #Par.Command.Recipe1; 
+
+      L     #InRecipeNr; 
+      L     2; 
+      ==I   ; 
+      =     #Par.Command.Recipe2; 
+
+      L     #InRecipeNr; 
+      L     3; 
+      ==I   ; 
+      =     #Par.Command.Recipe3; 
+
+      L     #InRecipeNr; 
+      L     4; 
+      ==I   ; 
+      =     #Par.Command.Recipe4; 
+
+      L     #InRecipeNr; 
+      L     5; 
+      ==I   ; 
+      =     #Par.Command.Recipe5; 
+
+      L     #InRecipeNr; 
+      L     6; 
+      ==I   ; 
+      =     #Par.Command.Recipe6; 
+      NOP   0; 
+
+
+NETWORK
+TITLE =(Profibus) Send Data
+
+//======================================================
+//Test Send Dataset 000 done
+      L     #DPData.NrSndDataSet; 
+      L     0; 
+      <>I   ; 
+      SPB   s128; 
+      SPA   S128; //-->send 128
+//------------------------------------------------
+//Test Send Dataset 128 done
+s128: L     #DPData.NrSndDataSet; 
+      L     128; 
+      <>I   ; 
+      SPB   s136; 
+      UN    #Par.Status.WrongValue; 
+      U     #Par.HelpFlags.CmdNewValue; 
+      U     #CmdNewValue; 
+      R     #Par.HelpFlags.CmdNewValue; 
+      R     #CmdNewValue; 
+      SPA   S136; //-->Send 136
+//------------------------------------------------
+//Test Send Dataset 136 done
+s136: L     #DPData.NrSndDataSet; 
+      L     136; 
+      <>I   ; 
+      SPB   S000; 
+      L     #DPData.IdxSndDataSet; 
+      L     #RecipeMZMN.InRecipeNr; 
+      ==I   ; 
+      SPBN  S128; //-->Send 128
+      U     #Par.Status.WrongValue; 
+      S     #RecipeMZMN.OutWrongValue; 
+      UN    #Par.Status.WrongValue; 
+      R     #RecipeMZMN.CmdSend; 
+      S     #RecipeMZMN.OutSendDone; 
+      R     #RecipeMZMN.OutWrongValue; 
+      SPA   S128; //-->Send 128
+//==================================================
+//Send Dataset 128
+S128: U     #CmdNewValue; 
+      =     #Par.HelpFlags.CmdNewValue; 
+      L     128; 
+      T     #DPData.NrSndDataSet; 
+      L     0; 
+      T     #DPData.IdxSndDataSet; 
+      L     #InFlowrate; 
+      SLD   16; 
+      T     #DPData.Data[1]; 
+      L     0; 
+      T     #DPData.Data[2]; 
+      L     0; 
+      T     #DPData.Data[3]; 
+      L     #InRecipeNr; 
+      SLD   16; 
+      T     #DPData.Data[4]; //-->Byte 21
+      SPA   send; 
+//======================================================
+//Send Dataset 136
+S136: UN    #RecipeMZMN.CmdSend; 
+      SPB   S000; 
+      L     136; 
+      T     #DPData.NrSndDataSet; 
+      L     #RecipeMZMN.InRecipeNr; 
+      T     #DPData.IdxSndDataSet; 
+
+      L     #RecipeMZMN.Desity; 
+      SLD   16; 
+      L     #RecipeMZMN.CorrectionFactor; 
+      OD    ; 
+      T     #DPData.Data[1]; 
+
+      L     #RecipeMZMN.NominalRate; 
+      T     #DPData.Data[2]; 
+
+      L     #RecipeMZMN.MixerFrequency; 
+      SLD   16; 
+      L     #RecipeMZMN.TypeRate; 
+      OD    ; 
+      T     #DPData.Data[3]; 
+
+      L     #RecipeMZMN.AgitatorCutoutMode; 
+      SLD   8; 
+      T     #DPData.Data[4]; 
+      SPA   send; 
+//======================================================
+//Send Dataset 0
+S000: L     0; 
+      T     #DPData.NrSndDataSet; 
+      L     0; 
+      T     #DPData.IdxSndDataSet; 
+send: CALL SFC   20 (
+           SRCBLK                   := #Par.Command,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.StatusCommand);
+      U     #InSimulation; 
+      SPB   sSim; 
+      CALL SFC   15 (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #DPData,
+           RET_VAL                  := #tmpReturn);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultSend; 
+      SPA   DP_C; 
+//write to Simulation
+sSim: R     #Par.HelpFlags.OutComFaultSend; 
+      U     M     11.1; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   DB    17; 
+      L     P#DBX 0.0; 
+rDB2: L     #Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      LAR1  ; 
+      L     #DPData.StatusCommand; 
+      T     D [AR1,P#0.0]; 
+      L     #DPData.NrSndDataSet; 
+      T     B [AR1,P#4.0]; 
+      L     #DPData.IdxSndDataSet; 
+      T     B [AR1,P#5.0]; 
+      L     #DPData.NrRcvDataSet; 
+      T     B [AR1,P#6.0]; 
+      L     #DPData.IdxRcvDataSet; 
+      T     B [AR1,P#7.0]; 
+      L     #DPData.Data[1]; 
+      T     D [AR1,P#8.0]; 
+      L     #DPData.Data[2]; 
+      T     D [AR1,P#12.0]; 
+      L     #DPData.Data[3]; 
+      T     D [AR1,P#16.0]; 
+      L     #DPData.Data[4]; 
+      T     D [AR1,P#20.0]; 
+DP_C: NOP   0; 
+
+NETWORK
+TITLE =States
+//===State machine===
+      U     #StStopped; 
+      SPB   S0; 
+      U     #StStarting; 
+      SPB   S1; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StStopping; 
+      SPB   S3; 
+      U     #StFault; 
+      SPB   S4; 
+      S     #StStopped; //Init
+      SPA   S0; 
+
+NETWORK
+TITLE = StStopped
+
+xxS0: S     #StStopped; 
+      R     #StStarted; 
+      SPA   LOGX; 
+S0:   U     #tmpFault; 
+      S     #tmpHornOn; 
+      R     #StStopped; 
+      SPB   xxS4; ////--> Transition to StFault
+      U     #tmpOn; 
+      O     #Par.Status.Operation; 
+      UN    #OutComFault; //[4.1]
+      R     #StStopped; 
+      SPB   xxS1; //--> Transition to StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStarting
+
+xxS1: S     #StStarting; 
+      R     #Par.HelpFlags.OutAlarmTimeOut; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   OUT; 
+S1:   U     #tmpFault; //Condition for StFault
+      R     #StStarting; 
+      SPB   xxS4; //--> Transition to StFault
+      U     #tmpOff; 
+      R     #StStarting; 
+      SPB   xxS3; //--> Transition to StStopping
+      U     #Par.Status.Operation; 
+      R     #StStarting; 
+      SPB   xxS2; //--> Transition to StStarted
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStarted
+
+xxS2: S     #StStarted; 
+      R     #StStopped; 
+      SPA   LOGX; 
+S2:   U     #tmpFault; //Condition for StFault/StFalse
+      S     #tmpHornOn; 
+      R     #StStarted; 
+      SPB   xxS4; //--> Transition to StFault
+      U     #tmpOff; 
+      ON    #Par.Status.Operation; 
+      O     #OutComFault; //[4.1]
+      R     #StStarted; 
+      SPB   xxS3; //--> Transition to StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE = StStopping
+
+xxS3: S     #StStopping; 
+      R     #Par.HelpFlags.OutAlarmTimeOut; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      U     #StFault; 
+      R     #StFault; 
+      SPB   LOGC; //-->Message Operator ('fault cancelled' )
+//-----------------------------------
+//--> Transition to StFault
+S3:   U     #tmpFault; 
+      UN    #tmpLocal; 
+      S     #tmpHornOn; 
+      R     #StStopping; 
+      SPB   xxS4; //-->Transition to StFault
+//-----------------------------------
+//--> Transition to StStarting
+      U     #tmpOn; 
+      R     #StStopping; 
+      SPB   xxS1; //-->Transition to StStarting 
+//-----------------------------------
+//--> Transition to StStopped
+      UN    #tmpFault; //Transition to StFaulte
+      UN    #Par.Status.Operation; 
+      O     #OutComFault; //[4.1]
+      R     #StStopping; 
+      SPB   xxS0; //-->Transition to StStopped 
+      SPA   OUT; 
+
+NETWORK
+TITLE = FAULT
+
+// State Fault
+S4:   UN    #tmpFault; //---Condition for StStopping
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      O     #tmpLocalFault; 
+      SPB   xxS3; // Transition to StStopping
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      SPB   xxS4; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =LOG
+
+xxS4: S     #tmpHornOn; 
+      S     #StFault; 
+      R     #Par.HelpFlags.OutFaultResetDone; 
+      R     #Par.HelpFlags.OutTestNewAlarm; 
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+//Alarm Communication
+      L     B#(1, 96); 
+      U     #OutComFault; 
+      SPB   LOG; 
+//Tiemout
+      U     #Par.HelpFlags.OutAlarmTimeOut; 
+      L     B#(1, 94); // Message ('fault timeout')
+      SPB   LOG; 
+//Alarm-Nr 1..80
+      L     0; 
+      L     #OutAlarmNr; 
+      ==I   ; 
+      SPB   LOG2; 
+      L     B#(1, 0); 
+      OW    ; 
+      SPA   LOG; //Alarms 1..80
+//Fault Wrong Value
+LOG2: U     #Par.Status.WrongValue; 
+      L     B#(1, 95); // Message ('fault wrong value')
+      SPB   LOG; 
+//Collected Alarm
+      L     B#(1, 99); // Message ('fault collected alarm')
+      SPA   LOG; 
+//===============================================
+//State Transition
+LOGX: UN    #tmpReport; 
+      SPB   OUT; 
+      U     #StStopped; 
+      L     B#(4, 91); //Message ('Stopped')
+      SPB   LOG; 
+      U     #StStarted; 
+      L     B#(4, 92); //Message ('Dosing')
+      SPB   LOG; 
+      SPA   OUT; 
+LOGC: L     B#(4, 0); //Message ('fault cancelled')
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL FC    45 (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1026);
+SAVE: NOP   0; 
+OUT:  NOP   0; 
+
+NETWORK
+TITLE =Global End
+
+      SET   ; //---Clear all commands
+      R     #CmdOff; 
+      R     #CmdOn; 
+      R     #CmdNext; 
+
+//---Horn On-----------------------------
+      UN    #tmpHornOn; 
+      SPB   glJ1; 
+      S     M     13.7; // Gr.InFaultFlag
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 1022,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+glJ1: NOP   0; 
+//--Output for group 
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     M     15.1; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     M     15.0; 
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC2; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC; 
+      L     1; // Code: stopped
+      SPB   STC; 
+//--------------------
+STC2: L     2; //Code: StStarting
+      U     #StStarting; 
+      SPB   STC; 
+      L     3; //Code: StStarted
+      U     #StStarted; 
+      SPB   STC; 
+      L     7; //Code: StStopping
+      U     #StStopping; 
+      SPB   STC; 
+      L     32; //Code: fault
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    FC     2; 
+
+
+NETWORK
+TITLE = Store LC data
+
+
+      BEA   ; 
+END_FUNCTION_BLOCK
+

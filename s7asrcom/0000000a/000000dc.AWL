@@ -1,0 +1,5309 @@
+FUNCTION_BLOCK "SSA_MH_EventsToPIC"
+TITLE =Ereignisse zur Übertragung aufbereiten
+//COPYRIGHT:    (C) 2003  BUHLER GmbH, D 38028 Braunschweig, Deutschland
+//PRODUCT:      Ereigniserfassung Eventrecording
+//TITLE:        FB470
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+//FB470.3B      M. Wedler           AEB41                             22.Okt.2007
+//              extend for NPR-plant
+//FB470.3A      J. Voss             AEB31                             24.Jul.2006
+//              extend for UAN-plant
+//FB470.2A      J. Voss             AEB3                              24.Feb.2005
+//              extend for HEN-plant
+//FB470.1A      J. Voss             AEB3                              24.Sep.2003
+//              1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE: Ereignisse aufnehmen und in Queue eintragen
+//         get events and send them via log-interface to PIC
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+VERSION : 0.1
+
+
+VAR_INPUT
+  CallingSection : INT ;	
+  ParameterDB_in : INT ;	
+  MessageTyp : INT ;	
+END_VAR
+VAR_IN_OUT
+  ActTimeStepProcess : "SSA_MH_StepTime";	
+  Processtime : "SSA_MH_ProcessTime";	
+END_VAR
+VAR
+  Uhrzeit_Akt : TIME_OF_DAY ;	
+  Maske : DWORD ;	
+  Uhrzeit_Hilfs : DINT ;	
+  Uhrzeit_Hilfs1 : DINT ;	
+  Ereignis_1 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_2 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_3 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_4 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_5 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_6 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_7 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_8 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_9 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_10 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_11 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_12 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_13 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_14 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_15 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_16 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_17 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_18 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_19 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_20 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_21 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_22 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_23 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_24 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_25 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_26 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_27 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_28 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_29 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_30 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_31 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_32 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_33 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_34 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_35 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_36 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_37 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_38 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_39 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_40 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_41 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_42 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_43 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_44 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_45 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_46 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_47 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  Ereignis_48 : STRUCT 	
+   FP_Kommt : BOOL ;	
+   HP_Kommt : BOOL ;	
+   FN_Geht : BOOL ;	
+   HP_Geht : BOOL ;	
+   RES00 : BOOL ;	
+   RES01 : BOOL ;	
+   RES02 : BOOL ;	
+   RES021 : BOOL ;	
+  END_STRUCT ;	
+  STAT0 : BOOL ;	
+  Prozesszeit_Tag : INT ;	
+  Prozesszeit_Std : INT ;	
+  Prozesszeit_Min : INT ;	
+  bool01 : BOOL ;	
+  Scan_1Sec : BOOL ;	
+  Zero_minute : BOOL ;	
+  FP_Zero_minute : BOOL ;	
+  Restart_Average : BOOL ;	
+  Daten_Bereit : BOOL ;	
+  FP_Daten_Bereit : BOOL ;	
+  HP_Daten_Bereit : BOOL ;	
+  Daten_senden : BOOL ;	
+  Daten_gesendet : BOOL ;	
+  Aufzeichnen : BOOL ;	
+  Res21_3 : BOOL ;	
+  Res21_4 : BOOL ;	
+  Res21_5 : BOOL ;	
+  Res21_6 : BOOL ;	
+  Res21_7 : BOOL ;	
+  Prozesszeit_Hilf : INT ;	
+  EREIGNISBIT_0 : BOOL ;	
+  EREIGNISBIT_1 : BOOL ;	
+  EREIGNISBIT_2 : BOOL ;	
+  EREIGNISBIT_3 : BOOL ;	
+  EREIGNISBIT_4 : BOOL ;	
+  EREIGNISBIT_5 : BOOL ;	
+  EREIGNISBIT_6 : BOOL ;	
+  EREIGNISBIT_7 : BOOL ;	
+  EREIGNISBIT_8 : BOOL ;	
+  EREIGNISBIT_9 : BOOL ;	
+  EREIGNISBIT_10 : BOOL ;	
+  EREIGNISBIT_11 : BOOL ;	
+  EREIGNISBIT_12 : BOOL ;	
+  EREIGNISBIT_13 : BOOL ;	
+  EREIGNISBIT_14 : BOOL ;	
+  EREIGNISBIT_15 : BOOL ;	
+  EREIGNISBIT_16 : BOOL ;	
+  EREIGNISBIT_17 : BOOL ;	
+  EREIGNISBIT_18 : BOOL ;	
+  EREIGNISBIT_19 : BOOL ;	
+  EREIGNISBIT_20 : BOOL ;	
+  EREIGNISBIT_21 : BOOL ;	
+  EREIGNISBIT_22 : BOOL ;	
+  EREIGNISBIT_23 : BOOL ;	
+  EREIGNISBIT_24 : BOOL ;	
+  EREIGNISBIT_25 : BOOL ;	
+  EREIGNISBIT_26 : BOOL ;	
+  EREIGNISBIT_27 : BOOL ;	
+  EREIGNISBIT_28 : BOOL ;	
+  EREIGNISBIT_29 : BOOL ;	
+  EREIGNISBIT_30 : BOOL ;	
+  EREIGNISBIT_31 : BOOL ;	
+  EREIGNISBIT_32 : BOOL ;	
+  EREIGNISBIT_33 : BOOL ;	
+  EREIGNISBIT_34 : BOOL ;	
+  EREIGNISBIT_35 : BOOL ;	
+  EREIGNISBIT_36 : BOOL ;	
+  EREIGNISBIT_37 : BOOL ;	
+  EREIGNISBIT_38 : BOOL ;	
+  EREIGNISBIT_39 : BOOL ;	
+  EREIGNISBIT_40 : BOOL ;	
+  EREIGNISBIT_41 : BOOL ;	
+  EREIGNISBIT_42 : BOOL ;	
+  EREIGNISBIT_43 : BOOL ;	
+  EREIGNISBIT_44 : BOOL ;	
+  EREIGNISBIT_45 : BOOL ;	
+  EREIGNISBIT_46 : BOOL ;	
+  EREIGNISBIT_47 : BOOL ;	
+  EREIGNISBIT_48 : BOOL ;	
+  EREIGNISBIT_49 : BOOL ;	
+  EREIGNISBIT_50 : BOOL ;	
+  EREIGNISBIT_51 : BOOL ;	
+  EREIGNISBIT_52 : BOOL ;	
+  EREIGNISBIT_53 : BOOL ;	
+  EREIGNISBIT_54 : BOOL ;	
+  EREIGNISBIT_55 : BOOL ;	
+  EREIGNISBIT_56 : BOOL ;	
+  EREIGNISBIT_57 : BOOL ;	
+  EREIGNISBIT_58 : BOOL ;	
+  EREIGNISBIT_59 : BOOL ;	
+  EREIGNISBIT_60 : BOOL ;	
+  EREIGNISBIT_61 : BOOL ;	
+  EREIGNISBIT_62 : BOOL ;	
+  EREIGNISBIT_63 : BOOL ;	
+  EREIGNISBIT_64 : BOOL ;	
+  EREIGNISBIT_65 : BOOL ;	
+  EREIGNISBIT_66 : BOOL ;	
+  EREIGNISBIT_67 : BOOL ;	
+  EREIGNISBIT_68 : BOOL ;	
+  EREIGNISBIT_69 : BOOL ;	
+  EREIGNISBIT_70 : BOOL ;	
+  EREIGNISBIT_71 : BOOL ;	
+  EREIGNISBIT_72 : BOOL ;	
+  EREIGNISBIT_73 : BOOL ;	
+  EREIGNISBIT_74 : BOOL ;	
+  EREIGNISBIT_75 : BOOL ;	
+  EREIGNISBIT_76 : BOOL ;	
+  EREIGNISBIT_77 : BOOL ;	
+  EREIGNISBIT_78 : BOOL ;	
+  EREIGNISBIT_79 : BOOL ;	
+  EREIGNISBIT_80 : BOOL ;	
+  EREIGNISBIT_81 : BOOL ;	
+  EREIGNISBIT_82 : BOOL ;	
+  EREIGNISBIT_83 : BOOL ;	
+  EREIGNISBIT_84 : BOOL ;	
+  EREIGNISBIT_85 : BOOL ;	
+  EREIGNISBIT_86 : BOOL ;	
+  EREIGNISBIT_87 : BOOL ;	
+  EREIGNISBIT_88 : BOOL ;	
+  EREIGNISBIT_89 : BOOL ;	
+  RES_W_82 : INT ;	
+  RES_W_84 : INT ;	
+  MsgType : WORD ;	
+  LineNo : WORD ;	
+  JobNo : WORD ;	
+  ProzMin : WORD ;	
+  StepNo : WORD ;	
+  StepTime : WORD ;	
+  EventObject : INT ;	
+  ObjectState : INT ;	
+  NumberAddValues : INT ;	
+  EventObject_50 : INT ;	
+  EventObject_49 : INT ;	
+  EventObject_48 : INT ;	
+  EventObject_47 : INT ;	
+  EventObject_46 : INT ;	
+  EventObject_45 : INT ;	
+  EventObject_44 : INT ;	
+  EventObject_43 : INT ;	
+  EventObject_42 : INT ;	
+  EventObject_41 : INT ;	
+  EventObject_40 : INT ;	
+  EventObject_39 : INT ;	
+  EventObject_38 : INT ;	
+  EventObject_37 : INT ;	
+  EventObject_36 : INT ;	
+  EventObject_35 : INT ;	
+  EventObject_34 : INT ;	
+  EventObject_33 : INT ;	
+  EventObject_32 : INT ;	
+  EventObject_31 : INT ;	
+  EventObject_30 : INT ;	
+  EventObject_29 : INT ;	
+  EventObject_28 : INT ;	
+  EventObject_27 : INT ;	
+  EventObject_26 : INT ;	
+  EventObject_25 : INT ;	
+  EventObject_24 : INT ;	
+  EventObject_23 : INT ;	
+  EventObject_22 : INT ;	
+  EventObject_21 : INT ;	
+  EventObject_20 : INT ;	
+  EventObject_19 : INT ;	
+  EventObject_18 : INT ;	
+  EventObject_17 : INT ;	
+  EventObject_16 : INT ;	
+  EventObject_15 : INT ;	
+  EventObject_14 : INT ;	
+  EventObject_13 : INT ;	
+  EventObject_12 : INT ;	
+  EventObject_11 : INT ;	
+  EventObject_10 : INT ;	
+  EventObject_9 : INT ;	
+  EventObject_8 : INT ;	
+  EventObject_7 : INT ;	
+  EventObject_6 : INT ;	
+  EventObject_5 : INT ;	
+  EventObject_4 : INT ;	
+  EventObject_3 : INT ;	
+  EventObject_2 : INT ;	
+  EventObject_1 : INT ;	
+  _1 : INT ;	
+END_VAR
+VAR_TEMP
+  Prozesstag : WORD ;	
+  Prozesstunde : WORD ;	
+  Prozessminute : WORD ;	
+  Ereignis_1_kommt : WORD ;	
+  Ereignis_1_geht : WORD ;	
+  Ereignis_2_kommt : WORD ;	
+  Ereignis_2_geht : WORD ;	
+  Ereignis_3_kommt : WORD ;	
+  Ereignis_3_geht : WORD ;	
+  Anzahl : INT ;	
+  Laenge : INT ;	
+  Zaehler : INT ;	
+  Zustand : BYTE ;	
+  MessageType : BYTE ;	
+  MessageFormat : BYTE ;	
+  JobNumber : DWORD ;	
+  processMinute : INT ;	
+  SectionDB : INT ;	
+  ParameterDB : INT ;	
+  StepNumber : INT ;	
+  StepTimeMin : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =set local variables
+//// set message-type:   type 10 = steep 1
+////                     type 11 = steep 2    
+////                     type 20 = germination
+////                     type 30 = kiln 1
+////                     type 40 = kiln 2
+// 
+//// set message-format: format 1 = cyclic (trend)values
+////                     format 2 = events
+////                     format 3 = average values
+////                     format 4 = calculated summary section
+//
+// set message-type
+      L     #MessageTyp; 
+      T     #MessageType; 
+// set message-format
+      L     2; 
+      T     #MessageFormat; 
+// set actual jobnumber from section
+      L     #CallingSection; 
+      T     #SectionDB; 
+      AUF   DB [#SectionDB]; 
+      L     DBD  160; 
+      T     #JobNumber; 
+
+// set actual parameter DB
+      L     #ParameterDB_in; 
+      T     #ParameterDB; 
+      AUF   DB [#ParameterDB]; 
+//    L     DBW 2796                    //[3B]
+      L     #Processtime.Spare_93; //[3B]
+      T     #processMinute; 
+//    L     DBW 2788                    //[3B]
+      L     #ActTimeStepProcess.Spare_85; //[3B]
+      T     #StepNumber; 
+//    L     DBW 2784                    //[3B]
+      L     #ActTimeStepProcess.SteptimeActMinOverall; //[3B]
+      T     #StepTimeMin; 
+
+NETWORK
+TITLE =create timestamp for batchprotocol
+//event Nr. 1 - 100 are reserved for special events (example: start/stop process, 
+//wich is used to create a timestamp in job-protocol)
+// Ereignis 1  Kommt         
+      U     #EREIGNISBIT_1; 
+      FP    #Ereignis_1.FP_Kommt; 
+      SPBN  E011; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_1; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW220
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E011: NOP   0; 
+///
+// Ereignis 1  Geht        
+      U     #EREIGNISBIT_1; 
+      FN    #Ereignis_1.FN_Geht; 
+      SPBN  E012; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_1; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW220
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E012: NOP   0; 
+///
+
+///     
+// Ereignis 2  Kommt         
+      U     #EREIGNISBIT_2; 
+      FP    #Ereignis_2.FP_Kommt; 
+      SPBN  E013; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_2; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E013: NOP   0; 
+///
+// Ereignis 2  Geht        
+      U     #EREIGNISBIT_2; 
+      FN    #Ereignis_2.FN_Geht; 
+      SPBN  E014; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_2; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E014: NOP   0; 
+///     
+// Ereignis 3  Kommt         
+      U     #EREIGNISBIT_3; 
+      FP    #Ereignis_3.FP_Kommt; 
+      SPBN  E015; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     #Maske; //JV091109 temporary old stepnumber
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_3; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1013,// [3D]
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E015: NOP   0; 
+///
+// Ereignis 3  Geht        
+      U     #EREIGNISBIT_3; 
+      FN    #Ereignis_3.FN_Geht; 
+      SPBN  E016; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+//JV091109      L     #StepNumber
+      L     #Maske; //JV091109 temporary old stepnumber
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_3; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1013,// [3D]
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E016: NOP   0; 
+///     
+// Ereignis 4  Kommt         
+      U     #EREIGNISBIT_4; 
+      FP    #Ereignis_4.FP_Kommt; 
+      SPBN  E017; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_4; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E017: NOP   0; 
+///
+// Ereignis 4  Geht        
+      U     #EREIGNISBIT_4; 
+      FN    #Ereignis_4.FN_Geht; 
+      SPBN  E018; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_4; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E018: NOP   0; 
+///     
+// Ereignis 5  Kommt         
+      U     #EREIGNISBIT_5; 
+      FP    #Ereignis_5.FP_Kommt; 
+      SPBN  E019; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_5; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E019: NOP   0; 
+///
+// Ereignis 5  Geht        
+      U     #EREIGNISBIT_5; 
+      FN    #Ereignis_5.FN_Geht; 
+      SPBN  E020; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_5; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E020: NOP   0; 
+///     
+// Ereignis 6  Kommt         
+      U     #EREIGNISBIT_6; 
+      FP    #Ereignis_6.FP_Kommt; 
+      SPBN  E021; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_6; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E021: NOP   0; 
+///
+// Ereignis 6  Geht        
+      U     #EREIGNISBIT_6; 
+      FN    #Ereignis_6.FN_Geht; 
+      SPBN  E022; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_6; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E022: NOP   0; 
+///     
+// Ereignis 7  Kommt         
+      U     #EREIGNISBIT_7; 
+      FP    #Ereignis_7.FP_Kommt; 
+      SPBN  E023; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_7; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E023: NOP   0; 
+///
+// Ereignis 7  Geht        
+      U     #EREIGNISBIT_7; 
+      FN    #Ereignis_7.FN_Geht; 
+      SPBN  E024; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_7; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E024: NOP   0; 
+///     
+// Ereignis 8  Kommt         
+      U     #EREIGNISBIT_8; 
+      FP    #Ereignis_8.FP_Kommt; 
+      SPBN  E025; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_8; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E025: NOP   0; 
+///
+// Ereignis 8  Geht        
+      U     #EREIGNISBIT_8; 
+      FN    #Ereignis_8.FN_Geht; 
+      SPBN  E026; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_8; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E026: NOP   0; 
+///     
+// Ereignis 9  Kommt         
+      U     #EREIGNISBIT_9; 
+      FP    #Ereignis_9.FP_Kommt; 
+      SPBN  E027; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_9; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E027: NOP   0; 
+///
+// Ereignis 9  Geht        
+      U     #EREIGNISBIT_9; 
+      FN    #Ereignis_9.FN_Geht; 
+      SPBN  E028; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_9; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E028: NOP   0; 
+///     
+// Ereignis 10  Kommt         
+      U     #EREIGNISBIT_10; 
+      FP    #Ereignis_10.FP_Kommt; 
+      SPBN  E029; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_10; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E029: NOP   0; 
+///
+// Ereignis 10  Geht        
+      U     #EREIGNISBIT_10; 
+      FN    #Ereignis_10.FN_Geht; 
+      SPBN  E030; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_10; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E030: NOP   0; 
+///     
+
+
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =create events for batchprotokoll 
+//event Nr. 101 - 110 are  events in job-protocol
+///
+// Ereignis 11  Kommt         
+      U     #EREIGNISBIT_11; 
+      FP    #Ereignis_11.FP_Kommt; 
+      SPBN  E031; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_11; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW220
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E031: NOP   0; 
+///
+// Ereignis 11  Geht        
+      U     #EREIGNISBIT_11; 
+      FN    #Ereignis_11.FN_Geht; 
+      SPBN  E032; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_11; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E032: NOP   0; 
+///     
+// Ereignis 12  Kommt         
+      U     #EREIGNISBIT_12; 
+      FP    #Ereignis_12.FP_Kommt; 
+      SPBN  E033; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_12; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E033: NOP   0; 
+///
+// Ereignis 12  Geht        
+      U     #EREIGNISBIT_12; 
+      FN    #Ereignis_12.FN_Geht; 
+      SPBN  E034; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_12; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+      L     0; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+E034: NOP   0; 
+///     
+// Ereignis 13  Kommt         
+      U     #EREIGNISBIT_13; 
+      FP    #Ereignis_13.FP_Kommt; 
+      SPBN  E035; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_13; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E035: NOP   0; 
+///
+// Ereignis 13  Geht        
+      U     #EREIGNISBIT_13; 
+      FN    #Ereignis_13.FN_Geht; 
+      SPBN  E036; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_13; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E036: NOP   0; 
+///     
+// Ereignis 14  Kommt         
+      U     #EREIGNISBIT_14; 
+      FP    #Ereignis_14.FP_Kommt; 
+      SPBN  E037; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_14; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E037: NOP   0; 
+///
+// Ereignis 14  Geht        
+      U     #EREIGNISBIT_14; 
+      FN    #Ereignis_14.FN_Geht; 
+      SPBN  E038; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_14; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E038: NOP   0; 
+///     
+// Ereignis 15  Kommt         
+      U     #EREIGNISBIT_15; 
+      FP    #Ereignis_15.FP_Kommt; 
+      SPBN  E039; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_15; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E039: NOP   0; 
+///
+// Ereignis 15  Geht        
+      U     #EREIGNISBIT_15; 
+      FN    #Ereignis_15.FN_Geht; 
+      SPBN  E040; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_15; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E040: NOP   0; 
+///     
+// Ereignis 16  Kommt         
+      U     #EREIGNISBIT_16; 
+      FP    #Ereignis_16.FP_Kommt; 
+      SPBN  E041; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_16; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E041: NOP   0; 
+///
+// Ereignis 16  Geht        
+      U     #EREIGNISBIT_16; 
+      FN    #Ereignis_16.FN_Geht; 
+      SPBN  E042; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_16; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E042: NOP   0; 
+///     
+// Ereignis 17  Kommt         
+      U     #EREIGNISBIT_17; 
+      FP    #Ereignis_17.FP_Kommt; 
+      SPBN  E043; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_17; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E043: NOP   0; 
+///
+// Ereignis 17  Geht        
+      U     #EREIGNISBIT_17; 
+      FN    #Ereignis_17.FN_Geht; 
+      SPBN  E044; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_17; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E044: NOP   0; 
+///     
+// Ereignis 18  Kommt         
+      U     #EREIGNISBIT_18; 
+      FP    #Ereignis_18.FP_Kommt; 
+      SPBN  E045; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_18; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E045: NOP   0; 
+///
+// Ereignis 18  Geht        
+      U     #EREIGNISBIT_18; 
+      FN    #Ereignis_18.FN_Geht; 
+      SPBN  E046; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_18; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E046: NOP   0; 
+///     
+// Ereignis 19  Kommt         
+      U     #EREIGNISBIT_19; 
+      FP    #Ereignis_19.FP_Kommt; 
+      SPBN  E047; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_19; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E047: NOP   0; 
+///
+// Ereignis 19  Geht        
+      U     #EREIGNISBIT_19; 
+      FN    #Ereignis_19.FN_Geht; 
+      SPBN  E048; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_19; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E048: NOP   0; 
+///     
+// Ereignis 20  Kommt         
+      U     #EREIGNISBIT_20; 
+      FP    #Ereignis_20.FP_Kommt; 
+      SPBN  E049; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_20; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E049: NOP   0; 
+///
+// Ereignis 20  Geht        
+      U     #EREIGNISBIT_20; 
+      FN    #Ereignis_20.FN_Geht; 
+      SPBN  E050; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_20; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E050: NOP   0; 
+///     
+
+NETWORK
+TITLE =create events for batchprotokoll 
+//event Nr. 111 - 120 are  events in job-protocol
+///
+// Ereignis 21  Kommt         
+      U     #EREIGNISBIT_21; 
+      FP    #Ereignis_21.FP_Kommt; 
+      SPBN  E051; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_21; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW220
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E051: NOP   0; 
+///
+// Ereignis 21  Geht        
+      U     #EREIGNISBIT_21; 
+      FN    #Ereignis_21.FN_Geht; 
+      SPBN  E052; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_21; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E052: NOP   0; 
+///     
+// Ereignis 22  Kommt         
+      U     #EREIGNISBIT_22; 
+      FP    #Ereignis_22.FP_Kommt; 
+      SPBN  E053; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_22; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E053: NOP   0; 
+///
+// Ereignis 22  Geht        
+      U     #EREIGNISBIT_22; 
+      FN    #Ereignis_22.FN_Geht; 
+      SPBN  E054; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_22; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E054: NOP   0; 
+///     
+// Ereignis 23  Kommt         
+      U     #EREIGNISBIT_23; 
+      FP    #Ereignis_23.FP_Kommt; 
+      SPBN  E055; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_23; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E055: NOP   0; 
+///
+// Ereignis 23  Geht        
+      U     #EREIGNISBIT_23; 
+      FN    #Ereignis_23.FN_Geht; 
+      SPBN  E056; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_23; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E056: NOP   0; 
+///     
+// Ereignis 24  Kommt         
+      U     #EREIGNISBIT_24; 
+      FP    #Ereignis_24.FP_Kommt; 
+      SPBN  E057; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_24; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E057: NOP   0; 
+///
+// Ereignis 24  Geht        
+      U     #EREIGNISBIT_24; 
+      FN    #Ereignis_24.FN_Geht; 
+      SPBN  E058; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_24; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E058: NOP   0; 
+///     
+// Ereignis 25  Kommt         
+      U     #EREIGNISBIT_25; 
+      FP    #Ereignis_25.FP_Kommt; 
+      SPBN  E059; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_25; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E059: NOP   0; 
+///
+// Ereignis 25  Geht        
+      U     #EREIGNISBIT_25; 
+      FN    #Ereignis_25.FN_Geht; 
+      SPBN  E060; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_25; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E060: NOP   0; 
+///     
+// Ereignis 26  Kommt         
+      U     #EREIGNISBIT_26; 
+      FP    #Ereignis_26.FP_Kommt; 
+      SPBN  E061; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_26; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E061: NOP   0; 
+///
+// Ereignis 26  Geht        
+      U     #EREIGNISBIT_26; 
+      FN    #Ereignis_26.FN_Geht; 
+      SPBN  E062; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_26; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E062: NOP   0; 
+///     
+// Ereignis 27  Kommt         
+      U     #EREIGNISBIT_27; 
+      FP    #Ereignis_27.FP_Kommt; 
+      SPBN  E063; 
+/// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_27; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E063: NOP   0; 
+///
+// Ereignis 27  Geht        
+      U     #EREIGNISBIT_27; 
+      FN    #Ereignis_27.FN_Geht; 
+      SPBN  E064; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_27; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E064: NOP   0; 
+///     
+// Ereignis 28  Kommt         
+      U     #EREIGNISBIT_28; 
+      FP    #Ereignis_28.FP_Kommt; 
+      SPBN  E065; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_28; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E065: NOP   0; 
+///
+// Ereignis 28  Geht        
+      U     #EREIGNISBIT_28; 
+      FN    #Ereignis_28.FN_Geht; 
+      SPBN  E066; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_28; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E066: NOP   0; 
+///     
+// Ereignis 29  Kommt         
+      U     #EREIGNISBIT_29; 
+      FP    #Ereignis_29.FP_Kommt; 
+      SPBN  E067; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_29; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E067: NOP   0; 
+///
+// Ereignis 29  Geht        
+      U     #EREIGNISBIT_29; 
+      FN    #Ereignis_29.FN_Geht; 
+      SPBN  E068; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_29; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E068: NOP   0; 
+///     
+// Ereignis 30  Kommt         
+      U     #EREIGNISBIT_30; 
+      FP    #Ereignis_30.FP_Kommt; 
+      SPBN  E069; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_30; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E069: NOP   0; 
+///
+// Ereignis 30  Geht        
+      U     #EREIGNISBIT_30; 
+      FN    #Ereignis_30.FN_Geht; 
+      SPBN  E070; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_30; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E070: NOP   0; 
+///     
+
+NETWORK
+TITLE =create events for batchprotokoll 
+//event Nr. 121 - 130 are  events in job-protocol
+///
+// Ereignis 31  Kommt         
+      U     #EREIGNISBIT_31; 
+      FP    #Ereignis_31.FP_Kommt; 
+      SPBN  E071; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_31; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E071: NOP   0; 
+///
+// Ereignis 31  Geht        
+      U     #EREIGNISBIT_31; 
+      FN    #Ereignis_31.FN_Geht; 
+      SPBN  E072; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_31; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E072: NOP   0; 
+///     
+// Ereignis 32  Kommt         
+      U     #EREIGNISBIT_32; 
+      FP    #Ereignis_32.FP_Kommt; 
+      SPBN  E073; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_32; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E073: NOP   0; 
+///
+// Ereignis 32  Geht        
+      U     #EREIGNISBIT_32; 
+      FN    #Ereignis_32.FN_Geht; 
+      SPBN  E074; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_32; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E074: NOP   0; 
+///     
+// Ereignis 33  Kommt         
+      U     #EREIGNISBIT_33; 
+      FP    #Ereignis_33.FP_Kommt; 
+      SPBN  E075; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_33; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E075: NOP   0; 
+///
+// Ereignis 33  Geht        
+      U     #EREIGNISBIT_33; 
+      FN    #Ereignis_33.FN_Geht; 
+      SPBN  E076; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_33; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E076: NOP   0; 
+///     
+// Ereignis 34  Kommt         
+      U     #EREIGNISBIT_34; 
+      FP    #Ereignis_34.FP_Kommt; 
+      SPBN  E077; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_34; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E077: NOP   0; 
+///
+// Ereignis 34  Geht        
+      U     #EREIGNISBIT_34; 
+      FN    #Ereignis_34.FN_Geht; 
+      SPBN  E078; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_34; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E078: NOP   0; 
+///     
+// Ereignis 35  Kommt         
+      U     #EREIGNISBIT_35; 
+      FP    #Ereignis_35.FP_Kommt; 
+      SPBN  E079; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_35; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E079: NOP   0; 
+///
+// Ereignis 35  Geht        
+      U     #EREIGNISBIT_35; 
+      FN    #Ereignis_35.FN_Geht; 
+      SPBN  E080; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_35; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E080: NOP   0; 
+///     
+// Ereignis 36  Kommt         
+      U     #EREIGNISBIT_36; 
+      FP    #Ereignis_36.FP_Kommt; 
+      SPBN  E081; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_36; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E081: NOP   0; 
+///
+// Ereignis 36  Geht        
+      U     #EREIGNISBIT_36; 
+      FN    #Ereignis_36.FN_Geht; 
+      SPBN  E082; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_36; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E082: NOP   0; 
+///     
+// Ereignis 37  Kommt         
+      U     #EREIGNISBIT_37; 
+      FP    #Ereignis_37.FP_Kommt; 
+      SPBN  E083; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_37; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E083: NOP   0; 
+///
+// Ereignis 37  Geht        
+      U     #EREIGNISBIT_37; 
+      FN    #Ereignis_37.FN_Geht; 
+      SPBN  E084; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_37; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E084: NOP   0; 
+///     
+// Ereignis 38  Kommt         
+      U     #EREIGNISBIT_38; 
+      FP    #Ereignis_38.FP_Kommt; 
+      SPBN  E085; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_38; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E085: NOP   0; 
+///
+// Ereignis 38  Geht        
+      U     #EREIGNISBIT_38; 
+      FN    #Ereignis_38.FN_Geht; 
+      SPBN  E086; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_38; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E086: NOP   0; 
+///     
+// Ereignis 39  Kommt         
+      U     #EREIGNISBIT_39; 
+      FP    #Ereignis_39.FP_Kommt; 
+      SPBN  E087; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_39; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E087: NOP   0; 
+///
+// Ereignis 39  Geht        
+      U     #EREIGNISBIT_39; 
+      FN    #Ereignis_39.FN_Geht; 
+      SPBN  E088; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_39; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E088: NOP   0; 
+///     
+// Ereignis 40  Kommt         
+      U     #EREIGNISBIT_40; 
+      FP    #Ereignis_40.FP_Kommt; 
+      SPBN  E089; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_40; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E089: NOP   0; 
+///
+// Ereignis 40  Geht        
+      U     #EREIGNISBIT_40; 
+      FN    #Ereignis_40.FN_Geht; 
+      SPBN  E090; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_40; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E090: NOP   0; 
+///     
+// Ereignis 41  Kommt         
+      U     #EREIGNISBIT_41; 
+      FP    #Ereignis_41.FP_Kommt; 
+      SPBN  E091; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_41; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E091: NOP   0; 
+///
+// Ereignis 41  Geht        
+      U     #EREIGNISBIT_41; 
+      FN    #Ereignis_41.FN_Geht; 
+      SPBN  E092; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_41; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E092: NOP   0; 
+///     
+// Ereignis 42  Kommt         
+      U     #EREIGNISBIT_42; 
+      FP    #Ereignis_42.FP_Kommt; 
+      SPBN  E093; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_42; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E093: NOP   0; 
+///
+// Ereignis 42  Geht        
+      U     #EREIGNISBIT_42; 
+      FN    #Ereignis_42.FN_Geht; 
+      SPBN  E094; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_42; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E094: NOP   0; 
+///     
+// Ereignis 43  Kommt         
+      U     #EREIGNISBIT_43; 
+      FP    #Ereignis_43.FP_Kommt; 
+      SPBN  E095; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_43; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E095: NOP   0; 
+///
+// Ereignis 43  Geht        
+      U     #EREIGNISBIT_43; 
+      FN    #Ereignis_43.FN_Geht; 
+      SPBN  E096; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_43; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E096: NOP   0; 
+///     
+// Ereignis 44  Kommt         
+      U     #EREIGNISBIT_44; 
+      FP    #Ereignis_44.HP_Kommt; 
+      SPBN  E097; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_44; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E097: NOP   0; 
+///
+// Ereignis 44  Geht        
+      U     #EREIGNISBIT_44; 
+      FN    #Ereignis_44.HP_Geht; 
+      SPBN  E098; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_44; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+// Transform Basic Time to Local Time 
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+// put timestamp into message
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+///
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+
+E098: NOP   0; 
+
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Test-Event
+// Ereignis 47 Kommt         
+      U     #EREIGNISBIT_47; 
+      FP    #Ereignis_47.FP_Kommt; 
+      SPBN  E993; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_47; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     1; // object-state coming
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E993: NOP   0; 
+
+// Ereignis 47 Geht
+      U     #EREIGNISBIT_47; 
+      FN    #Ereignis_47.FN_Geht; 
+      SPBN  E994; 
+// header
+      L     #MessageType; 
+      T     "SSA_LOG_Value_Queue".Input.Header.SecType; // type
+      L     #MessageFormat; 
+      T     "SSA_LOG_Value_Queue".Input.Header.Format; // format
+      L     #JobNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0005; 
+      L     #processMinute; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0007; 
+      L     #StepNumber; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0008; 
+      L     #StepTimeMin; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0009; 
+
+// values integer
+      L     #EventObject_47; // event-Nr
+      T     "SSA_LOG_Value_Queue".Input.Para_0010; 
+      L     2; // object-state going
+      T     "SSA_LOG_Value_Queue".Input.Para_0011; 
+      L     0; // number additional param
+      T     "SSA_LOG_Value_Queue".Input.Para_0012; 
+// cont log-messages
+      L     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+      L     1; 
+      +I    ; 
+      T     "SSA_LOG_Value_Queue".Input.Para_0099; // message counter
+
+//      CALL  "BT_LT"
+//       BT     :="DB Prozesszeit".Arbeitsbereich.dt1
+//       WS_DAT :="RegelDB"
+//       RET_VAL:=MW218
+//       LT     :="RegelDB".LocalTime
+      CALL "SYS_Copy_DBtoDB" (
+           DBSource                 := 1010,
+           ByteSource               := 18,
+           DBDest                   := 1005,
+           ByteDest                 := 462,
+           NoOfByte                 := 8,
+           Fault                    := M    210.0);
+
+      CALL "SSA_MH_LogEntry_ActValue" (
+           DBNumber                 := 1005);
+E994: NOP   0; 
+
+
+NETWORK
+TITLE =
+//Blinker zum testen
+      UN    T     29; 
+
+      L     S5T#2S; 
+      SE    T     28; 
+      U     T     28; 
+      L     S5T#2S; 
+      SE    T     29; 
+      CLR   ; 
+      =     M    300.0; 
+
+NETWORK
+TITLE =
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

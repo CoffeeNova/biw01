@@ -1,0 +1,869 @@
+FUNCTION_BLOCK "G123M_Code"
+TITLE =G123M COUPLING DEVICE TURNER GERM 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        COUPLING DEVICE TURNER GERM 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB223.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2211_MXZ21 : "GCS7_E_Motor";	// Motor 
+  A_2211_BZS22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_BZS23 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_MXZ25 : "GCS7_E_Motor";	// Motor 
+  A_2211_BZS26 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_BZS27 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_MXZ31 : "GCS7_E_Motor";	// Motor 
+  A_2211_BZS32 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_BZS33 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_MXZ35 : "GCS7_E_Motor";	// Motor 
+  A_2211_BZS36 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2211_BZS37 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[123]; 
+      R     "GCS7_GrCtrlDB".ParWGR[123]; 
+      R     "GCS7_GrCtrlDB".ParGGR[123]; 
+      R     "GCS7_GrCtrlDB".ParFeed[123]; 
+      R     "GCS7_GrCtrlDB".ParShare[123]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[123]; 
+      O(    ; 
+      UN    "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[123]; 
+      O(    ; 
+      UN    "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[123]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[123]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[123]; 
+      O     "G127M".A_2215_KCL01I4.OutTrue; // pushbutton couple
+      O     "G127M".A_2215_KCL01I3.OutTrue; // pushbutton uncouple
+      R     "GCS7_GrCtrlDB".CmdNext[123]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[123]; 
+      UN    #Gr.InManual; 
+      SET   ; // No PC-Direct-Controll!!!
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[123]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[123]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[123]
+//      O     "GCS7_GrCtrlDB".OutOccupied[123]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[123]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[123]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[123]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[123]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+      U     #Gr.InManual; 
+      U(    ; //dyk 081031
+      L     "MAL1S018Par".Ilo.ILOMode; 
+      L     9; 
+      ==I   ; 
+      )     ; 
+      =     "G123M".USW8; // function locking/unlocking wall and unloader is released
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+      U     "G125M".A_2211_BZS46.StTrue; // stop fan side
+      U(    ; 
+      O(    ; 
+      U     "MAL1S018".PCRead.Step.StEmptying; 
+      U(    ; 
+      L     "G125M".A_2211_MXZ41MA.IncCounter.InpActCount; 
+      L     L#3; // within 3 pulses == 200mm
+      <=D   ; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S018".SecAc.Sta1On.Inf08; // ILO-mode
+      U     "SYS_infLog0"; // released local panel
+      )     ; 
+      O(    ; 
+      UN    "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      )     ; 
+      =     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+
+      U     "G123M".A_2211_BZS23.StTrue; // drive 1 locked
+      U     "G123M".A_2211_BZS27.StTrue; // drive 2 locked
+      U     "G123M".A_2211_BZS33.StTrue; // drive 3 locked
+      U     "G123M".A_2211_BZS37.StTrue; // drive 4 locked
+      =     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargFinished; 
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2211-MXZ21 : WALL COUPLING DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ21.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I4.InpTrue; // pushbutton couple
+      UN    #A_2211_BZS23.StTrue; // locked Drive 1
+      =     #A_2211_MXZ21.InEnableFwd; 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I3.InpTrue; // pushbutton uncouple
+      U     #A_2211_BZS26.StTrue; // unlocked Drive 2
+      UN    #A_2211_BZS22.StTrue; // unlocked Drive 1
+      U     "MAL1S018Par".Par.FlagMachine_0.WallCoupled; 
+      =     #A_2211_MXZ21.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ21.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ21.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2211_MXZ21.OutpRunRev; 
+      =     #A_2211_MXZ21.InpRunRev; 
+      U     #A_2211_MXZ21.OutpRunFwd; 
+      =     #A_2211_MXZ21.InpRunFwd; 
+      U     #A_2211_MXZ21.OutpRunFwd; 
+      =     #A_2211_MXZ21.InpRunFwd; 
+      U     #A_2211_MXZ21.OutpRunRev; 
+      =     #A_2211_MXZ21.InpRunRev; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_1; 
+      =     #A_2211_MXZ21.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_MXZ21.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ21 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ21.OutpRunFwd; 
+      =     "A_2211_MXZ21_O1"; 
+      U     #A_2211_MXZ21.OutpRunRev; 
+      =     "A_2211_MXZ21_O2"; 
+
+NETWORK
+TITLE ==A-2211-BZS22 : COUPLING DRIVE UNLOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS22.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2211_BZS22.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS22_I1"; 
+      =     #A_2211_BZS22.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-BZS23 : COUPLING DRIVE LOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS23.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      O     "MAL1S018Par".Par.FlagFunction_1.StepCleaning; // Step cleaning
+      =     #A_2211_BZS23.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS23.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS23.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS23.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS23.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS23_I1"; 
+      =     #A_2211_BZS23.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS23.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS23.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS23 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-MXZ25 : WALL COUPLING DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ25.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I4.InpTrue; // pushbutton couple
+      U     #A_2211_BZS23.StTrue; // locked Drive 1
+      UN    #A_2211_BZS27.StTrue; // locked Drive 2
+      =     #A_2211_MXZ25.InEnableFwd; 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I3.InpTrue; // pushbutton uncouple
+      U     #A_2211_BZS32.StTrue; // unlocked Drive 3
+      UN    #A_2211_BZS26.StTrue; // unlocked Drive 2
+      U     "MAL1S018Par".Par.FlagMachine_0.WallCoupled; 
+      =     #A_2211_MXZ25.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ25.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ25.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2211_MXZ25.OutpRunRev; 
+      =     #A_2211_MXZ25.InpRunRev; 
+      U     #A_2211_MXZ25.OutpRunFwd; 
+      =     #A_2211_MXZ25.InpRunFwd; 
+      U     #A_2211_MXZ25.OutpRunFwd; 
+      =     #A_2211_MXZ25.InpRunFwd; 
+      U     #A_2211_MXZ25.OutpRunRev; 
+      =     #A_2211_MXZ25.InpRunRev; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ25.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_MXZ25.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ25 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ25.OutpRunFwd; 
+      =     "A_2211_MXZ25_O1"; 
+      U     #A_2211_MXZ25.OutpRunRev; 
+      =     "A_2211_MXZ25_O2"; 
+
+NETWORK
+TITLE ==A-2211-BZS26 : COUPLING DRIVE UNLOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS26.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2211_BZS26.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS26.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS26.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS26.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS26.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS26_I1"; 
+      =     #A_2211_BZS26.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS26.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS26.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS26 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-BZS27 : COUPLING DRIVE LOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS27.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      O     "MAL1S018Par".Par.FlagFunction_1.StepCleaning; // Step cleaning
+      =     #A_2211_BZS27.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS27.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS27.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS27.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS27.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS27_I1"; 
+      =     #A_2211_BZS27.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS27.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS27.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS27 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-MXZ31 : WALL COUPLING DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ31.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I4.InpTrue; // pushbutton couple
+      U     #A_2211_BZS27.StTrue; // locked Drive 2
+      UN    #A_2211_BZS33.StTrue; // locked Drive 3
+      =     #A_2211_MXZ31.InEnableFwd; 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I3.InpTrue; // pushbutton uncouple
+      U     #A_2211_BZS36.StTrue; // unlocked Drive 4
+      UN    #A_2211_BZS32.StTrue; // unlocked Drive 3
+      U     "MAL1S018Par".Par.FlagMachine_0.WallCoupled; 
+      =     #A_2211_MXZ31.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ31.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ31.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2211_MXZ31.OutpRunRev; 
+      =     #A_2211_MXZ31.InpRunRev; 
+      U     #A_2211_MXZ31.OutpRunFwd; 
+      =     #A_2211_MXZ31.InpRunFwd; 
+      U     #A_2211_MXZ31.OutpRunFwd; 
+      =     #A_2211_MXZ31.InpRunFwd; 
+      U     #A_2211_MXZ31.OutpRunRev; 
+      =     #A_2211_MXZ31.InpRunRev; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ31.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_MXZ31.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ31 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ31.OutpRunFwd; 
+      =     "A_2211_MXZ31_O1"; 
+      U     #A_2211_MXZ31.OutpRunRev; 
+      =     "A_2211_MXZ31_O2"; 
+NETWORK
+TITLE ==A-2211-BZS32 : COUPLING DRIVE UNLOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS32.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2211_BZS32.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS32.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS32.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS32.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS32.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS32_I1"; 
+      =     #A_2211_BZS32.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS32.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS32.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS32 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-BZS33 : COUPLING DRIVE LOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS33.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      O     "MAL1S018Par".Par.FlagFunction_1.StepCleaning; // Step cleaning
+      =     #A_2211_BZS33.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS33.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS33.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS33.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS33.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS33_I1"; 
+      =     #A_2211_BZS33.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS33.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS33.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS33 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-MXZ35 : WALL COUPLING DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2211_MXZ35.InLocal; 
+//
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I4.InpTrue; // pushbutton couple
+      U     #A_2211_BZS33.StTrue; // locked Drive 3
+      UN    #A_2211_BZS37.StTrue; // locked Drive 4
+      =     #A_2211_MXZ35.InEnableFwd; 
+      U     #Gr.OutEnableEl; 
+      U     "MAL1S018Par".Par.FlagMachine_0.CouplingDischargerActive; 
+      U     "G127M".A_2215_KCL01I3.InpTrue; // pushbutton uncouple
+      UN    #A_2211_BZS36.StTrue; // unlocked Drive 4
+      U     "MAL1S018Par".Par.FlagMachine_0.WallCoupled; 
+      =     #A_2211_MXZ35.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2211_MXZ35.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2211_MXZ35.InSeqStop; 
+// 
+//-Read inputs---
+      U     #A_2211_MXZ35.OutpRunRev; 
+      =     #A_2211_MXZ35.InpRunRev; 
+      U     #A_2211_MXZ35.OutpRunFwd; 
+      =     #A_2211_MXZ35.InpRunFwd; 
+      U     #A_2211_MXZ35.OutpRunFwd; 
+      =     #A_2211_MXZ35.InpRunFwd; 
+      U     #A_2211_MXZ35.OutpRunRev; 
+      =     #A_2211_MXZ35.InpRunRev; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_MXZ35.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_MXZ35.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_MXZ35 ;
+// 
+//-Write outputs---
+      U     #A_2211_MXZ35.OutpRunFwd; 
+      =     "A_2211_MXZ35_O1"; 
+      U     #A_2211_MXZ35.OutpRunRev; 
+      =     "A_2211_MXZ35_O2"; 
+NETWORK
+TITLE ==A-2211-BZS36 : COUPLING DRIVE UNLOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS36.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S018Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2211_BZS36.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS36.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS36.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS36.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS36.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS36_I1"; 
+      =     #A_2211_BZS36.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS36.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS36.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS36 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2211-BZS37 : COUPLING DRIVE LOCKED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2211_BZS37.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      O     "MAL1S018Par".Par.FlagFunction_1.StepCleaning; // Step cleaning
+      =     #A_2211_BZS37.InMonTrue; 
+      CLR   ; 
+      =     #A_2211_BZS37.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2211_BZS37.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2211_BZS37.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2211_BZS37.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2211_BZS37_I1"; 
+      =     #A_2211_BZS37.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_2; 
+      =     #A_2211_BZS37.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[24]; 
+      =     #A_2211_BZS37.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2211_BZS37 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2211_MXZ21.StFault; 
+      O     #A_2211_BZS22.StFault; 
+      O     #A_2211_BZS23.StFault; 
+      O     #A_2211_MXZ25.StFault; 
+      O     #A_2211_BZS26.StFault; 
+      O     #A_2211_BZS27.StFault; 
+      O     #A_2211_MXZ31.StFault; 
+      O     #A_2211_BZS32.StFault; 
+      O     #A_2211_BZS33.StFault; 
+      O     #A_2211_MXZ35.StFault; 
+      O     #A_2211_BZS36.StFault; 
+      O     #A_2211_BZS37.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+//      U     #A_2211_MXZ21.StStopped
+//      U     #A_2211_MXZ25.StStopped
+//      U     #A_2211_MXZ31.StStopped
+//      U     #A_2211_MXZ35.StStopped
+//      UN    #Gr.VarFault
+//      =     #Gr.VarStopped
+//
+      UN    #Gr.VarStarted; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+
+NETWORK
+TITLE =Test Started
+//      U     #A_2211_MXZ21.StStartedFwd
+//      U     #A_2211_MXZ25.StStartedFwd
+//      U     #A_2211_MXZ31.StStartedFwd
+//      U     #A_2211_MXZ35.StStartedFwd
+//      UN    #Gr.VarStopped
+//      UN    #Gr.VarFault
+//      =     #Gr.VarStarted
+//
+      U     #Gr.InOccupied; 
+      U(    ; 
+      O(    ; 
+      U     "MAL1S018Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S018Par".Par.FlagFunction_1.FinishUnloading; 
+      O     "MAL1S018Par".Par.FlagMachine_0.CmdTurnRevAfterUnloading; 
+      U     #A_2211_BZS23.StTrue; // drive 1 locked
+      U     #A_2211_BZS27.StTrue; // drive 2 locked
+      U     #A_2211_BZS33.StTrue; // drive 3 locked
+      U     #A_2211_BZS37.StTrue; // drive 4 locked
+      )     ; 
+      O(    ; 
+      UN    "MAL1S018Par".Par.FlagFunction_1.StepUnloading; 
+      U     #A_2211_BZS22.StTrue; // drive 1 unlocked
+      U     #A_2211_BZS26.StTrue; // drive 2 unlocked
+      U     #A_2211_BZS32.StTrue; // drive 3 unlocked
+      U     #A_2211_BZS36.StTrue; // drive 4 unlocked
+      )     ; 
+      )     ; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[123]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[123]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[123]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[123]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[123]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[123]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[123]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[123]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[123]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[123]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

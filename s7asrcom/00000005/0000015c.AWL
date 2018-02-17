@@ -1,0 +1,316 @@
+FUNCTION_BLOCK "GCS7_StartWarning"
+TITLE =StartWarning
+//  
+//COPYRIGHT:    (C) 2002  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS90
+//
+//TITLE:        FB 100 StartWarning 
+// 
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB100.1.1     A.Egli              CT3                        21-Aug-2003
+//              1st Release in S7
+//FB100.1.0     A.Egli              CT3                         1-Jul-2002
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.M4IxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : StartWa
+VERSION : 1.1
+
+
+VAR_INPUT
+  InModeHigher : BOOL ;	//Higher    security : Every start
+  InArea : INT ;	
+  InEnable : BOOL ;	
+  InLocal : BOOL ;	
+  InStarted : BOOL ;	
+  InCmdNext : BOOL ;	
+END_VAR
+VAR_OUTPUT
+  OutCmdNext : BOOL ;	
+  OutStartwarning : BOOL ;	
+END_VAR
+VAR
+  ParStartwarningTime : INT  := 10;	//[s]
+  ParStartReleaseTimeL : INT  := 32767;	//[s] Low  security
+  ParStartReleaseTimeH : INT  := 30;	//[s] High security
+  ParRequestTime : INT  := 10;	//[0.1s]
+  TmpArea : STRUCT 	
+   OutStartwarningRunning : BOOL ;	
+   OutStartReleaseRunningL : BOOL ;	
+   OutStartReleaseRunningH : BOOL ;	
+   CmdStartStartWarning : BOOL ;	
+   CmdResetStartWarning : BOOL ;	
+   tmpFlag200ms : BOOL ;	//flag of 200ms tag
+   tmpFlag1s : BOOL ;	//flag of 1 s tag
+   OutRequestTime : INT ;	//[0.1s]
+   OutStartwarningTime : INT ;	//[s]
+   OutStartReleaseTimeL : INT ;	//[s]
+   OutStartReleaseTimeH : INT ;	//[s]
+  END_STRUCT ;	
+  Area : ARRAY  [0 .. 20 ] OF STRUCT 	
+   OutStartwarningRunning : BOOL ;	
+   OutStartReleaseRunningL : BOOL ;	
+   OutStartReleaseRunningH : BOOL ;	
+   CmdStartStartWarning : BOOL ;	
+   CmdResetStartWarning : BOOL ;	
+   tmpFlag200ms : BOOL ;	//flag of 200ms tag
+   tmpFlag1s : BOOL ;	//flag of 1 s tag
+   OutRequestTime : INT ;	//[0.1s]
+   OutStartwarningTime : INT ;	//[s]
+   OutStartReleaseTimeL : INT ;	//[s]
+   OutStartReleaseTimeH : INT ;	//[s]
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  AddrReading : DINT ;	
+  tmpLenArea : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =Read Area Data
+
+      L     #InArea; 
+      L     20; 
+      >I    ; 
+      BEB   ; 
+      L     P##Area; 
+      L     P##TmpArea; 
+      -D    ; 
+      T     #tmpLenArea; 
+      L     #InArea; 
+      *D    ; 
+      L     P##Area; 
+      +D    ; 
+      T     #AddrReading; 
+//====================================
+      LAR1  #AddrReading; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##TmpArea; 
+      T     DID [AR1,P#0.0]; 
+
+      LAR1  #AddrReading; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  P##TmpArea; 
+      T     DID [AR1,P#4.0]; 
+
+      LAR1  #AddrReading; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  P##TmpArea; 
+      T     DIW [AR1,P#8.0]; 
+
+NETWORK
+TITLE =Flag of tick 1s (all): Count  Timer 1s
+
+      U     "GCS7_Gr_OutTick1s"; // "Gr.OutTick1s"
+      FP    #TmpArea.tmpFlag1s; 
+      =     L      8.0; 
+      U     L      8.0; 
+      U     #TmpArea.OutStartwarningRunning; 
+      SPBNB _001; 
+      L     #TmpArea.OutStartwarningTime; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartwarningTime; 
+_001: NOP   0; 
+      U     L      8.0; 
+      U     #TmpArea.OutStartReleaseRunningL; 
+      SPBNB _002; 
+      L     #TmpArea.OutStartReleaseTimeL; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartReleaseTimeL; 
+_002: NOP   0; 
+      U     L      8.0; 
+      U     #TmpArea.OutStartReleaseRunningH; 
+      SPBNB _003; 
+      L     #TmpArea.OutStartReleaseTimeH; 
+      L     1; 
+      +I    ; 
+      T     #TmpArea.OutStartReleaseTimeH; 
+_003: NOP   0; 
+NETWORK
+TITLE =Flag of tick 200ms (all): Count  Timer 200ms
+
+      U     "GCS7_Gr_OutTick200ms"; 
+      FP    #TmpArea.tmpFlag200ms; 
+      U(    ; 
+      L     #TmpArea.OutRequestTime; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      SPBNB _004; 
+      L     #TmpArea.OutRequestTime; 
+      L     2; 
+      -I    ; 
+      T     #TmpArea.OutRequestTime; 
+_004: NOP   0; 
+NETWORK
+TITLE =OutRequestTime
+
+      U     #InEnable; 
+      UN    #InLocal; 
+      SPBNB _005; 
+      L     #ParRequestTime; 
+      T     #TmpArea.OutRequestTime; 
+_005: NOP   0; 
+NETWORK
+TITLE =Condition to start Startwarning
+//Check if any elementet needs to start
+//
+      U(    ; 
+      UN    #InModeHigher; 
+      UN    #TmpArea.OutStartReleaseRunningL; 
+      O     ; 
+      U     #InModeHigher; 
+      UN    #TmpArea.OutStartReleaseRunningH; 
+      )     ; 
+      U     #InEnable; 
+      UN    #InLocal; 
+      UN    #InStarted; 
+      U     #InCmdNext; 
+      UN    #TmpArea.OutStartwarningRunning; 
+      S     #TmpArea.CmdStartStartWarning; 
+NETWORK
+TITLE =Start StartWarning
+
+      U     #TmpArea.CmdStartStartWarning; 
+      UN    #TmpArea.OutStartwarningRunning; 
+      =     L      8.0; 
+      U     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartwarningRunning; 
+      U     L      8.0; 
+      SPBNB _006; 
+      L     0; 
+      T     #TmpArea.OutStartwarningTime; 
+_006: NOP   0; 
+NETWORK
+TITLE =Reset Startwaring time
+
+      O(    ; 
+      L     #TmpArea.OutRequestTime; 
+      L     0; 
+      <=I   ; 
+      )     ; 
+      O     #TmpArea.CmdResetStartWarning; 
+      R     #TmpArea.OutStartwarningRunning; 
+      R     #TmpArea.OutStartReleaseRunningL; 
+      R     #TmpArea.OutStartReleaseRunningH; 
+NETWORK
+TITLE =Start StartRelease (all)
+
+      U     #TmpArea.OutStartwarningRunning; 
+      U(    ; 
+      L     #TmpArea.OutStartwarningTime; 
+      L     #ParStartwarningTime; 
+      >=I   ; 
+      )     ; 
+      =     L      8.0; 
+      U     L      8.0; 
+      BLD   102; 
+      R     #TmpArea.OutStartwarningRunning; 
+      U     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartReleaseRunningL; 
+      U     L      8.0; 
+      SPBNB _007; 
+      L     0; 
+      T     #TmpArea.OutStartReleaseTimeL; 
+_007: NOP   0; 
+      U     L      8.0; 
+      BLD   102; 
+      S     #TmpArea.OutStartReleaseRunningH; 
+      U     L      8.0; 
+      SPBNB _008; 
+      L     0; 
+      T     #TmpArea.OutStartReleaseTimeH; 
+_008: NOP   0; 
+NETWORK
+TITLE =StartRelease (Lower)
+
+      U(    ; 
+      L     #ParStartReleaseTimeL; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #TmpArea.OutStartReleaseTimeL; 
+      L     #ParStartReleaseTimeL; 
+      >=I   ; 
+      )     ; 
+      R     #TmpArea.OutStartReleaseRunningL; 
+NETWORK
+TITLE =StartRelease (Higher)
+
+      U(    ; 
+      L     #ParStartReleaseTimeH; 
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #TmpArea.OutStartReleaseTimeH; 
+      L     #ParStartReleaseTimeH; 
+      >=I   ; 
+      )     ; 
+      R     #TmpArea.OutStartReleaseRunningH; 
+NETWORK
+TITLE =OutNext (All)
+
+
+      U(    ; 
+      U     #InModeHigher; 
+      U     #TmpArea.OutStartReleaseRunningH; 
+
+      O     ; 
+      UN    #InModeHigher; 
+      U     #TmpArea.OutStartReleaseRunningL; 
+      O     #InStarted; //[1.1]
+      )     ; 
+      U     #InCmdNext; 
+      =     #OutCmdNext; 
+NETWORK
+TITLE =OutStartwarning
+
+      U     #InEnable; 
+      UN    #InLocal; 
+      UN    #InStarted; 
+      U     #TmpArea.OutStartwarningRunning; 
+      =     #OutStartwarning; 
+NETWORK
+TITLE =Init Tick 
+
+      U     "SYS_infLog1"; 
+      R     #TmpArea.CmdStartStartWarning; 
+      R     #TmpArea.CmdResetStartWarning; 
+NETWORK
+TITLE =Store Area Data
+
+      LAR1  P##TmpArea; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #AddrReading; 
+      T     DID [AR1,P#0.0]; 
+      LAR1  P##TmpArea; 
+      L     DID [AR1,P#4.0]; 
+      LAR1  #AddrReading; 
+      T     DID [AR1,P#4.0]; 
+      LAR1  P##TmpArea; 
+      L     DIW [AR1,P#8.0]; 
+      LAR1  #AddrReading; 
+      T     DIW [AR1,P#8.0]; 
+
+
+END_FUNCTION_BLOCK
+

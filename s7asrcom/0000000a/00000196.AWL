@@ -1,0 +1,52 @@
+	DATA_BLOCK DB900
+	TITLE =Steep parameter DB : STEEPING ROW 1 (ST1-8)
+	//
+	//COPYRIGHT:    (C) 2006 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Steep parameter : STEEPING ROW 1 (ST1-8)
+	//
+	//
+	//
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                       DATE:
+	//
+	//P01_DB900.1.0 K.Renz              CSB41                       21.Okt.2009
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: SIS Line specific parameters and values 
+	//
+	//MANUAL : 
+	//
+	//CODE   :
+	//
+	//RESTRICTIONS:
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	AUTHOR  : KR      
+	FAMILY  : ASW
+	  STRUCT 	
+	   SectionStatus : WORD ;	//Sektionszustand [1=Beladen; 2=Prozess aktiv; 3=Entladen; 4=reinigen]
+	   Spare2 : WORD ;	
+	   Spare4 : WORD ;	
+	   Spare6 : WORD ;	
+	   Spare8 : WORD ;	
+	   Par   : "SSA_Steep_Par";	
+	   Cmd    : "SSA_Steep_Cmd";
+	   AnalogValues : SSA_Steep_Analog;
+	   ActTimeStepProcess : SSA_MH_StepTime;
+	   Processtime : SSA_MH_ProcessTime;
+	   RecipeHeader : SSA_Steep_Recipe_Header;
+	   StepAct: SSA_Steep_Step;
+	  END_STRUCT ;	
+	BEGIN
+	END_DATA_BLOCK

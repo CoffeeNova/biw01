@@ -1,0 +1,1026 @@
+FUNCTION_BLOCK "GCS7_E_ValveControl"
+TITLE =ValveControl
+//  
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Valve Control with Limit Switch (VLS)
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB13.4.4      A. Egli             CT3                         28-Jun-2008
+//              Init state after Download is StNoPosition
+//FB13.4.3      A. Egli             CT3                         04-Sep-2003
+//              InStopCTime, StCode=12, StCode=14
+//FB13.4.2      A. Egli             CT3                         04-Sep-2003
+//              Message Text: Fault opening =12, fault closing=11
+//FB13.4.1      A. Egli             CT3                         16-Jun-2003
+//              Store text number, when calling FC4 
+//FB13.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB13.2.8      A. Egli             CT3                         16-Mar-2002
+//              Set minimum MonTime =0.3s
+//FB13.2.7      A. Egli             CT3                         03-Jul-2001
+//              Transition during fault delay time is running
+//FB13.2.6      S. Kalberer         CT3                         30-May-2000
+//              Local mode: InpLN+InpHN -> StNoPosition
+//FB13.2.5      S. Kalberer         CT3                         15-Mar-2000
+//              PulseValve: change direction with CmdLN/CmdHN corrected
+//FB13.2.4      S. Kalberer         CT3                         25-Nov-1999
+//              PulseValve: StopAndGo corrected
+//FB13.2D       A. Egli             CT3                         11-Oct-1999
+//              Remove flag 12.2 (Gr.OutNext)
+//FB13.2C       S. Kalberer         CT3                         05-Mar-1999
+//              Interlocked Manual Mode: StHN->StLN if InEnableHN=0
+//FB13.2B       A. Egli             CT3                         09-Dec-1998
+//              Automatic Fault reset if InLocal
+//FB13.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB13.1B       A. Egli             AEE61                       4-Nov-1997
+//              ParManual
+//FB13.1A       S. Kalberer         AEE61                       4-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [VLSxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  LN
+// 2  HN
+// 9  fault cancelled
+//10  fault device
+//11  fault LN
+//12  fault HN
+//13  fault no position
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32   StFault                 
+// 1   StLN                    
+//41   StLN.HWStop             StLN + InHWStop
+//51   StLN.DPFault            StLN + InDPFault
+// 2   StCtoHN                 
+//12   StCtoHN                 StCtoHN + InStopCTime
+// 3   StHN                    
+//43   StHN.HWStop             StHN + InHWStop
+//53   StHN.DPFault            StHN + InDPFault
+// 4   StCtoLN                 
+//14   StCtoLN                 StCtoLN + InStopCTime
+// 5   StNoPosition            
+//45   StNoPosition.HWStop     StNoPosition + InHWStop
+//55   StNoPosition.DPFault    StNoPosition + InDPFault
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : VLS
+VERSION : 4.4
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnableLN : BOOL ;	//Target position is LN   
+  InEnableHN : BOOL ;	//Target position is HN
+  InStopCTime : BOOL ;	//Stop Monitoring Time in State StCToLN and StCToHN
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  InpLN : BOOL ;	//Digital input: limit switch low  position (closed)
+  InpHN : BOOL ;	//Digital input: limit switch high position (open)
+  InpFaultDev : BOOL ;	//Digital input: fault device
+  CmdLN : BOOL ;	//Pulse to set position LN (manual mode)
+  CmdHN : BOOL ;	//Pulse to set position HN (manual mode)
+  CmdNext : BOOL ;	//Open next element
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0= Automatic
+  InReport : BOOL ;	//Report of all state transition
+  InSeqStop : BOOL ;	//Stop automatically after idling time
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutIdling : BOOL ;	//Idling time is running
+  OutDelayFault : BOOL ;	//Delay time is running
+  OutMonFault : BOOL ;	//Monitoring time is running
+  OutpLN : BOOL ;	//Digital output: valve low  position (closed)
+  OutpHN : BOOL ;	//Digital output: valve high position (open)
+  spare0407 : BOOL ;	
+  StLN : BOOL ;	//Element is in position LN
+  StCtoHN : BOOL ;	//Changing to position HN
+  StHN : BOOL ;	//Element is in position HN
+  StCtoLN : BOOL ;	//Changing to position LN
+  StFault : BOOL ;	//Element has a fault (time-out by positioning)
+  StNoPosition : BOOL ;	//Element is not in a final position (only in local mode)
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL  := TRUE;	//No interlocking in manual mode
+   ParPulseValve : BOOL ;	//Valves with pulse signal
+   ParContValve : BOOL ;	//Valves with continuous signal
+   ParManualFlap : BOOL ;	//Manual flap, no valves
+   ParMonTime : INT ;	//After this time the element mus be in final position
+   ParPulseTimeHN : INT ;	//Delay time, if arrive the position HN
+   ParPulseTimeLN : INT ;	//Delay time, if arrive the position LN
+   ParIdlingTime : INT ;	//Requested idling time to close valve in automatic mode
+   ParDelayTime : INT ;	//Requested fault delay time by negative flag of input
+   OutMonTime : INT ;	//Actual time: Monitoring
+   OutTransitionTime : INT ;	//Actual time: Change to LN or HN
+   OutDelayTime : INT ;	//Actual time: DelayTime
+   InOutManPulseLen : INT ;	//Pulse length to Move to HN
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnable : BOOL ;	//Global enable
+  tmpInpOk : BOOL ;	//Input ok variable
+  tmpDelayOver : BOOL ;	//Delay time is over
+  tmpDelayClear : BOOL ;	//Delay time must be cleared
+  tmpMonFault : BOOL ;	//Global monitor fault
+  tmpMonOver : BOOL ;	//Monitoring time over
+  tmpMonClear : BOOL ;	//Monitoring time must be cleared
+  tmpNoMon : BOOL ;	//Monitoring not active
+  tmpManStopGo : BOOL ;	//Condition for StopAndGo in manual mode
+  tmpNext : BOOL ;	//Global next
+  tmpInEnableLN : BOOL ;	
+  tmpInEnableHN : BOOL ;	
+  tmpLocalFault : BOOL ;	
+  tmpLocal : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     34; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//===     Test OType      ========================
+      L     1013; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//===     Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   aPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write Parameter
+aPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParMonTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParPulseTimeHN; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParPulseTimeLN; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParIdlingTime; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.ParDelayTime; 
+// Write new commands from PC to Interface object
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdLN
+      S     #CmdLN; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdHN
+      S     #CmdHN; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; // CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[1]; // CmdOnTick
+      O     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      SPB   aIni; 
+      L     DB3.DBW   56; // "SYS_PCControl".PC.Cmd3
+      T     #Par.InOutManPulseLen; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+      CLR   ; 
+      =     #tmpDelayClear; 
+      =     #tmpMonClear; 
+      =     #tmpMonFault; 
+
+//Minimum monitoring time                                 
+      L     #Par.ParMonTime; //[2.8]
+      L     3; //[2.8
+      >=I   ; //[2.8
+      SPB   ini0; //[2.8
+      T     #Par.ParMonTime; //[2.8
+//===Global Group Orders===
+ini0: U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManualMode
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; //[4.0]
+      U     #tmpLocalFault; //[4.0]
+      O     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      =     #tmpLocal; 
+
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //Gr.OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+
+NETWORK
+TITLE =Start as Pulse
+
+      ON    #InManual; 
+      O     #CmdLN; 
+      SPB   STP1; 
+      L     0; 
+      L     #Par.InOutManPulseLen; 
+      >=I   ; 
+      SPB   STP2; 
+      S     #CmdHN; 
+      UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      SPB   STP2; 
+      +     -2; 
+      T     #Par.InOutManPulseLen; 
+      L     0; 
+      >I    ; 
+      SPB   STP2; 
+      S     #CmdLN; 
+STP1: L     0; 
+      T     #Par.InOutManPulseLen; 
+STP2: NOP   0; 
+
+NETWORK
+TITLE =Global Orders Part.2
+
+//===Global Group Orders===
+      U     #InEnableLN; 
+      =     #tmpInEnableLN; 
+      U     #InEnableHN; 
+      =     #tmpInEnableHN; 
+      UN    #InManual; 
+      ON    #Par.ParManual; 
+      SPB   inJ1; 
+      U     #StLN; //---Manual mode without interlocking
+      O     #StCtoLN; 
+      O     #StFault; 
+      O     #CmdLN; 
+      UN    #CmdHN; 
+      =     #tmpInEnableLN; 
+      U     #StHN; 
+      O     #StCtoHN; 
+      O     #CmdHN; 
+      UN    #CmdLN; // [2.5]
+      =     #tmpInEnableHN; 
+//---Enable---
+inJ1: U     #tmpInEnableLN; //---Global enable
+      X     #tmpInEnableHN; 
+      =     #tmpEnable; 
+//---Next---
+      O     #CmdNext; //---automatic StCtoHN
+      =     #tmpNext; 
+//---Input ok---
+      U(    ; 
+      U     #StLN; //---Check Input: LN
+      U     #InpLN; 
+      UN    #InpHN; 
+      O     ; 
+      U     #StHN; // HN
+      U     #InpHN; 
+      UN    #InpLN; 
+      )     ; 
+      UN    #InpFaultDev; //[4.0]
+      =     #tmpInpOk; 
+//---Manual StopAndGo---
+      U     #CmdLN; 
+      U     #CmdHN; 
+      =     #tmpManStopGo; 
+
+
+NETWORK
+TITLE =Monitoring
+// Monitoring active only in states StCtoLN and StCtoHN.
+// Every transition into these both states will refresh the monitoring time.
+      U     #tmpLocal; //===No monitoring in local mode
+      SPB   STAT; 
+//===Condition for not monitoring
+      U     #StCtoLN; 
+      O     #StCtoHN; 
+      ON    #OutMonFault; // Clear monitoring information
+      SPB   MON2; 
+      R     #OutMonFault; 
+      S     #tmpMonClear; // Reset actual value of timer
+MON2: UN    #OutMonFault; //---Condition for monitoring
+      SPB   STAT; 
+      U     #InpLN; // [4.3]
+      O     #InpHN; // [4.3]
+      U     #InStopCTime; 
+      ON    "GCS7_Gr_OutTick200ms"; // Global Tick 200ms
+      L     #Par.OutMonTime; 
+      SPB   MO21; 
+      +     -2; // Decrement all 200ms
+      T     #Par.OutMonTime; 
+MO21: L     0; 
+      <=I   ; // Check t4/t5 over
+      R     #OutMonFault; // Reset monitoring bits
+      =     #tmpMonFault; //---Condition for monitoring fault
+
+NETWORK
+TITLE =States
+
+STAT: U     #StLN; //===State machine===
+      SPB   LN; 
+      U     #StCtoHN; 
+      SPB   CHN; 
+      U     #StHN; 
+      SPB   HN; 
+      U     #StCtoLN; 
+      SPB   CLN; 
+      U     #StNoPosition; 
+      SPB   NPS; 
+      U     #StFault; 
+      SPB   FLT; 
+//---Initialise if no state
+      S     #StNoPosition; //[4.4]
+      SPA   NPS; //[4.4]  
+NETWORK
+TITLE =StLN
+
+LN:   UN    #tmpLocal; //---Condition for StNoPosition: local
+      SPB   LN1; 
+      U     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      SPB   SAVE; //[4.0]
+      UN    #InpLN; 
+      O     ; // [2.6]
+      U     #InpLN; // [2.6]
+      U     #InpHN; // [2.6]
+      SPB   TNPS; 
+      SPA   SAVE; 
+//[4.0] LN1:  U     #InpFaultDev                //---Condition for StFault
+//[4.0]       SPB   LN9
+LN1:  U     #Par.ParManualFlap; //===Manual flap function
+      UN    #tmpInpOk; //  without checking t4
+      U(    ; 
+      UN    #tmpEnable; // in automatic mode check Enable
+      UN    #InManual; 
+      O     ; 
+      U     #InManual; // not in manual mode
+      )     ; 
+      SPB   TCHN; 
+      U     #tmpInpOk; //===Input LN ok?
+      S     #tmpDelayClear; // Clear value of delay timer
+      SPB   LN2; 
+      U     #OutDelayFault; //---Input LN not ok: set OutDelayFault Bit
+      SPB   LND1; 
+      S     #OutDelayFault; 
+      L     #Par.ParDelayTime; 
+      T     #Par.OutTransitionTime; 
+LND1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutTransitionTime; 
+      SPB   LND2; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+LND2: L     0; 
+      <=I   ; 
+      R     #OutDelayFault; // Condition for StFault
+      SPB   LN9; 
+//        SPA SAVE;  [2.7]
+//===Pulse Valve and Manual Flap
+LN2:  U     #Par.ParContValve; 
+      SPB   LN3; 
+      U     #tmpNext; 
+      UN    #InManual; 
+      O     #CmdHN; 
+      U     #tmpInEnableHN; 
+      UN    #tmpInEnableLN; 
+      SPB   TCHN; 
+      SPA   SAVE; 
+//===Continuous Valve: automatic StCtoHN
+LN3:  U     #tmpNext; 
+      UN    #InManual; 
+      UN    #InSeqStop; 
+      O     #CmdHN; 
+      U     #tmpInEnableHN; 
+      SPB   TCHN; 
+      SPA   SAVE; 
+LN9:  R     #StLN; //---Transition -> StFault
+      L     B#(1, 10); // MessageClass Error fault device
+      U     #InpFaultDev; 
+      SPB   xxS4; 
+      L     B#(1, 11); // MessageClass Error fault LN
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StCtoHN
+//---Change into local mode
+CHN:  UN    #tmpLocal; 
+      SPB   CHN1; 
+      U     #InpLN; // StLN
+      UN    #InpHN; 
+      SPB   TLN; 
+      U     #InpHN; // StHN
+      UN    #InpLN; 
+      SPB   THN; 
+      SPA   TNPS; // NoPosition
+//---Condition for StFault
+CHN1: O     #tmpMonFault; 
+//[4.0]      O     #InpFaultDev
+      SPB   CHN9; 
+//---Condition for Pulse Time: not local
+      UN    #InpHN; 
+      O     ; 
+      U     #InpLN; 
+      U     #InpHN; 
+      S     #tmpDelayClear; 
+      SPB   CHN2; 
+      U     #OutDelayFault; 
+      SPB   CHD1; 
+      S     #OutDelayFault; // Set actual timer value
+      L     #Par.ParPulseTimeHN; 
+      T     #Par.OutTransitionTime; 
+CHD1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutTransitionTime; 
+      SPB   CHD2; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+CHD2: L     0; // Condition for StHN;
+      <=I   ; 
+      SPB   THN; 
+CHN2: U     #Par.ParContValve; //---Pulse time (t1) not over
+      SPB   CHN3; //===Pulse Valve and Manual Flap
+      U     #Par.ParManualFlap; // Manual flap function
+      U     #InpLN; //  Input changes
+      UN    #InpHN; 
+      UN    #tmpEnable; 
+      SPB   TCLN; 
+//---Automatic/manual mode: -> StCtoLN
+      U     #tmpNext; 
+      UN    #InManual; 
+      O     #CmdLN; 
+      U     #tmpInEnableLN; 
+      UN    #tmpInEnableHN; 
+      SPB   TCLN; 
+      U     #Par.ParManualFlap; // No StopAndGo with ManualFlap
+      SPB   SAVE; 
+      UN    #tmpEnable; // StopAndGo -> StHN
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      U     #InpHN; 
+      UN    #InpLN; 
+      SPB   THN; 
+      UN    #tmpEnable; // StopAndGo -> StLN
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      U     #InpLN; 
+      UN    #InpHN; 
+      SPB   TLN; 
+      UN    #tmpEnable; // StopAndGo -> StNoPosition
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      SPB   TNPS; 
+      SPA   SAVE; // Condition for StCtoHN
+//===Continuous Valve:manual StCtoLN      
+CHN3: U     #InManual; //---Manual mode: StCtoLN
+      U     #CmdLN; 
+      ON    #tmpInEnableHN; //2C:---Automatic + interlocked manual mode: StCtoLN
+      O     ; 
+      U     #InSeqStop; // idling activated?
+      UN    #InManual; 
+      SPB   TCLN; 
+      SPA   SAVE; 
+//---Transition -> StFault
+CHN9: R     #StCtoHN; 
+      L     B#(1, 10); // MessageClass Error fault device
+      U     #InpFaultDev; 
+      SPB   xxS4; 
+      L     B#(1, 12); // MessageClass Error fault LN      //[4.2]
+      U     #InpLN; 
+      SPB   xxS4; 
+      L     B#(1, 13); // MessageClass Error fault no position
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StHN
+
+//[4.0] HN:   U     #InpFaultDev                //---Condition for StFault
+//[4.0]       SPB   HN9
+HN:   UN    #tmpLocal; //---Condition for StNoPosition: local
+      SPB   HN1; 
+      U     #InHWStop; 
+      O     #InDPFault; 
+      UN    #Par.ParContValve; 
+      SPB   SAVE; 
+      UN    #InpHN; 
+      O     ; // [2.6]
+      U     #InpLN; // [2.6]
+      U     #InpHN; // [2.6]
+      SPB   TNPS; 
+      SPA   SAVE; 
+HN1:  U     #Par.ParManualFlap; //===Hand manual flap function
+      UN    #tmpInpOk; //  without checking t4
+      U(    ; 
+      UN    #tmpEnable; // in automatic mode check Enable
+      UN    #InManual; 
+      O     ; 
+      U     #InManual; // not in manual mode
+      )     ; 
+      SPB   TCLN; 
+      U     #tmpInpOk; //===Input HN ok: Clear delay timer
+      U     #OutDelayFault; //  after Input is ok again
+      S     #tmpDelayClear; // Clear value of delay timer
+      U     #tmpInpOk; //===Input HN ok?
+      SPB   HN2; 
+      U     #OutDelayFault; //---Input HN not ok: set OutDelayFault Bit
+      SPB   HND1; 
+      S     #OutDelayFault; 
+      R     #OutIdling; 
+      L     #Par.ParDelayTime; 
+      T     #Par.OutTransitionTime; 
+HND1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutTransitionTime; 
+      SPB   HND2; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+HND2: L     0; 
+      <=I   ; 
+      R     #OutDelayFault; // Condition for StFault
+      SPB   HN9; 
+//        SPA SAVE;  [2.7]
+//===Pulse Valve and Manual Flap
+HN2:  U     #Par.ParContValve; //---Input HN ok
+      SPB   HN3; 
+      U     #tmpNext; //---automatic StCtoLN
+      O     #CmdLN; 
+      U     #tmpInEnableLN; 
+      UN    #tmpInEnableHN; 
+      O     ; 
+      U     #InManual; //---manual StCtoLN, only with Pulse Valve
+      U     #CmdLN; 
+      UN    #tmpEnable; 
+      U     #Par.ParPulseValve; 
+      SPB   TCLN; 
+      SPA   SAVE; 
+//===Continuous Valve: manual StCtoLN
+HN3:  U     #InManual; //---Manual mode: StCtoLN
+      U     #CmdLN; 
+      ON    #tmpInEnableHN; //2C:---Automatic + interlocked manual mode: StCtoLN
+      SPB   TCLN; 
+      O     #InSeqStop; //---Idling time  
+      ON    #OutIdling; // Condition to reset Idling-Time
+      SPB   HNI1; 
+      R     #OutIdling; 
+      S     #tmpDelayClear; // Reset actual timer value
+      SPA   SAVE; 
+HNI1: ON    #InSeqStop; // Idling time active ?
+      O     #InManual; 
+      SPB   SAVE; 
+      U     #OutIdling; 
+      SPB   HNI2; 
+      S     #OutIdling; // Preset Idling Time
+      L     #Par.ParIdlingTime; 
+      T     #Par.OutTransitionTime; 
+HNI2: UN    "GCS7_Gr_OutTick200ms"; // Set Idling Time
+      L     #Par.OutTransitionTime; 
+      SPB   HNI3; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+HNI3: L     0; 
+      <=I   ; // Idling time over
+      SPB   TCLN; 
+      SPA   SAVE; 
+HN9:  R     #StHN; //---Transition -> StFault
+      L     B#(1, 10); // MessageClass Error fault device
+      U     #InpFaultDev; 
+      SPB   xxS4; 
+      L     B#(1, 12); // MessageClass Error fault HN
+      SPA   xxS4; 
+
+NETWORK
+TITLE =StCtoLN
+//---Change into local mode ---
+CLN:  UN    #tmpLocal; 
+      SPB   CLN1; 
+      U     #InpLN; // StLN
+      UN    #InpHN; 
+      SPB   TLN; 
+      U     #InpHN; // StHN
+      UN    #InpLN; 
+      SPB   THN; 
+      SPA   TNPS; //--> StNoPosition
+//---Condition for StFault
+CLN1: O     #tmpMonFault; 
+//[4.0]      O     #InpFaultDev
+      SPB   CLN9; 
+//---Condition for Pulse Time: not local---
+      UN    #InpLN; 
+      O     ; 
+      U     #InpLN; 
+      U     #InpHN; 
+      S     #tmpDelayClear; 
+      SPB   CLN2; 
+      U     #OutDelayFault; 
+      SPB   CLD1; 
+      S     #OutDelayFault; // Set actual timer value
+      L     #Par.ParPulseTimeLN; 
+      T     #Par.OutTransitionTime; 
+CLD1: UN    "GCS7_Gr_OutTick200ms"; // Decrement all 1s
+      L     #Par.OutTransitionTime; 
+      SPB   CLD2; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+CLD2: L     0; // Condition for StLN;
+      <=I   ; 
+      SPB   TLN; 
+CLN2: U     #Par.ParContValve; //---Pulse time (t1) not over
+      SPB   CLN3; //===Pulse Valve and Manual Flap
+      U     #Par.ParManualFlap; // Manual flap function
+      U     #InpHN; //  Input changes
+      UN    #InpLN; 
+      UN    #tmpEnable; 
+      SPB   TCHN; 
+      U     #tmpNext; //-> StCtoHN
+      UN    #InManual; 
+      O     #CmdHN; //2.4: CmdLN -> CmdHN
+      U     #tmpInEnableHN; 
+      UN    #tmpInEnableLN; 
+      SPB   TCHN; 
+      U     #Par.ParManualFlap; // No StopAndGo with ManualFlap
+      SPB   SAVE; 
+      UN    #tmpEnable; //---StopAndGo: automatic StHN
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      U     #InpHN; 
+      UN    #InpLN; 
+      SPB   THN; 
+      UN    #tmpEnable; // StopAndGo -> StLN
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      U     #InpLN; 
+      UN    #InpHN; 
+      SPB   TLN; 
+      UN    #tmpEnable; // StopAndGo -> StNoPosition
+      O     #tmpManStopGo; // 2.4: CmdLN and CmdHN
+      SPB   TNPS; 
+      SPA   SAVE; 
+//                                ===Continuous Valve
+CLN3: U     #tmpNext; //---automatic StCtoHN
+      UN    #InManual; 
+      UN    #InSeqStop; 
+      O     #CmdHN; 
+      U     #tmpInEnableHN; 
+      SPB   TCHN; 
+      SPA   SAVE; 
+CLN9: R     #StCtoLN; //---Transition -> StFault
+      L     B#(1, 10); // MessageClass Error fault device
+      U     #InpFaultDev; 
+      SPB   xxS4; 
+      L     B#(1, 11); // MessageClass Error fault LN //[4.2]
+      U     #InpHN; 
+      SPB   xxS4; 
+      L     B#(1, 13); // MessageClass Error fault no position
+      SPA   xxS4; 
+
+
+NETWORK
+TITLE = StNoPosition;
+//Valid state for all valves in local mode
+//  and in not local mode only for pulse valve and manual flap
+NPS:  U     #InpLN; // -> StLN
+      UN    #InpHN; 
+      SPB   TLN; 
+      U     #InpHN; // -> StHN
+      UN    #InpLN; 
+      SPB   THN; 
+      U     #tmpLocal; 
+      SPB   SAVE; 
+//===Manual and automatic mode: InpLN -> StCtoLN
+      U     #InpFaultDev; //--Condition for StFault
+      SPB   NPS9; 
+      U     #Par.ParManualFlap; //--Condition for StFault
+      SPB   NPSn; 
+      U     #tmpNext; // -> StCtoHN
+      UN    #InManual; 
+      O     #CmdHN; 
+      U     #tmpInEnableHN; 
+      UN    #tmpInEnableLN; 
+      SPB   TCHN; 
+      U     #tmpNext; // -> StCtoLN
+      UN    #InManual; 
+      O     #CmdLN; 
+      U     #tmpInEnableLN; 
+      UN    #tmpInEnableHN; 
+      SPB   TCLN; 
+      SPA   SAVE; 
+NPS9: R     #StNoPosition; //---Transition -> StFault
+      L     B#(1, 10); //MessageClass Error fault device
+      SPA   xxS4; 
+NPSn: R     #StNoPosition; //---Transition -> StFault
+      L     B#(1, 13); //MessageClass Error fault no position
+      SPA   xxS4; 
+
+NETWORK
+TITLE = StFault
+//Change state conditions
+//-----------------------
+//All valves:
+//FaultReset -> InLocal     -> InpHN  --> StHN
+//                             InpLN  --> StLN
+//                             no Inp --> StNoPosition
+//                             InpHN and InpLN --> StNoPosition
+//           -> not InLocal -> InpHN and InpLN --> StFault (reLOG fault)
+//
+//Pulse valve and Manual flap:
+//FaultReset -> not InLocal -> InpHN  --> StCtoHN (start monitoring)
+//                             InpLN  --> StCtoLN (  "        "    )
+//                             no Inp --> StNoPosition
+//Continuous valve:
+//FaultReset -> not InLocal -> InpHN  --> StFault (reLOG fault)
+//                             InpLN  --> StCtoLN (start monitoring)
+//                             no Inp --> StFault (reLOG fault)
+xxS4: SET   ; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; // InFaultFlag
+      S     #tmpDelayClear; // Reset actual timer
+      S     #tmpMonClear; 
+      T     #tmpLOGvalue; //[4.1]
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1013,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     #tmpLOGvalue; //[4.1]
+      SPA   LOG; 
+//Logic
+//Local
+FLT:  UN    #tmpLocalFault; 
+      SPB   FLT1; 
+      U     #InpHN; // -> StHN
+      UN    #InpLN; 
+      SPB   FLT7; 
+      U     #InpLN; // -> StLN
+      UN    #InpHN; 
+      SPB   FLT6; 
+      SPA   FLT8; // No Input -> StNoPosition
+//Remote
+FLT1: UN    #CmdFaultReset; //---Condition for StFault
+      UN    "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      SPB   SAVE; 
+      U     #InpFaultDev; //---Condition for StFault with LOG
+      L     B#(1, 10); // MessageClass Error fault device
+      SPB   LOG; 
+      U     #InpLN; //===All valves: Both Inputs -> StFault
+      U     #InpHN; 
+      L     B#(1, 13); // MessageClass Error fault no position
+      SPB   LOG; 
+      U     #InpLN; // Input LN -> StCtoLN
+      SPB   FLT4; 
+      U     #Par.ParContValve; 
+      SPB   FLT2; //---Pulse Valve and Manual Flap: not local
+      U     #InpHN; // -> StCtoHN
+      SPB   FLT5; 
+      SPA   FLT8; // No Input -> StNoPosition
+FLT2: U     #InpHN; //---Continuous valve
+      L     B#(1, 11); // MessageClass Error fault LN
+      SPB   LOG; 
+      L     B#(1, 13); // MessageClass Error fault no position
+      SPA   LOG; 
+FLT4: S     #StCtoLN; //---Transition -> StCtoLN
+      S     #OutMonFault; // Activate monitoring
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   FLM; 
+FLT5: S     #StCtoHN; //---Transition -> StCtoHN
+      S     #OutMonFault; // Activate monitoring
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   FLM; 
+FLT6: S     #StLN; //---Transition -> StLN
+      SPA   FLM; 
+FLT7: S     #StHN; //---Transition -> StHN
+      SPA   FLM; 
+FLT8: S     #StNoPosition; //---Transition -> StNoPosition
+FLM:  R     #StFault; 
+      L     B#(3, 9); // MessageClass Operate fault cancelled
+      SPA   LOG; 
+
+NETWORK
+TITLE =General Transitions
+
+TCLN: SET   ; // set VKE=1
+      R     #StHN; //---Transition -> StCtoLN
+      R     #StCtoHN; 
+      R     #StNoPosition; 
+      S     #StCtoLN; 
+      S     #tmpDelayClear; // Clear actual delay timer value
+      R     #OutIdling; 
+      S     #OutMonFault; // Activate monitoring
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   SAVE; 
+TCHN: SET   ; // set VKE=1
+      R     #StLN; //---Transition -> StCtoHN
+      R     #StCtoLN; 
+      R     #StNoPosition; 
+      S     #StCtoHN; 
+      S     #tmpDelayClear; // Clear actual delay timer value
+      S     #OutMonFault; // Activate monitoring
+      L     #Par.ParMonTime; 
+      T     #Par.OutMonTime; 
+      SPA   SAVE; 
+TLN:  SET   ; // set VKE=1
+      R     #StCtoHN; //---Transition -> StLN
+      R     #StCtoLN; 
+      R     #StNoPosition; 
+      S     #StLN; 
+      S     #tmpDelayClear; // Clear actual timer value
+      S     #tmpMonClear; 
+      UN    #tmpReport; // ReportAll?
+      SPB   SAVE; 
+      L     B#(4, 0); // MessageClass Info LN
+      SPA   LOG; 
+THN:  SET   ; // set VKE=1
+      R     #StCtoHN; //---Transition -> StHN
+      R     #StCtoLN; 
+      R     #StNoPosition; 
+      S     #StHN; 
+      S     #tmpDelayClear; // Clear actual timer value
+      S     #tmpMonClear; 
+      UN    #tmpReport; // ReportAll?
+      SPB   SAVE; 
+      L     B#(4, 2); // MessageClass Info HN
+      SPA   LOG; 
+TNPS: SET   ; // set VKE=1
+      R     #StLN; //---Transition -> StNoPosition
+      R     #StCtoHN; 
+      R     #StHN; 
+      R     #StCtoLN; 
+      S     #StNoPosition; 
+      S     #tmpDelayClear; // Reset actual timer value
+      S     #tmpMonClear; 
+      SPA   SAVE; 
+
+NETWORK
+TITLE =LOG Message
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1013);
+
+NETWORK
+TITLE =Global End
+
+SAVE: CLR   ; //---Clear all commands
+      =     #CmdLN; 
+      =     #CmdHN; 
+      =     #CmdNext; 
+      =     #CmdFaultReset; 
+      U     #StCtoHN; //---Condition for setting Output HN
+      UN    #Par.ParManualFlap; 
+      O     ; 
+      U     #StHN; 
+      U     #Par.ParContValve; 
+      UN    #tmpLocal; 
+      =     #OutpHN; 
+      U     #StCtoLN; //---Condition for setting Output LN
+      U     #Par.ParPulseValve; 
+      =     #OutpLN; 
+//--Output for group 
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      UN    #InLocal; 
+      O     #InManual; 
+      U     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+//---Clear actual value of timer
+      L     0; 
+      U     #tmpDelayClear; 
+      SPBN  SAV1; 
+      T     #Par.OutTransitionTime; // Clear delay timer
+      R     #OutDelayFault; 
+SAV1: UN    #tmpMonClear; 
+      SPB   STC; 
+      T     #Par.OutMonTime; // Clear monitoring timer
+      R     #OutMonFault; 
+
+NETWORK
+TITLE =State Code
+
+STC:  U     #StFault; 
+      SPB   STC8; //Code: Fault
+//--------------------
+      UN    #StLN; 
+      SPB   STC2; 
+      L     41; //Code: StLN.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StLN.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     1; //Code: LN
+      SPA   STC9; 
+//--------------------
+STC2: U     #InStopCTime; //[4.3]
+      U     #StCtoHN; //[4.3]
+      L     12; //[4.3]
+      SPB   STC9; 
+      U     #StCtoHN; 
+      L     2; //Code: change to HN
+      SPB   STC9; 
+//--------------------
+      UN    #StHN; 
+      SPB   STC4; 
+      L     43; //Code: StHN.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     53; //Code: StHN.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     3; //Code: HN
+      SPB   STC9; 
+//--------------------
+STC4: U     #InStopCTime; //[4.3]
+      U     #StCtoLN; //[4.3]
+      L     14; //[4.3]
+      SPB   STC9; 
+      U     #StCtoLN; 
+      L     4; //Code: Change to LN
+      SPB   STC9; 
+//--------------------
+      UN    #StNoPosition; 
+      SPB   STC8; 
+      L     45; //Code: StNoPosition.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     55; //Code: StNoPosition.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      L     5; // Code: StNoPosition
+      SPA   STC9; 
+STC8: U     #InpFaultDev; 
+      L     31; 
+      SPB   STC9; // StFault.InpFaultDev
+      L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

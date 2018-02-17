@@ -1,0 +1,1081 @@
+FUNCTION_BLOCK "G299M_Code"
+TITLE =G299M RECYCLING AIR FLAP KILN 2
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        RECYCLING AIR FLAP KILN 2
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB399.2.0 M.Wedler            AEB41                              27.Apr.2010
+//             2nd Release
+//P01_FB399.1.0 K.Renz              CSB41                              08.Okt.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  CoolingWayOk : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_3235_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3235_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3235_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  A_3236_MXZ11I1 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3236_MXZ11I2 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3236_MXZ11 : "GCS7_E_ValveControl4Pos";	// VLS4Ctrl 
+  spare316 : ARRAY  [316 .. 571 ] OF BYTE ;	
+  A_3235_MXZ11I11 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3235_MXZ11I22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3236_MXZ11I11 : "GCS7_E_DigInput";	// DigInpCont 
+  A_3236_MXZ11I22 : "GCS7_E_DigInput";	// DigInpCont 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[299]; 
+      R     "GCS7_GrCtrlDB".ParWGR[299]; 
+      R     "GCS7_GrCtrlDB".ParGGR[299]; 
+      R     "GCS7_GrCtrlDB".ParFeed[299]; 
+      R     "GCS7_GrCtrlDB".ParShare[299]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[299]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[299]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[299]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[299]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[299]; 
+      R     "GCS7_GrCtrlDB".CmdNext[299]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[299]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[299]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[299]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[299]
+//      O     "GCS7_GrCtrlDB".OutOccupied[299]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[299]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[299]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[299]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[299]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      U     #A_3235_MXZ11.StNoPosition; 
+      U     #A_3236_MXZ11.StNoPosition; 
+      UN    #Gr.InOccupied; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+//// Zwei-Hordenbetrieb
+//// Oeffnen der Recycle-Flap wenn die Temperatur vom Brenner 1 nicht ausreicht
+      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      U(    ; 
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     50; // 5,0°C weniger als Sollwert
+      -I    ; 
+      L     10; 
+      *I    ; 
+      L     "G295M".A_3291_BTE01.OutValuePc; //  Temperature Below Kiln Floor
+      >=I   ; 
+      )     ; 
+      S     "G299M".USW8; 
+
+      U(    ; 
+      L     "MAL1S033Par".StepAct.TemperaturBelowFloor; 
+      L     50; // 5,0°C mehr als Sollwert
+      +I    ; 
+      L     10; 
+      *I    ; 
+      L     "G295M".A_3291_BTE01.OutValuePc; //  Temperature Below Kiln Floor
+      <=I   ; 
+      )     ; 
+      ON    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      R     "G299M".USW8; 
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      U     #Gr.InManual; 
+      SPB   ILO6; 
+      L     0; // 0.0%
+      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd; // kilning Process finished
+      ON    "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U(    ; 
+      U     "G297M".A_3225_MXZ01MA.Ma.StStopped; 
+      U     "G297M".A_3226_MXZ01MA.Ma.StStopped; 
+      U     "G297M".FanStandstill; //BRT20100826 - Klappen schliessen bei sonst bei 60% Fan-Speed!!!
+      )     ; 
+      SPB   PE; 
+// Zwei-Hordenbetrieb
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+// Ventilatoren bei annehmender Darre MÜSSEN schon gestartet sein!
+      U     "G277M".A_3140_MXZ11.StHN; // Louver Air Heater Kilningbox 1
+      U     "G277M".A_3141_MXZ11.StHN; // Louver Air Heater Kilningbox 1
+      U     "G271M".A_3125_MXZ01MA.Ma.StStartedFwd; 
+      U     "G271M".A_3125_TSC01_AF.OutL; // Ventilator 1 dreht mind. 40% SW
+      U     "G271M".A_3126_MXZ01MA.Ma.StStartedFwd; 
+      U     "G271M".A_3126_TSC01_AF.OutL; // Ventilator 2 dreht mind. 40% SW
+      SPBN  M001; 
+      L     1000; // 100.0%
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+
+//      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S033Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+
+// Cooling active
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      SPBN  Rec2; 
+//      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S033Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+//MW 2010.04.29      T     #A_3236_MXZ11.InPositionMiddle    // setpoint element
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+Rec2: NOP   0; 
+
+      SPA   En06; 
+M001: NOP   0; 
+//BRT20100827 ====> beide Darren fahren mit vermindeter Drehzahl und  100% Abluft, da Abdarr-Betrieb noch nicht erreicht!!!
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      UN    "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPBN  Kln1; 
+      L     0; // 0% Umluft
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+      SPA   En06; 
+Kln1: NOP   0; 
+//BRT20100827 <=====
+
+// Ein-Hordenbetrieb
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+//BRT20100827 ====> Ende Kühlen schliesst sonst die Umluftklappe!!!
+      O     "MAL1S033Par".Par.FlagProcess.ProcessEnd; // kilning Process finished
+//BRT20100827 <====
+      UN    "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      SPBN  M002; 
+      L     1000; // 100.0%
+      L     "G298M".A_3250_MXZ11.InPositionMiddle; // LOUVER FRESH AIR 1
+      -I    ; 
+      SPA   PE; 
+M002: NOP   0; 
+
+
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      SPBN  M003; 
+//      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S033Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+
+// Bedingung fuer das Oeffnen der Recycling-Klappe 1
+// Darre 1 im Abdarrbetrieb
+      U     "MAL1S032Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+// Klappe offen halten, bis die Ventilatoren angehalten haben.
+// Ventilatoren bei annehmender Darre MÜSSEN schon gestartet sein!
+      U     "G303M".A_3240_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      U     "G303M".A_3241_MXZ11.StHN; // Louver Air Heater Kilningbox 2
+      U     "G297M".A_3225_MXZ01MA.Ma.StStartedFwd; 
+      U     "G297M".A_3225_TSC01_AF.OutL; // Ventilator 1 dreht mind. 40% SW
+      U     "G297M".A_3226_MXZ01MA.Ma.StStartedFwd; 
+      U     "G297M".A_3226_TSC01_AF.OutL; // Ventilator 2 dreht mind. 40% SW
+      O(    ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      UN    "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      )     ; 
+      UN(   ; 
+      L     "MAL1S032Par".Ilo.ILOMode; 
+      L     5; 
+      ==I   ; 
+      )     ; 
+      O(    ; //JV250710 =====>
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+//      U(                     JVXXXXXX raus 290710
+//      L     "MAL1S033Par".StepAct.TemperaturBelowFloor
+//      L     50                          // 5,0°C mehr als Sollwert
+//      +I    
+//      L     10
+//      *I    
+//      L     "G269M".A_3191_BTE07.OutValuePc    //  Temperature Below Kiln 1 Floor
+//      <=I   
+//      )     
+      )     ; //JV250710 <=====
+//      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S033Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      SPBN  PE; 
+//BRT20100831 ====> Klappe kann offen bleiben nach Ende Cooling Kiln 1 bis Fans gestoppt
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      UN    "G271M".A_3125_MXZ01MA.Ma.StStopped; // Fans Kiln 2
+      UN    "G271M".A_3126_MXZ01MA.Ma.StStopped; // Fans Kiln 2
+      UN    "G271M".FanStandstill; //BRT20100826 - Klappen schliessen bei sonst bei 60% Fan-Speed!!!
+      L     1000; // 100%
+      SPB   PE; 
+//BRT20100831 <====
+      L     1000; 
+//      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S032Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      -I    ; 
+//MW 2010.04.29      T     #A_3236_MXZ11.InPositionMiddle    // setpoint element
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+
+      U     "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+// Klappe offen halten, bis die Ventilatoren angehalten haben.
+      O(    ; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      U     "G271M".A_3125_MXZ01MA.Ma.StStopped; 
+      U     "G271M".A_3126_MXZ01MA.Ma.StStopped; 
+      U     "G271M".FanStandstill; //BRT20100826 - Klappen schliessen bei sonst bei 60% Fan-Speed!!!
+      )     ; 
+      SPBN  Coo2; 
+// Die Gesamte Energie von Darre 1 zur Darre 2
+//BRT20100826 ====> neu überarbeitet, da nun Kühlung geregelt!
+      L     1000; 
+//      L     "MAL1S032Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S032Par".Par.ProcessValue.Value14; // Sollwert Umluftklappen Kühlen //BRT20100826 - geregelter Sollwert!
+      -I    ; //BRT20100825 - muss geregelt sein!
+
+//BRT20100825 nicht benutzt      L     1000                        // 100.0%   //JV220710 wieder zurück
+//BRT15072010 - wird hier so nicht benutzt!!!  doch 220710
+//JV220710      L     0                           // 0.0%
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+//BRT20100826 <====
+Coo2: NOP   0; 
+
+      L     0; // 0.0%
+//MW 2010.04.29      T     #A_3235_MXZ11.InPositionMiddle    // setpoint element
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+
+      SPA   En06; 
+PE:   NOP   0; 
+//JV310710  =========>
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      SPBN  CoRe; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S033Par".Par.FlagProcess.ProcessEnd; 
+//BRT20100826  ====> Kühlen wird neu geregelt gefahren (FC832/NW32) oder bei EinHorden-Betrieb nach Rezeptwert!
+//      U(    
+//      L     "MAL1S032Par".StepAct.TemperaturBelowFloor
+//      L     10
+//      *I    
+//      L     "G269M".A_3191_BTE01.OutValuePc    //  Temperature Below Kiln 1 Floor
+//      <=I   
+//      O                                 //JV010810 =====>
+//      L     "MAL1S032Par".StepAct.TemperaturBelowFloor
+//      L     10
+//      *I    
+//      L     "G269M".A_3191_BTE10.OutValuePc    //  Temperature Before heater kiln 2
+//      <=I   
+//      )                                 //JV010810 <=====
+//      L     0                                              //BRT20100825
+//      L     "MAL1S033Par".Par.ParIntProcess.PosRecycAirFlapBasic    // setpoint from recipe
+      L     "MAL1S033Par".Par.ProcessValue.Value17; // Sollwert Umluftklappen Verbund
+      SPBN  CoRe; 
+//      U     "MAL1S033Par".Par.FlagProcess.ProcessEnd    //JV030810
+//      SPB   CoRe                        //JV030810
+      L     "MAL1S033Par".Par.ProcessValue.Value14; // Sollwert Umluftklappen Kühlen
+CoRe: NOP   0; //JV310710  <=========
+//BRT20100826 <====
+      U     "G299M".A_3235_MXZ11.InManual; 
+      SPB   Man1; 
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+Man1: NOP   0; 
+//JV220710 ======>
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      UN    "MAL1S033Par".Par.FlagProcess.Abdarr_Betrieb_Aktiv; 
+      SPBN  NoCo; 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      UN    "MAL1S032Par".Par.FlagProcess.Cooling_Activ; 
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      UN    M    399.0; //JV090810 Darre 1 kaputt  Hilfsbit zum Kaltblasen Darre 2 über Abluft, nicht zum Kanal 
+      UN    "G273M".A_3135_MXZ11.StLN; // Recycling air kiln 1
+      L     0; 
+      SPBN  NoCo; 
+      L     1000; //100%
+NoCo: NOP   0; //JV220710 <=====
+      U     "G299M".A_3236_MXZ11.InManual; 
+      SPB   Man2; 
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+Man2: NOP   0; 
+
+M003: NOP   0; 
+      SPA   En06; 
+ILO6: NOP   0; 
+      L     "MAL1S033Par".Par.ParIntProcess.TarPos_ILO_RecycAir; 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      T     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+En06: NOP   0; 
+//JV090810  Hilfsbit zum Kaltblasen Darre 2 über Abluft, nicht zum Kanal. Darre 1 ist aktiv, kann aber keine Luft annehmen. Ventilatoren  
+// Darre 1 dürfen nicht laufen
+      SET   ; 
+      R     M    399.0; //JV090810 Darre 1 kaputt   
+//JV090810 =============================================================
+
+//TEst
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; 
+      ==I   ; 
+      O     ; 
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      ==I   ; 
+      SPB   TEND; 
+      T     "G299M".A_3235_MXZ11.Par.OutCntReAdjust; 
+TEND: NOP   0; 
+NETWORK
+TITLE =Interlocking WayOk
+
+      U     "MAL1S033Par".Par.FlagProcess.ProcessActive; 
+//JV050810      U     "G298M".A_3250_MXZ11.StHN   // Fresh Air Flap Kilningbox 2
+//JV050810      U     "G298M".A_3251_MXZ11.StHN   // Fresh Air Flap Kilningbox 2
+//JV050810      U     "G298M".A_3252_MXZ11.StHN   // Fresh Air Flap Kilningbox 2
+//JV050810      U     "G298M".A_3253_MXZ11.StHN   // Fresh Air Flap Kilningbox 2
+      U(    ; //JV050810 3 Jalousien müssen auf sein =====>
+      O(    ; 
+      U     "G298M".A_3250_MXZ11.StHN; 
+      U     "G298M".A_3251_MXZ11.StHN; 
+      U     "G298M".A_3252_MXZ11.StHN; 
+      )     ; 
+      O(    ; 
+      U     "G298M".A_3250_MXZ11.StHN; 
+      U     "G298M".A_3251_MXZ11.StHN; 
+      U     "G298M".A_3253_MXZ11.StHN; 
+      )     ; 
+      O(    ; 
+      U     "G298M".A_3250_MXZ11.StHN; 
+      U     "G298M".A_3253_MXZ11.StHN; 
+      U     "G298M".A_3252_MXZ11.StHN; 
+      )     ; 
+      O(    ; 
+      U     "G298M".A_3253_MXZ11.StHN; 
+      U     "G298M".A_3251_MXZ11.StHN; 
+      U     "G298M".A_3252_MXZ11.StHN; 
+      )     ; 
+      )     ; //JV050810 3 Jalousien müssen auf sein <=====  
+      O(    ; //JV110810 ========>
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessActive; 
+      O     "MAL1S032Par".Par.FlagProcess.ProcessEnd; 
+      U     "G304M".A_3245_MXZ11.StHN; // Exhaust Air Kilningbox 2
+      U     "G304M".A_3246_MXZ11.StHN; // Exhaust Air Kilningbox 2
+      )     ; //JV110810 <======
+      O(    ; //JV110810 
+      U     "MAL1S032Par".Par.FlagProcess.ProcessActive; //JV110810 
+      UN    "MAL1S032Par".Par.FlagProcess.ProcessEnd; //JV110810 
+      U     "G278M".A_3145_MXZ11.StHN; // Exhaust Air Kilningbox 1   //JV290710
+      U     "G278M".A_3146_MXZ11.StHN; // Exhaust Air Kilningbox 1 //JV290710
+      )     ; 
+      =     #CoolingWayOk; 
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-3235-MXZ11I1 : LOUVER RECYCLE AIR 1 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3235_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3235_MXZ11.OutpLN; // closing
+      =     #A_3235_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3235_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3235_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3235_MXZ11_I1"; 
+      =     #A_3235_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3235_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3235_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3235_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3235-MXZ11I2 : LOUVER RECYCLE AIR 1 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3235_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3235_MXZ11.OutpHN; // opening   
+      =     #A_3235_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3235_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3235_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3235_MXZ11_I2"; 
+      =     #A_3235_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3235_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3235_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3235_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3235-MXZ11 : LOUVER RECYCLE AIR 1
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3235_MXZ11I11.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      UN    #CoolingWayOk; 
+      )     ; 
+      =     #A_3235_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3235_MXZ11.Par.ParManual; 
+      U     #A_3235_MXZ11.InManual; 
+      SPB   man1; 
+      U(    ; 
+      L     0; 
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3235_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3235_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3235_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_3235_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3235_MXZ11.CmdHN; 
+man1: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3235_BZS14_I1"; 
+      =     #A_3235_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3235_MXZ11.InpMiddle1; 
+      U     "A_3235_BZS15_I1"; 
+      =     #A_3235_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3235_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3235_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3235_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3235_MXZ11.OutpLN; 
+      =     "A_3235_MXZ11_O1"; 
+      U     #A_3235_MXZ11.OutpHN; 
+      =     "A_3235_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3236-MXZ11I1 : LOUVER RECYCLE AIR 2 CLOSING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3236_MXZ11I1.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3236_MXZ11.OutpLN; // closing  
+      =     #A_3236_MXZ11I1.InMonTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I1.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3236_MXZ11I1.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I1.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3236_MXZ11I1.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3236_MXZ11_I1"; 
+      =     #A_3236_MXZ11I1.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3236_MXZ11I1.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3236_MXZ11I1.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3236_MXZ11I1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3236-MXZ11I2 : LOUVER RECYCLE AIR 2 OPENING
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      SET   ; 
+      =     #A_3236_MXZ11I2.InLocal; 
+// 
+//-Monitoring---
+      U     #A_3236_MXZ11.OutpHN; // opening   
+      =     #A_3236_MXZ11I2.InMonTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I2.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3236_MXZ11I2.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I2.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3236_MXZ11I2.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_3236_MXZ11_I2"; 
+      =     #A_3236_MXZ11I2.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3236_MXZ11I2.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3236_MXZ11I2.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3236_MXZ11I2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3236-MXZ11 : LOUVER RECYCLE AIR 2
+
+      NOP   0; 
+//-InLocal---
+      U(    ; 
+      U     #tmpLocal; 
+      U     #A_3236_MXZ11I11.StTrue; 
+      O     ; 
+      U     #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      O     ; 
+      U     "MAL1S033Par".Par.FlagProcess.Cooling_Activ; // kilning cooling active
+      UN    #CoolingWayOk; 
+      )     ; 
+      =     #A_3236_MXZ11.InLocal; 
+//
+//-Interlocking---
+      U     #A_3236_MXZ11.Par.ParManual; 
+      U     #A_3236_MXZ11.InManual; 
+      SPB   man2; 
+      U(    ; 
+      L     0; 
+      L     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      =     #A_3236_MXZ11.InLN; 
+
+      U(    ; 
+      L     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      U(    ; 
+      L     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3236_MXZ11.CmdMiddle1; 
+
+      CLR   ; 
+      S     #A_3236_MXZ11.CmdMiddle2; 
+
+      U(    ; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_3236_MXZ11.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      U(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      S     #A_3236_MXZ11.CmdHN; 
+man2: NOP   0; 
+// 
+//-Read inputs---
+      U     "A_3236_BZS14_I1"; 
+      UN    "A_3236_BZS15_I1"; 
+      =     #A_3236_MXZ11.InpLN; 
+      CLR   ; 
+      =     #A_3236_MXZ11.InpMiddle1; 
+      U     "A_3236_BZS15_I1"; 
+      =     #A_3236_MXZ11.InpHN; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3236_MXZ11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3236_MXZ11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3236_MXZ11 ;
+// 
+//-Write outputs---
+      U     #A_3236_MXZ11.OutpLN; 
+      =     "A_3236_MXZ11_O1"; 
+      U     #A_3236_MXZ11.OutpHN; 
+      =     "A_3236_MXZ11_O2"; 
+NETWORK
+TITLE ==A-3235-MXZ11I11 : LOUVER RECYCLE AIR 1 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3235_MXZ11I11.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3235_MXZ11I11.InMonTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I11.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3235_MXZ11I11.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I11.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3235_MXZ11I11.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      U     "A_3235_MXZ11_I1"
+      U     "A_3235_BZS14_I1"; 
+      =     #A_3235_MXZ11I11.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3235_MXZ11I11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3235_MXZ11I11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3235_MXZ11I11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3235-MXZ11I22 : LOUVER RECYCLE AIR 1 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3235_MXZ11I22.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3235_MXZ11I22.InMonTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3235_MXZ11I22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3235_MXZ11I22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3235_MXZ11I22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//    U     "A_3235_MXZ11_I2"
+      U     "A_3235_BZS15_I1"; 
+      =     #A_3235_MXZ11I22.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3235_MXZ11I22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3235_MXZ11I22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3235_MXZ11I22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3236-MXZ11I11 : LOUVER RECYCLE AIR 2 CLOSED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3236_MXZ11I11.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3236_MXZ11I11.InMonTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I11.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3236_MXZ11I11.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I11.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3236_MXZ11I11.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//    U     "A_3236_MXZ11_I1"
+      U     "A_3236_BZS14_I1"; 
+      =     #A_3236_MXZ11I11.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3236_MXZ11I11.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3236_MXZ11I11.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3236_MXZ11I11 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-3236-MXZ11I22 : LOUVER RECYCLE AIR 2 OPENED
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_3236_MXZ11I22.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_3236_MXZ11I22.InMonTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_3236_MXZ11I22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_3236_MXZ11I22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_3236_MXZ11I22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//    U     "A_3236_MXZ11_I2"
+      U     "A_3236_BZS15_I1"; 
+      =     #A_3236_MXZ11I22.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+      =     #A_3236_MXZ11I22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[101]; 
+      =     #A_3236_MXZ11I22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_3236_MXZ11I22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_3235_MXZ11I1.StFault; 
+      O     #A_3235_MXZ11I2.StFault; 
+      O     #A_3235_MXZ11.StFault; 
+      O     #A_3236_MXZ11I1.StFault; 
+      O     #A_3236_MXZ11I2.StFault; 
+      O     #A_3236_MXZ11.StFault; 
+      O     #A_3235_MXZ11I11.StFault; 
+      O     #A_3235_MXZ11I22.StFault; 
+      O     #A_3236_MXZ11I11.StFault; 
+      O     #A_3236_MXZ11I22.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_3235_MXZ11.StLN; 
+      U     #A_3236_MXZ11.StLN; 
+      UN    #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+//      UN    #A_3235_MXZ11.StLN
+//      UN    #A_3235_MXZ11.StFault
+//      UN    #A_3235_MXZ11.StNoPosition
+//      UN    #A_3236_MXZ11.StLN
+//      UN    #A_3236_MXZ11.StFault
+//      UN    #A_3236_MXZ11.StNoPosition
+//
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[299]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[299]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[299]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[299]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[299]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[299]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[299]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[299]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[299]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[299]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,811 @@
+FUNCTION_BLOCK "GCS7_M_Flift2Airlock"
+TITLE =Fluidlift Blower with 2 Airlock
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 67 Machine Control:Fluidlift 2 Airlock and 2 Shutoff Valve
+//              Blower, Blow off valve and Airlock
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB67.6.3      A. Egli             CT3                         10-Jun-2004
+//              Diverter.InLocal
+//FB67.6.2      A. Egli             CT3                         19-Sep-2003
+//              InMonFalse mode to global end function
+//FB67.6.1      A. Egli             CT3                         18-Aug-2003
+//              No blow off, when Blower is started in manual mode 
+//FB67.6.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB67.5.7      A.Egli              CT3                         18-Mar-2002
+//              Pressure.InLocal moved to segment "Global End"
+//FB67.5.6      A.Egli              CT3                         29-Oct-2001
+//              InLocal of HL moved to segment "Global End"
+//FB67.5.5      A.Egli              CT3                         16-May-2001
+//              - Close Valve with InSeqStop
+//              - Monitoring only active HLInlet  
+//FB67.5.4      Ph.Engler           MU664                       15-May-2001
+//              - Diverter.CmdFaultReset corrected
+//FB67.5.3      Ph.Engler           MU664                       08-Jan-2000
+//              InBlowOff without a blowoff valve closes directly
+//              the ShutOffA valve.
+//FB67.5.2      Ph.Engler           MU664                       29-Dec-2000
+//              - Enable airlock A on a single line type and shutt off valve
+//              - OutEnableBlower implemented
+//              - InMonMinP moved from segment "Interlocking" to "Gloabl End"
+//FB67.5.1      S. Kalberer         CT3                         23-Oct-2000
+//              Blower stopped: Do not open BlowOff valve
+//FB67.5.0      A. Egli             CT3                    20-Sep-2000
+//              With Diverter valve
+//FB67.4.0      A. Egli             CT3                    26-Mai-2000
+//              Single line with ShutOff valves
+//              InNoWaitMinP 
+//FB67.3.1      A. Egli             CT3                    28-Jan-2000
+//              Interlocking blower
+//FB67.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced
+//FB67.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB67.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB67.1A       A. Egli              AEE61                      27-Nov-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.FL2xxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Fluid2AV
+VERSION : 6.3
+
+
+VAR
+  Ma : "GCS7_M_FB67_Data";	
+  Pressure : "GCS7_E_PressureRange";	//Element
+  BlowOff : "GCS7_E_ValveControl";	//Element
+  Blower : "GCS7_E_Motor";	//Element
+  ShutOffA : "GCS7_E_ValveControl";	//Element
+  ShutOffB : "GCS7_E_ValveControl";	//Element
+  AirlockA : "GCS7_E_Motor";	//Element
+  AirlockB : "GCS7_E_Motor";	//Element
+  HLInletA : "GCS7_E_DigInput";	//Element
+  HLInletB : "GCS7_E_DigInput";	//Element
+  Diverter : "GCS7_E_ValveControl";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultStop : BOOL ;	
+  tmpFaultSum : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpEnableAirlock : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpBlowOff : BOOL ;	
+  tmpBlowerStopped : BOOL ;	
+  tmpBlowerStarted : BOOL ;	
+  tmpBlowOffStLN : BOOL ;	
+  tmpWayA : BOOL ;	
+  tmpWayB : BOOL ;	
+  tmpWithShutOffValves : BOOL ;	
+  tmpWithDiverterValves : BOOL ;	
+  tmpWayAOK : BOOL ;	
+  tmpWayBOK : BOOL ;	
+  tmpCloseValve : BOOL ;	
+  tmpPressureLocal : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     18; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType  ========================
+      L     2067; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParClearingTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; //Cmd1[14]=CmdManualOn
+      S     #Ma.CmdAirlockOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[1]; //Cmd1[1]=CmdWayA
+      R     #Ma.InWayB; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[1]; //Cmd2[2]=CmdWayB
+      S     #Ma.InWayB; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; //Cmd1[6]=CmdClearingOn
+      S     #Ma.InClearing; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[6]; //Cmd2[6]=CmdClearingOff
+      R     #Ma.InClearing; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Dynamic Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+
+      U     #Ma.InManual; 
+      ON    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+
+//Temporare signal
+      UN    #Ma.InWayB; 
+      O     #Ma.InWayAB; 
+      =     #tmpWayA; 
+      U     #Ma.InWayB; 
+      O     #Ma.InWayAB; 
+      =     #tmpWayB; 
+
+      U     #BlowOff.StLN; 
+      =     #tmpBlowOffStLN; 
+
+      U     #Ma.Par.ParWithShutOffValves; 
+      ON    #Ma.Par.ParSingleLine; 
+      =     #tmpWithShutOffValves; 
+
+      U     #Ma.Par.ParBlowerExternal; 
+      U     #Ma.InBlowerStarted; 
+      O     ; 
+      UN    #Ma.Par.ParBlowerExternal; 
+      U     #Blower.StStartedFwd; 
+      =     #tmpBlowerStarted; 
+
+      U     #Ma.Par.ParBlowerExternal; 
+      UN    #Ma.InBlowerStarted; 
+      O     ; 
+      UN    #Ma.Par.ParBlowerExternal; 
+      U     #Blower.StStopped; 
+      =     #tmpBlowerStopped; 
+
+      U     #Ma.InSeqStop; //[5.5]
+      O     #Ma.InLocal; //[5.5]
+      UN    #Ma.InManual; //[5.5]
+      U     #tmpBlowerStopped; //[5.5]
+      UN    #Blower.InManual; //[6.1]
+      =     #tmpCloseValve; //[5.5]
+//--- Fault----
+      U     #Diverter.StFault; 
+      U     #Ma.Par.ParWithDiverter; 
+      O     #Pressure.StFault; 
+      O     #BlowOff.StFault; 
+      O     #ShutOffA.StFault; 
+      O     #ShutOffB.StFault; 
+      O     #Blower.StFault; 
+      O     #AirlockA.StFault; 
+      O     #AirlockB.StFault; 
+      O     #HLInletA.StFault; 
+      O     #HLInletB.StFault; 
+      =     #tmpFaultSum; 
+//CmdNext
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      =     #tmpNext; 
+//[5.1]   U       #BlowOff.StHN;
+//[5.1]   ON      #Ma.Par.ParWithBlowOff;
+      U     #tmpNext; 
+      S     #Blower.CmdNext; 
+
+      U     #tmpNext; 
+      S     #Blower.CmdNext; 
+      S     #AirlockA.CmdNext; 
+      S     #AirlockB.CmdNext; 
+
+      SET   ; 
+      S     #ShutOffA.CmdNext; 
+      S     #ShutOffB.CmdNext; 
+      S     #BlowOff.CmdNext; 
+
+      UN    #Ma.Par.ParWithDiverter; 
+      SPB   InX1; 
+      S     #Diverter.CmdNext; 
+//--- Interlocking blow off
+InX1: U     #Diverter.StLN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      U     #ShutOffA.StHN; 
+      U(    ; 
+      U     #tmpWayA; 
+      O     #Ma.Par.ParSingleLine; 
+      )     ; 
+      =     #tmpWayAOK; 
+      U     #Diverter.StHN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      U     #ShutOffB.StHN; 
+      U     #tmpWayB; 
+      UN    #Ma.Par.ParSingleLine; 
+      =     #tmpWayBOK; 
+
+      U     #Ma.InClearing; 
+      U     #Ma.StCleared; 
+//[5.1]   ON      #tmpBlowerStarted;
+      O     #Ma.InBlowOff; 
+      U     #Ma.Par.ParWithBlowOff; 
+      =     #tmpBlowOff; 
+      UN    #tmpWayAOK; 
+      UN    #tmpWayBOK; 
+      U     #tmpWithShutOffValves; 
+      O     #tmpBlowOff; 
+      UN    #tmpCloseValve; //[5.5]
+      =     #BlowOff.InEnableHN; 
+      UN    #BlowOff.InEnableHN; 
+      =     #BlowOff.InEnableLN; 
+
+//--- Interlocking ShutOff Valve
+      U     #ShutOffB.StHN; 
+      U     #tmpWayB; 
+      UN    #tmpWayA; 
+      O     ; 
+      U     #tmpBlowOff; 
+      U     #BlowOff.StHN; 
+      O     ; 
+      U     #Ma.InBlowOff; 
+      UN    #Ma.Par.ParWithBlowOff; 
+      O     ; 
+      U     #BlowOff.StHN; 
+      U     #tmpWayB; 
+      U     #Ma.Par.ParWithDiverter; 
+      O     #tmpCloseValve; //[5.5]
+      =     #ShutOffA.InEnableLN; 
+      U     #tmpWayA; 
+      O     #Ma.Par.ParSingleLine; 
+      UN    #ShutOffA.InEnableLN; 
+      U(    ; 
+      U     #Diverter.StLN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      )     ; 
+      =     #ShutOffA.InEnableHN; 
+
+      U     #ShutOffA.StHN; 
+      U     #tmpWayA; 
+      UN    #tmpWayB; 
+      O     ; 
+      U     #tmpBlowOff; 
+      U     #BlowOff.StHN; 
+      O     ; 
+      U     #BlowOff.StHN; 
+      U     #tmpWayA; 
+      U     #Ma.Par.ParWithDiverter; 
+      O     #tmpCloseValve; //[5.5]
+      =     #ShutOffB.InEnableLN; 
+      UN    #ShutOffB.InEnableLN; 
+      U     #tmpWayB; 
+      U(    ; 
+      U     #Diverter.StHN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      )     ; 
+      =     #ShutOffB.InEnableHN; 
+
+//--- Interlocking blower
+      UN    #Pressure.StOverP; //[5.2]
+      UN    #Pressure.StFault; //[5.2]
+      =     #Ma.OutEnableBlower; //[5.2]
+      U     #BlowOff.StHN; 
+      U     #Ma.Par.ParWithBlowOff; 
+      O     #ShutOffA.StHN; //[3.1]
+      O     #ShutOffB.StHN; //[3.1]
+      ON    #tmpWithShutOffValves; //[4.0]
+      U     #tmpEnable; 
+      UN    #Pressure.StOverP; 
+      UN    #Pressure.StFault; 
+      UN    #BlowOff.StFault; 
+      =     #Blower.InEnableFwd; 
+// 
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; //[5.5]
+      =     #Blower.InSeqStop; 
+// 
+//--- Interlocking airlock 
+      U     #BlowOff.StLN; 
+      ON    #Ma.Par.ParWithBlowOff; 
+      UN    #Ma.InClearing; 
+      U     #tmpEnable; 
+      U     #tmpBlowerStarted; 
+      UN    #Pressure.StOverP; 
+      UN    #Pressure.StCtoOverP; 
+      UN    #Pressure.StFault; 
+      UN    #Ma.CmdAirlockOff; 
+      UN    #Ma.InBlowOff; 
+      =     #tmpEnableAirlock; 
+
+      U     #ShutOffB.StLN; 
+      O     #tmpWayB; 
+      O     #Ma.Par.ParSingleLine; //[5.2]
+      U     #ShutOffA.StHN; 
+      ON    #tmpWithShutOffValves; 
+      U     #tmpEnableAirlock; 
+      U     #tmpWayA; 
+      UN    #Ma.InDisableAirlockA; 
+      U(    ; 
+      U     #Diverter.StLN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      )     ; 
+      =     #AirlockA.InEnableFwd; 
+
+      U     #ShutOffA.StLN; 
+      O     #tmpWayA; 
+      U     #ShutOffB.StHN; 
+      U     #tmpEnableAirlock; 
+      U     #tmpWayB; 
+      UN    #Ma.Par.ParSingleLine; 
+      O(    ; 
+      U     #ShutOffA.StHN; 
+      ON    #tmpWithShutOffValves; 
+      U     #tmpEnableAirlock; 
+      U     #tmpWayB; 
+      O     #AirlockA.InEnableFwd; 
+      U     #Ma.Par.ParSingleLine; 
+      )     ; 
+      UN    #Ma.InDisableAirlockB; 
+      U(    ; 
+      U     #Diverter.StHN; 
+      ON    #Ma.Par.ParWithDiverter; 
+      )     ; 
+      =     #AirlockB.InEnableFwd; 
+// 
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; //[5.5]
+      =     #AirlockA.InSeqStop; 
+      =     #AirlockB.InSeqStop; 
+// 
+//--- Interlocking pressure  [5.2] moved to "global end"
+// 
+//--- Interlocking HL        [6.2] moved to "global end"
+//--- Interlocking Diverter
+      UN    #Ma.Par.ParWithDiverter; 
+      SPB   EnX1; 
+      U     #BlowOff.StHN; 
+      ON    #Ma.Par.ParWithBlowOff; 
+      U     #ShutOffB.StLN; 
+      U     #tmpWayA; 
+      S     #Diverter.InEnableLN; 
+      R     #Diverter.InEnableHN; 
+      U     #BlowOff.StHN; 
+      ON    #Ma.Par.ParWithBlowOff; 
+      U     #ShutOffA.StLN; 
+      U     #tmpWayB; 
+      R     #Diverter.InEnableLN; 
+      S     #Diverter.InEnableHN; 
+// 
+//--- Local mode --
+EnX1: U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Blower.InLocal; 
+      =     #AirlockA.InLocal; 
+      =     #AirlockB.InLocal; 
+      =     #Diverter.InLocal; //[6.3]
+
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      U     #tmpBlowerStopped; 
+      =     #tmpPressureLocal; 
+
+      U     #BlowOff.StLN; //[5.5]
+      O     #BlowOff.StFault; //[5.5]
+      U     #tmpPressureLocal; //[5.5]
+      S     #BlowOff.InLocal; //[5.5]
+
+      U     #ShutOffA.StLN; //[5.5]
+      O     #ShutOffA.StFault; //[5.5]
+      U     #tmpPressureLocal; //[5.5]
+      S     #ShutOffA.InLocal; //[5.5]
+
+      U     #ShutOffB.StLN; //[5.5]
+      O     #ShutOffB.StFault; //[5.5]
+      U     #tmpPressureLocal; //[5.5]
+      S     #ShutOffB.InLocal; //[5.5]
+
+      UN    #tmpPressureLocal; //[5.5]
+      R     #BlowOff.InLocal; 
+      R     #ShutOffA.InLocal; 
+      R     #ShutOffB.InLocal; 
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #Pressure.CmdFaultReset; 
+      S     #BlowOff.CmdFaultReset; 
+      S     #ShutOffA.CmdFaultReset; 
+      S     #ShutOffB.CmdFaultReset; 
+      S     #Blower.CmdFaultReset; 
+      S     #AirlockA.CmdFaultReset; 
+      S     #AirlockB.CmdFaultReset; 
+      S     #HLInletA.CmdFaultReset; 
+      S     #HLInletB.CmdFaultReset; 
+      UN    #Ma.Par.ParWithDiverter; 
+      SPB   FrX1; 
+      U     #Ma.CmdFaultReset; // [5.4]
+      S     #Diverter.CmdFaultReset; 
+//Warning
+FrX1: U     #Pressure.OutNoMinP; 
+      =     #Ma.OutWarning; 
+NETWORK
+TITLE =Call PRange: Pressure
+
+      CALL #Pressure ;
+
+NETWORK
+TITLE =Call VLS: Blow off
+
+      UN    #Ma.Par.ParWithBlowOff; 
+      SPB   el3; 
+      CALL #BlowOff ;
+
+NETWORK
+TITLE =Call VLS: ShutOffA
+
+el3:  UN    #tmpWithShutOffValves; 
+      SPB   el4; 
+      CALL #ShutOffA ;
+
+NETWORK
+TITLE =Call VLS: ShutOffB
+
+el4:  U     #Ma.Par.ParSingleLine; 
+      SPB   el5; 
+      CALL #ShutOffB ;
+
+NETWORK
+TITLE =Call Blower
+
+el5:  U     #Ma.Par.ParBlowerExternal; 
+      SPB   el6; 
+      CALL #Blower ;
+
+NETWORK
+TITLE =Call AirlockA
+
+el6:  CALL #AirlockA ;
+
+NETWORK
+TITLE =Call AirlockB
+
+      CALL #AirlockB ;
+
+NETWORK
+TITLE =Call Digital Input: HLInletA
+
+      CALL #HLInletA ;
+
+NETWORK
+TITLE =Call Digital Input: HLInletB
+
+      CALL #HLInletB ;
+
+NETWORK
+TITLE =Call Digital Output: Diverter
+
+      UN    #Ma.Par.ParWithDiverter; 
+      SPB   SPen; 
+      CALL #Diverter ;
+SPen: NOP   0; 
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StClearing; 
+      SPB   S5; // ===> State
+      U     #Ma.StCleared; 
+      SPB   S6; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> ST_FAULT:
+// Condition for StStarting
+      UN    #tmpBlowerStopped; 
+      ON    #AirlockA.StStopped; 
+      ON    #AirlockB.StStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #Blower.StStarting; 
+      UN    #Ma.Par.ParBlowerExternal; 
+      UN    #tmpBlowerStarted; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //-->StStopping
+// Condition for StStarted
+      U     #AirlockA.StStartedFwd; 
+      O     #AirlockB.StStartedFwd; 
+      U     #tmpBlowerStarted; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+// Condition for StClearing
+      UN    #Ma.Par.ParWithBlowOff; 
+      O     #tmpBlowOffStLN; 
+      U     #tmpBlowerStarted; 
+      UN    #AirlockA.StStarting; 
+      UN    #AirlockB.StStarting; 
+      R     #Ma.StStarting; 
+      SPB   xxS5; //-->StClearing
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StClearing
+      UN    #AirlockA.StStartedFwd; 
+      UN    #AirlockB.StStartedFwd; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //-->StClearing  
+// Condition for StStarted
+      UN    #tmpBlowerStarted; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //-->StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Stopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #tmpBlowerStopped; 
+      U     #AirlockA.StStopped; 
+      U     #AirlockB.StStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //-->StStopped
+// Condition for StStarting
+      UN    #Blower.StStopping; 
+      UN    #Ma.Par.ParBlowerExternal; 
+      O     #tmpBlowerStarted; 
+      UN    #AirlockA.StStopping; 
+      UN    #AirlockB.StStopping; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+NETWORK
+TITLE =Fault
+//any Transition 
+xxS4: S     #Ma.StFault; 
+      SPA   OUT; 
+//=== Logic
+S4:   U     #tmpFaultSum; 
+      SPB   OUT; 
+//    ---- Transition --
+      R     #Ma.StFault; 
+      SPA   xxS0; //-->StStopping 
+
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+S5J2: L     #Ma.Par.ParClearingTime; 
+      T     #Ma.Par.OutClearingTime; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StClearing; 
+      SPB   xxS4; //-->StFault
+// Condition for StStopping
+      UN    #tmpBlowerStarted; 
+      R     #Ma.StClearing; 
+      SPB   xxS3; //-->StStopping  
+// Condition for StStarted
+      U     #AirlockA.StStartedFwd; 
+      O     #AirlockB.StStartedFwd; 
+      U     #tmpBlowerStarted; 
+      R     #Ma.StClearing; 
+      SPB   xxS2; //-->StStarted
+// Condition for StCleared
+      L     0; 
+      L     #Ma.Par.OutClearingTime; 
+      >=I   ; 
+      U(    ; 
+      U     #Pressure.StMinP; 
+      O     #Ma.InNoWaitMinP; // [4.0]
+      )     ; 
+      R     #Ma.StClearing; 
+      SPB   xxS6; //-->StCleared 
+      UN    #BlowOff.StLN; 
+      U     #Ma.Par.ParWithBlowOff; 
+      O     ; 
+      UN    #Pressure.StMinP; 
+      UN    #Ma.InNoWaitMinP; // [4.0]
+      SPB   S5J2; 
+      ON    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      SPB   OUT; 
+      +     -5; 
+      T     #Ma.Par.OutClearingTime; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StCleared
+//any Transition 
+xxS6: S     #Ma.StCleared; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StFault
+S6:   U     #tmpFaultSum; 
+      R     #Ma.StCleared; 
+      SPB   xxS4; //-->StFault
+// Condition for StStopping
+      UN    #tmpBlowerStarted; 
+      R     #Ma.StCleared; 
+      SPB   xxS3; //-->StStopping
+// Condition for StStarted
+      U     #AirlockA.StStartedFwd; 
+      O     #AirlockB.StStartedFwd; 
+      U     #tmpBlowerStarted; 
+      R     #Ma.StCleared; 
+      SPB   xxS2; //-->StStarted
+      SPA   OUT; 
+
+NETWORK
+TITLE =State Code
+// State     StCode
+// ----------------------
+// StFault32
+// StStopped    1
+// StStarting   2
+// StStarted    3
+// StClearing   4
+// StCleared    5
+// StClearingWarning  6
+// StStopping   7
+OUT:  U     #Ma.StStopped; 
+      L     1; //Code=StStopped
+      SPB   Code; 
+      U     #Ma.StStarted; 
+      L     3; //Code=StStarted
+      SPB   Code; 
+      U     #Ma.StCleared; 
+      L     5; //Code=StCleared
+      SPB   Code; 
+      U     #Ma.StClearing; 
+      UN    #Ma.OutWarning; 
+      L     4; //Code=StClearing 
+      SPB   Code; 
+      U     #Ma.StClearing; 
+      L     6; //Code=StWarning 
+      SPB   Code; 
+      U     #Ma.StStarting; 
+      L     2; //Code=StStarting
+      SPB   Code; 
+      U     #Ma.StStopping; 
+      L     7; //Code=StStopping 
+      SPB   Code; 
+      L     32; //Code=StFault 
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+NETWORK
+TITLE =Global End
+
+      CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdAirlockOff; 
+// 
+//--- Interlocking pressure 
+      U     #BlowOff.StLN; 
+      ON    #Ma.Par.ParWithBlowOff; 
+      UN    #AirlockA.StStartedFwd; 
+      UN    #AirlockB.StStartedFwd; 
+      U     #tmpBlowerStarted; 
+      =     #Pressure.InMonMinP; 
+
+      U     #Ma.InLocal; //[5.7]
+      UN    #Ma.InManual; //[5.7]
+      U     #tmpBlowerStopped; //[5.7]
+      =     #Pressure.InLocal; //[5.7]
+
+//--- InLocal high levels // [5.6] moved to Global End
+      UN    #tmpWayA; 
+      U     #tmpWayB; 
+      O     #AirlockA.InLocal; 
+      =     #HLInletA.InLocal; 
+      UN    #tmpWayB; 
+      O     #AirlockB.InLocal; 
+      =     #HLInletB.InLocal; 
+//--- Interlocking HL        [6.2] moved to "global end"
+      SET   ; 
+      S     #HLInletA.InMonFalse; 
+      S     #HLInletB.InMonFalse; 
+END_FUNCTION_BLOCK
+

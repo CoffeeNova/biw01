@@ -1,0 +1,1434 @@
+	FUNCTION_BLOCK FB 195
+	TITLE =G095M BELT CONVEYOR 4500 GERM
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        BELT CONVEYOR 4500 GERM
+	//                Machine group control
+	//                Maschinengruppensteuerung
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	// 
+	//P01_FB195.1.0 K.Renz              CSB41                              13.Jan.2010
+	//             1st Release
+	// 
+	//--------------------------------------------------------------------------------
+	// 
+	//PURPOSE: 
+	// 
+	//MANUAL : 
+	// 
+	//RESTRICTIONS: 
+	// 
+	//--------------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	
+	
+	VAR
+	  Gr       : FB10;	//Standard interface to group
+	  InOutValue1    : DINT; //Data for user
+	  InOutValue2    : DINT; //Data for user
+	  OutWayConflict : BOOL;	//Data for user
+	  OutSelectionOk : BOOL;	//Data for user
+	  CmdNewValue : BOOL;	//Data for user
+	  CmdNewJob   : BOOL;	//Data for user
+	  OutCodeOK   : BOOL;	//Data for user
+	  InEndOfJob  : BOOL ;	//Data for user
+	  staWayOk      : BOOL ;	//Data for user
+	  EdgeStartRelease : BOOL ;	//Data for user
+	  USW8  : BOOL;	//Data for user
+	  USW9 : BOOL;	//Data for user
+	  USW10: BOOL;	//Data for user
+	  USW11: BOOL;	//Data for user
+	  USW12: BOOL;	//Data for user
+	  USW13: BOOL;	//Data for user
+	  USW14: BOOL;	//Data for user
+	  USW15: BOOL;	//Data for user
+	     #A_1941_MXZ01MA : FB1004;   // Motor+6DI 
+	     #A_1941_BFT17 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT18 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT19 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT20 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT21 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT22 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT23 : FB84;   // SubType FB14: DigInpCont 
+	     #A_1941_BFT24 : FB84;   // SubType FB14: DigInpCont 
+	     spare582 : ARRAY[582..593] of BYTE;
+	     #A_1942_BZS12 : FB14;   // DigInpCont 
+	     #A_1942_BZS13 : FB14;   // DigInpCont 
+	     spare662 : ARRAY[662..831] of BYTE;
+	     #A_1942_BZS11 : FB14;   // DigInpCont 
+	     #A_1942_BZS14 : FB14;   // DigInpCont 
+	     #A_1942_BZS15 : FB14;   // DigInpCont 
+	     #A_1942_BZS16 : FB14;   // DigInpCont 
+	     #A_1942_BZS17 : FB14;   // DigInpCont 
+	     #A_1942_BZS18 : FB14;   // DigInpCont 
+	     #A_1942_BZS19 : FB14;   // DigInpCont 
+	     #A_1942_BZS20 : FB14;   // DigInpCont 
+	     #A_1942_BZS21 : FB14;   // DigInpCont 
+	     #A_1942_BZS22 : FB14;   // DigInpCont 
+	     #A_1942_BZS23 : FB14;   // DigInpCont 
+	     #A_1942_BZS24 : FB14;   // DigInpCont 
+	     #A_1942_BZS25 : FB14;   // DigInpCont 
+	     #A_1942_BZS26 : FB14;   // DigInpCont 
+	     #A_1942_BZS27 : FB14;   // DigInpCont 
+	     #A_1942_BZS28 : FB14;   // DigInpCont 
+	     #A_1942_BZS29 : FB14;   // DigInpCont 
+	     #A_1942_MXZ0MA : FB1005;   // Motor+6DI 
+	END_VAR
+	VAR_TEMP
+	   tmpEnable		: BOOL;
+	   tmpFlag  		: BOOL;
+	   tmpCmdNext		: BOOL;
+	   tmpLocal  		: BOOL;
+	   tmpAspOk  		: BOOL;
+	   tmpHWStop 		: BOOL;
+	   tmpInstanzDBNo       : INT ;
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =
+	NETWORK
+	TITLE =Read command from group control
+	//Parameter
+	      SET;
+	      S   GCS7_GrCtrlDB.ParMGR[95];
+	      R   GCS7_GrCtrlDB.ParWGR[95];
+	      R   GCS7_GrCtrlDB.ParGGR[95];
+	      R   GCS7_GrCtrlDB.ParFeed[95];
+	      R   GCS7_GrCtrlDB.ParShare[95];
+	      S   #Gr.Par.ParMgr;
+	      R   #Gr.Par.ParWgr;
+	      R   #Gr.Par.ParGgr;
+	//Command
+	      U   #GCS7_GrCtrlDB.OutEnable[95];
+	      =   #Gr.InEnableGr;
+	      U   #GCS7_GrCtrlDB.OutOccupied[95];
+	      =   #Gr.InOccupied;
+	      U   #GCS7_GrCtrlDB.CmdFaultReset[95];
+	      R   #GCS7_GrCtrlDB.CmdFaultReset[95];
+	      S   #Gr.CmdFaultReset;
+	      U  #GCS7_GrCtrlDB.CmdNext[95];
+	      R   #GCS7_GrCtrlDB.CmdNext[95];
+	      S   #Gr.CmdNext;
+	      U   #GCS7_GrCtrlDB.CmdManualOff[95];
+	      O   #GCS7_GrCtrlDB.OutOccupied[95];
+	      R   GCS7_GrCtrlDB.CmdManualOff[95];
+	      S   #Gr.CmdManualOff;
+	      U  GCS7_GrCtrlDB.CmdContinue[95];
+	      R   GCS7_GrCtrlDB.CmdContinue[95];
+	      S   #Gr.CmdContinue;
+	//Init Line Number
+	      U   GCS7_GrCtrlDB.ParShare[95];
+	      SPBN WE00; 
+	      L     0;
+	      T     #Gr.InLine;
+	WE00: NOP   0;
+	NETWORK
+	TITLE =Call Methode Control
+	// 1. Handle Interface PCControl      
+	// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+	// 3. Reset global flags of the group
+	      CALL #Gr (
+	           FcCode                   := 1);
+	NETWORK
+	TITLE =Restart Idling Time
+		L  #Gr.Par.ParIdling;
+		L  2;
+		>=I;
+		SPB IdTm;
+		T  #Gr.Par.ParIdling;
+	IdTm:   NOP 0;
+	      CLR; 
+	      S    #Gr.CmdRestartIdling; 
+	NETWORK
+	TITLE =Prepare global flags
+	NETWORK
+	TITLE =Set Pattern (Target position)
+	NETWORK
+	TITLE =Interlocking WayOk
+	//
+	NETWORK
+	TITLE =Interlocking Autostart
+		CLR;
+		R   #Gr.OutAutostart;
+	NETWORK
+	TITLE =Interlocking Enable
+	      U     #Gr.InEnableGr; 
+	      =     #Gr.OutEnableEl; 
+	      
+	NETWORK
+	TITLE =Interlocking Next
+	      U     #Gr.CmdNext;
+	      U     #Gr.OutAutostart;
+	      UN    #Gr.OutNewWay;
+	      =    #tmpCmdNext;
+	      
+	NETWORK
+	TITLE =Interlocking Local / HWStop
+	      U    DB050.DBX30.0;
+	      =    #tmpHWStop;
+	
+	      U    #Gr.ModePassive;
+	      O    #tmpHWStop;
+	      =    #tmpLocal;
+	 
+	NETWORK
+	TITLE =Interlocking Start Warning
+	      NOP 0;
+	//- Restart after fault --
+	      U     #Gr.CmdFaultReset;
+	      U     #Gr.VarFault;
+	      S       "SYS_StartWarningDB".Area[1].CmdResetStartWarning;
+	//- Run Timer --
+	      AUF "G095M";
+	      CALL  FB100 , DB100(
+	       InModeHigher :=FALSE,
+	       InArea     :=1,
+	       InEnable   :=#Gr.OutEnableEl,
+	       InLocal    :=#tmpLocal,
+	       InStarted  :=#Gr.VarStarted,
+	       InCmdNext  :=#tmpCmdNext,
+	       OutCmdNext :=#tmpCmdNext,
+	       OutStartwarning:=#Gr.VarStartWarning);
+	//- Store Startwarning done  --
+	//- Reset Autostart --
+	      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL;
+	      FN    #EdgeStartRelease;
+	      U     #Gr.VarFault;
+	      R     #Gr.OutAutostart;
+	NETWORK
+	TITLE ==A-1941-BFT17 : STOWING DETECTOR DISCHARGE 1
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT17.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT17.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT17.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT17.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT17.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT17.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.1; 
+	      =     #A_1941_BFT17.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT17.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT17.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT17;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT18 : STOWING DETECTOR DISCHARGE 2
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT18.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT18.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT18.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT18.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT18.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT18.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.2; 
+	      =     #A_1941_BFT18.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT18.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT18.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT18;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT19 : STOWING DETECTOR DISCHARGE 3
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT19.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT19.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT19.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT19.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT19.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT19.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.3; 
+	      =     #A_1941_BFT19.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT19.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT19.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT19;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT20 : STOWING DETECTOR DISCHARGE 4
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT20.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT20.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT20.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT20.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT20.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT20.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.4; 
+	      =     #A_1941_BFT20.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT20.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT20.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT20;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT21 : STOWING DETECTOR DISCHARGE 5
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT21.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT21.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT21.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT21.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT21.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT21.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.5; 
+	      =     #A_1941_BFT21.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT21.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT21.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT21;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT22 : STOWING DETECTOR DISCHARGE 6
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT22.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT22.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT22.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT22.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT22.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT22.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.6; 
+	      =     #A_1941_BFT22.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT22.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT22.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT22;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT23 : STOWING DETECTOR DISCHARGE 7
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT23.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT23.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT23.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT23.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT23.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT23.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1110.7; 
+	      =     #A_1941_BFT23.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT23.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT23.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT23;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-BFT24 : STOWING DETECTOR DISCHARGE 8
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_BFT24.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1941_BFT24.InMonCovered; 
+	      SET;
+	      =      #A_1941_BFT24.InMonUncovered; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1941_BFT24.InPreAlarmCovered; 
+	      CLR;
+	      =      #A_1941_BFT24.InPreAlarmUncovered; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1941_BFT24.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      UN    E 1111.0; 
+	      =     #A_1941_BFT24.InpCovered; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_BFT24.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_BFT24.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_BFT24;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1941-MXZ01MA : BELT CONVEYOR 4500
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1941_MXZ01MA.Ma.InLocal; 
+	//
+	//-Interlocking---
+	      UN    #A_1941_BFT17.StFault;
+	      UN    #A_1941_BFT18.StFault;
+	      UN    #A_1941_BFT19.StFault;
+	      UN    #A_1941_BFT20.StFault;
+	      UN    #A_1941_BFT21.StFault;
+	      UN    #A_1941_BFT22.StFault;
+	      UN    #A_1941_BFT23.StFault;
+	      UN    #A_1941_BFT24.StFault;
+	      U     #Gr.OutEnableEl; 
+	      =     #A_1941_MXZ01MA.Ma.InEnableFwd; 
+	//
+	      U    #tmpCmdNext;
+	      S     #A_1941_MXZ01MA.Ma.CmdNext; 
+	//
+	      U     #Gr.OutSeqStop; 
+	      =     #A_1941_MXZ01MA.Ma.InSeqStop; 
+	// 
+	//=Values and commands of elements===
+	//-=A-1941-BSA13---
+	//      CLR
+	//      S     #A_1941_MXZ01MA.A_1941_BSA13.CmdRunTimeOutTime
+	//-=A-1941-BZS31/32---
+	//      CLR
+	//      S     #A_1941_MXZ01MA.A_1941_BZS31_32.CmdRunTimeOutTime
+	//-=A-1941-BZS33/34---
+	//      CLR
+	//      S     #A_1941_MXZ01MA.A_1941_BZS33_34.CmdRunTimeOutTime
+	// 
+	//-Read inputs of elements---
+	      U     E 1110.0; 
+	      =     #A_1941_MXZ01MA.A_1941_BSA13.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_MXZ01MA.A_1941_BSA13.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_MXZ01MA.A_1941_BSA13.InDPFault;
+	      U     E 1111.1; 
+	      =     #A_1941_MXZ01MA.A_1941_BZS31_32.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_MXZ01MA.A_1941_BZS31_32.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_MXZ01MA.A_1941_BZS31_32.InDPFault;
+	      U     E 1111.2; 
+	      =     #A_1941_MXZ01MA.A_1941_BZS33_34.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_MXZ01MA.A_1941_BZS33_34.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1941_MXZ01MA.A_1941_BZS33_34.InDPFault;
+	      U     E 1102.4; 
+	      =     #A_1941_MXZ01MA.A_1941_MXZ01.InpRunFwd; 
+	      U   DB050.DBX31.0;
+	      =     #A_1941_MXZ01MA.A_1941_MXZ01.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #A_1941_MXZ01MA.A_1941_MXZ01.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1941_MXZ01MA;
+	// 
+	//-Write outputs---
+	      U     #A_1941_MXZ01MA.A_1941_MXZ01.OutpRunFwd; 
+	      =     A 1102.4; 
+	NETWORK
+	TITLE ==A-1942-BZS12 : DISCHARGE CHUTE LEFT SIDE
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS12.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS12.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS12.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS12.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS12.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS12.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1111.5; 
+	      =     #A_1942_BZS12.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS12.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS12.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS12;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS13 : DISCHARGE CHUTE RIGHT SIDE
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS13.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS13.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS13.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS13.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS13.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS13.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1111.6; 
+	      =     #A_1942_BZS13.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS13.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS13.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS13;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-MXZ0MA : CHUTE DRIVE
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_MXZ0MA.Ma.InLocal; 
+	//
+	//-Interlocking---
+	      U A_1941_MXZ01MA.Ma.StStartedFwd;
+
+	      UN    #A_1942_BZS12.StFault;
+	      UN    #A_1942_BZS13.StFault;
+	      U     #Gr.OutEnableEl; 
+	      =     #A_1942_MXZ0MA.Ma.InEnableFwd; 
+	//
+	      U    #tmpCmdNext;
+	      S     #A_1942_MXZ0MA.Ma.CmdNext; 
+	//
+	      U     #Gr.OutSeqStop; 
+	      =     #A_1942_MXZ0MA.Ma.InSeqStop; 
+	// 
+	//=Values and commands of elements===
+	//-=A-1942-QYS31---
+	//      CLR
+	//      S     #A_1942_MXZ0MA.A_1942_QYS31.CmdRunTimeOutTime
+	//-=A-1942-QYS32---
+	//      CLR
+	//      S     #A_1942_MXZ0MA.A_1942_QYS32.CmdRunTimeOutTime
+	// 
+	//-Read inputs of elements---
+	      U     E 1105.6; 
+	      =     #A_1942_MXZ0MA.A_1942_QYS31.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_MXZ0MA.A_1942_QYS31.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #A_1942_MXZ0MA.A_1942_QYS31.InDPFault;
+	      U     E 1105.7; 
+	      =     #A_1942_MXZ0MA.A_1942_QYS32.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_MXZ0MA.A_1942_QYS32.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #A_1942_MXZ0MA.A_1942_QYS32.InDPFault;
+	      U     E 1102.6; 
+	      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunFwd; 
+	      U     E 1102.7; 
+	      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunRev; 
+	      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunSlow; 
+	      =     #A_1942_MXZ0MA.A_1942_MXZ01.InpRunSlow; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_MXZ0MA.A_1942_MXZ01.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[110];
+	       =       #A_1942_MXZ0MA.A_1942_MXZ01.InDPFault;
+	      SET; 
+	      =     #A_1942_MXZ0MA.Mon2.InpTrue; 
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_MXZ0MA;
+	// 
+	//-Write outputs---
+	      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunFwd; 
+	      =     A 1102.6; 
+	      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunRev; 
+	      =     A 1102.7; 
+	      U     #A_1942_MXZ0MA.A_1942_MXZ01.OutpRunSlow; 
+	      =     A 1102.5; 
+	NETWORK
+	TITLE ==A-1942-BZS11 : DISCHARGE CHUTE PARKING POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS11.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS11.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS11.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS11.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS11.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS11.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1111.4; 
+	      =     #A_1942_BZS11.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS11.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS11.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS11;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS14 : DISCHARGE CHUTE G1A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS14.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS14.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS14.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS14.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS14.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS14.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.0; 
+	      =     #A_1942_BZS14.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS14.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS14.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS14;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS15 : DISCHARGE CHUTE G1B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS15.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS15.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS15.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS15.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS15.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS15.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.1; 
+	      =     #A_1942_BZS15.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS15.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS15.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS15;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS16 : DISCHARGE CHUTE G2A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS16.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS16.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS16.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS16.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS16.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS16.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.2; 
+	      =     #A_1942_BZS16.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS16.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS16.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS16;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS17 : DISCHARGE CHUTE G2B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS17.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS17.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS17.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS17.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS17.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS17.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.3; 
+	      =     #A_1942_BZS17.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS17.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS17.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS17;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS18 : DISCHARGE CHUTE G3A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS18.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS18.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS18.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS18.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS18.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS18.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.4; 
+	      =     #A_1942_BZS18.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS18.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS18.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS18;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS19 : DISCHARGE CHUTE G3B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS19.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS19.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS19.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS19.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS19.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS19.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.5; 
+	      =     #A_1942_BZS19.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS19.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS19.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS19;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS20 : DISCHARGE CHUTE G4A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS20.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS20.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS20.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS20.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS20.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS20.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.6; 
+	      =     #A_1942_BZS20.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS20.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS20.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS20;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS21 : DISCHARGE CHUTE G4B  IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS21.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS21.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS21.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS21.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS21.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS21.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1112.7; 
+	      =     #A_1942_BZS21.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS21.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS21.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS21;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS22 : DISCHARGE CHUTE G5A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS22.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS22.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS22.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS22.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS22.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS22.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.0; 
+	      =     #A_1942_BZS22.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS22.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS22.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS22;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS23 : DISCHARGE CHUTE G5B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS23.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS23.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS23.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS23.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS23.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS23.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.1; 
+	      =     #A_1942_BZS23.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS23.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS23.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS23;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS24 : DISCHARGE CHUTE G6A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS24.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS24.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS24.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS24.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS24.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS24.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.2; 
+	      =     #A_1942_BZS24.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS24.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS24.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS24;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS25 : DISCHARGE CHUTE G6B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS25.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS25.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS25.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS25.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS25.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS25.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.3; 
+	      =     #A_1942_BZS25.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS25.InHWStop;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS25;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS26 : DISCHARGE CHUTE G7A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS26.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS26.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS26.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS26.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS26.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS26.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.4; 
+	      =     #A_1942_BZS26.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS26.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS26.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS26;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS27 : DISCHARGE CHUTE G7B  IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS27.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS27.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS27.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS27.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS27.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS27.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.5; 
+	      =     #A_1942_BZS27.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS27.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS27.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS27;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS28 : DISCHARGE CHUTE G8A LOW ROTARY SPEED
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS28.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS28.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS28.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS28.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS28.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS28.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.6; 
+	      =     #A_1942_BZS28.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS28.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS28.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS28;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE ==A-1942-BZS29 : DISCHARGE CHUTE G8B IN POSITION
+	NOP 0;
+	//-InLocal---
+	      U     #tmpLocal; 
+	      =     #A_1942_BZS29.InLocal; 
+	// 
+	//-Monitoring---
+	      CLR;
+	      =      #A_1942_BZS29.InMonTrue; 
+	      CLR;
+	      =      #A_1942_BZS29.InMonFalse; 
+	// 
+	//-PreAlarm---
+	      CLR;
+	      =      #A_1942_BZS29.InPreAlarmTrue; 
+	      CLR;
+	      =      #A_1942_BZS29.InPreAlarmFalse; 
+	// 
+	//-Additional commands---
+	//      CLR
+	//      S     #A_1942_BZS29.CmdRunTimeOutTime
+	// 
+	//-Read inputs---
+	      U     E 1113.7; 
+	      =     #A_1942_BZS29.InpTrue; 
+	      U   DB050.DBX31.0;
+	      =     #A_1942_BZS29.InHWStop;
+	       U     PLC_DPInfo.Master[1].SlavesError[111];
+	       =       #A_1942_BZS29.InDPFault;
+	// 
+	//-Set Parameters---
+	// 
+	//-Call object control---
+	      CALL  #A_1942_BZS29;
+	// 
+	//-Write outputs---
+	NETWORK
+	TITLE =Test Fault
+	      U     #A_1941_BFT17.StFault;
+	      O     #A_1941_BFT18.StFault;
+	      O     #A_1941_BFT19.StFault;
+	      O     #A_1941_BFT20.StFault;
+	      O     #A_1941_BFT21.StFault;
+	      O     #A_1941_BFT22.StFault;
+	      O     #A_1941_BFT23.StFault;
+	      O     #A_1941_BFT24.StFault;
+	      O     #A_1941_MXZ01MA.Ma.StFault;
+	      O     #A_1942_BZS12.StFault;
+	      O     #A_1942_BZS13.StFault;
+	      O     #A_1942_MXZ0MA.Ma.StFault;
+	      O     #A_1942_BZS11.StFault;
+	      O     #A_1942_BZS14.StFault;
+	      O     #A_1942_BZS15.StFault;
+	      O     #A_1942_BZS16.StFault;
+	      O     #A_1942_BZS17.StFault;
+	      O     #A_1942_BZS18.StFault;
+	      O     #A_1942_BZS19.StFault;
+	      O     #A_1942_BZS20.StFault;
+	      O     #A_1942_BZS21.StFault;
+	      O     #A_1942_BZS22.StFault;
+	      O     #A_1942_BZS23.StFault;
+	      O     #A_1942_BZS24.StFault;
+	      O     #A_1942_BZS25.StFault;
+	      O     #A_1942_BZS26.StFault;
+	      O     #A_1942_BZS27.StFault;
+	      O     #A_1942_BZS28.StFault;
+	      O     #A_1942_BZS29.StFault;
+	      =     #Gr.VarFault; 
+	NETWORK
+	TITLE =Test Warning
+	      CLR;   
+	      =     #Gr.OutWarning;
+	NETWORK
+	TITLE =Test Stopped
+	      U     #A_1941_MXZ01MA.Ma.StStopped; 
+	      U     #A_1942_MXZ0MA.Ma.StStopped; 
+	      UN   #Gr.VarFault; 
+	      =     #Gr.VarStopped; 
+	NETWORK
+	TITLE =Test Started
+	      U     #A_1941_MXZ01MA.Ma.StStartedFwd; 
+	      U(;
+	      O     #A_1942_MXZ0MA.Ma.StStartedFwd; 
+	      O     #A_1942_MXZ0MA.Ma.StStartedRev; 
+	      );
+	      UN  #Gr.VarStopped; 
+	      UN  #Gr.VarFault; 
+	      =     #Gr.VarStarted; 
+	NETWORK
+	TITLE =Enable Previous Group
+	      U    #Gr.VarStarted;
+	      =     #Gr.OutEnablePrevGr;
+	NETWORK
+	TITLE =Call Methode State
+	//1. Make State of the group: This function use the signals:
+	//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+	//2.Reset Commands to group: e.g.CmdFaultReset
+	      CALL #Gr (
+	           FcCode                   := 2);
+	NETWORK
+	TITLE =Init
+	      SET; 
+	      R    #CmdNewValue;
+	      R    #CmdNewJob;
+	NETWORK
+	TITLE =Write data to group control
+	      U   #Gr.StStopped;
+	      =   GCS7_GrCtrlDB.InStopped[95];
+	      U   #Gr.StStarted;
+	      =   GCS7_GrCtrlDB.InStarted[95];
+	      U   #Gr.StFault;
+	      =   GCS7_GrCtrlDB.InFault[95];
+	      U   #Gr.OutWarning;
+	      =   GCS7_GrCtrlDB.InWarning[95];
+	      U   #Gr.OutManual;
+	      =   GCS7_GrCtrlDB.InManual[95];
+	      U   #Gr.OutHWStop;
+	      =   GCS7_GrCtrlDB.InHWStop[95];
+	      U   #Gr.OutDPFault;
+	      =   GCS7_GrCtrlDB.InDPFault[95];
+	      U   #Gr.OutLoaded;
+	      =   GCS7_GrCtrlDB.InLoaded[95];
+	      U   #Gr.OutAutoStart;
+	      =   GCS7_GrCtrlDB.InAutoStart[95];
+	      U   #Gr.VarStartWarning;
+	      =   GCS7_GrCtrlDB.InStartWarning[95];
+	NETWORK
+	TITLE =End of block
+	
+	BE
+	
+	END_FUNCTION_BLOCK

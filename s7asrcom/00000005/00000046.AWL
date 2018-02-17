@@ -1,0 +1,69 @@
+FUNCTION FC 51 : VOID
+TITLE =DB Clear  
+//
+//COPYRIGHT:         (C) 1999 BY  BUEHLER AG
+//                                CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:          GCS7
+//
+//TITLE:            DB CLEAR S7
+//
+//--------------------------------------------------------------------------
+//
+//IDENT:            CLEAR.1A    R.STEIGER SC41                     22-Jan-98
+//                    First release 
+//--------------------------------------------------------------------------
+//
+//PURPOSE   : 
+//
+//RESTRICTIONS :    S7
+//
+//---------------------------------------------------------------------------
+//
+AUTHOR : EA
+FAMILY : GCS7SYS
+NAME : CLEAR
+VERSION : 0.0
+CODE_VERSION1
+
+
+VAR_INPUT
+  DBDest : INT ;	//DB number destination DB
+  ByteDest : INT ;	//Byte of first byte in destination DB
+  NoOfByte : INT ;	//Number of byte to delete
+END_VAR
+VAR_OUTPUT
+  Fault : BOOL ;	//1=Fault; not posible to delete
+END_VAR
+VAR_TEMP
+  Src : BYTE ;	
+  Dest : ANY ;	
+  error : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     0; 
+      T     #Src; //->Source
+      L     W#16#1002; //S7 word
+      T     LW     2; //->Dest.type
+      L     #NoOfByte; 
+      T     LW     4; //->Dest.factor
+      L     #DBDest; 
+      T     LW     6; //->Dest.DB
+      L     #ByteDest; 
+      SLD   3; //->Dest.BitAddress
+      L     DW#16#84000000; 
+      OD    ; 
+      T     LD     8; 
+      CALL SFC   21 (
+           BVAL                     := #Src,// Source
+           RET_VAL                  := #error,
+           BLK                      := #Dest);
+      L     #error; 
+      L     0; 
+      <>I   ; 
+      =     #Fault; 
+END_FUNCTION
+

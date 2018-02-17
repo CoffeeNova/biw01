@@ -1,0 +1,749 @@
+
+FUNCTION_BLOCK "G010G_Code"
+TITLE =G010G Line messages
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        Line messages
+//                General group control
+//                Allgemeine Gruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB110.1.0 K.Renz              CSB41                              29.Sep.2009
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  spare60 : ARRAY  [60 .. 251 ] OF BYTE ;	
+  Msg01 : "GCS7_E_MessageCtrl";	// MSG 
+     #Msg02 : FB25;   // MSG 
+  Msg02 : "GCS7_E_MessageCtrl";	// MSG 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      R     "GCS7_GrCtrlDB".ParMGR[10]; 
+      R     "GCS7_GrCtrlDB".ParWGR[10]; 
+      S     "GCS7_GrCtrlDB".ParGGR[10]; 
+      R     "GCS7_GrCtrlDB".ParFeed[10]; 
+      S     "GCS7_GrCtrlDB".ParShare[10]; 
+      R     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      S     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[10]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[10]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[10]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[10]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[10]; 
+      R     "GCS7_GrCtrlDB".CmdNext[10]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[10]; 
+      O     "GCS7_GrCtrlDB".OutOccupied[10]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[10]; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdContinue[10]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[10]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[10]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+NETWORK
+TITLE =Interlocking WayOk
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Msg01 : MAL1 MALTINGLINE
+
+      NOP   0; 
+//-Release messages---
+//   CLR
+//   =     #Msg01.InMsg0
+//   CLR
+//   =     #Msg01.InMsg1 
+//   CLR
+//   =     #Msg01.InMsg2 
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+// -Set Line Number for Log Message---
+      L     "MAL1".Para.ParLineNr; //MAL1
+      T     "GCS7_Gr_OutLine"; 
+// -Call---
+      CALL #Msg01 ;
+// -Restore Line Number for Log Message---
+      L     #Gr.InLine; 
+      T     "GCS7_Gr_OutLine"; 
+// 
+//-Write outputs---
+NETWORK
+TITLE =Msg02 : DEC1 DECULMING LINE
+
+      NOP   0; 
+//-Release messages---
+//   CLR
+//   =     #Msg02.InMsg0
+//   CLR
+//   =     #Msg02.InMsg1 
+//   CLR
+//   =     #Msg02.InMsg2 
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+// -Set Line Number for Log Message---
+      L     "DEC1".Para.ParLineNr; //DEC1
+      T     "GCS7_Gr_OutLine"; 
+// -Call---
+      CALL #Msg02 ;
+// -Restore Line Number for Log Message---
+      L     #Gr.InLine; 
+      T     "GCS7_Gr_OutLine"; 
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      CLR   ; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      SET   ; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[10]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[10]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[10]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[10]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[10]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[10]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[10]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[10]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[10]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[10]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+END_FUNCTION_BLOCK
+
+
+DATA_BLOCK "G010G"
+TITLE =DBG010G  Line messages
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        Line messages
+//                General group DB
+//                Allgemeine Gruppen-DB
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:             DATE:
+//
+//P01_DB110.1.0 K.Renz              CSB41             29.Sep.2009
+//              1st Release
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE: 
+//
+//MANUAL : 
+//
+//RESTRICTIONS: 
+//
+//-------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+NAME : DBG010G
+VERSION : 0.0
+
+"G010G_Code"
+BEGIN
+   Gr.FcCode := 0; 
+   Gr.Spare2 := 0; 
+   Gr.Spare4 := 0; 
+   Gr.Spare6 := 0; 
+   Gr.OutEmptyingTime := 0; 
+   Gr.ChangeBit.spare := B#16#0; 
+   Gr.ChangeBit.CBit1 := FALSE; 
+   Gr.ChangeBit.CBit2 := FALSE; 
+   Gr.ChangeBit.CBit3 := FALSE; 
+   Gr.ChangeBit.CBit4 := FALSE; 
+   Gr.StCode := 0; 
+   Gr.InEnableGr := FALSE; 
+   Gr.CmdContinue := FALSE; 
+   Gr.CmdRestartIdling := FALSE; 
+   Gr.InReleaseEmptyingTime := FALSE; 
+   Gr.InFeeding := FALSE; 
+   Gr.InOutAutostartMan := FALSE; 
+   Gr.InPreStart := FALSE; 
+   Gr.CmdManualOff := FALSE; 
+   Gr.CmdOff := FALSE; 
+   Gr.CmdOn := FALSE; 
+   Gr.CmdNext := FALSE; 
+   Gr.CmdFaultReset := FALSE; 
+   Gr.InOccupied := FALSE; 
+   Gr.InManual := FALSE; 
+   Gr.InLoadedSec := FALSE; 
+   Gr.InSeqStop := FALSE; 
+   Gr.ModePassive := FALSE; 
+   Gr.ModeActive := FALSE; 
+   Gr.ModeIdling := FALSE; 
+   Gr.spare163 := FALSE; 
+   Gr.spare164 := FALSE; 
+   Gr.spare165 := FALSE; 
+   Gr.spare166 := FALSE; 
+   Gr.spare167 := FALSE; 
+   Gr.StStopped := FALSE; 
+   Gr.StStarting := FALSE; 
+   Gr.StStarted := FALSE; 
+   Gr.StStopping := FALSE; 
+   Gr.StFault := FALSE; 
+   Gr.OutLoaded := FALSE; 
+   Gr.OutWarning := FALSE; 
+   Gr.OutFeeding := FALSE; 
+   Gr.OutEnableEl := FALSE; 
+   Gr.OutEnable1 := FALSE; 
+   Gr.OutHWStop := FALSE; 
+   Gr.OutDPFault := FALSE; 
+   Gr.OutAutostart := FALSE; 
+   Gr.OutManual := FALSE; 
+   Gr.OutHornOn := FALSE; 
+   Gr.OutEnablePrevGr := FALSE; 
+   Gr.VarStopped := FALSE; 
+   Gr.VarStarted := FALSE; 
+   Gr.VarFault := FALSE; 
+   Gr.VarStartwarning := FALSE; 
+   Gr.VarFlag1s := FALSE; 
+   Gr.OutEmptyingTimeDone := FALSE; 
+   Gr.OutNewWay := FALSE; 
+   Gr.OutSeqStop := FALSE; 
+   Gr.OutIdlingTime := 0; 
+   Gr.InCodePreselect := 0; 
+   Gr.InLine := 0; 
+   Gr.InCode := 0; 
+   Gr.OutCode := 0; 
+   Gr.Par.ParObjectNo := 1000; 
+   Gr.Par.ParMgr := FALSE; 
+   Gr.Par.ParWgr := FALSE; 
+   Gr.Par.ParGgr := TRUE; 
+   Gr.Par.ParHornCode := 98; 
+   Gr.Par.ParIdling := 0; 
+   Gr.Par.ParEmptyingTime := 0; 
+   Gr.Par.Para1_0 := FALSE; 
+   Gr.Par.Para1_1 := FALSE; 
+   Gr.Par.Para1_2 := FALSE; 
+   Gr.Par.Para1_3 := FALSE; 
+   Gr.Par.Para1_4 := FALSE; 
+   Gr.Par.Para1_5 := FALSE; 
+   Gr.Par.Para1_6 := FALSE; 
+   Gr.Par.Para1_7 := FALSE; 
+   Gr.Par.Para1_8 := FALSE; 
+   Gr.Par.Para1_9 := FALSE; 
+   Gr.Par.Para1_10 := FALSE; 
+   Gr.Par.Para1_11 := FALSE; 
+   Gr.Par.Para1_12 := FALSE; 
+   Gr.Par.Para1_13 := FALSE; 
+   Gr.Par.Para1_14 := FALSE; 
+   Gr.Par.Para1_15 := FALSE; 
+   Gr.Par.Para2 := 0; 
+   Gr.Par.Para3 := 0; 
+   Gr.Par.Para4 := 0; 
+   Gr.Par.Para5 := 0; 
+   InOutValue1 := L#0; 
+   InOutValue2 := L#0; 
+   OutWayConflict := FALSE; 
+   OutSelectionOk := FALSE; 
+   CmdNewValue := FALSE; 
+   CmdNewJob := FALSE; 
+   OutCodeOK := FALSE; 
+   InEndOfJob := FALSE; 
+   staWayOk := FALSE; 
+   EdgeStartRelease := FALSE; 
+   USW8 := FALSE; 
+   USW9 := FALSE; 
+   USW10 := FALSE; 
+   USW11 := FALSE; 
+   USW12 := FALSE; 
+   USW13 := FALSE; 
+   USW14 := FALSE; 
+   USW15 := FALSE; 
+   spare60[60] := B#16#0; 
+   spare60[61] := B#16#0; 
+   spare60[62] := B#16#0; 
+   spare60[63] := B#16#0; 
+   spare60[64] := B#16#0; 
+   spare60[65] := B#16#0; 
+   spare60[66] := B#16#0; 
+   spare60[67] := B#16#0; 
+   spare60[68] := B#16#0; 
+   spare60[69] := B#16#0; 
+   spare60[70] := B#16#0; 
+   spare60[71] := B#16#0; 
+   spare60[72] := B#16#0; 
+   spare60[73] := B#16#0; 
+   spare60[74] := B#16#0; 
+   spare60[75] := B#16#0; 
+   spare60[76] := B#16#0; 
+   spare60[77] := B#16#0; 
+   spare60[78] := B#16#0; 
+   spare60[79] := B#16#0; 
+   spare60[80] := B#16#0; 
+   spare60[81] := B#16#0; 
+   spare60[82] := B#16#0; 
+   spare60[83] := B#16#0; 
+   spare60[84] := B#16#0; 
+   spare60[85] := B#16#0; 
+   spare60[86] := B#16#0; 
+   spare60[87] := B#16#0; 
+   spare60[88] := B#16#0; 
+   spare60[89] := B#16#0; 
+   spare60[90] := B#16#0; 
+   spare60[91] := B#16#0; 
+   spare60[92] := B#16#0; 
+   spare60[93] := B#16#0; 
+   spare60[94] := B#16#0; 
+   spare60[95] := B#16#0; 
+   spare60[96] := B#16#0; 
+   spare60[97] := B#16#0; 
+   spare60[98] := B#16#0; 
+   spare60[99] := B#16#0; 
+   spare60[100] := B#16#0; 
+   spare60[101] := B#16#0; 
+   spare60[102] := B#16#0; 
+   spare60[103] := B#16#0; 
+   spare60[104] := B#16#0; 
+   spare60[105] := B#16#0; 
+   spare60[106] := B#16#0; 
+   spare60[107] := B#16#0; 
+   spare60[108] := B#16#0; 
+   spare60[109] := B#16#0; 
+   spare60[110] := B#16#0; 
+   spare60[111] := B#16#0; 
+   spare60[112] := B#16#0; 
+   spare60[113] := B#16#0; 
+   spare60[114] := B#16#0; 
+   spare60[115] := B#16#0; 
+   spare60[116] := B#16#0; 
+   spare60[117] := B#16#0; 
+   spare60[118] := B#16#0; 
+   spare60[119] := B#16#0; 
+   spare60[120] := B#16#0; 
+   spare60[121] := B#16#0; 
+   spare60[122] := B#16#0; 
+   spare60[123] := B#16#0; 
+   spare60[124] := B#16#0; 
+   spare60[125] := B#16#0; 
+   spare60[126] := B#16#0; 
+   spare60[127] := B#16#0; 
+   spare60[128] := B#16#0; 
+   spare60[129] := B#16#0; 
+   spare60[130] := B#16#0; 
+   spare60[131] := B#16#0; 
+   spare60[132] := B#16#0; 
+   spare60[133] := B#16#0; 
+   spare60[134] := B#16#0; 
+   spare60[135] := B#16#0; 
+   spare60[136] := B#16#0; 
+   spare60[137] := B#16#0; 
+   spare60[138] := B#16#0; 
+   spare60[139] := B#16#0; 
+   spare60[140] := B#16#0; 
+   spare60[141] := B#16#0; 
+   spare60[142] := B#16#0; 
+   spare60[143] := B#16#0; 
+   spare60[144] := B#16#0; 
+   spare60[145] := B#16#0; 
+   spare60[146] := B#16#0; 
+   spare60[147] := B#16#0; 
+   spare60[148] := B#16#0; 
+   spare60[149] := B#16#0; 
+   spare60[150] := B#16#0; 
+   spare60[151] := B#16#0; 
+   spare60[152] := B#16#0; 
+   spare60[153] := B#16#0; 
+   spare60[154] := B#16#0; 
+   spare60[155] := B#16#0; 
+   spare60[156] := B#16#0; 
+   spare60[157] := B#16#0; 
+   spare60[158] := B#16#0; 
+   spare60[159] := B#16#0; 
+   spare60[160] := B#16#0; 
+   spare60[161] := B#16#0; 
+   spare60[162] := B#16#0; 
+   spare60[163] := B#16#0; 
+   spare60[164] := B#16#0; 
+   spare60[165] := B#16#0; 
+   spare60[166] := B#16#0; 
+   spare60[167] := B#16#0; 
+   spare60[168] := B#16#0; 
+   spare60[169] := B#16#0; 
+   spare60[170] := B#16#0; 
+   spare60[171] := B#16#0; 
+   spare60[172] := B#16#0; 
+   spare60[173] := B#16#0; 
+   spare60[174] := B#16#0; 
+   spare60[175] := B#16#0; 
+   spare60[176] := B#16#0; 
+   spare60[177] := B#16#0; 
+   spare60[178] := B#16#0; 
+   spare60[179] := B#16#0; 
+   spare60[180] := B#16#0; 
+   spare60[181] := B#16#0; 
+   spare60[182] := B#16#0; 
+   spare60[183] := B#16#0; 
+   spare60[184] := B#16#0; 
+   spare60[185] := B#16#0; 
+   spare60[186] := B#16#0; 
+   spare60[187] := B#16#0; 
+   spare60[188] := B#16#0; 
+   spare60[189] := B#16#0; 
+   spare60[190] := B#16#0; 
+   spare60[191] := B#16#0; 
+   spare60[192] := B#16#0; 
+   spare60[193] := B#16#0; 
+   spare60[194] := B#16#0; 
+   spare60[195] := B#16#0; 
+   spare60[196] := B#16#0; 
+   spare60[197] := B#16#0; 
+   spare60[198] := B#16#0; 
+   spare60[199] := B#16#0; 
+   spare60[200] := B#16#0; 
+   spare60[201] := B#16#0; 
+   spare60[202] := B#16#0; 
+   spare60[203] := B#16#0; 
+   spare60[204] := B#16#0; 
+   spare60[205] := B#16#0; 
+   spare60[206] := B#16#0; 
+   spare60[207] := B#16#0; 
+   spare60[208] := B#16#0; 
+   spare60[209] := B#16#0; 
+   spare60[210] := B#16#0; 
+   spare60[211] := B#16#0; 
+   spare60[212] := B#16#0; 
+   spare60[213] := B#16#0; 
+   spare60[214] := B#16#0; 
+   spare60[215] := B#16#0; 
+   spare60[216] := B#16#0; 
+   spare60[217] := B#16#0; 
+   spare60[218] := B#16#0; 
+   spare60[219] := B#16#0; 
+   spare60[220] := B#16#0; 
+   spare60[221] := B#16#0; 
+   spare60[222] := B#16#0; 
+   spare60[223] := B#16#0; 
+   spare60[224] := B#16#0; 
+   spare60[225] := B#16#0; 
+   spare60[226] := B#16#0; 
+   spare60[227] := B#16#0; 
+   spare60[228] := B#16#0; 
+   spare60[229] := B#16#0; 
+   spare60[230] := B#16#0; 
+   spare60[231] := B#16#0; 
+   spare60[232] := B#16#0; 
+   spare60[233] := B#16#0; 
+   spare60[234] := B#16#0; 
+   spare60[235] := B#16#0; 
+   spare60[236] := B#16#0; 
+   spare60[237] := B#16#0; 
+   spare60[238] := B#16#0; 
+   spare60[239] := B#16#0; 
+   spare60[240] := B#16#0; 
+   spare60[241] := B#16#0; 
+   spare60[242] := B#16#0; 
+   spare60[243] := B#16#0; 
+   spare60[244] := B#16#0; 
+   spare60[245] := B#16#0; 
+   spare60[246] := B#16#0; 
+   spare60[247] := B#16#0; 
+   spare60[248] := B#16#0; 
+   spare60[249] := B#16#0; 
+   spare60[250] := B#16#0; 
+   spare60[251] := B#16#0; 
+   Msg01.StCode := 0; 
+   Msg01.InMsg0 := FALSE; 
+   Msg01.InMsg1 := FALSE; 
+   Msg01.InMsg2 := FALSE; 
+   Msg01.InMsg3 := FALSE; 
+   Msg01.InMsg4 := FALSE; 
+   Msg01.InMsg5 := FALSE; 
+   Msg01.InMsg6 := FALSE; 
+   Msg01.InMsg7 := FALSE; 
+   Msg01.InMsg8 := FALSE; 
+   Msg01.InMsg9 := FALSE; 
+   Msg01.InMsg10 := FALSE; 
+   Msg01.InMsg11 := FALSE; 
+   Msg01.InMsg12 := FALSE; 
+   Msg01.InMsg13 := FALSE; 
+   Msg01.InMsg14 := FALSE; 
+   Msg01.InMsg15 := FALSE; 
+   Msg01.OutFlag0 := FALSE; 
+   Msg01.OutFlag1 := FALSE; 
+   Msg01.OutFlag2 := FALSE; 
+   Msg01.OutFlag3 := FALSE; 
+   Msg01.OutFlag4 := FALSE; 
+   Msg01.OutFlag5 := FALSE; 
+   Msg01.OutFlag6 := FALSE; 
+   Msg01.OutFlag7 := FALSE; 
+   Msg01.OutFlag8 := FALSE; 
+   Msg01.OutFlag9 := FALSE; 
+   Msg01.OutFlag10 := FALSE; 
+   Msg01.OutFlag11 := FALSE; 
+   Msg01.OutFlag12 := FALSE; 
+   Msg01.OutFlag13 := FALSE; 
+   Msg01.OutFlag14 := FALSE; 
+   Msg01.OutFlag15 := FALSE; 
+   Msg01.Par.ParObjectNo := 1013; 
+   Msg01.Par.ParMsgType := 7901; 
+   Msg01.Par.ParHornCode := 0; 
+   Msg01.Par.ParDisable.Msg0 := FALSE; 
+   Msg01.Par.ParDisable.Msg1 := FALSE; 
+   Msg01.Par.ParDisable.Msg2 := FALSE; 
+   Msg01.Par.ParDisable.Msg3 := FALSE; 
+   Msg01.Par.ParDisable.Msg4 := FALSE; 
+   Msg01.Par.ParDisable.Msg5 := FALSE; 
+   Msg01.Par.ParDisable.Msg6 := FALSE; 
+   Msg01.Par.ParDisable.Msg7 := FALSE; 
+   Msg01.Par.ParDisable.Msg8 := FALSE; 
+   Msg01.Par.ParDisable.Msg9 := FALSE; 
+   Msg01.Par.ParDisable.Msg10 := FALSE; 
+   Msg01.Par.ParDisable.Msg11 := FALSE; 
+   Msg01.Par.ParDisable.Msg12 := FALSE; 
+   Msg01.Par.ParDisable.Msg13 := FALSE; 
+   Msg01.Par.ParDisable.Msg14 := FALSE; 
+   Msg01.Par.ParDisable.Msg15 := FALSE; 
+   Msg01.Par.ParHornOff.Msg0 := FALSE; 
+   Msg01.Par.ParHornOff.Msg1 := FALSE; 
+   Msg01.Par.ParHornOff.Msg2 := FALSE; 
+   Msg01.Par.ParHornOff.Msg3 := FALSE; 
+   Msg01.Par.ParHornOff.Msg4 := FALSE; 
+   Msg01.Par.ParHornOff.Msg5 := FALSE; 
+   Msg01.Par.ParHornOff.Msg6 := FALSE; 
+   Msg01.Par.ParHornOff.Msg7 := FALSE; 
+   Msg01.Par.ParHornOff.Msg8 := FALSE; 
+   Msg01.Par.ParHornOff.Msg9 := FALSE; 
+   Msg01.Par.ParHornOff.Msg10 := FALSE; 
+   Msg01.Par.ParHornOff.Msg11 := FALSE; 
+   Msg01.Par.ParHornOff.Msg12 := FALSE; 
+   Msg01.Par.ParHornOff.Msg13 := FALSE; 
+   Msg01.Par.ParHornOff.Msg14 := FALSE; 
+   Msg01.Par.ParHornOff.Msg15 := FALSE; 
+   Msg02.StCode := 0; 
+   Msg02.InMsg0 := FALSE; 
+   Msg02.InMsg1 := FALSE; 
+   Msg02.InMsg2 := FALSE; 
+   Msg02.InMsg3 := FALSE; 
+   Msg02.InMsg4 := FALSE; 
+   Msg02.InMsg5 := FALSE; 
+   Msg02.InMsg6 := FALSE; 
+   Msg02.InMsg7 := FALSE; 
+   Msg02.InMsg8 := FALSE; 
+   Msg02.InMsg9 := FALSE; 
+   Msg02.InMsg10 := FALSE; 
+   Msg02.InMsg11 := FALSE; 
+   Msg02.InMsg12 := FALSE; 
+   Msg02.InMsg13 := FALSE; 
+   Msg02.InMsg14 := FALSE; 
+   Msg02.InMsg15 := FALSE; 
+   Msg02.OutFlag0 := FALSE; 
+   Msg02.OutFlag1 := FALSE; 
+   Msg02.OutFlag2 := FALSE; 
+   Msg02.OutFlag3 := FALSE; 
+   Msg02.OutFlag4 := FALSE; 
+   Msg02.OutFlag5 := FALSE; 
+   Msg02.OutFlag6 := FALSE; 
+   Msg02.OutFlag7 := FALSE; 
+   Msg02.OutFlag8 := FALSE; 
+   Msg02.OutFlag9 := FALSE; 
+   Msg02.OutFlag10 := FALSE; 
+   Msg02.OutFlag11 := FALSE; 
+   Msg02.OutFlag12 := FALSE; 
+   Msg02.OutFlag13 := FALSE; 
+   Msg02.OutFlag14 := FALSE; 
+   Msg02.OutFlag15 := FALSE; 
+   Msg02.Par.ParObjectNo := 1001; 
+   Msg02.Par.ParMsgType := 7901; 
+   Msg02.Par.ParHornCode := 0; 
+   Msg02.Par.ParDisable.Msg0 := FALSE; 
+   Msg02.Par.ParDisable.Msg1 := FALSE; 
+   Msg02.Par.ParDisable.Msg2 := FALSE; 
+   Msg02.Par.ParDisable.Msg3 := FALSE; 
+   Msg02.Par.ParDisable.Msg4 := FALSE; 
+   Msg02.Par.ParDisable.Msg5 := FALSE; 
+   Msg02.Par.ParDisable.Msg6 := FALSE; 
+   Msg02.Par.ParDisable.Msg7 := FALSE; 
+   Msg02.Par.ParDisable.Msg8 := FALSE; 
+   Msg02.Par.ParDisable.Msg9 := FALSE; 
+   Msg02.Par.ParDisable.Msg10 := FALSE; 
+   Msg02.Par.ParDisable.Msg11 := FALSE; 
+   Msg02.Par.ParDisable.Msg12 := FALSE; 
+   Msg02.Par.ParDisable.Msg13 := FALSE; 
+   Msg02.Par.ParDisable.Msg14 := FALSE; 
+   Msg02.Par.ParDisable.Msg15 := FALSE; 
+   Msg02.Par.ParHornOff.Msg0 := FALSE; 
+   Msg02.Par.ParHornOff.Msg1 := FALSE; 
+   Msg02.Par.ParHornOff.Msg2 := FALSE; 
+   Msg02.Par.ParHornOff.Msg3 := FALSE; 
+   Msg02.Par.ParHornOff.Msg4 := FALSE; 
+   Msg02.Par.ParHornOff.Msg5 := FALSE; 
+   Msg02.Par.ParHornOff.Msg6 := FALSE; 
+   Msg02.Par.ParHornOff.Msg7 := FALSE; 
+   Msg02.Par.ParHornOff.Msg8 := FALSE; 
+   Msg02.Par.ParHornOff.Msg9 := FALSE; 
+   Msg02.Par.ParHornOff.Msg10 := FALSE; 
+   Msg02.Par.ParHornOff.Msg11 := FALSE; 
+   Msg02.Par.ParHornOff.Msg12 := FALSE; 
+   Msg02.Par.ParHornOff.Msg13 := FALSE; 
+   Msg02.Par.ParHornOff.Msg14 := FALSE; 
+   Msg02.Par.ParHornOff.Msg15 := FALSE; 
+END_DATA_BLOCK
+

@@ -1,0 +1,890 @@
+FUNCTION_BLOCK "GCS7_M_RGRP"
+TITLE =Machine RGRP PRIMUS
+//  
+//COPYRIGHT:    (C) 2004  BUHLER AG, CH-9240 UZWIL,  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 81 MACHINE-CONTROL:RGRP PRIMUS
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB81.1.1      A.Egli              CT3                         11-Sep-2007
+//              Monitoring LSSieve only if MotorSieve is started
+//FB81.1.0      A.Egli              CT3                         04-Aug-2004
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.RGRPxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : RGRP
+VERSION : 1.1
+
+
+VAR
+  Ma : "GCS7_M_FB81_Data";	
+  LS1Sieve : "GCS7_E_DigInput";	//Element
+  LS2Sieve : "GCS7_E_DigInput";	//Element
+  FlapLower : "GCS7_E_ValveControl4Pos";	//Element
+  FlapUpper : "GCS7_E_ValveControl4Pos";	//Element
+  MotorSieve : "GCS7_E_Motor";	//Element
+  PosFlapAir : "GCS7_E_ValveControl4Pos";	//Element
+  MotorFlapAir : "GCS7_E_Motor";	
+  PosFlapFeed : "GCS7_E_ValveControl4Pos";	//Element
+  MotorFlapFeed : "GCS7_E_Motor";	
+  Airlock : "GCS7_E_Motor";	//Element
+  FeedRoll : "GCS7_E_Motor";	//Element
+  FlowDetector : "GCS7_E_AnalogInput";	//Element
+  Fan1 : "GCS7_E_Motor";	//Element
+  Fan2 : "GCS7_E_Motor";	//Element
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpEnable : BOOL ;	
+  tmpStartReq : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpBit : BOOL ;	
+  tmpEnableVender : BOOL ;	
+  tmpNext : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpStopped : BOOL ;	
+  tmpWaySieveAdjusted : BOOL ;	
+  tmpFlapVendorAdjusted : BOOL ;	
+  tmpToHigh : BOOL ;	
+  tmpFactor : REAL ;	
+  tmpSeqStop : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     60; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2081; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#30.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParClearingTime; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      R     #Ma.OutStartReqMan; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOn
+      S     #Ma.CmdOn; 
+      S     #Ma.OutStartReqMan; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[6]; //Cmd1[6]=CmdNewJob
+      S     #Ma.CmdNewJob; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      R     #Ma.OutStartReqMan; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #tmpSeqStop; 
+
+      U     #Ma.InManual; 
+      R     #Ma.InClearing; 
+//--- Fault----
+      U     #LS1Sieve.StFault; 
+      O     #LS2Sieve.StFault; 
+      O     #FlapLower.StFault; 
+      O     #FlapUpper.StFault; 
+      O     #MotorSieve.StFault; 
+      O     #PosFlapAir.StFault; 
+      O     #PosFlapFeed.StFault; 
+      O     #Airlock.StFault; 
+      O     #FeedRoll.StFault; 
+      O     #FlowDetector.OutFaulted; 
+      O     #Fan1.StFault; 
+      O     #Fan2.StFault; 
+      O     #MotorFlapAir.StFault; 
+      O     #MotorFlapFeed.StFault; 
+      =     #tmpFaultSum; 
+//--- OutCleared----
+      UN    #Ma.InClearing; 
+      R     #Ma.OutCleared; 
+//--- Temporare----
+      UN    #Ma.CmdOff; 
+      U     #Ma.InEnable; 
+      U(    ; 
+      UN    #Ma.InClearing; 
+      ON    #Ma.OutCleared; 
+      )     ; 
+      UN    #Ma.InManual; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.OutStartReqMan; 
+      =     #tmpEnable; 
+
+      UN    #Ma.InManual; 
+      U     #Ma.CmdNext; 
+      O     ; 
+      U     #Ma.InManual; 
+      U     #Ma.OutStartReqMan; 
+      =     #tmpNext; 
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #LS1Sieve.InLocal; 
+      =     #LS2Sieve.InLocal; 
+      =     #FlapLower.InLocal; 
+      =     #FlapUpper.InLocal; 
+      =     #MotorSieve.InLocal; 
+      =     #Airlock.InLocal; 
+      =     #FeedRoll.InLocal; 
+      =     #FlowDetector.InLocal; 
+      =     #Fan1.InLocal; 
+      =     #Fan2.InLocal; 
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #LS1Sieve.CmdFaultReset; 
+      S     #LS2Sieve.CmdFaultReset; 
+      S     #FlapLower.CmdFaultReset; 
+      S     #FlapUpper.CmdFaultReset; 
+      S     #MotorSieve.CmdFaultReset; 
+      S     #Airlock.CmdFaultReset; 
+      S     #FeedRoll.CmdFaultReset; 
+      S     #FlowDetector.CmdFaultReset; 
+      S     #Fan1.CmdFaultReset; 
+      S     #Fan2.CmdFaultReset; 
+
+      U     #Ma.InpAirMinus; 
+      O     #Ma.InpAirPlus; 
+      O     #Ma.InpFeedMinus; 
+      O     #Ma.InpFeedPlus; 
+      FP    #Ma.Par.tmpEdgeInpLocal; 
+      O     #Ma.CmdFaultReset; 
+      S     #PosFlapAir.CmdFaultReset; 
+      S     #MotorFlapAir.CmdFaultReset; 
+      S     #PosFlapFeed.CmdFaultReset; 
+      S     #MotorFlapFeed.CmdFaultReset; 
+NETWORK
+TITLE =Interlocking Sieve
+
+
+//--- Monitoring
+      U     #MotorSieve.StStartedFwd; //[1.1]
+      =     #LS1Sieve.InMonTrue; 
+      =     #LS2Sieve.InMonTrue; 
+//--- FlapLower----
+      L     #Ma.InPosFlapLower; 
+      L     1; 
+      ==I   ; 
+      =     #FlapLower.InLN; 
+
+      L     #Ma.InPosFlapLower; 
+      L     2; 
+      ==I   ; 
+      =     #FlapLower.CmdMiddle1; 
+
+      L     #Ma.InPosFlapLower; 
+      L     3; 
+      ==I   ; 
+      =     #FlapLower.CmdHN; 
+
+//--- FlapUpper----
+      L     #Ma.InPosFlapUpper; 
+      L     1; 
+      ==I   ; 
+      =     #FlapUpper.InLN; 
+
+      L     #Ma.InPosFlapUpper; 
+      L     2; 
+      ==I   ; 
+      =     #FlapUpper.CmdMiddle1; 
+
+      L     #Ma.InPosFlapUpper; 
+      L     3; 
+      ==I   ; 
+      =     #FlapUpper.CmdHN; 
+//--- Sieve----
+      UN    #LS1Sieve.StFault; 
+      UN    #LS2Sieve.StFault; 
+      U     #tmpEnable; 
+      =     #MotorSieve.InEnableFwd; 
+      U     #tmpNext; 
+      S     #MotorSieve.CmdNext; 
+      U     #tmpSeqStop; 
+      =     #MotorSieve.InSeqStop; 
+NETWORK
+TITLE =temporare bits for Vendor
+
+
+//--- Way Sieve Adjusted ---
+      U(    ; 
+      U(    ; 
+      L     #Ma.InPosFlapLower; 
+      L     1; 
+      ==I   ; 
+      U     #FlapLower.StLN; 
+      )     ; 
+      O(    ; 
+      L     #Ma.InPosFlapLower; 
+      L     2; 
+      ==I   ; 
+      U     #FlapLower.StMiddle1; 
+      )     ; 
+      O(    ; 
+      L     #Ma.InPosFlapLower; 
+      L     3; 
+      ==I   ; 
+      U     #FlapLower.StHN; 
+      )     ; 
+      ON    #Ma.Par.ParWithFlapLower; 
+      )     ; 
+      U(    ; 
+      U(    ; 
+      L     #Ma.InPosFlapUpper; 
+      L     1; 
+      ==I   ; 
+      U     #FlapUpper.StLN; 
+      )     ; 
+      O(    ; 
+      L     #Ma.InPosFlapUpper; 
+      L     2; 
+      ==I   ; 
+      U     #FlapUpper.StMiddle1; 
+      )     ; 
+      O(    ; 
+      L     #Ma.InPosFlapUpper; 
+      L     3; 
+      ==I   ; 
+      U     #FlapUpper.StHN; 
+      )     ; 
+      ON    #Ma.Par.ParWithFlapUpper; 
+      )     ; 
+      =     #tmpWaySieveAdjusted; 
+
+//--- Enable Vendor----
+      U     #tmpWaySieveAdjusted; 
+      U     #MotorSieve.StStartedFwd; 
+      ON    #Ma.Par.ParWithSieve; 
+      U     #tmpEnable; 
+      =     #tmpEnableVender; 
+//--Flap Vendor Adjusted
+      U     #PosFlapAir.StMiddle1; 
+      ON    #Ma.Par.ParWithFlapAir; 
+      U(    ; 
+      U     #PosFlapFeed.StMiddle1; 
+      ON    #Ma.Par.ParWithFlapFeed; 
+      )     ; 
+      =     #tmpFlapVendorAdjusted; 
+NETWORK
+TITLE =Position AirFlap
+
+      L     #Ma.Par.tmpPosFlapAir; 
+      L     #Ma.InPosFlapAirNom; 
+      T     #Ma.Par.tmpPosFlapAir; 
+      <>I   ; 
+      O     #Ma.CmdNewJob; 
+      SPBN  FAJ2; 
+      R     #Ma.OutFlapAirLocal; 
+      U     #Ma.InAirRegulation; 
+      SPB   FAJ2; 
+      L     #Ma.InPosFlapAirNom; 
+      DTR   ; 
+      T     #Ma.Par.OutPosFlapAirNom; 
+FAJ2: U     #Ma.InpAirMinus; 
+      O     #Ma.InpAirPlus; 
+      S     #Ma.OutFlapAirLocal; 
+//---Regulation of FlapAir-----
+      U     #Ma.OutFlapAirLocal; 
+      ON    #Ma.InAirRegulation; 
+      ON    #Ma.Par.ParWithFlapAir; 
+      ON    #Ma.Par.ParWithFlowdetector; 
+      SPB   FAJ5; 
+//---Integral Regulator------
+      UN    #FlowDetector.OutL; 
+      O     #FlowDetector.OutH; 
+      U     "GCS7_Gr_OutTick200ms"; 
+      SPBN  FALM; 
+      L     2.000000e+000; //[0.2s * 0.1]
+      L     #Ma.Par.ParTI; //Ma.Par.ParTI* 0.1s]
+      DTR   ; 
+      /R    ; 
+      T     #tmpFactor; 
+
+      L     #Ma.InOverflow; 
+      L     #Ma.OutOverflow; 
+      -D    ; 
+      DTR   ; 
+      L     #tmpFactor; 
+      *R    ; 
+      L     #Ma.Par.OutPosFlapAirNom; 
+      +R    ; 
+      T     #Ma.Par.OutPosFlapAirNom; 
+//---Check Limit---
+FALM: L     #Ma.Par.OutPosFlapAirNom; 
+      L     #Ma.InPosFlapAirNom; 
+      DTR   ; 
+      <=R   ; 
+      SPB   FAL1; 
+      T     #Ma.Par.OutPosFlapAirNom; 
+FAL1: L     #Ma.Par.OutPosFlapAirNom; 
+      L     #Ma.InPosFlapAirMin; 
+      DTR   ; 
+      >=R   ; 
+      SPB   FAJ5; 
+      T     #Ma.Par.OutPosFlapAirNom; 
+//--Target Position --------------
+FAJ5: U     #Ma.OutFlapAirLocal; 
+      SPB   FAHA; 
+      L     #Ma.Par.OutPosFlapAirNom; 
+      RND+  ; 
+      SPA   FAJ9; 
+FAHA: L     #PosFlapAir.OutPosition; 
+      DTR   ; 
+      T     #Ma.Par.OutPosFlapAirNom; 
+      L     #PosFlapAir.OutPosition; 
+FAJ9: T     #PosFlapAir.InPositionMiddle; 
+      L     #PosFlapAir.OutPosition; 
+      T     #Ma.OutPosFlapAir; 
+NETWORK
+TITLE =Interlocking Venders
+
+
+//--- Monitoring
+      SET   ; 
+      S     #FlowDetector.Par.ParLimitsPc; 
+      =     #FlowDetector.InMonHH; 
+      U     #Ma.InModeWarning; 
+      =     #FlowDetector.Par.ParWarningHH; 
+
+      L     #Ma.InPosFlapAirMin; 
+      L     #PosFlapAir.Par.ParPositionTolerance; 
+      +I    ; 
+      L     #Ma.OutPosFlapAir; 
+      >=I   ; 
+      UN    #Ma.OutFlapAirLocal; 
+      U     #Ma.InAirRegulation; 
+      =     #FlowDetector.InMonH; 
+      =     #FlowDetector.Par.ParWarningH; 
+//Tolerance band ---
+      L     #Ma.InOverflow; 
+      L     #Ma.InTolOverflow; 
+      -I    ; 
+      L     10; 
+      *I    ; 
+      T     #FlowDetector.Par.ParLimitL; 
+      L     #Ma.InOverflow; 
+      L     #Ma.InTolOverflow; 
+      +I    ; 
+      L     10; 
+      *I    ; 
+      T     #FlowDetector.Par.ParLimitH; 
+//-- Limit------
+      L     #Ma.InLimitOverflowFault; 
+      L     10; 
+      *I    ; 
+      T     #FlowDetector.Par.ParLimitHH; 
+//-- Actual Overflow---
+      L     #FlowDetector.OutValuePc; 
+      L     10; 
+      /I    ; 
+      T     #Ma.OutOverflow; 
+//---Warning-----
+      U     #FlowDetector.OutWarning; 
+      =     #Ma.OutWarning; 
+//--- Airlock----
+      U     #Fan2.StStartedFwd; 
+      ON    #Ma.Par.ParWithFan2; 
+      U     #Fan1.StStartedFwd; 
+      U     #tmpEnableVender; 
+      =     #Airlock.InEnableFwd; 
+      U     #tmpNext; 
+      S     #Airlock.CmdNext; 
+      U     #tmpSeqStop; 
+      =     #Airlock.InSeqStop; 
+//--- FeedRoll----
+      U     #Airlock.InEnableFwd; 
+      =     #FeedRoll.InEnableFwd; 
+      U     #PosFlapAir.StMiddle1; 
+      ON    #Ma.Par.ParWithFlapAir; 
+      U     #tmpNext; 
+      S     #FeedRoll.CmdNext; 
+      U     #tmpSeqStop; 
+      =     #FeedRoll.InSeqStop; 
+//--- Fan----
+      SET   ; 
+      =     #Fan1.InEnableFwd; 
+      =     #Fan2.InEnableFwd; 
+      U     #tmpNext; 
+      S     #Fan1.CmdNext; 
+      U     #tmpNext; 
+      U     #tmpEnableVender; 
+      U     #Fan1.StStartedFwd; 
+      S     #Fan2.CmdNext; 
+      UN    #tmpEnable; 
+      O     #tmpSeqStop; 
+      =     #Fan1.InSeqStop; 
+      =     #Fan2.InSeqStop; 
+//-----FlapAir-------------
+      U     #Ma.InpAirMinus; 
+      =     #PosFlapAir.InLN; 
+      U     #Ma.InpAirPlus; 
+      =     #PosFlapAir.CmdHN; 
+      UN    #Ma.InpAirMinus; 
+      UN    #Ma.InpAirPlus; 
+      UN    #tmpLocal; 
+      =     #PosFlapAir.CmdMiddle1; 
+
+      U     #tmpLocal; 
+      UN    #Ma.InpAirMinus; 
+      UN    #Ma.InpAirPlus; 
+      O     #MotorFlapAir.StFault; 
+      =     #PosFlapAir.InLocal; 
+//---MotorFlapAir--------------
+      U     #PosFlapAir.OutpLN; 
+      UN    #Ma.OutFlapAirLocal; 
+      O     #Ma.InpAirMinus; 
+      =     #MotorFlapAir.InEnableRev; 
+      U     #PosFlapAir.OutpHN; 
+      UN    #Ma.OutFlapAirLocal; 
+      O     #Ma.InpAirPlus; 
+      =     #MotorFlapAir.InEnableFwd; 
+
+      U     #MotorFlapAir.InEnableRev; 
+      O     #MotorFlapAir.InEnableFwd; 
+      S     #MotorFlapAir.CmdNext; 
+
+      U     #MotorFlapAir.InpRunFwd; 
+      UN    #MotorFlapAir.OutpRunFwd; 
+      O     ; 
+      U     #MotorFlapAir.InpRunRev; 
+      UN    #MotorFlapAir.OutpRunRev; 
+      O     ; 
+      U     #tmpLocal; 
+      UN    #Ma.InpAirMinus; 
+      UN    #Ma.InpAirPlus; 
+      =     #MotorFlapAir.InLocal; 
+//----FlapFeed--------------
+      U     #Ma.InpFeedMinus; 
+      =     #PosFlapFeed.InLN; 
+      U     #Ma.InpFeedPlus; 
+      =     #PosFlapFeed.CmdHN; 
+      UN    #Ma.InpFeedMinus; 
+      UN    #Ma.InpFeedPlus; 
+      UN    #tmpLocal; 
+      =     #PosFlapFeed.CmdMiddle1; 
+
+      U     #tmpLocal; 
+      UN    #Ma.InpFeedMinus; 
+      UN    #Ma.InpFeedPlus; 
+      O     #MotorFlapFeed.StFault; 
+      =     #PosFlapFeed.InLocal; 
+
+      L     #Ma.Par.tmpPosFlapFeed; 
+      L     #Ma.InPosFlapFeed; 
+      T     #Ma.Par.tmpPosFlapFeed; 
+      <>I   ; 
+      O     #Ma.CmdNewJob; 
+      R     #Ma.OutFlapFeedLocal; 
+
+      U     #Ma.InpFeedMinus; 
+      O     #Ma.InpFeedPlus; 
+      S     #Ma.OutFlapFeedLocal; 
+
+      U     #Ma.OutFlapFeedLocal; 
+      L     #PosFlapFeed.OutPosition; 
+      SPB   FFJ1; 
+      L     #Ma.InPosFlapFeed; 
+FFJ1: T     #PosFlapFeed.InPositionMiddle; 
+      L     #PosFlapFeed.OutPosition; 
+      T     #Ma.OutPosFlapFeed; 
+//---MotorFlapFeed--------------
+      U     #PosFlapFeed.OutpLN; 
+      UN    #Ma.OutFlapFeedLocal; 
+      O     #Ma.InpFeedMinus; 
+      =     #MotorFlapFeed.InEnableRev; 
+      U     #PosFlapFeed.OutpHN; 
+      UN    #Ma.OutFlapFeedLocal; 
+      O     #Ma.InpFeedPlus; 
+      =     #MotorFlapFeed.InEnableFwd; 
+
+      U     #MotorFlapFeed.InEnableFwd; 
+      O     #MotorFlapFeed.InEnableRev; 
+      S     #MotorFlapFeed.CmdNext; 
+
+      U     #MotorFlapFeed.InpRunFwd; 
+      UN    #MotorFlapFeed.OutpRunFwd; 
+      O     ; 
+      U     #MotorFlapFeed.InpRunRev; 
+      UN    #MotorFlapFeed.OutpRunRev; 
+      O     ; 
+      U     #tmpLocal; 
+      UN    #Ma.InpFeedMinus; 
+      UN    #Ma.InpFeedPlus; 
+      =     #MotorFlapFeed.InLocal; 
+NETWORK
+TITLE =Call LS1Sieve
+
+      UN    #Ma.Par.ParWithSieve; 
+      SPB   EL2; 
+      CALL #LS1Sieve ;
+
+NETWORK
+TITLE =Call LS2Sieve
+
+EL2:  UN    #Ma.Par.ParWithSieve; 
+      SPB   EL3; 
+      CALL #LS2Sieve ;
+
+NETWORK
+TITLE =Call FlapLower
+
+EL3:  UN    #Ma.Par.ParWithSieve; 
+      ON    #Ma.Par.ParWithFlapLower; 
+      SPB   EL4; 
+      CALL #FlapLower ;
+
+NETWORK
+TITLE =Call FlapUpper
+
+EL4:  UN    #Ma.Par.ParWithSieve; 
+      ON    #Ma.Par.ParWithFlapUpper; 
+      SPB   EL5; 
+      CALL #FlapUpper ;
+
+NETWORK
+TITLE =Call Sieve
+
+EL5:  UN    #Ma.Par.ParWithSieve; 
+      SPB   EL6; 
+      CALL #MotorSieve ;
+
+NETWORK
+TITLE =Call FlapAir
+
+EL6:  UN    #Ma.Par.ParWithVentus; 
+      ON    #Ma.Par.ParWithFlapAir; 
+      SPB   EL7; 
+      SET   ; 
+      S     #PosFlapAir.Par.ParAngle; 
+      CALL #PosFlapAir ;
+      CALL #MotorFlapAir ;
+
+NETWORK
+TITLE =Call FlapFeed
+
+EL7:  UN    #Ma.Par.ParWithVentus; 
+      ON    #Ma.Par.ParWithFlapFeed; 
+      SPB   EL8; 
+      SET   ; 
+      S     #PosFlapFeed.Par.ParAngle; 
+      CALL #PosFlapFeed ;
+      CALL #MotorFlapFeed ;
+
+NETWORK
+TITLE =Call FlapFeedRoll
+
+EL8:  UN    #Ma.Par.ParWithVentus; 
+      SPB   EL9; 
+      CALL #FeedRoll ;
+
+NETWORK
+TITLE =Call Airlock
+
+EL9:  UN    #Ma.Par.ParWithVentus; 
+      SPB   EL10; 
+      CALL #Airlock ;
+
+NETWORK
+TITLE =Call Feedroll
+
+EL10: UN    #Ma.Par.ParWithVentus; 
+      SPB   EL11; 
+      CALL #FeedRoll ;
+
+NETWORK
+TITLE =Call Flowdetector
+
+EL11: UN    #Ma.Par.ParWithVentus; 
+      ON    #Ma.Par.ParWithFlowdetector; 
+      SPB   EL12; 
+      CALL #FlowDetector ;
+
+NETWORK
+TITLE =Call Fan1
+
+EL12: UN    #Ma.Par.ParWithVentus; 
+      SPB   EL13; 
+      CALL #Fan1 ;
+
+NETWORK
+TITLE =Call Fan2
+
+EL13: UN    #Ma.Par.ParWithVentus; 
+      ON    #Ma.Par.ParWithFan2; 
+      SPB   EL14; 
+      CALL #Fan2 ;
+EL14: NOP   0; 
+NETWORK
+TITLE =Temporare State bits
+
+
+//---tmpStarted----
+      U     #MotorSieve.StStartedFwd; 
+      ON    #Ma.Par.ParWithSieve; 
+      U(    ; 
+      U     #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithVentus; 
+      )     ; 
+      U(    ; 
+      U     #FeedRoll.StStartedFwd; 
+      ON    #Ma.Par.ParWithVentus; 
+      )     ; 
+      U     #tmpWaySieveAdjusted; 
+      =     #tmpStarted; 
+//---tmpStopped
+      U     #MotorSieve.StStopped; 
+      ON    #Ma.Par.ParWithSieve; 
+      U(    ; 
+      U     #Airlock.StStopped; 
+      ON    #Ma.Par.ParWithVentus; 
+      )     ; 
+      U(    ; 
+      U     #FeedRoll.StStopped; 
+      ON    #Ma.Par.ParWithVentus; 
+      )     ; 
+      U(    ; 
+      U     #Fan1.StStopped; 
+      ON    #Ma.Par.ParWithVentus; 
+      )     ; 
+      U(    ; 
+      U     #Fan2.StStopped; 
+      ON    #Ma.Par.ParWithFan2; 
+      )     ; 
+      =     #tmpStopped; 
+
+
+NETWORK
+TITLE =Jump to actual state
+
+      U     #Ma.StStopped; 
+      SPB   S0; // ===> State
+      U     #Ma.StStarted; 
+      SPB   S2; // ===> State
+      U     #Ma.StStarting; 
+      SPB   S1; // ===> State
+      U     #Ma.StStopping; 
+      SPB   S3; // ===> State
+      U     #Ma.StClearing; 
+      SPB   S5; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+
+NETWORK
+TITLE =Stopped
+
+xxS0: S     #Ma.StStopped; 
+S0:   U     #tmpFaultSum; 
+      R     #Ma.StStopped; 
+      SPB   xxS4; //--> StFault
+      UN    #tmpStopped; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+NETWORK
+TITLE =Starting
+
+xxS1: S     #Ma.StStarting; 
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StStarting; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #tmpEnable; 
+      O     #tmpStopped; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+// Condition for StStarted
+      U     #tmpFlapVendorAdjusted; 
+      U     #tmpStarted; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //--> StStarted
+      SPA   OUT; 
+
+NETWORK
+TITLE =Started
+
+xxS2: S     #Ma.StStarted; 
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StStarted; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #tmpStarted; 
+      R     #Ma.StStarted; 
+      SPB   xxS3; //--> StStopping
+// Condition for StClearing
+      U     #Ma.InClearing; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //--> StClearing
+      SPA   OUT; 
+
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+      L     #Ma.Par.ParClearingTime; 
+      T     #Ma.Par.OutClearingTime; 
+//=== Logic
+// Condition for StFault
+S5:   U     #tmpFaultSum; 
+      R     #Ma.StClearing; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopping
+      UN    #tmpStarted; 
+      R     #Ma.StClearing; 
+      SPB   xxS3; //--> StStopping
+// Condition for StStarted
+      UN    #Ma.InClearing; 
+      R     #Ma.StClearing; 
+      SPB   xxS2; //--> StStarted
+      ON    "GCS7_Gr_OutTick500ms"; //Gr.OutTick500ms
+      SPB   OUT; 
+      L     #Ma.Par.OutClearingTime; 
+      +     -5; 
+      T     #Ma.Par.OutClearingTime; 
+      L     0; 
+      <=I   ; 
+      S     #Ma.OutCleared; 
+      SPA   OUT; 
+NETWORK
+TITLE =Stopping
+
+xxS3: S     #Ma.StStopping; 
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StStopping; 
+      SPB   xxS4; //--> StFault
+// Condition for StStopped
+      U     #tmpStopped; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+// Condition for StStarting
+      UN    #tmpSeqStop; 
+      O     #Ma.InManual; 
+      U     #tmpEnable; 
+      R     #Ma.StStopping; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; 
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StStopping
+      SPA   OUT; 
+
+NETWORK
+TITLE =Global End
+
+OUT:  CLR   ; //---Clear all commands
+      =     #Ma.CmdOn; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNewJob; 
+NETWORK
+TITLE =State Code
+// Same as Sieve
+      L     32; // StCode=Fault
+      U     #Ma.StFault; 
+      SPB   Code; 
+      L     1; //StStopped
+      U     #Ma.StStopped; 
+      SPB   Code; 
+      L     2; //StStarting
+      U     #Ma.StStarting; 
+      SPB   Code; 
+      L     13; //StStarted.Warning
+      U     #Ma.OutWarning; 
+      U     #Ma.StStarted; 
+      SPB   Code; 
+      L     23; //StStarted.Hand
+      U     #Ma.OutFlapAirLocal; 
+      O     #Ma.OutFlapFeedLocal; 
+      U     #Ma.StStarted; 
+      SPB   Code; 
+      L     3; //StStarted
+      U     #Ma.StStarted; 
+      SPB   Code; 
+      L     7; //StStopping
+      U     #Ma.StStopping; 
+      SPB   Code; 
+      L     8; //StCode=Clearing
+      U     #Ma.StClearing; 
+      SPB   Code; 
+      L     32; //StFault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+END_FUNCTION_BLOCK
+

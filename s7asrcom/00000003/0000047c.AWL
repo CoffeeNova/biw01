@@ -1,0 +1,247 @@
+	DATA_BLOCK DB201
+	TITLE =DBG101M  HORIZONTAL AND LIFTING SCREW GERM 1
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        HORIZONTAL AND LIFTING SCREW GERM 1
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB201.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG101M 
+	VERSION : 00.00
+	
+	FB201
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=10100; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=2;
+	//Parameter =A-2115-MXZ11MA : HORIZONTAL SCREW
+	      #A_2115_MXZ11MA.Ma.Par.ParObjectNo                                     :=10101;
+	      #A_2115_MXZ11MA.Ma.Par.ParWithMon3                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon4StopByFault                              :=True;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_2115_MXZ11MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParEBM                                          :=False;
+	      #A_2115_MXZ11MA.Ma.Par.ParMon4IsSM                                     :=True;
+	//
+	//Parameter A_2115_MXZ11MA.=A-2115-BTT11 : THERMISTOR HORIZONTAL SCREW
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParObjectNo                             :=10102;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParMsgType                              :=7136;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParDelayChange                          :=20;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParDelayTrue                            :=10;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParDelayFalse                           :=0;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParTimeoutTrue                          :=0;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParTimeoutFalse                         :=0;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.Par2WorkingCond                         :=False;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParFaultRetry                           :=False;
+	      #A_2115_MXZ11MA.A_2115_BTT11.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_2115_MXZ11MA.=A-2115-BSA12 : SM HORIZONTAL SCREW
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParObjectNo                             :=10103;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParMsgType                              :=7135;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParDelayChange                          :=0;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParDelayTrue                            :=10;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParDelayFalse                           :=0;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParTimeoutTrue                          :=50;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParTimeoutFalse                         :=0;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.Par2WorkingCond                         :=True;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParFaultRetry                           :=False;
+	      #A_2115_MXZ11MA.A_2115_BSA12.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_2115_MXZ11MA.=A-2115-MXZ11 : HORIZONTAL SCREW
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParObjectNo                             :=10104;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParMsgType                              :=7053;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParMonTime                              :=20;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParStartingTime                         :=20;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParStoppingTime                         :=0;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParIdlingTime                           :=0;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParDelayTime                            :=10;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParManual                               :=True;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParRestartDelay                         :=False;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.Par2Speed                               :=False;
+	      #A_2115_MXZ11MA.A_2115_MXZ11.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2115-MXZ15MA : LIFTING SCREW
+	      #A_2115_MXZ15MA.Ma.Par.ParObjectNo                                     :=10105;
+	      #A_2115_MXZ15MA.Ma.Par.ParWithMon3                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParWithMon4                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon1IsHL                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon1IsLS                                     :=True;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon1StopByFault                              :=True;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon2IsLS                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon3IsLS                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon4AsWarning                                :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon4StopByFault                              :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon4IsLS                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParWithMon1                                     :=True;
+	      #A_2115_MXZ15MA.Ma.Par.ParWithMon5                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParWithMon6                                     :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParEBM                                          :=False;
+	      #A_2115_MXZ15MA.Ma.Par.ParMon4IsSM                                     :=False;
+	//
+	//Parameter A_2115_MXZ15MA.=A-2115-BTT15 : THERMISTOR LIFTING SCREW
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParObjectNo                             :=10106;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParMsgType                              :=7136;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParDelayChange                          :=20;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParDelayTrue                            :=10;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParDelayFalse                           :=0;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParTimeoutTrue                          :=0;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParTimeoutFalse                         :=0;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.Par2WorkingCond                         :=False;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParFaultRetry                           :=False;
+	      #A_2115_MXZ15MA.A_2115_BTT15.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_2115_MXZ15MA.=A-2115-BSA17 : SM LIFTING SCREW
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParObjectNo                             :=10107;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParMsgType                              :=7135;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParDelayChange                          :=0;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParDelayTrue                            :=10;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParDelayFalse                           :=0;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParTimeoutTrue                          :=50;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParTimeoutFalse                         :=0;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.Par2WorkingCond                         :=True;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParFaultRetry                           :=False;
+	      #A_2115_MXZ15MA.A_2115_BSA17.Par.ParBinLevel                             :=False;
+	//
+	//Parameter A_2115_MXZ15MA.=A-2115-MXZ15 : LIFTING SCREW
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParObjectNo                             :=10108;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParMsgType                              :=7053;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParHornCode                             :=2;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParMonTime                              :=20;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParStartingTime                         :=20;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParStoppingTime                         :=0;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParIdlingTime                           :=0;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParDelayTime                            :=10;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParLogOff                               :=False;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParManual                               :=True;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParRestartDelay                         :=False;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.Par2Speed                               :=False;
+	      #A_2115_MXZ15MA.A_2115_MXZ15.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2115-UM15VA_COM : FREQUENCY INVERTOR LIFTING SCREW
+	      #A_2115_UM15VA_COM.Par.ParMovidrive                            :=1;
+	      #A_2115_UM15VA_COM.Par.ParSinamics                             :=0;
+	      #A_2115_UM15VA_COM.Par.ParMicromaster                          :=0;
+	      #A_2115_UM15VA_COM.Par.ParABB                                  :=0;
+	      #A_2115_UM15VA_COM.Par.ParNord                                 :=0;
+	      #A_2115_UM15VA_COM.Par.ParDanfoss                              :=0;
+	      #A_2115_UM15VA_COM.Par.ParIOByteNo                             :=1540;
+	//
+	//
+	//Parameter =A-2115-UM15VA_PD1 : FREQUENCY FREQ. LIFTING SCREW
+	      #A_2115_UM15VA_PD1.Par.ParObjectNo                             :=10109;
+	      #A_2115_UM15VA_PD1.Par.ParHornCode                             :=2;
+	      #A_2115_UM15VA_PD1.Par.ParMsgType                              :=7252;
+	      #A_2115_UM15VA_PD1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2115_UM15VA_PD1.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2115_UM15VA_PD1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2115_UM15VA_PD1.Par.ParDelayTimeDown                        :=10;
+	      #A_2115_UM15VA_PD1.Par.ParDelayTimeUp                          :=10;
+	      #A_2115_UM15VA_PD1.Par.ParDelayTime                            :=0;
+	      #A_2115_UM15VA_PD1.Par.ParLimitLL                              :=L#0;
+	      #A_2115_UM15VA_PD1.Par.ParLimitL                               :=L#2000;
+	      #A_2115_UM15VA_PD1.Par.ParLimitH                               :=L#10000;
+	      #A_2115_UM15VA_PD1.Par.ParLimitHH                              :=L#10100;
+	      #A_2115_UM15VA_PD1.Par.ParMonTimeLL                            :=0;
+	      #A_2115_UM15VA_PD1.Par.ParMonTimeL                             :=50;
+	      #A_2115_UM15VA_PD1.Par.ParMonTimeMid                           :=0;
+	      #A_2115_UM15VA_PD1.Par.ParMonTimeH                             :=30;
+	      #A_2115_UM15VA_PD1.Par.ParMonTimeHH                            :=0;
+	      #A_2115_UM15VA_PD1.Par.ParLogOff                               :=False;
+	      #A_2115_UM15VA_PD1.Par.ParValueByUser                          :=False;
+	      #A_2115_UM15VA_PD1.Par.ParLimitsPc                             :=True;
+	      #A_2115_UM15VA_PD1.Par.ParWago                                 :=False;
+	      #A_2115_UM15VA_PD1.Par.ParNoHornByWarning                      :=True;
+	      #A_2115_UM15VA_PD1.Par.ParWarningLL                            :=False;
+	      #A_2115_UM15VA_PD1.Par.ParWarningL                             :=False;
+	      #A_2115_UM15VA_PD1.Par.ParWarningMid                           :=False;
+	      #A_2115_UM15VA_PD1.Par.ParWarningH                             :=False;
+	      #A_2115_UM15VA_PD1.Par.ParWarningHH                            :=False;
+	      #A_2115_UM15VA_PD1.Par.ParPreAlarmLL                           :=False;
+	      #A_2115_UM15VA_PD1.Par.ParPreAlarmL                            :=False;
+	      #A_2115_UM15VA_PD1.Par.ParPreAlarmMid                          :=False;
+	      #A_2115_UM15VA_PD1.Par.ParPreAlarmH                            :=False;
+	      #A_2115_UM15VA_PD1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2115-UM15VA_PD2 : CURRENT FREQ. LIFTING SCREW
+	      #A_2115_UM15VA_PD2.Par.ParObjectNo                             :=10110;
+	      #A_2115_UM15VA_PD2.Par.ParHornCode                             :=2;
+	      #A_2115_UM15VA_PD2.Par.ParMsgType                              :=7252;
+	      #A_2115_UM15VA_PD2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2115_UM15VA_PD2.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2115_UM15VA_PD2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2115_UM15VA_PD2.Par.ParDelayTimeDown                        :=10;
+	      #A_2115_UM15VA_PD2.Par.ParDelayTimeUp                          :=10;
+	      #A_2115_UM15VA_PD2.Par.ParDelayTime                            :=0;
+	      #A_2115_UM15VA_PD2.Par.ParLimitLL                              :=L#0;
+	      #A_2115_UM15VA_PD2.Par.ParLimitL                               :=L#2000;
+	      #A_2115_UM15VA_PD2.Par.ParLimitH                               :=L#10000;
+	      #A_2115_UM15VA_PD2.Par.ParLimitHH                              :=L#10100;
+	      #A_2115_UM15VA_PD2.Par.ParMonTimeLL                            :=0;
+	      #A_2115_UM15VA_PD2.Par.ParMonTimeL                             :=50;
+	      #A_2115_UM15VA_PD2.Par.ParMonTimeMid                           :=0;
+	      #A_2115_UM15VA_PD2.Par.ParMonTimeH                             :=30;
+	      #A_2115_UM15VA_PD2.Par.ParMonTimeHH                            :=0;
+	      #A_2115_UM15VA_PD2.Par.ParLogOff                               :=False;
+	      #A_2115_UM15VA_PD2.Par.ParValueByUser                          :=False;
+	      #A_2115_UM15VA_PD2.Par.ParLimitsPc                             :=True;
+	      #A_2115_UM15VA_PD2.Par.ParWago                                 :=False;
+	      #A_2115_UM15VA_PD2.Par.ParNoHornByWarning                      :=True;
+	      #A_2115_UM15VA_PD2.Par.ParWarningLL                            :=False;
+	      #A_2115_UM15VA_PD2.Par.ParWarningL                             :=False;
+	      #A_2115_UM15VA_PD2.Par.ParWarningMid                           :=False;
+	      #A_2115_UM15VA_PD2.Par.ParWarningH                             :=False;
+	      #A_2115_UM15VA_PD2.Par.ParWarningHH                            :=False;
+	      #A_2115_UM15VA_PD2.Par.ParPreAlarmLL                           :=False;
+	      #A_2115_UM15VA_PD2.Par.ParPreAlarmL                            :=False;
+	      #A_2115_UM15VA_PD2.Par.ParPreAlarmMid                          :=False;
+	      #A_2115_UM15VA_PD2.Par.ParPreAlarmH                            :=False;
+	      #A_2115_UM15VA_PD2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	END_DATA_BLOCK

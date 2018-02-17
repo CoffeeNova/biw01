@@ -1,0 +1,462 @@
+FUNCTION_BLOCK "G092F_Code"
+TITLE =G092F BELT CONVEYOR 4200 GERM 5-8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        BELT CONVEYOR 4200 GERM 5-8
+//                Feed group control
+//                Dosiergruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB192.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_1915_MXZ01MA : "A_1915_MXZ01MA_Code";	// Motor+6DI 
+  A_1915_QXV31 : "GCS7_E_ValveControl";	// VLS 
+  A_1915_BFT07 : "GCS7_E_Level";	// SubType FB14: DigInpCont 
+  WayEnable : STRUCT 	//Enable for feed elements
+   A_1915_MXZ01MA : BOOL ;	
+   A_1915_QXV31 : BOOL ;	
+   Spare : WORD ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      R     "GCS7_GrCtrlDB".ParMGR[92]; 
+      R     "GCS7_GrCtrlDB".ParWGR[92]; 
+      R     "GCS7_GrCtrlDB".ParGGR[92]; 
+      S     "GCS7_GrCtrlDB".ParFeed[92]; 
+      R     "GCS7_GrCtrlDB".ParShare[92]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[92]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[92]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[92]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[92]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[92]; 
+      R     "GCS7_GrCtrlDB".CmdNext[92]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[92]; 
+      UN    "MAL1S017".PCRead.Status.StaHand; 
+      UN    "MAL1S018".PCRead.Status.StaHand; 
+      UN    "MAL1S019".PCRead.Status.StaHand; 
+      UN    "MAL1S020".PCRead.Status.StaHand; 
+      UN    "MAL1S021".PCRead.Status.StaHand; 
+      UN    "MAL1S022".PCRead.Status.StaHand; 
+      UN    "MAL1S023".PCRead.Status.StaHand; 
+      UN    "MAL1S024".PCRead.Status.StaHand; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[92]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[92]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[92]
+//      O     "GCS7_GrCtrlDB".OutOccupied[92]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[92]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[92]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[92]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[92]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+
+
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.UnloadingSteeping; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+//      NOP   0
+////- Restart after fault --
+//      U     #Gr.CmdFaultReset
+//      U     #Gr.VarFault
+//      S     "SYS_StartWarningDB".Area[1].CmdResetStartWarning
+////- Run Timer --
+//      AUF   "G092F"
+//      CALL  "GCS7_StartWarning" , "SYS_StartWarningDB"
+//       InModeHigher   :=FALSE
+//       InArea         :=1
+//       InEnable       :=#Gr.OutEnableEl
+//       InLocal        :=#tmpLocal
+//       InStarted      :=#Gr.VarStarted
+//       InCmdNext      :=#tmpCmdNext
+//       OutCmdNext     :=#tmpCmdNext
+//       OutStartwarning:=#Gr.VarStartwarning
+////- Store Startwarning done  --
+////- Reset Autostart --
+//      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL
+//      FN    #EdgeStartRelease
+//      U     #Gr.VarFault
+//      R     #Gr.OutAutostart
+//
+
+
+NETWORK
+TITLE ==A-1915-BFT07 : STOWING DETECTOR DISCHARGE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1915_BFT07.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_1915_BFT07.InMonCovered; 
+      SET   ; 
+      =     #A_1915_BFT07.InMonUncovered; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_1915_BFT07.InPreAlarmCovered; 
+      CLR   ; 
+      =     #A_1915_BFT07.InPreAlarmUncovered; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_1915_BFT07.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_1915_BFT07_I1"; 
+      =     #A_1915_BFT07.InpCovered; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_BFT07.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1915_BFT07.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1915_BFT07 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-1915-MXZ01MA : BELT CONVEYOR 4200 GERM 5-8
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1915_MXZ01MA.Ma.InLocal; 
+//
+//-Interlocking---
+      UN    #A_1915_BFT07.StFault; 
+      U     #Gr.OutEnableEl; 
+      =     #A_1915_MXZ01MA.Ma.InEnableFwd; 
+//
+      U     #tmpCmdNext; 
+      S     #A_1915_MXZ01MA.Ma.CmdNext; 
+//
+      U     #Gr.OutSeqStop; 
+      =     #A_1915_MXZ01MA.Ma.InSeqStop; 
+// 
+//=Values and commands of elements===
+//-=A-1915-SHE20---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_SHE20.CmdRunTimeOutTime
+//-=A-1915-BSA13---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_BSA13.CmdRunTimeOutTime
+//-=A-1915-BZS14/15---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_BZS14_15.CmdRunTimeOutTime
+//-=A-1915-SHE21---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_SHE21.CmdRunTimeOutTime
+//-=A-1915-SHE22---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_SHE22.CmdRunTimeOutTime
+//-=A-1915-SHE23---
+//      CLR
+//      S     #A_1915_MXZ01MA.A_1915_SHE23.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_1915_SHE20_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_SHE20.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_SHE20.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1915_MXZ01MA.A_1915_SHE20.InDPFault; 
+      U     "A_1915_BSA13_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_BSA13.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_BSA13.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1915_MXZ01MA.A_1915_BSA13.InDPFault; 
+      U     "A_1915_BZS14_15_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_BZS14_15.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_BZS14_15.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1915_MXZ01MA.A_1915_BZS14_15.InDPFault; 
+      U     "A_1915_SHE21_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_SHE21.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_SHE21.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1915_MXZ01MA.A_1915_SHE21.InDPFault; 
+      U     "A_1915_SHE22_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_SHE22.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_SHE22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1915_MXZ01MA.A_1915_SHE22.InDPFault; 
+      U     "A_1915_SHE23_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_SHE23.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.General; 
+      =     #A_1915_MXZ01MA.A_1915_SHE23.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1915_MXZ01MA.A_1915_SHE23.InDPFault; 
+      U     "A_1915_MXZ01_I1"; 
+      =     #A_1915_MXZ01MA.A_1915_MXZ01.InpRunFwd; 
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #A_1915_MXZ01MA.A_1915_MXZ01.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[110]; 
+      =     #A_1915_MXZ01MA.A_1915_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1915_MXZ01MA ;
+// 
+//-Write outputs---
+      U     #A_1915_MXZ01MA.A_1915_MXZ01.OutpRunFwd; 
+      =     "A_1915_MXZ01_O1"; 
+NETWORK
+TITLE ==A-1915-QXV31 : BALL VALVE SPRAY WATER OPEN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_1915_QXV31.InLocal; 
+
+//-Interlocking---
+      U     #A_1915_MXZ01MA.Ma.StStartedFwd; 
+      =     #A_1915_QXV31.InEnableHN; 
+      NOT   ; 
+      =     #A_1915_QXV31.InEnableLN; 
+
+      SET   ; 
+      S     #A_1915_QXV31.CmdNext; 
+
+      U     #Gr.OutSeqStop; 
+      =     #A_1915_QXV31.InSeqStop; 
+// 
+//-Read inputs---
+      UN    #A_1915_QXV31.OutpHN; 
+      =     #A_1915_QXV31.InpLN; 
+      U     #A_1915_QXV31.OutpHN; 
+      =     #A_1915_QXV31.InpHN; 
+      U     "PLC_SystemDB".HardwareStop.Steeping; 
+      =     #A_1915_QXV31.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[111]; 
+      =     #A_1915_QXV31.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_1915_QXV31 ;
+// 
+//-Write outputs---
+      U     #A_1915_QXV31.OutpHN; 
+      =     "A_1915_QXV31_O1"; 
+
+NETWORK
+TITLE =Test Fault
+
+      U     #A_1915_BFT07.StFault; 
+      O     #A_1915_MXZ01MA.Ma.StFault; 
+      O     #A_1915_QXV31.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      U     #A_1915_MXZ01MA.Ma.StStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U     #A_1915_MXZ01MA.Ma.StStartedFwd; 
+      U     #A_1915_QXV31.StHN; 
+      UN    #Gr.VarStopped; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[92]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[92]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[92]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[92]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[92]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[92]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[92]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[92]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[92]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[92]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

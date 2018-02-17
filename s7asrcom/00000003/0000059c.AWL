@@ -1,0 +1,413 @@
+	DATA_BLOCK DB350
+	TITLE =DBG250M  FAN AND VALVE SRAY AIR GERM 8
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        FAN AND VALVE SRAY AIR GERM 8
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB350.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG250M 
+	VERSION : 00.00
+	
+	FB350
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=25000; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=9;
+	//Parameter =A-2860-MXZ01 : GERM FAN 1
+	      #A_2860_MXZ01.Par.ParObjectNo                             :=25003;
+	      #A_2860_MXZ01.Par.ParMsgType                              :=7053;
+	      #A_2860_MXZ01.Par.ParHornCode                             :=9;
+	      #A_2860_MXZ01.Par.ParMonTime                              :=20;
+	      #A_2860_MXZ01.Par.ParStartingTime                         :=2400;
+	      #A_2860_MXZ01.Par.ParStoppingTime                         :=1800;
+	      #A_2860_MXZ01.Par.ParIdlingTime                           :=0;
+	      #A_2860_MXZ01.Par.ParDelayTime                            :=10;
+	      #A_2860_MXZ01.Par.ParLogOff                               :=False;
+	      #A_2860_MXZ01.Par.ParManual                               :=True;
+	      #A_2860_MXZ01.Par.ParRestartDelay                         :=False;
+	      #A_2860_MXZ01.Par.Par2Speed                               :=False;
+	      #A_2860_MXZ01.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2831-QXV12 : VALVE HUMIDIFICATION 1
+	      #A_2831_QXV12.Par.ParObjectNo                             :=25001;
+	      #A_2831_QXV12.Par.ParMsgType                              :=7081;
+	      #A_2831_QXV12.Par.ParHornCode                             :=9;
+	      #A_2831_QXV12.Par.ParMonTime                              :=100;
+	      #A_2831_QXV12.Par.ParPulseTimeHN                          :=5;
+	      #A_2831_QXV12.Par.ParPulseTimeLN                          :=5;
+	      #A_2831_QXV12.Par.ParIdlingTime                           :=0;
+	      #A_2831_QXV12.Par.ParDelayTime                            :=0;
+	      #A_2831_QXV12.Par.ParLogOff                               :=False;
+	      #A_2831_QXV12.Par.ParManual                               :=True;
+	      #A_2831_QXV12.Par.ParPulseValve                           :=False;
+	      #A_2831_QXV12.Par.ParContValve                            :=True;
+	      #A_2831_QXV12.Par.ParManualFlap                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC01_COM : FREQUENCY. INVERTER GERM FAN 1
+	      #A_2860_TSC01_COM.Par.ParMovidrive                            :=1;
+	      #A_2860_TSC01_COM.Par.ParSinamics                             :=0;
+	      #A_2860_TSC01_COM.Par.ParMicromaster                          :=0;
+	      #A_2860_TSC01_COM.Par.ParABB                                  :=0;
+	      #A_2860_TSC01_COM.Par.ParNord                                 :=0;
+	      #A_2860_TSC01_COM.Par.ParDanfoss                              :=0;
+	      #A_2860_TSC01_COM.Par.ParIOByteNo                             :=1360;
+	//
+	//
+	//Parameter =A-2860-TSC01_PD1 : FREQUENCY FREQ. GERM FAN 1
+	      #A_2860_TSC01_PD1.Par.ParObjectNo                             :=25006;
+	      #A_2860_TSC01_PD1.Par.ParHornCode                             :=9;
+	      #A_2860_TSC01_PD1.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC01_PD1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC01_PD1.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2860_TSC01_PD1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC01_PD1.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC01_PD1.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC01_PD1.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC01_PD1.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC01_PD1.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC01_PD1.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC01_PD1.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC01_PD1.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC01_PD1.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC01_PD1.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC01_PD1.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC01_PD1.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC01_PD1.Par.ParLogOff                               :=False;
+	      #A_2860_TSC01_PD1.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC01_PD1.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC01_PD1.Par.ParWago                                 :=False;
+	      #A_2860_TSC01_PD1.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC01_PD1.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC01_PD1.Par.ParWarningL                             :=False;
+	      #A_2860_TSC01_PD1.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC01_PD1.Par.ParWarningH                             :=False;
+	      #A_2860_TSC01_PD1.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC01_PD1.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC01_PD1.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC01_PD1.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC01_PD1.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC01_PD1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC01_PD2 : CURRENT FREQ. GERM FAN 1
+	      #A_2860_TSC01_PD2.Par.ParObjectNo                             :=25007;
+	      #A_2860_TSC01_PD2.Par.ParHornCode                             :=9;
+	      #A_2860_TSC01_PD2.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC01_PD2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC01_PD2.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC01_PD2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC01_PD2.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC01_PD2.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC01_PD2.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC01_PD2.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC01_PD2.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC01_PD2.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC01_PD2.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC01_PD2.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC01_PD2.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC01_PD2.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC01_PD2.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC01_PD2.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC01_PD2.Par.ParLogOff                               :=False;
+	      #A_2860_TSC01_PD2.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC01_PD2.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC01_PD2.Par.ParWago                                 :=False;
+	      #A_2860_TSC01_PD2.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC01_PD2.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC01_PD2.Par.ParWarningL                             :=False;
+	      #A_2860_TSC01_PD2.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC01_PD2.Par.ParWarningH                             :=False;
+	      #A_2860_TSC01_PD2.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC01_PD2.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC01_PD2.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC01_PD2.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC01_PD2.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC01_PD2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC01_PD3 : TORQUE FREQ. INVERTER GERM FAN 1
+	      #A_2860_TSC01_PD3.Par.ParObjectNo                             :=25008;
+	      #A_2860_TSC01_PD3.Par.ParHornCode                             :=9;
+	      #A_2860_TSC01_PD3.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC01_PD3.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC01_PD3.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC01_PD3.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC01_PD3.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC01_PD3.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC01_PD3.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC01_PD3.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC01_PD3.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC01_PD3.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC01_PD3.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC01_PD3.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC01_PD3.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC01_PD3.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC01_PD3.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC01_PD3.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC01_PD3.Par.ParLogOff                               :=False;
+	      #A_2860_TSC01_PD3.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC01_PD3.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC01_PD3.Par.ParWago                                 :=False;
+	      #A_2860_TSC01_PD3.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC01_PD3.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC01_PD3.Par.ParWarningL                             :=False;
+	      #A_2860_TSC01_PD3.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC01_PD3.Par.ParWarningH                             :=False;
+	      #A_2860_TSC01_PD3.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC01_PD3.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC01_PD3.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC01_PD3.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC01_PD3.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC01_PD3.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC01_PD4 : PERFORMENCE FREQ. INVERTER GERM FAN 1
+	      #A_2860_TSC01_PD4.Par.ParObjectNo                             :=25009;
+	      #A_2860_TSC01_PD4.Par.ParHornCode                             :=9;
+	      #A_2860_TSC01_PD4.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC01_PD4.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC01_PD4.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC01_PD4.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC01_PD4.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC01_PD4.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC01_PD4.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC01_PD4.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC01_PD4.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC01_PD4.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC01_PD4.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC01_PD4.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC01_PD4.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC01_PD4.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC01_PD4.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC01_PD4.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC01_PD4.Par.ParLogOff                               :=False;
+	      #A_2860_TSC01_PD4.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC01_PD4.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC01_PD4.Par.ParWago                                 :=False;
+	      #A_2860_TSC01_PD4.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC01_PD4.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC01_PD4.Par.ParWarningL                             :=False;
+	      #A_2860_TSC01_PD4.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC01_PD4.Par.ParWarningH                             :=False;
+	      #A_2860_TSC01_PD4.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC01_PD4.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC01_PD4.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC01_PD4.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC01_PD4.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC01_PD4.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-MXZ02 : GERM FAN 2
+	      #A_2860_MXZ02.Par.ParObjectNo                             :=25004;
+	      #A_2860_MXZ02.Par.ParMsgType                              :=7053;
+	      #A_2860_MXZ02.Par.ParHornCode                             :=9;
+	      #A_2860_MXZ02.Par.ParMonTime                              :=20;
+	      #A_2860_MXZ02.Par.ParStartingTime                         :=2400;
+	      #A_2860_MXZ02.Par.ParStoppingTime                         :=1800;
+	      #A_2860_MXZ02.Par.ParIdlingTime                           :=0;
+	      #A_2860_MXZ02.Par.ParDelayTime                            :=10;
+	      #A_2860_MXZ02.Par.ParLogOff                               :=False;
+	      #A_2860_MXZ02.Par.ParManual                               :=True;
+	      #A_2860_MXZ02.Par.ParRestartDelay                         :=False;
+	      #A_2860_MXZ02.Par.Par2Speed                               :=False;
+	      #A_2860_MXZ02.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-2831-QXV22 : VALVE HUMIDIFICATION 2
+	      #A_2831_QXV22.Par.ParObjectNo                             :=25002;
+	      #A_2831_QXV22.Par.ParMsgType                              :=7081;
+	      #A_2831_QXV22.Par.ParHornCode                             :=9;
+	      #A_2831_QXV22.Par.ParMonTime                              :=100;
+	      #A_2831_QXV22.Par.ParPulseTimeHN                          :=5;
+	      #A_2831_QXV22.Par.ParPulseTimeLN                          :=5;
+	      #A_2831_QXV22.Par.ParIdlingTime                           :=0;
+	      #A_2831_QXV22.Par.ParDelayTime                            :=0;
+	      #A_2831_QXV22.Par.ParLogOff                               :=False;
+	      #A_2831_QXV22.Par.ParManual                               :=True;
+	      #A_2831_QXV22.Par.ParPulseValve                           :=False;
+	      #A_2831_QXV22.Par.ParContValve                            :=True;
+	      #A_2831_QXV22.Par.ParManualFlap                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC02_COM : FREQUENCY. INVERTER GERM FAN 2
+	      #A_2860_TSC02_COM.Par.ParMovidrive                            :=1;
+	      #A_2860_TSC02_COM.Par.ParSinamics                             :=0;
+	      #A_2860_TSC02_COM.Par.ParMicromaster                          :=0;
+	      #A_2860_TSC02_COM.Par.ParABB                                  :=0;
+	      #A_2860_TSC02_COM.Par.ParNord                                 :=0;
+	      #A_2860_TSC02_COM.Par.ParDanfoss                              :=0;
+	      #A_2860_TSC02_COM.Par.ParIOByteNo                             :=1360;
+	//
+	//
+	//Parameter =A-2860-TSC02_PD1 : FREQUENCY FREQ. GERM FAN 2
+	      #A_2860_TSC02_PD1.Par.ParObjectNo                             :=25011;
+	      #A_2860_TSC02_PD1.Par.ParHornCode                             :=9;
+	      #A_2860_TSC02_PD1.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC02_PD1.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC02_PD1.Par.ParUnitsByMaxDigit                      :=L#27648;
+	      #A_2860_TSC02_PD1.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC02_PD1.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC02_PD1.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC02_PD1.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC02_PD1.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC02_PD1.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC02_PD1.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC02_PD1.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC02_PD1.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC02_PD1.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC02_PD1.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC02_PD1.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC02_PD1.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC02_PD1.Par.ParLogOff                               :=False;
+	      #A_2860_TSC02_PD1.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC02_PD1.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC02_PD1.Par.ParWago                                 :=False;
+	      #A_2860_TSC02_PD1.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC02_PD1.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC02_PD1.Par.ParWarningL                             :=False;
+	      #A_2860_TSC02_PD1.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC02_PD1.Par.ParWarningH                             :=False;
+	      #A_2860_TSC02_PD1.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC02_PD1.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC02_PD1.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC02_PD1.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC02_PD1.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC02_PD1.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC02_PD2 : CURRENT FREQ. GERM FAN 2
+	      #A_2860_TSC02_PD2.Par.ParObjectNo                             :=25012;
+	      #A_2860_TSC02_PD2.Par.ParHornCode                             :=9;
+	      #A_2860_TSC02_PD2.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC02_PD2.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC02_PD2.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC02_PD2.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC02_PD2.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC02_PD2.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC02_PD2.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC02_PD2.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC02_PD2.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC02_PD2.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC02_PD2.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC02_PD2.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC02_PD2.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC02_PD2.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC02_PD2.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC02_PD2.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC02_PD2.Par.ParLogOff                               :=False;
+	      #A_2860_TSC02_PD2.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC02_PD2.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC02_PD2.Par.ParWago                                 :=False;
+	      #A_2860_TSC02_PD2.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC02_PD2.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC02_PD2.Par.ParWarningL                             :=False;
+	      #A_2860_TSC02_PD2.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC02_PD2.Par.ParWarningH                             :=False;
+	      #A_2860_TSC02_PD2.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC02_PD2.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC02_PD2.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC02_PD2.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC02_PD2.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC02_PD2.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC02_PD3 : TORQUE FREQ. INVERTER GERM FAN 2
+	      #A_2860_TSC02_PD3.Par.ParObjectNo                             :=25013;
+	      #A_2860_TSC02_PD3.Par.ParHornCode                             :=9;
+	      #A_2860_TSC02_PD3.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC02_PD3.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC02_PD3.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC02_PD3.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC02_PD3.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC02_PD3.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC02_PD3.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC02_PD3.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC02_PD3.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC02_PD3.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC02_PD3.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC02_PD3.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC02_PD3.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC02_PD3.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC02_PD3.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC02_PD3.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC02_PD3.Par.ParLogOff                               :=False;
+	      #A_2860_TSC02_PD3.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC02_PD3.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC02_PD3.Par.ParWago                                 :=False;
+	      #A_2860_TSC02_PD3.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC02_PD3.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC02_PD3.Par.ParWarningL                             :=False;
+	      #A_2860_TSC02_PD3.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC02_PD3.Par.ParWarningH                             :=False;
+	      #A_2860_TSC02_PD3.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC02_PD3.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC02_PD3.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC02_PD3.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC02_PD3.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC02_PD3.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	//Parameter =A-2860-TSC02_PD4 : PERFORMENCE FREQ. INVERTER GERM FAN 2
+	      #A_2860_TSC02_PD4.Par.ParObjectNo                             :=25014;
+	      #A_2860_TSC02_PD4.Par.ParHornCode                             :=9;
+	      #A_2860_TSC02_PD4.Par.ParMsgType                              :=7252;
+	      #A_2860_TSC02_PD4.Par.ParUnitsByZeroDigit                     :=L#0;
+	      #A_2860_TSC02_PD4.Par.ParUnitsByMaxDigit                      :=L#16384;
+	      #A_2860_TSC02_PD4.Par.ParUnitsBy100Pc                         :=L#10000;
+	      #A_2860_TSC02_PD4.Par.ParDelayTimeDown                        :=10;
+	      #A_2860_TSC02_PD4.Par.ParDelayTimeUp                          :=10;
+	      #A_2860_TSC02_PD4.Par.ParDelayTime                            :=0;
+	      #A_2860_TSC02_PD4.Par.ParLimitLL                              :=L#0;
+	      #A_2860_TSC02_PD4.Par.ParLimitL                               :=L#200;
+	      #A_2860_TSC02_PD4.Par.ParLimitH                               :=L#10000;
+	      #A_2860_TSC02_PD4.Par.ParLimitHH                              :=L#10100;
+	      #A_2860_TSC02_PD4.Par.ParMonTimeLL                            :=0;
+	      #A_2860_TSC02_PD4.Par.ParMonTimeL                             :=50;
+	      #A_2860_TSC02_PD4.Par.ParMonTimeMid                           :=0;
+	      #A_2860_TSC02_PD4.Par.ParMonTimeH                             :=30;
+	      #A_2860_TSC02_PD4.Par.ParMonTimeHH                            :=0;
+	      #A_2860_TSC02_PD4.Par.ParLogOff                               :=False;
+	      #A_2860_TSC02_PD4.Par.ParValueByUser                          :=False;
+	      #A_2860_TSC02_PD4.Par.ParLimitsPc                             :=True;
+	      #A_2860_TSC02_PD4.Par.ParWago                                 :=False;
+	      #A_2860_TSC02_PD4.Par.ParNoHornByWarning                      :=True;
+	      #A_2860_TSC02_PD4.Par.ParWarningLL                            :=False;
+	      #A_2860_TSC02_PD4.Par.ParWarningL                             :=False;
+	      #A_2860_TSC02_PD4.Par.ParWarningMid                           :=False;
+	      #A_2860_TSC02_PD4.Par.ParWarningH                             :=False;
+	      #A_2860_TSC02_PD4.Par.ParWarningHH                            :=False;
+	      #A_2860_TSC02_PD4.Par.ParPreAlarmLL                           :=False;
+	      #A_2860_TSC02_PD4.Par.ParPreAlarmL                            :=False;
+	      #A_2860_TSC02_PD4.Par.ParPreAlarmMid                          :=False;
+	      #A_2860_TSC02_PD4.Par.ParPreAlarmH                            :=False;
+	      #A_2860_TSC02_PD4.Par.ParPreAlarmHH                           :=False;
+	//
+	//
+	END_DATA_BLOCK

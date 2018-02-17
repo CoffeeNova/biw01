@@ -1,0 +1,529 @@
+FUNCTION_BLOCK "GCS7_M_Hopper"
+TITLE =Hopper with 3 VLS and 1 DO
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 53 Machine Hopper: 3 Valve + digital output or motor
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB53.6.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//              Update to Version 5.3
+//FB53.5.2      A.Egli              CT3                         31-Jan-2002
+//              Init #Ma.OutPulseClose in State StClosed
+//FB53.5.1      A.Egli              CT3                         19-Oct-2001
+//              Condition for closing, if only VLSUpper is used
+//FB53.5.0      K. Tischer          CT3                         01-Jun-2001
+//              Optional VLSAirflap2 adapted
+//FB53.4.1      S. Kalberer         CT3                         22-Nov-2000
+//              Optional VLSLower adapted
+//FB53.4.0      A. Egli             CT3                         24-Mai-2000
+//              Type of Vibro is FB11 or FB12 
+//FB53.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced 
+//FB53.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB53.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB53.1A       A.Egli              AEE61                       5-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.HOPxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Hopper
+VERSION : 6.0
+
+
+VAR
+  Ma : "GCS7_M_FB53_Data";	
+  AirFlap : "GCS7_E_ValveControl";	//Element
+  VLSLower : "GCS7_E_ValveControl";	//Element
+  VLSUpper : "GCS7_E_ValveControl";	//Element
+  Vibro : "GCS7_E_Motor";	//Element
+  AirFlap2 : "GCS7_E_ValveControl";	//Element [5.0]
+END_VAR
+VAR_TEMP
+  tmpFaultSum : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpOpenReq : BOOL ;	
+  tmpLenDyn : INT ;	
+  tmpStoreAR2 : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+      L     16; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+
+      NOP   0; 
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2053; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParPulseClosing; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParWaitOpen; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdClose
+      S     #Ma.CmdClose; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdOpen
+      S     #Ma.CmdOpen; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; //[6.0]
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      R     #AirFlap.InManual; 
+      R     #VLSUpper.InManual; 
+      R     #VLSLower.InManual; 
+      R     #Vibro.InManual; 
+      R     #AirFlap2.InManual; //[5.0]
+      SPA   aIni; 
+aExa: TAR2  ; // Address dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic data
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+
+      NOP   0; 
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+
+      U     #Ma.CmdOpen; 
+      S     #Ma.OutOpenManReq; 
+      U     #Ma.CmdClose; 
+      ON    #Ma.InManual; 
+      R     #Ma.OutOpenManReq; 
+//--- Fault----
+      U     #AirFlap.StFault; 
+      O     #VLSLower.StFault; 
+      O     #VLSUpper.StFault; 
+      O     #Vibro.StFault; 
+      O     #AirFlap2.StFault; //[5.0]
+      =     #tmpFaultSum; 
+//--- Sequence opening ----
+      U     #Ma.OutOpenManReq; 
+      U     #Ma.InManual; 
+      O     ; 
+      U     #Ma.InEnableOpen; 
+      UN    #AirFlap.StFault; //[5.0] by fault airflap close
+      UN    #AirFlap2.StFault; //[5.0] by fault airflap close
+      UN    #Ma.InManual; 
+      UN    #tmpLocal; 
+      =     #tmpOpenReq; 
+
+      U     #tmpOpenReq; 
+      S     #AirFlap.InEnableHN; 
+      S     #AirFlap2.InEnableHN; //[5.0]
+
+      U     #AirFlap.StHN; 
+      ON    #Ma.Par.ParWithAirFlap; 
+      U(    ; //[5.0]
+      U     #AirFlap2.StHN; //[5.0]
+      ON    #Ma.Par.ParWithAirFlap2; //[5.0]
+      )     ; //[5.0]
+      U     #tmpOpenReq; 
+      S     #VLSLower.InEnableHN; 
+
+      UN    #Ma.OutPulseClose; 
+      ON    #Ma.Par.ParPulsing; 
+      U     #tmpOpenReq; 
+      U(    ; //[4.1->]
+      UN    #Ma.Par.ParWithVLSLower; 
+      U     #VLSLower.InEnableHN; 
+      O     #VLSLower.StHN; 
+      )     ; //[<-4.1]
+      =     #VLSUpper.InEnableHN; 
+
+      U     #Ma.StOpen; 
+      UN    #Ma.Par.ParVibroIsMotor; 
+      =     #Vibro.InEnableRev; //FB11.InEnable
+      U     #Ma.StOpen; 
+      U     #Ma.Par.ParVibroIsMotor; 
+      =     #Vibro.InEnableFwd; 
+
+//--- Sequence Closing ----
+      UN    #VLSUpper.InEnableHN; 
+      =     #VLSUpper.InEnableLN; 
+
+      U     #VLSUpper.StLN; 
+      ON    #Ma.Par.ParWithVLSUpper; 
+      UN    #tmpOpenReq; 
+      =     #VLSLower.InEnableLN; 
+      R     #VLSLower.InEnableHN; 
+
+      UN    #Ma.Par.ParWithVLSLower; //[4.1->]
+      U     #VLSLower.InEnableLN; 
+      O     #VLSLower.StLN; //[<-4.1]
+      UN    #tmpOpenReq; 
+      =     #AirFlap.InEnableLN; 
+      R     #AirFlap.InEnableHN; 
+      =     #AirFlap2.InEnableLN; //[5.0]
+      R     #AirFlap2.InEnableHN; //[5.0]
+
+// CmdNext
+      U     #Ma.CmdNext; //[6.0]
+      ON    #tmpOpenReq; //[6.0]
+      O     #Ma.InManual; //[6.0]
+      S     #AirFlap.CmdNext; 
+      S     #VLSLower.CmdNext; 
+      S     #VLSUpper.CmdNext; 
+      S     #AirFlap2.CmdNext; //[5.0]
+      SET   ; 
+      S     #Vibro.CmdNext; 
+
+//--- Local mode --
+      U     #tmpLocal; 
+      =     #AirFlap.InLocal; 
+      =     #VLSLower.InLocal; 
+      =     #VLSUpper.InLocal; 
+      =     #AirFlap2.InLocal; //[5.0]
+
+//--- Fault Reset -------------
+      U     #Ma.CmdFaultReset; 
+      S     #AirFlap.CmdFaultReset; 
+      S     #VLSLower.CmdFaultReset; 
+      S     #VLSUpper.CmdFaultReset; 
+      S     #Vibro.CmdFaultReset; 
+      S     #AirFlap2.CmdFaultReset; //[5.0]
+NETWORK
+TITLE =Call VLS: AirFlap
+
+      UN    #Ma.Par.ParWithAirFlap; 
+      SPB   V2; 
+      CALL #AirFlap ;
+
+NETWORK
+TITLE =Call VLS: AirFlap2 [5.0]
+////[5.0] new
+      UN    #Ma.Par.ParWithAirFlap2; 
+      SPB   V2; 
+      CALL #AirFlap2 ;
+
+NETWORK
+TITLE =Call VLS: VLSLower
+
+V2:   UN    #Ma.Par.ParWithVLSLower; 
+      SPB   V3; 
+      CALL #VLSLower ;
+
+NETWORK
+TITLE =Call VLS: VLSUpper
+
+V3:   UN    #Ma.Par.ParWithVLSUpper; 
+      SPB   V4; 
+      CALL #VLSUpper ;
+
+NETWORK
+TITLE =Call Digital output
+
+V4:   UN    #Ma.Par.ParWithVibro; 
+      SPB   StJ0; 
+      U     #Ma.Par.ParVibroIsMotor; 
+      SPB   V4M; 
+      TAR2  #tmpStoreAR2; 
+      L     P##Vibro; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      +AR2  ; 
+      UC    "GCS7_E_DigOutput"; //Call Digital Output FB11
+      LAR2  #tmpStoreAR2; 
+      SPA   V4DI; 
+V4M:  CALL #Vibro ;//FB12
+V4DI: NOP   0; 
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StClosed; 
+      SPB   S0; // ===> State
+      U     #Ma.StOpen; 
+      SPB   S2; // ===> State
+      U     #Ma.StOpening; 
+      SPB   S1; // ===> State
+      U     #Ma.StClosing; 
+      SPB   S3; // ===> State
+      U     #Ma.StFault; 
+      SPB   S4; // ===> State
+
+NETWORK
+TITLE =Closed
+
+xxS0: S     #Ma.StClosed; 
+S0:   R     #Ma.OutPulseClose; //5.2
+      U     #tmpFaultSum; 
+      R     #Ma.StClosed; 
+      SPB   xxS4; //--> StFault
+// Condition for StOpening
+      UN    #AirFlap.StLN; 
+      U     #Ma.Par.ParWithAirFlap; 
+      O     ; 
+      UN    #AirFlap2.StLN; //[5.0]
+      U     #Ma.Par.ParWithAirFlap2; //[5.0]
+      O     ; //[5.0]
+      UN    #VLSLower.StLN; 
+      U     #Ma.Par.ParWithVLSLower; 
+      O     ; 
+      UN    #VLSUpper.StLN; 
+      U     #Ma.Par.ParWithVLSUpper; 
+      R     #Ma.StClosed; 
+      SPB   xxS1; //--> StOpening
+      SPA   OUT; 
+
+NETWORK
+TITLE =StOpening
+
+xxS1: S     #Ma.StOpening; 
+      R     #Ma.OutPulseClose; 
+S1:   U     #tmpFaultSum; 
+      R     #Ma.StOpening; 
+      SPB   xxS4; //--> StFault
+// Condition for StClosing
+      U     #AirFlap.StLN; 
+      UN    #AirFlap.OutpLN; 
+      ON    #Ma.Par.ParWithAirFlap; 
+      U(    ; //[5.0]
+      U     #AirFlap2.StLN; //[5.0]
+      UN    #AirFlap2.OutpLN; //[5.0]
+      ON    #Ma.Par.ParWithAirFlap2; //[5.0]
+      )     ; //[5.0]
+      U(    ; 
+      U     #VLSLower.StLN; 
+      UN    #VLSLower.OutpLN; 
+      ON    #Ma.Par.ParWithVLSLower; 
+      )     ; 
+      U(    ; 
+      U     #VLSUpper.StLN; 
+      ON    #Ma.Par.ParWithVLSUpper; 
+      )     ; 
+      ON    #tmpOpenReq; 
+      R     #Ma.StOpening; 
+      SPB   xxS3; //--> StClosing
+// Condition for StOpen
+      U     #AirFlap.StHN; 
+      ON    #Ma.Par.ParWithAirFlap; 
+      U(    ; //[5.0]
+      U     #AirFlap2.StHN; //[5.0]
+      ON    #Ma.Par.ParWithAirFlap2; //[5.0]
+      )     ; //[5.0]
+      U(    ; 
+      U     #VLSLower.StHN; 
+      ON    #Ma.Par.ParWithVLSLower; 
+      )     ; 
+      U(    ; 
+      U     #VLSUpper.StHN; 
+      ON    #Ma.Par.ParWithVLSUpper; 
+      )     ; 
+      R     #Ma.StOpening; 
+      SPB   xxS2; //--> StOpen
+      SPA   OUT; 
+
+NETWORK
+TITLE =StOpen
+
+xxS2: S     #Ma.StOpen; 
+//Set wait time
+      R     #Ma.OutPulseClose; 
+      L     #Ma.Par.ParWaitOpen; 
+      T     #Ma.Par.OutTime; 
+
+//=== Logic StOpen
+S2:   U     #tmpFaultSum; 
+      R     #Ma.StOpen; 
+      R     #Ma.OutPulseClose; 
+      SPB   xxS4; //--> StFault
+// Condition for StClosing
+      UN    #AirFlap.StHN; 
+      U     #Ma.Par.ParWithAirFlap; 
+      O     ; 
+      UN    #AirFlap2.StHN; //[5.0]
+      U     #Ma.Par.ParWithAirFlap2; //[5.0]
+      O     ; //[5.0]
+      UN    #VLSLower.StHN; 
+      U     #Ma.Par.ParWithVLSLower; 
+      O     ; 
+      UN    #VLSUpper.StHN; 
+      U     #Ma.Par.ParWithVLSUpper; 
+      UN    #Ma.Par.ParPulsing; 
+      O     ; //[5.1]
+      UN    #VLSUpper.StHN; //[5.1]
+      UN    #tmpOpenReq; //[5.1]
+      U     #Ma.Par.ParWithVLSUpper; //[5.1]
+      R     #Ma.StOpen; 
+      SPB   xxS3; //--> StClosing
+//Pulsing
+      U     #Ma.OutPulseClose; 
+      SPB   S2t1; 
+//===Wait time open
+      UN    #VLSUpper.InpHN; 
+      SPB   OUT; 
+      L     0; 
+      L     #Ma.Par.OutTime; 
+      <=I   ; //[5.3]   
+      SPB   S2tx; //-> Count timer
+//Set pulse time close
+      S     #Ma.OutPulseClose; 
+      L     #Ma.Par.ParPulseClosing; 
+      T     #Ma.Par.OutTime; 
+      SPA   OUT; 
+//====Pulsing close
+S2t1: U     #VLSUpper.InpHN; 
+      SPB   OUT; 
+      L     0; 
+      L     #Ma.Par.OutTime; 
+      <=I   ; //[5.3]   
+      SPB   S2tx; //-> Count timer
+//Set wait time
+      R     #Ma.OutPulseClose; 
+      L     #Ma.Par.ParWaitOpen; 
+      T     #Ma.Par.OutTime; 
+      SPA   OUT; 
+//=== Count timer =====
+S2tx: UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   OUT; 
+      L     #Ma.Par.OutTime; 
+      +     -2; 
+      T     #Ma.Par.OutTime; 
+      SPA   OUT; 
+NETWORK
+TITLE =StClosing
+
+xxS3: S     #Ma.StClosing; 
+S3:   U     #tmpFaultSum; 
+      R     #Ma.StClosing; 
+      SPB   xxS4; //--> StFault
+// Condition for StClosed
+      U     #AirFlap.StLN; 
+      UN    #AirFlap.OutpLN; 
+      ON    #Ma.Par.ParWithAirFlap; 
+      U(    ; //[5.0]
+      U     #AirFlap2.StLN; //[5.0]
+      UN    #AirFlap2.OutpLN; //[5.0]
+      ON    #Ma.Par.ParWithAirFlap2; //[5.0]
+      )     ; //[5.0]
+      U(    ; 
+      U     #VLSLower.StLN; 
+      UN    #VLSLower.OutpLN; 
+      ON    #Ma.Par.ParWithVLSLower; 
+      )     ; 
+      U(    ; 
+      U     #VLSUpper.StLN; 
+      ON    #Ma.Par.ParWithVLSUpper; 
+      )     ; 
+      R     #Ma.StClosing; 
+      SPB   xxS0; //--> StClosed
+// Condition for StOpening
+      U     #tmpOpenReq; 
+      R     #Ma.StClosing; 
+      SPB   xxS1; //--> StOpening
+      SPA   OUT; 
+
+NETWORK
+TITLE =Fault
+
+xxS4: S     #Ma.StFault; 
+S4:   UN    #tmpFaultSum; 
+      R     #Ma.StFault; 
+      SPB   xxS3; //--> StClosing
+      SPA   OUT; 
+
+NETWORK
+TITLE =Global End
+
+OUT:  CLR   ; //---Clear all commands
+      =     #Ma.CmdOpen; 
+      =     #Ma.CmdClose; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdNext; //[6.0]
+// Disable reading
+      U     #VLSUpper.OutpHN; 
+      UN    #VLSUpper.StHN; 
+      O     ; 
+      U     #VLSUpper.OutpLN; 
+      UN    #VLSUpper.StLN; 
+      UN    #VLSUpper.StFault; 
+      =     #Ma.OutDisableRead; 
+
+NETWORK
+TITLE =State Code
+// Same as motor
+      U     #Ma.StClosed; 
+      L     1; // StCode=Closed
+      SPB   Code; 
+      U     #Ma.StOpen; 
+      L     3; // StCode=Open
+      SPB   Code; 
+      U     #Ma.StOpening; 
+      L     2; // StCode=Open
+      SPB   Code; 
+      U     #Ma.StClosing; 
+      L     7; // StCode=Closing
+      SPB   Code; 
+      L     32; // StCode=Fault
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+END_FUNCTION_BLOCK
+

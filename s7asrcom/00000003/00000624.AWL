@@ -1,0 +1,440 @@
+	FUNCTION FC 800  : VOID
+	TITLE =MAL1 Line control: MALTING LINE
+	//COPYRIGHT:    (C) 2009 BY  BUHLER AG
+	//                           CH-9240 UZWIL  SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        MALTING LINE
+	//                 Line control
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:                              DATE:
+	//
+	//P01_FC800.1.0 K.Renz              CSB41                              13.Jan.2010
+	//              1st Release
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//REFERENCES : GCSOSMAN
+	//
+	//--------------------------------------------------------------------------------
+	//
+	//
+	//
+	//InCode:
+	//------
+	//0000 to 0999: Main Functions
+	//              0 =Main Function Cylic
+	//              1 =Main Function Coldstart/Newstart
+	//              2 =Main Function Warm Start
+	
+	
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 9.9
+	VAR_INPUT
+	  InCode : INT ;	
+	END_VAR
+	VAR_TEMP
+	  tmpBool : BOOL ;	
+	  tmpByte : BYTE ;	
+	  tmpWord : WORD ;	
+	  tmpDWord : DWORD ;	
+	  tmpInt : INT ;	
+	  tmpDInt : DINT ;	
+	  tmp_FlagStart      :BOOL;      //Free For ASW
+	  tmp_FlagFaultReset :BOOL;      //Free For ASW
+	  tmp_FlagAuto       :BOOL;      //Free For ASW
+	  tmpLineLOG : STRUCT 	
+	   MsgSenderEmpty : BOOL ;	
+	   spare1 : BOOL ;	
+	   spare2 : BOOL ;	
+	   MsgAllRcvFull : BOOL ;	
+	   MsgMachineNotAvailable : BOOL ;	
+	   spare5 : BOOL ;	
+	   spare6 : BOOL ;	
+	   spare7 : BOOL ;	
+	   MsgTerminated : BOOL ;	
+	   MsgStopped : BOOL ;	
+	   MsgStarted : BOOL ;	
+	   MsgSuspended : BOOL ;	
+	   MsgFaulted : BOOL ;	
+	   MsgWarning : BOOL ;	
+	  END_STRUCT ;	
+	END_VAR
+	BEGIN
+	NETWORK
+	TITLE =Main1_CS: Coldstart/newstart
+	//Reset prozess lines on Coldstart/newstart
+	      L InCode;
+	      L 1;
+	      <>I;
+	      SPB   M1J9; 
+	      S     "MAL1".ToSSW.Func.CmdImmediateStop;
+	      // S     "MAL1".ToSSW.Func.CmdReset;
+	      AUF   DB 799; // Line parameter DB
+	      // CALL  FC   120
+	      // InCode    :=1031              // Line: Clear flags
+	      BEA  ; 
+	M1J9: NOP 0;
+	NETWORK
+	TITLE =Main2_WS: WarmStart 
+	// Immediate Stop on startup 
+	      L InCode;
+	      L 2;
+	      <>I;
+	      SPB   M2J9; 
+	      S     "MAL1".ToSSW.Func.CmdImmediateStop;
+	      BEA  ; 
+	M2J9: NOP 0;
+	NETWORK
+	TITLE =
+	//=================================================
+	//=================================================
+	//S T A R T   M A I N   F U N C T I O N
+	//=================================================
+	//=================================================
+	      L InCode;
+	      L 0;
+	      <>I;
+	      BEB; 
+	      
+	NETWORK
+	TITLE =Main0_Test: Test function general
+	      U    PLC_SystemDB.GlobalFlags.StaTest; 
+	      SPBN   TF00; 
+	      U    "MAL1Par".FlagGen33.Inf24StaPCCOffline; 
+	      SPBN   TF02; 
+//-receive box---
+		L     0; // Target Sektion
+		U    "MAL1".JobWrite.Hsk.F_Modify;
+		SPB   TF01; 
+		L     1; // Target Sektion
+	TF01:	T     "MAL1".JobWrite.SectionDest;
+		SET   ; 
+		S     "MAL1".JobWrite.ObjMask[64];
+		S     "MAL1".JobWrite.ObjMask[33];
+		S     "MAL1".JobWrite.ObjMask[34];
+		S     "MAL1".JobWrite.ObjMask[36];
+//-Acknowledge results ----
+		U     "MAL1S001SND33".PCRead.Hsk.F_Result;
+		S     "MAL1S001SND33".PCWrite.Hsk.Q_Result;
+		U     "MAL1S001SND33".PCRead.Hsk.F_Status;
+		S     "MAL1S001SND33".PCWrite.Hsk.Q_Status;
+		U     "MAL1S001RCV34".PCRead.Hsk.F_Result;
+		S     "MAL1S001RCV34".PCWrite.Hsk.Q_Result;
+		U     "MAL1S001RCV34".PCRead.Hsk.F_Status;
+		S     "MAL1S001RCV34".PCWrite.Hsk.Q_Status;
+		U     "MAl1S034RCV36".PCRead.Hsk.F_Result;
+		S     "MAl1S034RCV36".PCWrite.Hsk.Q_Result;
+		U     "MAl1S034RCV36".PCRead.Hsk.F_Status;
+		S     "MAl1S034RCV36".PCWrite.Hsk.Q_Status;
+		U     "MAL1S001".PCRead.Hsk.F_Result;
+		S     "MAL1S001".PCWrite.Hsk.Q_Result;
+		U     "MAL1S001".PCRead.Hsk.F_Status;
+		S     "MAL1S001".PCWrite.Hsk.Q_Status;
+		U     "MAL1S005".PCRead.Hsk.F_Result;
+		S     "MAL1S005".PCWrite.Hsk.Q_Result;
+		U     "MAL1S005".PCRead.Hsk.F_Status;
+		S     "MAL1S005".PCWrite.Hsk.Q_Status;
+		U     "MAL1S006".PCRead.Hsk.F_Result;
+		S     "MAL1S006".PCWrite.Hsk.Q_Result;
+		U     "MAL1S006".PCRead.Hsk.F_Status;
+		S     "MAL1S006".PCWrite.Hsk.Q_Status;
+		U     "MAL1S007".PCRead.Hsk.F_Result;
+		S     "MAL1S007".PCWrite.Hsk.Q_Result;
+		U     "MAL1S007".PCRead.Hsk.F_Status;
+		S     "MAL1S007".PCWrite.Hsk.Q_Status;
+		U     "MAL1S017".PCRead.Hsk.F_Result;
+		S     "MAL1S017".PCWrite.Hsk.Q_Result;
+		U     "MAL1S017".PCRead.Hsk.F_Status;
+		S     "MAL1S017".PCWrite.Hsk.Q_Status;
+		U     "MAL1S018".PCRead.Hsk.F_Result;
+		S     "MAL1S018".PCWrite.Hsk.Q_Result;
+		U     "MAL1S018".PCRead.Hsk.F_Status;
+		S     "MAL1S018".PCWrite.Hsk.Q_Status;
+		U     "MAL1S019".PCRead.Hsk.F_Result;
+		S     "MAL1S019".PCWrite.Hsk.Q_Result;
+		U     "MAL1S019".PCRead.Hsk.F_Status;
+		S     "MAL1S019".PCWrite.Hsk.Q_Status;
+		U     "MAL1S020".PCRead.Hsk.F_Result;
+		S     "MAL1S020".PCWrite.Hsk.Q_Result;
+		U     "MAL1S020".PCRead.Hsk.F_Status;
+		S     "MAL1S020".PCWrite.Hsk.Q_Status;
+		U     "MAL1S021".PCRead.Hsk.F_Result;
+		S     "MAL1S021".PCWrite.Hsk.Q_Result;
+		U     "MAL1S021".PCRead.Hsk.F_Status;
+		S     "MAL1S021".PCWrite.Hsk.Q_Status;
+		U     "MAL1S022".PCRead.Hsk.F_Result;
+		S     "MAL1S022".PCWrite.Hsk.Q_Result;
+		U     "MAL1S022".PCRead.Hsk.F_Status;
+		S     "MAL1S022".PCWrite.Hsk.Q_Status;
+		U     "MAL1S023".PCRead.Hsk.F_Result;
+		S     "MAL1S023".PCWrite.Hsk.Q_Result;
+		U     "MAL1S023".PCRead.Hsk.F_Status;
+		S     "MAL1S023".PCWrite.Hsk.Q_Status;
+		U     "MAL1S024".PCRead.Hsk.F_Result;
+		S     "MAL1S024".PCWrite.Hsk.Q_Result;
+		U     "MAL1S024".PCRead.Hsk.F_Status;
+		S     "MAL1S024".PCWrite.Hsk.Q_Status;
+		U     "MAL1S032".PCRead.Hsk.F_Result;
+		S     "MAL1S032".PCWrite.Hsk.Q_Result;
+		U     "MAL1S032".PCRead.Hsk.F_Status;
+		S     "MAL1S032".PCWrite.Hsk.Q_Status;
+		U     "MAL1S033".PCRead.Hsk.F_Result;
+		S     "MAL1S033".PCWrite.Hsk.Q_Result;
+		U     "MAL1S033".PCRead.Hsk.F_Status;
+		S     "MAL1S033".PCWrite.Hsk.Q_Status;
+		U     "MAL1S034".PCRead.Hsk.F_Result;
+		S     "MAL1S034".PCWrite.Hsk.Q_Result;
+		U     "MAL1S034".PCRead.Hsk.F_Status;
+		S     "MAL1S034".PCWrite.Hsk.Q_Status;
+	TF02: NOP 0;
+	TF00: NOP 0;
+	NETWORK
+	TITLE =Main0_INI: Init Flag
+		L    0;
+		T    DB801.DBD   46; // -->MAL1S001.ToASW.Func
+		T    DB805.DBD   46; // -->MAL1S005.ToASW.Func
+		T    DB806.DBD   46; // -->MAL1S006.ToASW.Func
+		T    DB807.DBD   46; // -->MAL1S007.ToASW.Func
+		T    DB817.DBD   46; // -->MAL1S017.ToASW.Func
+		T    DB818.DBD   46; // -->MAL1S018.ToASW.Func
+		T    DB819.DBD   46; // -->MAL1S019.ToASW.Func
+		T    DB820.DBD   46; // -->MAL1S020.ToASW.Func
+		T    DB821.DBD   46; // -->MAL1S021.ToASW.Func
+		T    DB822.DBD   46; // -->MAL1S022.ToASW.Func
+		T    DB823.DBD   46; // -->MAL1S023.ToASW.Func
+		T    DB824.DBD   46; // -->MAL1S024.ToASW.Func
+		T    DB832.DBD   46; // -->MAL1S032.ToASW.Func
+		T    DB833.DBD   46; // -->MAL1S033.ToASW.Func
+		T    DB834.DBD   46; // -->MAL1S034.ToASW.Func
+	NETWORK
+	TITLE =ASW_SPEC: Special function line
+	      NOP 0;
+	NETWORK
+	TITLE =ASW_LM: Line LOG Messages
+	      NOP 0;
+	// 
+		AUF   "MAL1";
+	      CALL FC120 (
+	           InCode                   := 1010);// Line function: State/fault protocolling   
+	// 
+	      L    "MAL1".VarTemp.InOutValue1;  // Return Data Messages
+	      LAR1  P##tmpLineLOG; 
+	      T     LW [AR1,P#0.0]; 
+	      U     #tmpLineLOG.MsgTerminated; 
+	      =     G010G.Msg01.InMsg0; // --> LineMsg.terminated 
+	      U     #tmpLineLOG.MsgStopped; 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg1; // --> LineMsg.stopped 
+	      U     #tmpLineLOG.MsgStarted; 
+	      =     G010G.Msg01.InMsg2; // --> LineMsg.started 
+	      U     #tmpLineLOG.MsgSuspended; 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg3; // --> LineMsg.suspended 
+	      U     #tmpLineLOG.MsgFaulted; 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg4; // --> LineMsg.faulted 
+	      U     #tmpLineLOG.MsgWarning; 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg5; // --> LineMsg.warning 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg6; // --> LineMsg.NotUsed 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg7; // --> LineMsg.TargetWeightReached 
+	// 
+	//-LOG entrys with horn possibility---
+	      U     #tmpLineLOG.MsgSenderEmpty; 
+	      CLR   ; 
+	      =     G010G.Msg01.InMsg8; // --> LineMsg.SenderEmpty 
+	// 
+	      CLR   ; 
+	      =      G010G.Msg01.InMsg9; // --> LineMsg.ReceiverFull 
+	// 
+	      CLR   ; 
+	      =      G010G.Msg01.InMsg10; // --> LineMsg.allSelectedSndEmpty 
+	// 
+	      U     #tmpLineLOG.MsgAllRcvFull; 
+	      CLR   ; 
+	      =       G010G.Msg01.InMsg11; // --> LineMsg.allPreselectRcvFull 
+	// 
+	      U     #tmpLineLOG.MsgMachineNotAvailable; 
+	      =      G010G.Msg01.InMsg12; // --> LineMsg.MachinesNotAvailable 
+	// 
+	      U    "MAL1".PCRead.Fault.EsNewBinTimeout; 
+	      =      G010G.Msg01.InMsg13; // --> LineMsg.NewBinTimeout 
+	// 
+	      U    "MAL1".PCRead.Fault.EsProductMismatch; 
+	      =      G010G.Msg01.InMsg14; // --> LineMsg.ProductMismatch 
+	// 
+	      U    "MAL1".PCRead.Fault.EsSectionTimeOut; 
+	      =      G010G.Msg01.InMsg15; // --> LineMsg.SectionTimeOut 
+	// 
+	// 
+	NETWORK
+	TITLE =ASW_LR: Local control
+	// 
+		AUF   "MAL1";
+	// 
+	NETWORK
+	TITLE =ASW_LC: Line status colour
+	// 
+	      AUF   "MAL1";
+	      CALL FC120 (
+	           InCode                   := 1055);// Line function: WinCoS.LineInfoCode
+	// 
+	
+	NETWORK
+	TITLE =ASW_GC: General group status colour
+	// 
+	//-Mask relevant selected general groups---
+	      U M 50.0; 
+	//-> Set groups to 0, which are selected from the section, but not 
+	//   included in the WinCoS-General elements window
+	      = M 50.0; 
+	      L     2#11001101111111111011110111111111; // GGR [32..25][24..17][16..09][08..01]
+	      TAD   ; 
+	      T    "MAL1".VarTemp.InOutValue3;  // Mask relevant GGR
+	// 
+	      L     2#11111111; // GGR [64..57][56..49][48..41][40..33]
+	      TAD   ; 
+	      T    "MAL1".VarTemp.InOutValue4;  // Mask relevant GGR
+	// 
+		AUF   "MAL1";
+	      CALL FC120 (
+	           InCode                   := 1063);// Line function: WinCoS.GenGrpColourCode
+	// 
+	//-Mask relevant selected maintenance groups---
+	// 
+	      L     2#0; // GGR [32..25][24..17][16..09][08..01]
+	      TAD   ; 
+	      T    "MAL1".VarTemp.InOutValue3;  // Mask relevant GGR
+		AUF   "MAL1";
+	      CALL FC120 (
+	           InCode                   := 1062);// Line function: WinCoS.MainGrpColourCode
+	// 
+	NETWORK
+	TITLE =Main0_Com: Communication
+	
+		UN    "MAL1".JobWrite.Hsk.F_Define;
+		UN    "MAL1".JobWrite.Hsk.F_Execute;
+		UN    "MAL1".JobWrite.Hsk.F_Modify;
+		SPB   aEnd; 
+	//-Initialize and test---
+		AUF   "MAL1";
+		CALL FC    58 (//Com.Methode Init
+		  CODE                     := 1);
+	//-Copy bin recipe to section---
+	      U     "MAL1".JobWrite.ObjMask[33];
+	      SPBN  CM00; 
+		AUF   "MAL1S001SND33";
+		CALL FC    66 (// Methode Decoder
+		  CODE                     := 1);
+	      U     "MAL1S001SND33".VarCommand.InfEmptyRecipe; 
+	      SPBN  CM00; 
+	      L     0; //
+	      T     "MAL1".JobRead.ErrElement; 
+	      L     30; //
+	      T     "MAL1".JobRead.ErrCode; 
+	      L     33; //
+	      T     "MAL1".JobRead.ErrObject; 
+	CM00:	NOP 0;
+	//-Copy bin recipe to section---
+	      U     "MAL1".JobWrite.ObjMask[34];
+	      SPBN  CM01; 
+		AUF   "MAL1S001RCV34";
+		CALL FC    66 (// Methode Decoder
+		  CODE                     := 1);
+	      U     "MAL1S001RCV34".VarCommand.InfEmptyRecipe; 
+	      SPBN  CM01; 
+	      L     0; //
+	      T     "MAL1".JobRead.ErrElement; 
+	      L     30; //
+	      T     "MAL1".JobRead.ErrCode; 
+	      L     34; //
+	      T     "MAL1".JobRead.ErrObject; 
+	CM01:	NOP 0;
+	//-Copy bin recipe to section---
+	      U     "MAL1".JobWrite.ObjMask[36];
+	      SPBN  CM02; 
+		AUF   "MAl1S034RCV36";
+		CALL FC    66 (// Methode Decoder
+		  CODE                     := 1);
+	      U     "MAl1S034RCV36".VarCommand.InfEmptyRecipe; 
+	      SPBN  CM02; 
+	      L     0; //
+	      T     "MAL1".JobRead.ErrElement; 
+	      L     30; //
+	      T     "MAL1".JobRead.ErrCode; 
+	      L     36; //
+	      T     "MAL1".JobRead.ErrObject; 
+	CM02:	NOP 0;
+	//-Copy job definition/commands to section---
+		AUF   "MAL1";
+		CALL FC    60 (// Methode Decoder
+		  CODE                     := 1);
+	//-Test copy to section successful---
+		CALL FC    58 (// Methode Control
+		  CODE                     := 2);
+	aEnd:	NOP 0;
+	NETWORK
+	TITLE =Main0_Control: Line Interface
+	//                  
+	      NOP   0; 
+	//-Direct control line PCS---
+		AUF   "MAL1";
+		CALL FC    58 (// Methode Diagnose
+		  CODE                     := 12);
+	//-Direct control section PCS---
+		AUF   "MAL1";
+		CALL FC    60 (// Methode Diagnose
+		 CODE                     := 12);
+	//-Copy user commands to section---
+		AUF   "MAL1";
+		CALL FC    58 (// Methode Commands
+		 CODE                     := 10);
+	//-Prepare line step---
+		AUF   "MAL1";
+		CALL FC    58 (// Methode Step
+		 CODE                     := 13);
+	//-Combine fault and state mask---
+		AUF   "MAL1";
+		CALL FC    58 (// Methode Summary_mask
+		 CODE                     := 16);
+	//-Copy line commands to section---
+		AUF   "MAL1";
+		CALL FC    58 (// Methode O_Line
+		 CODE                     := 17);
+	
+	NETWORK
+	TITLE =ASW_Cmd1: User commands to line
+	//Called in: Segment 'Commands user to line'
+	UC00: NOP   0; 
+	NETWORK
+	TITLE =ASW_Cmd2: Commands user to line
+	      NOP   0; 
+	//-On/Off Commands to line---
+		AUF   "MAL1";
+	      CALL FC120 (
+	           InCode                   := 1001);// Line function: On/Off sommands  
+	//-Status from pulse commands---
+	      CLR;
+	      =     DB800.DBX  127.0;
+	      =     DB800.DBX  127.1;
+	      =     DB800.DBX  127.2;
+	      =     DB800.DBX  127.3;
+	      =     DB800.DBX  127.4;
+	      =     DB800.DBX  127.5;
+	      =     DB800.DBX  127.6;
+	      =     DB800.DBX  127.7;
+	// 
+	NETWORK
+	TITLE =End of block
+	
+	      BE    ; 
+	END_FUNCTION

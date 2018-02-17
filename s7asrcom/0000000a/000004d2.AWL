@@ -1,0 +1,82 @@
+DATA_BLOCK "zimina_BD"
+TITLE =
+VERSION : 0.1
+
+
+  STRUCT 	
+   germ1 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ2 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ3 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ4 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ5 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ6 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ7 : BOOL  := TRUE;	//Temporary placeholder variable
+   germ8 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm1 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm2 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm3 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm4 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm5 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm6 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm7 : BOOL  := TRUE;	//Temporary placeholder variable
+   belowGerm8 : BOOL  := TRUE;	//Temporary placeholder variable
+   tempCorrGerm1_t1 : INT  := 300;	
+   tempCorrGerm1_t2 : INT  := 300;	
+   tempCorrGerm2_t1 : INT  := 300;	
+   tempCorrGerm2_t2 : INT  := 300;	
+   tempCorrGerm3_t1 : INT  := 300;	
+   tempCorrGerm3_t2 : INT  := 300;	
+   tempCorrGerm4_t1 : INT  := 300;	
+   tempCorrGerm4_t2 : INT  := 300;	
+   tempCorrGerm5_t1 : INT  := 300;	
+   tempCorrGerm5_t2 : INT  := 300;	
+   tempCorrGerm6_t1 : INT  := 300;	
+   tempCorrGerm6_t2 : INT  := 300;	
+   tempCorrGerm7_t1 : INT  := 300;	
+   tempCorrGerm7_t2 : INT  := 300;	
+   tempCorrGerm8_t1 : INT  := 300;	
+   tempCorrGerm8_t2 : INT  := 300;	
+   tempCorrBelowGerm1_t1 : INT  := 200;	
+   tempCorrBelowGerm1_t2 : INT  := 200;	
+   tempCorrBelowGerm2_t1 : INT  := 200;	
+   tempCorrBelowGerm2_t2 : INT  := 200;	
+   tempCorrBelowGerm3_t1 : INT  := 200;	
+   tempCorrBelowGerm3_t2 : INT  := 200;	
+   tempCorrBelowGerm4_t1 : INT  := 200;	
+   tempCorrBelowGerm4_t2 : INT  := 200;	
+   tempCorrBelowGerm5_t1 : INT  := 200;	
+   tempCorrBelowGerm5_t2 : INT  := 200;	
+   tempCorrBelowGerm6_t1 : INT  := 200;	
+   tempCorrBelowGerm6_t2 : INT  := 200;	
+   tempCorrBelowGerm7_t1 : INT  := 200;	
+   tempCorrBelowGerm7_t2 : INT  := 200;	
+   tempCorrBelowGerm8_t1 : INT  := 200;	
+   tempCorrBelowGerm8_t2 : INT  := 200;	
+  END_STRUCT	
+BEGIN
+   germ1 := TRUE; 
+   germ2 := TRUE; 
+   germ3 := TRUE; 
+   germ4 := TRUE; 
+   germ5 := TRUE; 
+   germ6 := TRUE; 
+   germ7 := TRUE; 
+   germ8 := TRUE; 
+   tempCorrGerm1_t1 := 280; 
+   tempCorrGerm1_t2 := 310; 
+   tempCorrGerm2_t1 := 300; 
+   tempCorrGerm2_t2 := 310; 
+   tempCorrGerm3_t1 := 290; 
+   tempCorrGerm3_t2 := 280; 
+   tempCorrGerm4_t1 := 320; 
+   tempCorrGerm4_t2 := 310; 
+   tempCorrGerm5_t1 := 310; 
+   tempCorrGerm5_t2 := 310; 
+   tempCorrGerm6_t1 := 300; 
+   tempCorrGerm6_t2 := 280; 
+   tempCorrGerm7_t1 := 290; 
+   tempCorrGerm7_t2 := 310; 
+   tempCorrGerm8_t1 := 320; 
+   tempCorrGerm8_t2 := 320; 
+END_DATA_BLOCK
+

@@ -1,0 +1,1060 @@
+FUNCTION_BLOCK "G185M_Code"
+TITLE =G185M TRAVELLING DRIVE GERM 5
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        TRAVELLING DRIVE GERM 5
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB285.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2511_BZS44 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_BZS46 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_QYS45 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_QYS43 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2511_TSC41_PD1 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2511_TSC41_PD2 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2511_TSC41_COM : "SSA_SEW_MOVIDRIVE";	// FU_Siemens 
+  A_2511_BZS49 : "GCS7_E_AnalogInput";	// AnaInp 
+  A_2511_MXZ41MA : FB 1047;	// TractionDevice 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[185]; 
+      R     "GCS7_GrCtrlDB".ParWGR[185]; 
+      R     "GCS7_GrCtrlDB".ParGGR[185]; 
+      R     "GCS7_GrCtrlDB".ParFeed[185]; 
+      R     "GCS7_GrCtrlDB".ParShare[185]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[185]; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[185]; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[185]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[185]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[185]; 
+      R     "GCS7_GrCtrlDB".CmdNext[185]; 
+      S     #Gr.CmdNext; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[185]; 
+      UN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[185]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[185]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[185]
+//      O     "GCS7_GrCtrlDB".OutOccupied[185]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[185]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[185]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[185]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[185]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+      L     0; // time change to true
+      SPA   LD06; 
+
+      L     20; // time change to true
+      U     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "MAL1S021Par".Par.FlagFunction_1.UnloadingStarted; 
+      SPBN  LD06; 
+      L     6000; // time change to true
+LD06: T     "G185M".A_2511_BZS44.Par.ParDelayTrue; 
+
+// set speed
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishCleaning; 
+      U(    ; 
+      L     "MAL1S021Par".Ilo.ILOMode; // JV 290808
+      L     9; 
+      <>I   ; 
+      )     ; 
+      L     "MAL1S021Par".Par.ParIntProcess.CopyLoadindSpeed2; // JV 290808
+      L     100; 
+      *I    ; 
+      SPB   SP06; 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptying; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U(    ; 
+      L     "MAL1S021Par".Ilo.ILOMode; // JV 290808
+      L     9; 
+      <>I   ; 
+      )     ; 
+      L     "MAL1S021Par".RecipeHeader.Unloading.UnLoadingSpeed_1; // JV 290808
+      L     100; 
+      *I    ; 
+      SPB   SP06; 
+      U(    ; // - When machine is going back to cleaning position
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S021Par".Par.FlagMachine_0.CmdTurnRevAfterUnloading; 
+      UN    "MAL1S021Par".Par.FlagMachine_0.CleaningAfterUnloading; 
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      L     4000; // 40,00 % Speed to go back to cleaning position
+      SPB   SP06; 
+      L     2500; // 25% = 12.5Hz
+SP06: T     "G185M".A_2511_MXZ41MA.Ma.InSpeed; 
+      U(    ; 
+      L     "MAL1S021Par".Ilo.ILOMode; 
+      L     8; 
+      ==I   ; 
+      )     ; 
+      SPBN  jum1; 
+      L     "MAL1S021Par".Par.ParIntProcess.Speed_ILO_FloorRotating; //dyk ILO
+      L     100; 
+      *I    ; 
+      T     "G185M".A_2511_MXZ41MA.Ma.InSpeed; 
+jum1: NOP   0; 
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      UN    "G186M".Gr.OutAutostart; 
+      U     "GCS7_GrCtrlDB".OutEnable[186]; //dyk
+      O     ; 
+      UN    "G189M".Gr.OutAutostart; 
+      U     "GCS7_GrCtrlDB".OutEnable[189]; //dyk
+      O     ; 
+      UN    "G005G".Gr.OutAutostart; 
+      U     "GCS7_GrCtrlDB".OutEnable[200]; //dyk
+      R     #Gr.OutAutostart; 
+// NOP 0
+      CLR   ; 
+      CLR   ; 
+// C-Profilschutz
+
+NETWORK
+TITLE =Interlocking Enable
+
+      U     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; 
+      U     "G186M".Gr.OutEnablePrevGr; 
+      U     "G189M".Gr.OutEnablePrevGr; 
+      ON    "MAL1S021Par".Par.FlagFunction_1.StepUnloading; 
+      O(    ; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S021Par".Par.FlagMachine_0.CmdTurnRevAfterUnloading; 
+      )     ; 
+//-turning---
+      U(    ; 
+      U     "MAL1S021Par".Par.FlagProcess2.Turning1WithoutSpraying; 
+      O     "MAL1S021Par".Par.FlagProcess2.Turning2WithoutSpraying; 
+      U     "G189M".Gr.OutEnablePrevGr; 
+      O     ; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning1WithoutSpraying; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning2WithoutSpraying; 
+      UN    #Gr.InManual; 
+      )     ; 
+//-Spraying---
+      U(    ; 
+      U     "MAL1S021Par".Par.FlagProcess2.Turning1WithSpraying; 
+      O     "MAL1S021Par".Par.FlagProcess2.Turning2WithSpraying; 
+      UN    "G193M".Gr.VarFault; // spraying valve
+////      UN    "GxxxM".Gr.VarFault         // spraying water pump --> Customer!!!
+
+      U     "G189M".Gr.OutEnablePrevGr; 
+      O     ; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning1WithSpraying; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning2WithSpraying; 
+      UN    #Gr.InManual; 
+      )     ; 
+//-Dosing---
+      U(    ; 
+      U(    ; 
+      U     "MAL1S021Par".Par.FlagProcess2.Turning1WithDosing; 
+      O     "MAL1S021Par".Par.FlagProcess2.Turning2WithDosing; 
+      U     "G081M".Gr.OutEnablePrevGr; // Doser Gibberelin 5402
+      U     "G189M".Gr.OutEnablePrevGr; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S021Par".Par.FlagProcess2.Turning1WithDosing; 
+      O     "MAL1S021Par".Par.FlagProcess2.Turning2WithDosing; 
+      UN    "G081M".Gr.InOccupied; // Doser Gibberelin 5402
+      U     "G206M".Gr.OutEnablePrevGr; 
+      )     ; 
+      O(    ; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning1WithDosing; 
+      UN    "MAL1S021Par".Par.FlagProcess2.Turning2WithDosing; 
+      UN    #Gr.InManual; 
+      )     ; 
+      )     ; 
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      U     "G189M".Gr.OutEnablePrevGr; 
+      )     ; 
+      UN(   ; //dyk 081029  If the Wall is NOT in the bottom position, the uncoupled travelling machine can NOT run.
+      U     "G183M".A_2511_BZS22.InpTrue; //COUPLING DRIVE UNLOCKED GM2 
+      U     "G183M".A_2511_BZS26.InpTrue; //COUPLING DRIVE UNLOCKED GM2 
+      U     "G183M".A_2511_BZS32.InpTrue; //COUPLING DRIVE UNLOCKED GM2 
+      U     "G183M".A_2511_BZS36.InpTrue; //COUPLING DRIVE UNLOCKED GM2 
+      UN    "G182M".A_2515_BZS22.InpTrue; //LIFTING DEVICE DOWN GM2
+      )     ; 
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE =Interlocking Start Warning
+
+      NOP   0; 
+//- Restart after fault --
+      U     #Gr.CmdFaultReset; 
+      U     #Gr.VarFault; 
+      S     "SYS_StartWarningDB".Area[6].CmdResetStartWarning; 
+//- Run Timer --
+      AUF   "G185M"; 
+      CALL "GCS7_StartWarning" , "SYS_StartWarningDB" (
+           InModeHigher             := FALSE,
+           InArea                   := 6,
+           InEnable                 := #Gr.OutEnableEl,
+           InLocal                  := #tmpLocal,
+           InStarted                := #Gr.VarStarted,
+           InCmdNext                := #tmpCmdNext,
+           OutCmdNext               := #tmpCmdNext,
+           OutStartwarning          := #Gr.VarStartwarning);
+//- Store Startwarning done  --
+//- Reset Autostart --
+      U     "SYS_StartWarningDB".TmpArea.OutStartReleaseRunningL; 
+      FN    #EdgeStartRelease; 
+      U     #Gr.VarFault; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE ==A-2511-BZS44 : TRAVELING DRIVE STOP LEFT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_BZS44.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_BZS44.InMonTrue; 
+//      CLR   
+      U     #A_2511_BZS44.InpTrue; // both signals together is a fault
+      U     #A_2511_BZS46.InpTrue; 
+      =     #A_2511_BZS44.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_BZS44.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_BZS44.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_BZS44.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_BZS44_I1"; 
+      =     #A_2511_BZS44.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_BZS44.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_BZS44.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_BZS44 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-BZS46 : TRAVELING DRIVE STOP RIGHT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      UN    "MAL1S021Par".Par.FlagFunction_1.StepLoading; 
+      =     #A_2511_BZS46.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2511_BZS46.InMonTrue; 
+//      CLR   
+      U     #A_2511_BZS46.InpTrue; // both signals together is a fault
+      U     #A_2511_BZS44.InpTrue; 
+      =     #A_2511_BZS46.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_BZS46.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_BZS46.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_BZS46.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2511_BZS46_I1"; 
+      =     #A_2511_BZS46.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_BZS46.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_BZS46.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_BZS46 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-QYS45 : TRAVELING DRIVE SAFETY STRIGHT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_QYS45.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2511_QYS45.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_QYS45.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_QYS45.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_QYS45.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_QYS45.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_2511_QYS45_I1"; 
+      =     #A_2511_QYS45.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_QYS45.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_QYS45.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_QYS45 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-QYS43 : TRAVELING DRIVE SAFETY STLEFT SIDE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_QYS43.InLocal; 
+// 
+//-Monitoring---
+      SET   ; 
+      =     #A_2511_QYS43.InMonTrue; 
+      CLR   ; 
+      =     #A_2511_QYS43.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2511_QYS43.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2511_QYS43.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2511_QYS43.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      UN    "A_2511_QYS43_I1"; 
+      =     #A_2511_QYS43.InpTrue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_QYS43.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_QYS43.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_QYS43 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-MXZ41MA : TRAVELING DRIVE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_MXZ41MA.Ma.InLocal; 
+
+//-Interlocking---
+      O(    ; 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StReady; 
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      U     "MAL1S021Par".Par.FlagFunction_1.TurningRight; 
+      UN    #A_2511_BZS44.InpTrue; // stop discharge side
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptying; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "MAL1S021Par".Par.FlagFunction_1.UnloadingStarted; 
+      U     "MAL1S021".ToASW.spare34; // infNextSectionFeeding
+      U     #A_2511_BZS44.StFalse; // stop discharge side
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      U(    ; 
+      O(    ; 
+      U(    ; 
+      O     "MAL1S021".PCRead.Step.StIdling; 
+      O     "MAL1S021".PCRead.Step.StPassive; 
+      )     ; 
+      U     #USW14; // ILO-cmd run fwd
+      )     ; 
+      O(    ; 
+      UN(   ; 
+      O     "MAL1S021".PCRead.Step.StIdling; 
+      O     "MAL1S021".PCRead.Step.StPassive; 
+      )     ; 
+      U     #USW14; // ILO-cmd run fwd
+      U     "G206M".Gr.OutEnablePrevGr; 
+      )     ; 
+      UN    #A_2511_BZS44.InpTrue; // stop discharge side
+      )     ; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      U     #A_2511_QYS43.StTrue; // emergency stop discharge side
+      U     #A_2511_QYS45.StTrue; // bumper discharge side
+      UN    "MAL1S021Par".Par.FlagFunction_1.StepLoading; // locked if loading
+      UN    "MAL1S021Par".Par.FlagFunction_1.StepCleaning; // Step cleaning
+      =     #A_2511_MXZ41MA.Ma.InEnableFwd; 
+
+      O(    ; 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U(    ; // JV210808 to finish last turning
+      O     "MAL1S021".PCRead.Step.StReady; 
+      O     "MAL1S021".PCRead.Step.StEmptying; 
+      )     ; 
+      U(    ; // JV210808 to finish last turning
+      O     "MAL1S021Par".Par.FlagProcess.ProcessActive; 
+      O     "MAL1S021Par".Par.FlagProcess.ProcessEnd; 
+      )     ; 
+      U     "MAL1S021Par".Par.FlagFunction_1.TurningLeft; 
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      O(    ; // run back to cleaning pos
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishUnloading; 
+      U     "MAL1S021Par".Par.FlagMachine_0.CmdTurnRevAfterUnloading; 
+      UN    "MAL1S021Par".Par.FlagMachine_0.CleaningAfterUnloading; 
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+      O(    ; // run back to cleaning pos
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StEmptied; 
+      U     "MAL1S021Par".Par.FlagFunction_1.FinishCleaning; 
+      UN    #Gr.InManual; 
+      UN    #Gr.InOutAutostartMan; 
+      )     ; 
+
+      O(    ; 
+      U     #Gr.InManual; 
+      U     #Gr.InOutAutostartMan; 
+      U(    ; 
+      O(    ; 
+      U(    ; 
+      O     "MAL1S021".PCRead.Step.StIdling; 
+      O     "MAL1S021".PCRead.Step.StPassive; 
+      )     ; 
+      U     #USW15; // ILO-cmd run rev
+      )     ; 
+      O(    ; 
+      UN(   ; 
+      O     "MAL1S021".PCRead.Step.StIdling; 
+      O     "MAL1S021".PCRead.Step.StPassive; 
+      )     ; 
+      U     #USW15; // ILO-cmd run rev
+      U     "G206M".Gr.OutEnablePrevGr; 
+      )     ; 
+      )     ; 
+      )     ; 
+      U     #Gr.OutEnableEl; 
+      UN    #A_2511_BZS46.InpTrue; // stop right side
+      U     #A_2511_QYS45.StTrue; // emergency stop fan side
+      U     #A_2511_QYS43.StTrue; // bumper fan side
+      =     #A_2511_MXZ41MA.Ma.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2511_MXZ41MA.Ma.CmdNext; 
+// 
+      SET   ; 
+      =     #A_2511_MXZ41MA.Ma.InInterlocked; 
+// 
+      UN    "PLC_DPInfo".Master[1].SlavesError[53]; 
+      =     #A_2511_MXZ41MA.Ma.InPowerOk; 
+// 
+      U     #A_2511_MXZ41MA.Ma.InPowerOk; 
+      L     S5T#15S; // Zeit zum Initialisierung
+      SE    T    204; 
+      U     T    204; 
+      =     #A_2511_MXZ41MA.Ma.InPowerOkDelayDone; 
+// 
+//      UN    #Gr.InOutAutostartMan
+//      U     "MAL1S021".ToASW.InfDataReady
+//      U     "MAL1S021".PCRead.Step.StActive
+//      U     "MAL1S021Par".Par.FlagFunction_1.StepLoading
+////    UN    "MAL1S021Par".Par.FlagFunction_1.LoadEnd;
+//      =     #A_2511_MXZ41MA.Ma.InLoading
+// 
+      UN    #Gr.InOutAutostartMan; 
+      =     #A_2511_MXZ41MA.Ma.InAdjusting; 
+      R     #A_2511_MXZ41MA.Ma.Par.ParEndless; 
+// 
+// Set Lap counter to "0"
+      U     "MAL1S021".PCRead.Step.StEmptying; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepUnloading; // Step Unloading
+      FP    #USW8; 
+      =     #USW9; 
+// 
+      U     "MAL1S021".PCRead.Step.StActive; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepLoading; // Step Loading
+      FP    #USW10; 
+      =     #USW11; 
+// 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U     "MAL1S021".PCRead.Step.StWait; 
+      O     #USW9; 
+      O     #USW11; 
+      S     #A_2511_MXZ41MA.Ma.CmdNewJob; 
+// 
+// Set Position Counter to "0" 
+      U     "MAL1S021".ToASW.InfDataReady; 
+      U(    ; 
+      O     "MAL1S021".PCRead.Step.StActive; 
+      O     "MAL1S021".PCRead.Step.StReady; 
+      )     ; 
+      U     #A_2511_BZS46.StCtoTrue; // sensor zero point
+      S     #A_2511_MXZ41MA.Ma.CmdSetZeroPoint; 
+// 
+      U     "MAL1S021".ToASW.InfDataReady; 
+//       U     "MAL1S021".PCRead.Step.StReady;
+      U     "MAL1S021Par".Par.FlagProcess.ProcessActive; // Process active
+      U     "A_2511_BZS46_I1"; // input sensor zero point
+      R     "MAL1S021Par".Par.FlagMachine.ImpulsNullstellung; 
+// 
+//=Values and commands of elements===
+//-=A-2511-MXZ41TF---
+      L     "G185M".A_2511_MXZ41MA.Ma.InSpeed; 
+      T     #A_2511_MXZ41MA.A_2511_MXZ41TF.InOutValuePc; 
+//-=A-2511-MXZ41BLH---
+//      CLR
+//      S     #A_2511_MXZ41MA.A_2511_MXZ41BLH.CmdRunTimeOutTime
+//-=A-2511-MXZ41SM---
+//      CLR
+//      S     #A_2511_MXZ41MA.A_2511_MXZ41SM.CmdRunTimeOutTime
+// 
+//-Read inputs of elements---
+      U     "A_2511_MXZ41_I1"; 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41.InpRunFwd; 
+      U     "A_2511_MXZ41_I1"; 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41.InpRunRev; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[51]; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41.InDPFault; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41TF.InHWStop; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41BLH.InHWStop; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_MXZ41MA.A_2511_MXZ41SM.InHWStop; 
+// 
+//-Set Parameters---
+// Monitoring time speed monitor 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      O     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      SPBN  sm; 
+      L     #A_2511_TSC41_COM.InValuePC; 
+      L     1000; // 10%
+      <=I   ; 
+      SPB   slo1; 
+      L     #A_2511_TSC41_COM.InValuePC; 
+      L     2000; // 20%
+      <=I   ; 
+      SPB   slo2; 
+      L     #A_2511_TSC41_COM.InValuePC; 
+      L     4000; // 40%
+      <=I   ; 
+      SPB   slo3; 
+      L     200; // Drehüberwachungszeit [20s]
+      SPA   fast; 
+slo1: NOP   0; 
+      L     800; // Drehüberwachungszeit [80s]
+      SPA   fast; 
+slo2: NOP   0; 
+      L     600; // Drehüberwachungszeit [60s]
+      SPA   fast; 
+slo3: NOP   0; 
+      L     400; // Drehüberwachungszeit [40s]
+      SPA   fast; 
+fast: NOP   0; 
+      T     #A_2511_MXZ41MA.Ma.Par.ParMonTime; 
+sm:   NOP   0; 
+// 
+//-Call object control---
+      CALL #A_2511_MXZ41MA ;
+// 
+//-Write outputs---
+//- SW-Interlocking for Service Mode ---
+      UN    #A_2511_MXZ41MA.A_2511_MXZ41.InManual; 
+      SPB   ManM; 
+      UN    "G184M".Gr.OutEnablePrevGr; 
+      O     ; // If the Wall is NOT in the bottom position, the uncoupled travelling machine can NOT run.
+      U     "G183M".A_2511_BZS22.InpTrue; //COUPLING DRIVE UNLOCKED GM1 
+      U     "G183M".A_2511_BZS26.InpTrue; //COUPLING DRIVE UNLOCKED GM1 
+      U     "G183M".A_2511_BZS32.InpTrue; //COUPLING DRIVE UNLOCKED GM1 
+      U     "G183M".A_2511_BZS36.InpTrue; //COUPLING DRIVE UNLOCKED GM1 
+      UN    "G182M".A_2515_BZS22.InpTrue; //LIFTING DEVICE DOWN GM1
+      R     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      R     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      R     #A_2511_MXZ41MA.A_2511_MXZ41.InManual; 
+ManM: NOP   0; 
+
+//      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd
+//      O     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev
+//      =     "A_2511_MXZ41_O1"
+
+// JV021008     <====================================================================
+// prepare counting direction
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      UN    #A_2511_MXZ41MA.A_2511_MXZ41.StStopped; 
+      S     "Auxiliar".Trav_FWD_G1; // direction forward
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.StStopped; 
+      O     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; // JV151008  <==========================================================
+      R     "Auxiliar".Trav_FWD_G1; // direction forward
+
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      UN    #A_2511_MXZ41MA.A_2511_MXZ41.StStopped; 
+      S     "Auxiliar".Trav_REV_G1; // direction reverse
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.StStopped; 
+      O     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; // JV151008  <==========================================================
+      R     "Auxiliar".Trav_REV_G1; // direction reverse
+
+// set stopping time at least to 20sec, to be sure that drive has stopped -stopping ramp in FC-
+// JV021008     <====================================================================
+
+// sim endpos drive
+      SET   ; 
+      R     M    302.0; // sim stop discharge side
+      R     M    302.1; // sim stop fan side
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  en21; 
+      L     "G185M".A_2511_MXZ41MA.Ma.OutPositionAngle; 
+      L     3600; 
+      >=I   ; 
+      S     M    302.0; 
+      L     "G185M".A_2511_MXZ41MA.Ma.OutPositionAngle; 
+      L     50; 
+      >=I   ; 
+      R     M    302.1; 
+      L     "G185M".A_2511_MXZ41MA.Ma.OutPositionAngle; 
+      L     10; 
+      <I    ; 
+      S     M    302.1; 
+      L     "G185M".A_2511_MXZ41MA.Ma.OutPositionAngle; 
+      L     3590; 
+      <I    ; 
+      R     M    302.0; 
+en21: NOP   0; 
+
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      R     #A_2511_MXZ41MA.A_2511_MXZ41.InOutManRev; 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      S     #A_2511_MXZ41MA.A_2511_MXZ41.InOutManRev; 
+
+NETWORK
+TITLE ==A-2511-TSC41_COM : FREQUENCY INVERTER TRAVELING DRIVE FU COM
+//Von der Werkseinstellung weichen folgende Parameter ab:
+//P100/101 Sollwertquelle/Steuerquelle => SBUS 1;
+//P881 SBUS-Adresse <> 0; siehe Handbuch "Feldbusschnittstelle DFP21B"
+//P872 Sollwertbeschreibung PA3 => Rampe
+//=> P876 PA-Daten freigeben = EIN
+//"Drive_IO_Address": Anfangsadresse des E/A-Bereichs => Hardwarekonfiguration
+//
+//Eingänge der FC:
+//Freigabe des Antriebes:
+//Freigabe via dig. Eingänge (Rechts/Halt & Freigabe/Stop) & 
+//Freigabe via Steuerwort (Enable_rapid_stop & Enable)
+//"Reset" = true: Fehler quittieren
+//"SETPOINT_SPEED": Vorgabe der Sollgeschwindigkeit in rpm (Integer),
+//"RAMP": Vorgabe der Rampe in ms (Integer)
+//
+//Ausgänge der FC:
+//Ist die Datenübertragung/PROFIBUS gestört, so werden alle Ausgänge abgelöscht.
+//=> "Kommuikation_OK" = false (selbstquittierend)
+//"INVERTER_READY" = true: Es liegt kein Fehler vor & Netzspannung EIN
+//"FAULT_OF_AXIS" = true: Ein Fehler steht an.
+//"FAULT_NO" <> 0: Die Fehlercodes sind im Systemhandbuch dokumentiert und werden 
+//in den MOVITOOLS (Status, Busmonitor)angezeigt.
+//"ACTUAL_SPEED": Istgeschwindigkeit (INT) in rpm
+//"OUTPUT_CURRENT": Scheinstrom (INT) in Prozent vom Gerätenennstrom
+      NOP   0; 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      =     #A_2511_TSC41_COM.InEnableFwd; 
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      =     #A_2511_TSC41_COM.InEnableRev; 
+
+      U     #Gr.CmdFaultReset; 
+      S     #A_2511_TSC41_COM.CmdFaultReset; 
+//Speed---
+      L     #A_2511_MXZ41MA.Ma.InSpeed; 
+      T     #A_2511_TSC41_COM.OutValuePC; 
+
+// 
+//-Read inputs---
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_TSC41_COM ;
+
+//-Simu Inhousetest---
+      U     "PLC_SystemDB".GlobalFlags.StaTest; 
+      SPBN  NCo2; 
+      L     "G185M".A_2511_MXZ41MA.Ma.InSpeed; 
+      T     "G185M".A_2511_TSC41_COM.Input.ActualValue01; 
+
+      L     1200; // Nennstrom
+      T     "G185M".A_2511_TSC41_COM.Input.ActualValue02; 
+
+      U     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunFwd; 
+      O     #A_2511_MXZ41MA.A_2511_MXZ41.OutpRunRev; 
+      SPB   NCo2; 
+      L     0; 
+      T     "G185M".A_2511_TSC41_COM.Input.ActualValue01; 
+      T     "G185M".A_2511_TSC41_COM.Input.ActualValue02; 
+NCo2: NOP   0; 
+
+// 
+//-Write outputs---
+
+NETWORK
+TITLE ==A-2511-TSC41_PD1 : FREQUENCY FREQ. TRAVELING DRIVE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_TSC41_PD1.InLocal; 
+//
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2511_TSC41_PD1.InMonLL; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD1.InMonL; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD1.InMonMid; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD1.InMonH; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD1.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2511_TSC41_COM.InValuePC; 
+      T     #A_2511_TSC41_PD1.InpValue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_TSC41_PD1.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_TSC41_PD1 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-TSC41_PD2 : CURRENT FREQ. TRAVELING DRIVE
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_TSC41_PD2.InLocal; 
+//
+//-Monitoring--- 
+      CLR   ; 
+      =     #A_2511_TSC41_PD2.InMonLL; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD2.InMonL; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD2.InMonMid; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD2.InMonH; 
+      CLR   ; 
+      =     #A_2511_TSC41_PD2.InMonHH; 
+// 
+//-Read inputs---
+      L     #A_2511_TSC41_COM.Output.SetpointValue02; 
+      L     10; 
+      *I    ; 
+      T     #A_2511_TSC41_PD2.InpValue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_TSC41_PD2.InHWStop; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_TSC41_PD2 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2511-BZS49 : TRAVELING DRIVE POSITION CHANNEL 1/2
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2511_BZS49.InLocal; 
+//
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2511_BZS49.InMonLL; 
+      CLR   ; 
+      =     #A_2511_BZS49.InMonL; 
+      CLR   ; 
+      =     #A_2511_BZS49.InMonMid; 
+      CLR   ; 
+      =     #A_2511_BZS49.InMonH; 
+      SET   ; 
+      =     #A_2511_BZS49.InMonHH; 
+// 
+//-Read inputs---
+      L     "A_2511_BZS49_AI1"; 
+      T     #A_2511_BZS49.InpValue; 
+      U     "PLC_SystemDB".HardwareStop.Germinating_5; 
+      =     #A_2511_BZS49.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[54]; 
+      =     #A_2511_BZS49.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2511_BZS49 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2511_BZS44.StFault; 
+      O     #A_2511_BZS46.StFault; 
+      O     #A_2511_QYS45.StFault; 
+      O     #A_2511_QYS43.StFault; 
+      O     #A_2511_TSC41_PD1.OutFaulted; 
+      O     #A_2511_TSC41_PD2.OutFaulted; 
+      O     #A_2511_BZS49.OutFaulted; 
+      O     #A_2511_MXZ41MA.Ma.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      U     #A_2511_TSC41_PD1.OutWarning; 
+      O     #A_2511_TSC41_PD2.OutWarning; 
+      O     #A_2511_BZS49.OutWarning; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+      UN    #Gr.VarStarted; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      U(    ; 
+      O     #A_2511_MXZ41MA.Ma.StStartedRev; 
+      O     #A_2511_MXZ41MA.Ma.StStartedFwd; 
+      O     #A_2511_MXZ41MA.Ma.StAdjusted; 
+      )     ; 
+      O(    ; 
+      U     "MAL1S021Par".Par.FlagFunction_1.StepLoading; // locked if loading
+      U     #A_2511_BZS46.StTrue; 
+      )     ; 
+      U     #Gr.InOccupied; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[185]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[185]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[185]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[185]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[185]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[185]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[185]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[185]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[185]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[185]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

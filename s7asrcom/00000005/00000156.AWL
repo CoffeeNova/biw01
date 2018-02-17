@@ -1,0 +1,663 @@
+FUNCTION_BLOCK "GCS7_E_DigOutput"
+TITLE =DigitalOutput
+//  
+//COPYRIGHT:    (C) 1996 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Element Digital Output
+//
+//REVISION:     10
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB11.4.1      A. Egli             CT3                         18-Jan-2006
+//              Manual Mode: Reset Output when HWStop or DPFault 
+//FB11.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB11.3.4      A. Egli             CT3                         30-Aug-2001
+//              Reset Output, if InLocal
+//FB11.3.3      A. Egli             CT3                         29-Jun-2001
+//              Reset Output, if InLocal
+//FB11.3.2      A. Egli             CT3                         25-Mai-2000
+//              StCode=8 == StStarted.Warning=8
+//FB11.3.1      A. Egli             CT3                         18-Mai-2000
+//              Condition for message warning
+//FB11.3.0      A. Egli             CT3                         27-Apr-2000
+//              OutWarning, ParDelayTime
+//FB11.2D       A. Egli             CT3                          5-Jan-1999
+//              OutpFaultReset
+//FB11.2C       A. Egli             CT3                          2-Nov-1998
+//              StStarting only by continuous valve
+//FB11.2B       A. Egli             CT3                         17-Jul-1998
+//              ParManual: Manual mode without interlocking
+//              InSeqStop by ParPulsing
+//FB11.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//              Global flag M12.2 (Gr.OutNext) removed
+//FB11.1A       S. Kalberer         AEE61                       06-Aug-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DOxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//              CmdOff, CmdOn: always active
+//
+//-------------------------------------------------------------------------
+//
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  stopped
+// 2  started
+// 9  fault cancelled
+//10  fault device
+//13  pre alarm fault (warning)
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault                 
+//41  Stopped.HWStop          StStopped + InHWStop 
+//51  Stopped.DPFault         StStopped + DPFault
+//61  Stopped.FaultDev        StStopped + InpFaultDev
+// 1  StStopped               
+// 2  StStarting              
+// 3  StStarted               
+// 5  StFalse                 
+// 8  StStarted.Warning       
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : DigOut
+VERSION : 4.1
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnable : BOOL ;	//Enable to run the element (manual and automatic mode)
+  spare0201 : BOOL ;	
+  InContinuous : BOOL ;	//Switch from pulsing signal to continuous signal
+  spare0203 : BOOL ;	
+  spare0204 : BOOL ;	
+  spare0205 : BOOL ;	
+  InpRun : BOOL ;	//Only for filter
+  InpFaultDev : BOOL ;	//Digital iniput: fault device
+  CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual / 0= Automatic: Set and reset by PC
+  InReport : BOOL ;	//Report of all state transitions
+  InSeqStop : BOOL ;	//Stop automatically after idling time
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutIdling : BOOL ;	//Idling is active
+  OutWarning : BOOL ;	//Delay Time fault is running
+  spare0404 : BOOL ;	
+  spare0405 : BOOL ;	
+  OutpFaultReset : BOOL ;	//Reset Alarm
+  OutpRun : BOOL ;	//Digital output to run element
+  StStopped : BOOL ;	//Element is stopped
+  StStarting : BOOL ;	//Element is starting
+  StStarted : BOOL ;	//Element is started
+  spare0503 : BOOL ;	
+  StFault : BOOL ;	//Element has a fault
+  StFalse : BOOL ;	//Element is in local mode and has a fault
+  spare0506 : BOOL ;	
+  OutPausing : BOOL ;	//Pausing time is on (pulsing signal)
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is Off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParContinuous : BOOL ;	//Type with continuous signal
+   ParPulse : BOOL ;	//Type with pulse signal
+   ParPulsing : BOOL ;	//Type with pulsing signal
+   ParFilter : BOOL ;	//Type is Filter
+   ParOnTime : INT ;	//Starting time or length of pulse 'On'
+   ParOffTime : INT ;	//Pausing time between to pulses
+   ParIdlingTime : INT ;	//Requested idling time to stop motor in automatic mode
+   ParDelayTime : INT ;	//Requested fault delay time
+   OutTime : INT ;	//Actual value of timer
+   OutDelayTime : INT ;	//Actual fault delay time
+   spare26 : INT ;	
+   spare28 : INT ;	
+   InOutManPulseLen : INT ;	//Pulse length to start a the element
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnable : BOOL ;	//Global LOG all
+  tmpFault : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpLocalFault : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     34; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1011; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      UD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParOnTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParOffTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParIdlingTime; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParDelayTime; 
+/// Write command 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdOff
+      S     #CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdOn
+      S     #CmdOn; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; // CmdNext
+      S     #CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      R     #InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+      UN    "SYS_DirectCtrlDB".PC.Cmd1[1]; // CmdOnTik
+      O     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      SPB   pIni; 
+      L     DB3.DBW   56; // "SYS_PCControl".PC.Cmd3
+      T     #Par.InOutManPulseLen; 
+      SPA   pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = All State Init
+//===Global Group Orders===
+Ctrl: U     "GCS7_Gr_OutManualOn"; //Global.OutManualOn
+      S     #InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      R     #InManual; 
+      U     #InManual; 
+      S     "GCS7_Gr_InManual"; //Global.InManualMode
+
+      U     #Par.ParFilter; 
+      S     #Par.ParContinuous; 
+//tmpLocal
+      U     #InLocal; 
+      UN    #InManual; 
+      =     #tmpLocalFault; //[4.0]
+      U     #tmpLocalFault; //[4.0]
+      O     #InHWStop; //[4.0]
+      O     #InDPFault; //[4.0]
+      =     #tmpLocal; 
+//---FaultReset Part 1---
+      U     "GCS7_Gr_OutFaultReset"; // Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//--tmpEnable
+      UN    #InManual; 
+      ON    #Par.ParManual; 
+      U     #InEnable; 
+      UN    #tmpLocal; //3.4
+      O     ; 
+      U     #InManual; 
+      U     #Par.ParManual; 
+      UN    #tmpLocal; //[4.1]
+      =     #tmpEnable; 
+
+//---Warning -----
+//Warning time
+      UN    #InpRun; 
+//        U  #InpFaultDev;    
+      SPB   glJ1; 
+      L     #Par.ParDelayTime; 
+      T     #Par.OutDelayTime; 
+      SPA   glJ2; 
+glJ1: L     0; 
+      L     #Par.OutDelayTime; // Set Timer
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick1min"; // Tick1Min
+      ON    #OutpRun; 
+      SPB   glJ2; 
+      +     -1; 
+      T     #Par.OutDelayTime; 
+glJ2: L     0; 
+      >I    ; 
+      O(    ; 
+      L     #Par.ParDelayTime; 
+      ==I   ; 
+      )     ; 
+      U     #OutpRun; 
+      UN    #InpRun; 
+      UN    #StStopped; 
+      UN    #StStarting; 
+      UN    #StFault; 
+      U     #Par.ParFilter; 
+      FP    #OutWarning; 
+      =     #tmpWarning; 
+
+      UN    #tmpWarning; //[3.1]
+      O     #StFault; 
+      SPB   glJ3; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1011,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+//--- Message Warning ----------------------- 
+      U     #Par.ParLogOff; //---Set LOG Message
+      SPB   glJ3; 
+      L     B#(1, 13); // MessageClass Warning
+      T     #tmpLOGvalue; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1011);
+//--Fault
+glJ3: L     #Par.OutDelayTime; 
+      L     0; 
+      <=I   ; 
+      U     #OutpRun; 
+      UN    #InpRun; 
+      UN    #StStopped; 
+      UN    #StStarting; 
+      U     #Par.ParFilter; 
+      UN    #OutWarning; 
+      O     ; 
+      U     #InpFaultDev; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+NETWORK
+TITLE =Start as Pulse
+
+      UN    #tmpEnable; 
+      ON    #InManual; 
+      O     #CmdOff; 
+      SPB   STP1; 
+      L     0; 
+      L     #Par.InOutManPulseLen; 
+      >=I   ; 
+      SPB   STP2; 
+      S     #CmdOn; 
+      UN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      SPB   STP2; 
+      +     -2; 
+      T     #Par.InOutManPulseLen; 
+      L     0; 
+      >I    ; 
+      SPB   STP2; 
+      S     #CmdOff; 
+STP1: L     0; 
+      T     #Par.InOutManPulseLen; 
+STP2: NOP   0; 
+
+NETWORK
+TITLE =States
+
+      U     #StStopped; //===State machine===
+      SPB   S0; 
+      U     #StStarted; 
+      SPB   S2; 
+      U     #StStarting; 
+      SPB   S1; 
+      U     #StFault; 
+      SPB   S4; 
+      U     #StFalse; 
+      SPB   S5; 
+      S     #StStopped; //Initialise: goto StStopped
+      SPA   S0; 
+
+NETWORK
+TITLE =StStopped
+//== Any Transition to StStarted
+xxS0: SET   ; 
+      S     #StStopped; 
+      L     0; // Reset actual timer value
+      T     #Par.OutTime; 
+      UN    #tmpReport; // ReportAll?
+      SPB   SAVE; 
+      L     B#(4, 0); // MessageClass Info Stopped
+      SPA   LOG; 
+//==Logic ==== 
+S0:   R     #OutIdling; 
+      U     #tmpFault; //---Condition for StFault
+      SPB   S0J9; 
+      O     #CmdOff; //---Condition for StStopped
+      ON    #tmpEnable; 
+      SPB   SAVE; 
+      UN    #InSeqStop; 
+      ON    #Par.ParContinuous; 
+      U     #CmdNext; // Condition for StStarting
+      UN    #InManual; 
+      O     #CmdOn; 
+      SPB   S0J2; 
+      SPA   SAVE; 
+S0J2: R     #StStopped; 
+      L     #Par.ParOnTime; // Set actual vaule of timer
+      T     #Par.OutTime; 
+      U     #Par.ParContinuous; 
+      S     #StStarting; //---Transition -> StStarting
+      SPB   SAVE; 
+      SPA   xxS2; //---Transition -> StStarted
+S0J9: R     #StStopped; //---Transition -> StFault
+      SPA   xS45; 
+
+NETWORK
+TITLE =StStarting
+//StStarting: Only type continuous
+S1:   U     #tmpFault; //---Condition for StFault
+      SPB   S1J9; 
+      U     #InSeqStop; //---Condition for StStopped
+      UN    #InManual; 
+      ON    #tmpEnable; 
+      O     #CmdOff; 
+      SPB   S1J3; 
+      UN    "GCS7_Gr_OutTick200ms"; //---Condition for StStarting
+      L     #Par.OutTime; // Set Timer
+      SPB   S1J1; 
+      +     -2; 
+      T     #Par.OutTime; 
+S1J1: L     0; 
+      >I    ; // Starting time over
+      SPB   SAVE; 
+      R     #StStarting; //---Transition -> StStarted
+      SPA   xxS2; 
+S1J3: R     #StStarting; //---Transition -> StStopped
+      SPA   xxS0; 
+S1J9: R     #StStarting; //---Transition -> StFault
+      SPA   xS45; 
+
+NETWORK
+TITLE =StStarted
+//== Any Transition to StStarted
+xxS2: SET   ; 
+      S     #StStarted; 
+      UN    #tmpReport; // ReportAll?
+      SPB   SAVE; 
+      L     B#(4, 2); // MessageClass Info Started
+      SPA   LOG; 
+//==Logic ==== 
+S2:   U     #tmpFault; //---Condition for StFault
+      SPB   S2J9; 
+      UN    #tmpEnable; //---Condition for StStopped
+      O     #CmdOff; 
+      SPB   S2J4; 
+      UN    #Par.ParPulse; //---Type Pulse
+      SPB   S2J2; 
+      UN    "GCS7_Gr_OutTick200ms"; // Condition for StStarted
+      L     #Par.OutTime; // Set Timer
+      SPB   S2J1; 
+      +     -2; 
+      T     #Par.OutTime; 
+S2J1: L     0; // Condition for StStopped
+      <=I   ; 
+      SPB   S2J4; 
+      SPA   SAVE; // stay in StStarted
+S2J2: UN    #Par.ParPulsing; //---Type Pulsing
+      SPB   S2J3; 
+      U     #InContinuous; // pulsing -> continuous
+      UN    #InManual; 
+      R     #OutPausing; 
+      SPB   IDL1; 
+      UN    "GCS7_Gr_OutTick200ms"; // Condition for StStarted
+      L     #Par.OutTime; // Set Timer
+      SPB   OSC1; 
+      +     -2; 
+      T     #Par.OutTime; 
+OSC1: U     #OutPausing; //---Condition for toggling
+      SPB   OSC2; 
+      L     0; //---OnTime is active
+      >I    ; 
+      SPB   IDL1; 
+      S     #OutPausing; 
+      L     #Par.ParOffTime; // Set actual vaule of timer
+      T     #Par.OutTime; 
+      SPA   IDL1; 
+OSC2: L     0; //---OffTime is active
+      >I    ; 
+      SPB   IDL1; 
+      R     #OutPausing; 
+      L     #Par.ParOnTime; // Set actual vaule of timer
+      T     #Par.OutTime; 
+      SPA   SAVE; 
+S2J3: O     #InSeqStop; //---Type Continuous: Idling time 
+      ON    #OutIdling; // Condition to reset Idling-Time
+      SPB   IDL1; 
+      R     #OutIdling; 
+      L     0; 
+      T     #Par.OutTime; 
+      SPA   SAVE; 
+IDL1: ON    #InSeqStop; // Idling time active ?
+      O     #InManual; 
+      SPB   SAVE; 
+      U     #OutIdling; 
+      SPB   IDL2; 
+      S     #OutIdling; // Preset Idling Time
+      L     #Par.ParIdlingTime; 
+      T     #Par.OutTime; 
+IDL2: UN    "GCS7_Gr_OutTick200ms"; // Set Idling Time
+      L     #Par.OutTime; 
+      SPB   IDL3; 
+      +     -2; 
+      T     #Par.OutTime; 
+IDL3: L     0; 
+      >I    ; // Idling time over
+      SPB   SAVE; 
+S2J4: R     #StStarted; //---Transition -> StStopped
+      R     #OutPausing; 
+      SPA   xxS0; 
+S2J9: R     #StStarted; //---Transition -> StFault
+      R     #OutPausing; 
+      SPA   xS45; 
+
+NETWORK
+TITLE = StFault
+// Any transiton to StFault/StFalse
+xS45: L     0; // Reset actual timer value
+      T     #Par.OutTime; 
+      U     #tmpLocalFault; 
+      S     #StFalse; 
+      R     #StFault; 
+      SPB   SAVE; 
+      S     #StFault; 
+      R     #StFalse; 
+      S     "GCS7_Gr_InFaultFlag"; // Gr.InFaultFlag
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1011,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+S4S4: L     B#(1, 10); // MessageClass Error fault
+      SPA   LOG; 
+
+//===logic StFault
+//---Condition for StFalse
+S4:   U     #tmpLocalFault; 
+      SPB   xS45; 
+//-Wait for fault reset
+      UN    "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms
+      ON    #OutpFaultReset; 
+      SPB   SAVE; 
+      R     #OutpFaultReset; 
+//---Condition for StFault with LOG
+      U     #InpFaultDev; 
+      SPB   S4S4; 
+//---Transition -> StStopped
+      R     #StFault; 
+      S     #StStopped; 
+      L     B#(3, 9); // MessageClass Operate fault cancelled
+      SPA   LOG; 
+
+NETWORK
+TITLE = StFalse
+//Condition for StStopped
+S5:   UN    #tmpFault; 
+      R     #StFalse; 
+      SPB   xxS0; 
+//Condition for StFault
+      UN    #tmpLocal; 
+      SPB   xS45; 
+      SPA   SAVE; 
+
+NETWORK
+TITLE =LOG Message
+
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1011);
+
+NETWORK
+TITLE =Global End
+
+SAVE: NOP   0; 
+//===Set Output fault reset
+      U     "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms
+      UN    #StFault; 
+      R     #OutpFaultReset; 
+
+//===OutpFaultReset
+      U     "GCS7_Gr_OutTick500ms"; // Gr.OutTick500ms
+      U     #CmdFaultReset; 
+      S     #OutpFaultReset; 
+      R     #CmdFaultReset; 
+
+//OutpRun
+//---Condition for setting output
+      U     #CmdNext; //[3.4]
+      UN    #InManual; //[3.4]
+      O     #CmdOn; //[3.4]
+      O     #OutpRun; //[3.4]
+      U     #Par.ParFilter; 
+      U     #StFault; 
+      O     #StStarting; 
+      O     #StStarted; 
+      U     #tmpEnable; 
+      UN    #CmdOff; //[3.4]
+      UN    #OutPausing; 
+      =     #OutpRun; 
+//---Clear all commands
+      CLR   ; 
+      =     #CmdOn; 
+      =     #CmdOff; 
+      =     #CmdNext; 
+//--Output for group 
+      U     #InDPFault; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      U     #InHWStop; 
+      UN    #tmpLocalFault; 
+      S     "GCS7_Gr_InHWStop"; 
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+      UN    #StStopped; 
+      SPB   STC1; 
+      L     41; //Code: StStopped.HWStop
+      U     #InHWStop; 
+      SPB   STC9; 
+      L     51; //Code: StStopped.DPFault
+      U     #InDPFault; 
+      SPB   STC9; 
+      U     #InpFaultDev; // [3.0]
+      L     61; // [3.0]
+      SPB   STC9; // [3.0]
+      L     1; // Code: StStopped
+      SPA   STC9; 
+//--------------------
+STC1: UN    #StStarted; 
+      SPB   STC2; 
+      U     #OutWarning; 
+      L     8; //Code=StWarning 
+      SPB   STC9; 
+      L     3; //Code: StStarted
+      SPA   STC9; 
+//--------------------
+STC2: UN    #StStarting; 
+      SPB   STC3; 
+      L     2; // Code: StStarting
+      SPA   STC9; 
+//--------------------
+STC3: UN    #StFalse; 
+      SPB   STC8; 
+      L     5; // Code: StFalse
+      SPA   STC9; 
+//--------------------
+STC8: L     32; // Code: StFault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+END_FUNCTION_BLOCK
+

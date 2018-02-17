@@ -1,0 +1,50 @@
+TYPE UDT 20530
+
+
+  STRUCT 	// Interface to maschine FB50
+   StCode : INT ;	//State as code   
+   InEnableOpen : BOOL ;	//Enable to run open   
+   InDisableVibro : BOOL ;	//Disable Vibro
+   spare0202 : BOOL ;	
+   spare0203 : BOOL ;	
+   spare0204 : BOOL ;	
+   spare0205 : BOOL ;	
+   spare0206 : BOOL ;	
+   spare0207 : BOOL ;	
+   CmdClose : BOOL ;	//Pulse to close in manual mode
+   CmdOpen : BOOL ;	//Pulse to open  in manual mode
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   spare0306 : BOOL ;	
+   spare0307 : BOOL ;	
+   OutDisableRead : BOOL ;	//Any element is moveing, don't read scale value
+   OutOpenManReq : BOOL ;	//Manual open requested
+   OutPulseClose : BOOL ;	//Pulse closing
+   spare0403 : BOOL ;	
+   spare0404 : BOOL ;	
+   spare0405 : BOOL ;	
+   spare0406 : BOOL ;	
+   spare0407 : BOOL ;	
+   StClosed : BOOL ;	//Hopper is closed
+   StOpening : BOOL ;	//Hopper is opening
+   StOpen : BOOL ;	//Hopper is open
+   StClosing : BOOL ;	//Hopper is closing
+   StFault : BOOL ;	//Any elelemt has a fault
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC
+    ParWithAirFlap : BOOL  := TRUE;	//With element air recycling flap
+    ParWithVLSLower : BOOL  := TRUE;	//With element VLSLower
+    ParWithVLSUpper : BOOL  := TRUE;	//With element VLSUpper
+    ParWithVibro : BOOL  := TRUE;	//With element Vibro
+    ParPulsing : BOOL ;	//Upper flap is pulsing durig emptying
+    ParVibroIsMotor : BOOL ;	//Type of Vibro is FB12
+    ParWithAirFlap2 : BOOL ;	//With 2 element air recycling flap [5.0]
+    ParPulseClosing : INT  := 5;	//By pulsing flap:Pulse length closing [0.1s]
+    ParWaitOpen : INT  := 20;	//By pulsing flap:Waiting time in position open [0.1s] 
+    OutTime : INT ;	//Actual time
+   END_STRUCT ;	
+  END_STRUCT ;	
+END_TYPE
+

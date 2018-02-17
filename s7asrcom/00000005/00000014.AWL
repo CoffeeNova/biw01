@@ -1,0 +1,29 @@
+TYPE "GCS7_UDT_BINList3"
+
+
+  STRUCT 	
+   BinNr : INT ;	
+   InfLocked : BOOL ;	
+   InfLevelFault : BOOL ;	//Sender empty, Receiver full
+   InFeedOff : BOOL ;	//HWStop or DPFault of the connected level probe (*new*)
+   OutDryFillingDone : BOOL ;	//Is copied from central bin list
+   VarFlagOverwriteLevel : BOOL ;	
+   InfLowLevel : BOOL ;	
+   InfLevelMiddle : BOOL ;	
+   InfHighLevel : BOOL ;	
+   InfActiveBin : BOOL ;	
+   InfPreselect : BOOL ;	
+   InfDeselect : BOOL ;	
+   spare13 : BOOL ;	
+   InOutDPFault : BOOL ;	//DP Fault of connected Level
+   InfIsInRecipe : BOOL ;	//Bin is used in recipe as ingredient
+   VarFlagLocked : BOOL ;	
+   VarFlagLevelFault : BOOL ;	
+   ParEmptyingTime : INT ;	
+   WeightActual : DINT ;	
+   WeightTarget : DINT ;	
+   WeightActualPrev : DINT ;	//Actual weight previous job
+   tmpIndex : INT ;	//Index bin in central bin list
+  END_STRUCT ;	
+END_TYPE
+

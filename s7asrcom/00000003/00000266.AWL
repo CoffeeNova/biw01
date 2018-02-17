@@ -1,0 +1,48 @@
+	DATA_BLOCK DB79
+	TITLE =DBPLC1BIW01_02
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        Central Bin List DB
+	//              Zentraler Zellen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB079.1.0 K.Renz              CSB41             30.Sep.2009
+	//             1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	VERSION : 00.00
+	
+	FB79
+	BEGIN       
+	  MAL1S01_BIN1.BinNr := 9001;
+	  MAL1S01_BIN1.Par.ParOverfillingWeight := 100;
+	  MAL1S01_BIN1.Par.ParDryFillingWeight  := 0;
+	  MAL1S01_BIN1.Par.ParLL_isBelowBin     := False;
+	  MAL1S01_BIN2.BinNr := 9002;
+	  MAL1S01_BIN2.Par.ParOverfillingWeight := 100;
+	  MAL1S01_BIN2.Par.ParDryFillingWeight  := 0;
+	  MAL1S01_BIN2.Par.ParLL_isBelowBin     := False;
+	  MAL1S34_RCV.BinNr := 9005;
+	  MAL1S34_RCV.Par.ParOverfillingWeight := 100;
+	  MAL1S34_RCV.Par.ParDryFillingWeight  := 0;
+	  MAL1S34_RCV.Par.ParLL_isBelowBin     := False;
+	  MAL1S34_SND.BinNr := 9005;
+	  MAL1S34_SND.Par.ParOverfillingWeight := 100;
+	  MAL1S34_SND.Par.ParDryFillingWeight  := 0;
+	  MAL1S34_SND.Par.ParLL_isBelowBin     := False;
+	END_DATA_BLOCK

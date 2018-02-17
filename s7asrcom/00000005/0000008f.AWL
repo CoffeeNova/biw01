@@ -1,0 +1,755 @@
+FUNCTION_BLOCK "GCS7_M_PulsePhaseConv"
+TITLE =Pulse Phase Conveying system
+//  
+//COPYRIGHT:    (C) 1997  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        FB 65 Machine Control:Pulse Phase Conveying System
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//
+//FB65.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB65.3.0      A. Egli             CT3                         11-Oct-1999
+//              Local data reduced
+//FB65.2C       A. Egli             CT3                         26-Mai-1999
+//              Reset OutClearingPulsingEnd by transition to StStarting 
+//FB65.2B       K. Tischer          MU664                       06-Mrz-1999
+//              CC FC2 not UC FC2
+//FB65.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB65.1A       A.Egli              AEE61                       15-Oct-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [LL.TAKxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the machine
+//              ACCU1: Pointer to parameter datas of the machine
+//
+//-------------------------------------------------------------------------
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : PulsePha
+VERSION : 4.0
+
+
+VAR
+  Ma : "GCS7_M_FB65_Data";	
+  Airlock : "GCS7_E_Motor";	//Element
+  Pressure : "GCS7_E_PressureRange";	//Element
+  MainValve : "GCS7_E_ValveControl";	//Element
+  MatValve : "GCS7_E_ValveControl";	//Element
+  AirValve : "GCS7_E_ValveControl";	//Element
+  BypassValve : "GCS7_E_ValveControl";	//Element
+  SpeedMon : "GCS7_E_DigInput";	//Element
+  HL : "GCS7_E_DigInput";	//Element
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFaultStop : BOOL ;	
+  tmpFaultValve : BOOL ;	
+  tmpFaultTime : BOOL ;	
+  tmpStoppedMan : BOOL ;	
+  tmpReadyConveying : BOOL ;	
+  tmpClosingDelayEnd : BOOL ;	
+  tmpClearing : BOOL ;	
+  tmpVKE : BOOL ;	
+  tmpLenDyn : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+//
+//
+      L     36; 
+      T     #tmpLenDyn; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test OType      ========================
+      L     2065; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   aEnd; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   aExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   aCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+aIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   aEnd; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P#6.0; 
+      +AR1  ; 
+      L     DBW [AR1,P#4.0]; 
+      T     #Ma.Par.ParDelayMain; 
+      L     DBW [AR1,P#6.0]; 
+      T     #Ma.Par.ParDelayAirlock; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Ma.Par.ParPulseMatTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Ma.Par.ParPulseAirTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Ma.Par.ParClearingPulsing; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Ma.Par.ParClearingBoth; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Ma.Par.ParClearingBypass; 
+      L     DBW [AR1,P#18.0]; 
+      T     #Ma.Par.ParDelayClosing; 
+// Write new commands from PC to Interface of group 
+aCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[8]; //Cmd1[8]=CmdOff
+      S     #Ma.CmdOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[9]; //Cmd1[9]=CmdMainOnOff
+      S     #Ma.CmdMainOnOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[3]; //Cmd1[3]=CmdAirlockOnOff
+      S     #Ma.CmdAirlockOnOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[4]; //Cmd1[3]=CmdOpenAll
+      S     #Ma.CmdOpenAll; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[5]; //Cmd1[3]=CmdPulsingOnOff
+      S     #Ma.CmdPulsingOnOff; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[10]; //Cmd1[10]=CmdNext
+      S     #Ma.CmdNext; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //Cmd1[11]=CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     "SYS_DirectCtrlDB".PC.Cmd1[13]; //Cmd1[13]=CmdManualOn
+      S     #Ma.InManual; 
+      U     "SYS_DirectCtrlDB".PC.Cmd2[13]; //Cmd2[13]=CmdManualOff
+      R     #Ma.InManual; 
+      SPA   aIni; 
+aExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+aEnd: NOP   0; 
+
+NETWORK
+TITLE =Interlocking
+//===Global Group Orders===
+//===Global Group Orders===
+      U     "GCS7_Gr_OutManualOn"; ///Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     "GCS7_Gr_OutManualOff"; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     "GCS7_Gr_InManual"; //Gr.InManual
+//Local
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #Airlock.InLocal; 
+      =     #MainValve.InLocal; 
+      =     #MatValve.InLocal; 
+      =     #AirValve.InLocal; 
+      =     #BypassValve.InLocal; 
+      =     #HL.InLocal; 
+      =     #SpeedMon.InLocal; 
+      =     #Pressure.InLocal; 
+//Enable 
+      UN    #Ma.InLocal; 
+      U     #Ma.InEnable; 
+      O     #Ma.InManual; 
+      UN    #Ma.CmdOff; 
+      =     #tmpEnable; 
+      U     #Ma.InClearing; 
+      UN    #Ma.InManual; 
+      =     #tmpClearing; 
+//Monitoring 
+      U     #Airlock.StStartedFwd; 
+      =     #SpeedMon.InMonTrue; 
+      SET   ; 
+      =     #HL.InMonFalse; 
+//Fault 
+      O     #MainValve.StFault; 
+      O     #MatValve.StFault; 
+      O     #AirValve.StFault; 
+      O     #BypassValve.StFault; 
+      =     #tmpFaultValve; 
+      U     #tmpFaultValve; 
+      O     #Pressure.StFault; 
+      =     #tmpFaultStop; 
+      U     #tmpFaultStop; 
+      O     #HL.StFault; 
+      O     #Airlock.StFault; 
+      O     #SpeedMon.StFault; 
+      =     #Ma.OutFault; 
+
+// Test stopped
+      U     #Airlock.StStopped; 
+      U(    ; 
+      U     #MainValve.StLN; 
+      ON    #Ma.Par.ParWithMainValve; 
+      )     ; 
+      U(    ; 
+      U     #MatValve.StLN; 
+      ON    #Ma.Par.ParWithMatValve; 
+      )     ; 
+      U(    ; 
+      U     #AirValve.StLN; 
+      ON    #Ma.Par.ParWithAirValve; 
+      )     ; 
+      U(    ; 
+      U     #BypassValve.StLN; 
+      ON    #Ma.Par.ParWithBypassValve; 
+      )     ; 
+      =     #tmpStoppedMan; 
+
+NETWORK
+TITLE =Call Airlock
+
+      CALL #Airlock ;
+
+NETWORK
+TITLE =Call PRange: Pressure
+
+      CALL #Pressure ;
+
+NETWORK
+TITLE =Call Main Valve
+
+      UN    #Ma.Par.ParWithMainValve; 
+      SPB   El2; 
+      CALL #MainValve ;
+
+NETWORK
+TITLE =Call MatValve
+
+El2:  UN    #Ma.Par.ParWithMatValve; 
+      SPB   El3; 
+      CALL #MatValve ;
+
+NETWORK
+TITLE =Call AirValve
+
+El3:  UN    #Ma.Par.ParWithAirValve; 
+      SPB   El4; 
+      CALL #AirValve ;
+
+NETWORK
+TITLE =Call BypassValve
+
+El4:  UN    #Ma.Par.ParWithBypassValve; 
+      SPB   El5; 
+      CALL #BypassValve ;
+
+NETWORK
+TITLE =Call SpeedMon
+
+El5:  UN    #Ma.Par.ParWithSpeedMon; 
+      SPB   El6; 
+      CALL #SpeedMon ;
+
+NETWORK
+TITLE =Call HL
+
+El6:  UN    #Ma.Par.ParWithHL; 
+      SPB   StJ0; 
+      CALL #HL ;
+
+NETWORK
+TITLE =Jump to actual state
+
+StJ0: U     #Ma.StStopped; 
+      SPB   S0; 
+      U     #Ma.StStarting; 
+      SPB   S1; 
+      U     #Ma.StStarted; 
+      SPB   S2; 
+      U     #Ma.StFeeding; 
+      SPB   S6; 
+      U     #Ma.StClearing; 
+      SPB   S5; 
+      U     #Ma.StStopping; 
+      SPB   S3; 
+
+NETWORK
+TITLE =Stopped
+//any Transition 
+xxS0: S     #Ma.StStopped; // ===> Initialisation
+      R     #Ma.Par.OutClearingPulsingEnd; 
+      R     #Ma.Par.OutClearingBypassEnd; 
+      SPA   OUT; 
+//=== Logic
+//Condition for Starting
+S0:   UN    #Ma.InManual; 
+      U     #Ma.InEnable; 
+      UN    #Ma.InClearing; 
+      U     #Ma.CmdNext; 
+      UN    #tmpFaultStop; 
+      ON    #tmpStoppedMan; 
+      R     #Ma.StStopped; 
+      SPB   xxS1; //-->StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =StStarting
+//any Transition 
+xxS1: S     #Ma.StStarting; 
+      R     #Ma.Par.OutPulseMat; 
+      R     #Ma.Par.OutDelayMainValveEnd; 
+      R     #Ma.Par.OutDelayAirlockEnd; 
+      R     #Ma.Par.OutClearingPulsingEnd; 
+      R     #Ma.Par.OutClearingBypassEnd; 
+      L     0; 
+      T     #Ma.Par.OutDelayTime; 
+      T     #Ma.Par.OutPulseTime; 
+      SPA   OUT; 
+//=== Logic
+// Condition for StStopping
+S1:   UN    #tmpEnable; 
+      O     #tmpFaultStop; 
+      O     ; 
+      U     #tmpStoppedMan; 
+      U     #Ma.InManual; 
+      R     #Ma.StStarting; 
+      SPB   xxS3; //--> StStopping
+
+// Condition for StStarted
+      U     #Ma.Par.OutDelayMainValveEnd; 
+      UN    #Ma.Par.ParWithMainValve; 
+      O     #MainValve.StHN; 
+      R     #Ma.StStarting; 
+      SPB   xxS2; //-->StStarted
+
+//Delay main valve
+      L     #Ma.Par.ParDelayMain; 
+      L     #Ma.Par.OutDelayTime; 
+      <=I   ; 
+      O     #MainValve.StHN; 
+      =     #Ma.Par.OutDelayMainValveEnd; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      O     #Ma.Par.OutDelayMainValveEnd; 
+      SPB   S1J2; 
+      +     2; 
+      T     #Ma.Par.OutDelayTime; 
+S1J2: SPA   OUT; 
+
+NETWORK
+TITLE =StStarted
+//any Transition 
+xxS2: S     #Ma.StStarted; 
+      R     #Ma.Par.OutDelayAirlockEnd; 
+      S     #Ma.Par.OutDelayMainValveEnd; 
+      R     #Ma.Par.OutClearingPulsingEnd; 
+      L     0; 
+      T     #Ma.Par.OutDelayTime; 
+
+//=== Logic
+S2:   L     #Ma.Par.ParDelayAirlock; 
+      L     #Ma.Par.OutDelayTime; 
+      <=I   ; 
+      =     #Ma.Par.OutDelayAirlockEnd; 
+
+// Condition for StFeeding
+      U     #Airlock.StStartedFwd; 
+      U     #Ma.Par.OutDelayAirlockEnd; 
+      R     #Ma.StStarted; 
+      SPB   xxS6; //-->StFeeding
+
+// Condition for Clearing
+      UN    #tmpEnable; 
+      O     #tmpClearing; 
+      O     #tmpFaultStop; 
+      UN    #Airlock.StStartedFwd; 
+      O     ; 
+      UN    #MainValve.StHN; 
+      U     #Ma.Par.ParWithMainValve; 
+      R     #Ma.StStarted; 
+      SPB   xxS5; //--> StClearing
+
+//Delay Airlock
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      O     #Ma.Par.OutDelayAirlockEnd; 
+      SPB   OUT; 
+      +     2; 
+      T     #Ma.Par.OutDelayTime; 
+      SPA   OUT; 
+
+NETWORK
+TITLE =StFeeding
+//any Transition 
+xxS6: S     #Ma.StFeeding; 
+//=== Logic
+// Condition for Started
+S6:   UN    #Airlock.StStartedFwd; 
+      R     #Ma.StFeeding; 
+      SPB   xxS2; //--> StStarted
+      SPA   OUT; 
+
+
+NETWORK
+TITLE =StStopping
+//any Transition 
+xxS3: S     #Ma.StStopping; 
+      S     #Ma.Par.OutClearingPulsingEnd; 
+      L     0; 
+      T     #Ma.Par.OutDelayTime; 
+
+//=== Logic
+S3:   L     #Ma.Par.OutDelayTime; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S3J1; 
+      +     2; 
+      T     #Ma.Par.OutDelayTime; 
+// Condition for StStopped
+S3J1: L     #Ma.Par.ParDelayClosing; 
+      >=I   ; 
+      =     #tmpClosingDelayEnd; 
+      U     #tmpStoppedMan; 
+      O     #Ma.InManual; 
+      R     #Ma.StStopping; 
+      SPB   xxS0; //--> StStopped
+      SPA   OUT; 
+
+NETWORK
+TITLE =StClearing
+//any Transition 
+xxS5: S     #Ma.StClearing; 
+      L     0; 
+      T     #Ma.Par.OutClearingTime; 
+//=== Logic
+S5:   UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   S5J0; 
+      L     #Ma.Par.OutClearingTime; 
+      +     2; 
+      T     #Ma.Par.OutClearingTime; 
+//Clearing Time
+S5J0: L     #Ma.Par.ParClearingPulsing; 
+      L     #Ma.Par.OutClearingTime; 
+      <=I   ; 
+      =     #Ma.Par.OutClearingPulsingEnd; 
+//Delay time until bypass will open
+      L     #Ma.Par.ParClearingPulsing; 
+      L     #Ma.Par.ParClearingBoth; 
+      +I    ; 
+      L     #Ma.Par.OutClearingTime; 
+      <=I   ; 
+      =     #Ma.Par.OutClearingBothEnd; 
+//Bypass time
+      L     #Ma.Par.ParClearingPulsing; 
+      L     #Ma.Par.ParClearingBoth; 
+      +I    ; 
+      L     #Ma.Par.ParClearingBypass; 
+      +I    ; 
+      L     #Ma.Par.OutClearingTime; 
+      <=I   ; 
+      O     ; 
+      U     #Ma.Par.OutClearingBothEnd; 
+      U     #Ma.InNotClearingBypass; 
+      =     #Ma.Par.OutClearingBypassEnd; 
+// Condition for StStopping
+      UN    #Ma.InManual; 
+      UN    #Ma.InEnable; 
+      O     #Ma.Par.OutClearingBypassEnd; 
+      O     #tmpFaultValve; 
+      O     ; 
+      UN    #MainValve.StHN; 
+      U     #Ma.Par.ParWithMainValve; 
+      O     ; 
+      U     #Ma.InManual; 
+      UN    #Ma.OutManOpenAll; 
+      R     #Ma.StClearing; 
+      SPB   xxS3; //--> StStopping
+// Condition for Starting
+      U     #tmpEnable; 
+      UN    #tmpClearing; 
+      UN    #tmpFaultStop; 
+      UN    #Ma.InManual; 
+      R     #Ma.StClearing; 
+      SPB   xxS1; //--> StStarting
+      SPA   OUT; 
+
+NETWORK
+TITLE =State Code
+// State           StCode
+// ----------------------
+// StFault            32
+// StStopped          1
+// StStarting         2
+// StStarted          3
+// StFeeding          4
+// StClearing         5
+// StStopping         7
+OUT:  U     #Ma.OutFault; 
+      L     32; //Code=Fault
+      SPB   Code; 
+      U     #Ma.StStopped; 
+      L     1; //Code=Stopped
+      SPB   Code; 
+      L     2; //Code=Starting
+      U     #Ma.StStarting; 
+      SPB   Code; 
+      L     3; //Code=Started
+      U     #Ma.StStarted; 
+      SPB   Code; 
+      L     4; //Code=Feeding
+      U     #Ma.StFeeding; 
+      SPB   Code; 
+      L     5; //Code=Clearing
+      U     #Ma.StClearing; 
+      SPB   Code; 
+      L     7; //Code=Stopping
+Code: L     #Ma.StCode; // Old state code
+      TAK   ; 
+      T     #Ma.StCode; // Save state code
+      <>I   ; 
+      L     3; 
+      CC    "SYS_CBitCtrl"; //Set change bit
+
+NETWORK
+TITLE =General
+
+      U     #Ma.CmdFaultReset; 
+      S     #Airlock.CmdFaultReset; 
+      S     #MainValve.CmdFaultReset; 
+      S     #MatValve.CmdFaultReset; 
+      S     #AirValve.CmdFaultReset; 
+      S     #BypassValve.CmdFaultReset; 
+      S     #HL.CmdFaultReset; 
+      S     #SpeedMon.CmdFaultReset; 
+      S     #Pressure.CmdFaultReset; 
+
+//===  With refill level====
+// 
+// Pulsing valve
+      L     #Ma.Par.OutPulseTime; 
+      UN    "GCS7_Gr_OutTick200ms"; //Gr.OutTick200ms
+      SPB   AlJ0; 
+      +     2; 
+      T     #Ma.Par.OutPulseTime; 
+AlJ0: U     #Ma.Par.OutPulseMat; 
+      SPB   ALTC; 
+      L     #Ma.Par.ParPulseAirTime; 
+      L     #Ma.Par.OutPulseTime; 
+      <=I   ; 
+      U(    ; 
+      ON    #Airlock.StStartedFwd; 
+      ON    #Ma.Par.ParWithHL; 
+      )     ; 
+      O(    ; 
+      U     #HL.StCtoTrue; 
+      O     #HL.StTrue; 
+      U     #Ma.Par.ParWithHL; 
+      )     ; 
+      O     ; 
+      U     #Ma.InManual; 
+      UN    #Ma.OutManPulsing; 
+      S     #Ma.Par.OutPulseMat; 
+      SPB   AlJ1; 
+      SPA   AlJ3; 
+AlJ1: L     0; 
+      T     #Ma.Par.OutPulseTime; 
+      SPA   AlJ3; 
+ALTC: L     #Ma.Par.ParPulseMatTime; 
+      L     #Ma.Par.OutPulseTime; 
+      <=I   ; 
+      R     #Ma.Par.OutPulseMat; 
+      SPB   AlJ1; 
+NETWORK
+TITLE =Automatic mode
+
+AlJ3: U     #Ma.InManual; 
+      SPB   maJ0; 
+//Run airlock 
+      U     #Ma.StStarted; 
+      U     #Ma.Par.OutDelayAirlockEnd; 
+      O     #Ma.StFeeding; 
+      U     #Ma.InAirOk; 
+      UN    #Ma.OutFault; 
+      UN    #Pressure.StCtoOverP; 
+      UN    #Pressure.StOverP; 
+      UN    #Pressure.StFault; 
+      U     #tmpEnable; 
+      UN    #Ma.InDisableAirlock; 
+      UN    #Ma.InClearing; 
+      =     #Airlock.InEnableFwd; 
+//Pulse-Phase
+      U     #Ma.Par.ParWithMatValve; 
+      UN    #Ma.Par.ParWithAirValve; 
+      O     #Ma.Par.OutPulseMat; 
+      =     #tmpReadyConveying; 
+//Main Valve 
+      U     #Ma.Par.OutDelayMainValveEnd; 
+      S     #MainValve.InEnableHN; 
+
+      U     #Ma.StStopped; 
+      O     #Ma.StStopping; 
+      R     #MainValve.InEnableHN; 
+//Air Valve
+      U     #Ma.Par.OutClearingPulsingEnd; 
+      ON    #Ma.Par.OutPulseMat; 
+      S     #AirValve.InEnableHN; 
+
+      U     #tmpReadyConveying; 
+      U     #MatValve.StHN; 
+      UN    #Ma.Par.OutClearingPulsingEnd; 
+      O     #Ma.StStopped; 
+      O     ; 
+      U     #Ma.StStopping; 
+      U     #tmpClosingDelayEnd; 
+      R     #AirValve.InEnableHN; 
+
+//Mat Valve
+      U     #Ma.Par.OutClearingPulsingEnd; 
+      O     #tmpReadyConveying; 
+      S     #MatValve.InEnableHN; 
+
+      UN    #Ma.Par.OutPulseMat; 
+      U     #AirValve.StHN; 
+      UN    #Ma.Par.OutClearingPulsingEnd; 
+      O     #Ma.StStopped; 
+      O     ; 
+      U     #Ma.StStopping; 
+      U     #tmpClosingDelayEnd; 
+      R     #MatValve.InEnableHN; 
+
+//Bypass valve 
+      U     #Ma.Par.OutClearingBothEnd; 
+      U     #Ma.StClearing; 
+      S     #BypassValve.InEnableHN; 
+      U     #Ma.Par.OutClearingBypassEnd; 
+      ON    #Ma.StClearing; 
+      R     #BypassValve.InEnableHN; 
+NETWORK
+TITLE =Manual mode
+
+maJ0: UN    #Ma.InManual; 
+      SPB   AlEn; 
+//--- Pulsing mode ------------
+      U     #Ma.CmdPulsingOnOff; 
+      U     #Ma.OutManPulsing; 
+      R     #Ma.OutManPulsing; 
+      S     #Ma.Par.OutEnableMan; 
+      SPB   maJ1; 
+      U     #Ma.CmdPulsingOnOff; 
+      S     #Ma.OutManPulsing; 
+      R     #Ma.Par.OutEnableMan; 
+      R     #Ma.OutManOpenAll; 
+//-- Airlock ------------------- 
+maJ1: U     #Ma.CmdAirlockOnOff; 
+      U     #Airlock.StStopped; 
+      S     #Airlock.InEnableFwd; 
+      S     #Airlock.CmdNext; 
+// 
+      U     #Ma.CmdAirlockOnOff; 
+      UN    #Airlock.StStopped; 
+      O     ; 
+      UN    #MainValve.StHN; 
+      U     #Ma.Par.ParWithMainValve; 
+      O     #Ma.OutFault; 
+      O     #Pressure.StCtoOverP; 
+      O     #Pressure.StOverP; 
+      O     #Pressure.StFault; 
+      O     #Ma.CmdOff; 
+      O     #Ma.InDisableAirlock; 
+      R     #Airlock.InEnableFwd; 
+//---- Main Valve -------------- 
+      U     #Ma.CmdMainOnOff; 
+      R     #Ma.OutManOpenAll; 
+
+      U     #Ma.CmdMainOnOff; 
+      U     #MainValve.StLN; 
+      S     #MainValve.InEnableHN; 
+
+      U     #Ma.CmdMainOnOff; 
+      UN    #MainValve.StLN; 
+      O     #Ma.CmdOff; 
+      R     #MainValve.InEnableHN; 
+//--- MatValve - AirValve --------- 
+      U     #Ma.Par.OutPulseMat; 
+      U     #Ma.OutManPulsing; 
+      O     ; 
+      UN    #Ma.OutManPulsing; 
+      U     #Ma.Par.OutEnableMan; 
+      S     #MatValve.InEnableHN; 
+      =     #tmpVKE; 
+      U     #tmpVKE; 
+      U     #MatValve.StHN; 
+      R     #AirValve.InEnableHN; 
+// 
+      UN    #Ma.Par.OutPulseMat; 
+      U     #Ma.OutManPulsing; 
+      UN    #Ma.OutManOpenAll; 
+      S     #AirValve.InEnableHN; 
+      =     #tmpVKE; 
+      U     #tmpVKE; 
+      U     #AirValve.StHN; 
+      R     #MatValve.InEnableHN; 
+//--BypassV--- 
+      U     #Ma.OutManPulsing; 
+      R     #BypassValve.InEnableHN; 
+//--- Open All--------------------     
+      U     #Ma.CmdOpenAll; 
+      S     #Ma.OutManOpenAll; 
+      R     #Ma.OutManPulsing; 
+
+      U     #Ma.OutManOpenAll; 
+      S     #BypassValve.InEnableHN; 
+      S     #MatValve.InEnableHN; 
+      S     #AirValve.InEnableHN; 
+      S     #MainValve.InEnableHN; 
+//--- Off ------------------------ 
+      U     #Ma.CmdOff; 
+      R     #Ma.OutManOpenAll; 
+      R     #Ma.OutManPulsing; 
+      R     #Ma.Par.OutEnableMan; 
+      R     #MainValve.InEnableHN; 
+      R     #BypassValve.InEnableHN; 
+      R     #MatValve.InEnableHN; 
+      R     #AirValve.InEnableHN; 
+// 
+NETWORK
+TITLE =Global End
+// 
+AlEn: UN    #BypassValve.InEnableHN; 
+      =     #BypassValve.InEnableLN; 
+      UN    #MatValve.InEnableHN; 
+      =     #MatValve.InEnableLN; 
+      UN    #AirValve.InEnableHN; 
+      =     #AirValve.InEnableLN; 
+      UN    #MainValve.InEnableHN; 
+      =     #MainValve.InEnableLN; 
+
+//Next
+      U     #Ma.CmdNext; 
+      O     #Ma.InManual; 
+      S     #Airlock.CmdNext; 
+      SET   ; 
+      S     #BypassValve.CmdNext; 
+      S     #MatValve.CmdNext; 
+      S     #AirValve.CmdNext; 
+      S     #MainValve.CmdNext; 
+//---Clear all commands
+      CLR   ; 
+      =     #Ma.CmdMainOnOff; 
+      =     #Ma.CmdOff; 
+      =     #Ma.CmdNext; 
+      =     #Ma.CmdFaultReset; 
+      =     #Ma.CmdAirlockOnOff; 
+      =     #Ma.CmdOpenAll; 
+      =     #Ma.CmdPulsingOnOff; 
+// 
+
+END_FUNCTION_BLOCK
+

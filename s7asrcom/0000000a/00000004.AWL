@@ -1,0 +1,273 @@
+FUNCTION "SYS_GeneralFunctions" : VOID
+TITLE =General plant signals
+//
+//COPYRIGHT:      (C) 2000 BY  BUHLER LTD.
+//                           CH-9240 UZWIL  SWITZERLAND
+//
+//PRODUCT:        GEN_MU664
+//
+//TITLE:          GENERAL PLANT SIGNALS
+//
+//                GENERELLE ANLAGENINFORMATIONEN
+//
+//
+//--------------------------------------------------------------------------------
+//
+//IDENT:          AUTOR:            DEPT:                              DATE:
+//
+//GEN_FC105.4.0   Ph. Engler        MU664                              16-Jan-2006
+//                Section StaOffline for Execute-Button deleted
+//GEN_FC105.3.0   Ph. Engler        MU664                              05-Mar-2003
+//                Redesign GCS7 Release 2
+//GEN_FC105.2.0   Ph. Engler        MU664                              18-Oct-2002
+//                On-Off Handling with 32-Bit and FC122
+//GEN_FC105.1B    Ph. Engler        MU664                              26-May-2000
+//                On-Off Handling without scratch flags
+//GEN_FC105.1A    Ph. Engler        MU664                              05-Jan-2000
+//                1st Release
+//
+//--------------------------------------------------------------------------------
+//
+//PURPOSE:      
+//
+//RESTRICTIONS: 
+//
+//--------------------------------------------------------------------------------
+//
+AUTHOR : PE
+FAMILY : GEN
+VERSION : 9.9
+
+
+VAR_TEMP
+  tmpBool : BOOL ;	
+  tmpWord : WORD ;	
+  tmpDWord : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =!!! Engineering remark, delete this segment !!!
+
+      U     "ENG_RemarkFlag"; 
+//-> Check all input addresses in this block
+//-> and delete the whole segment 1
+      =     "ENG_RemarkFlag"; 
+      SET   ; 
+      R     "PLC_SystemDB".HardwareStop.General; 
+//      BEA   
+NETWORK
+TITLE =Control voltage
+
+//      U     E      4.0                  // G_C_VOLTAGE.inp
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.VoltageOk; 
+NETWORK
+TITLE =Emergency stop
+
+//      U     E      4.3                  // G_ES_GENERAL.inp
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.EsGeneralOk; 
+NETWORK
+TITLE =Power supply motor contactor panels
+
+//      U     "_22_M082_I1"               // G_POWER_M10.inp
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.PowerOk; 
+NETWORK
+TITLE =Mini circuit breakers
+
+//      U     E      4.1                  // G_FUSE.inp
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.FuseOk; 
+
+//-Delay LOG entrys in queue after fuse tripped---
+      U     "ENG_RemarkFlag"; 
+//-> Add the following statement
+      =     "ENG_RemarkFlag"; 
+//      UN    "GxxxG".G_FUSE.InLocal
+      UN    "PLC_SystemDB".Hardware.FuseOk; 
+      L     "ASW_TimerSettings".Timer13; 
+      SV    "SYS_T_LOGEntryDelay"; 
+// 
+      U     "SYS_T_LOGEntryDelay"; 
+      =     "GCS7_Gr_OutLogOff"; 
+NETWORK
+TITLE =PLC failure
+
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.PlcOk; 
+NETWORK
+TITLE =Fire alarms
+
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.FireOk; 
+NETWORK
+TITLE =Smoke alarms
+
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.SmokeOk; 
+NETWORK
+TITLE =Explosions flaps
+
+      SET   ; 
+      =     "PLC_SystemDB".Hardware.ExflapsOk; 
+NETWORK
+TITLE =HW-Stop
+
+      U     "PLC_SystemDB".Hardware.VoltageOk; 
+      U     "PLC_SystemDB".Hardware.EsGeneralOk; 
+      U     "PLC_SystemDB".Hardware.PowerOk; 
+      U     "PLC_SystemDB".Hardware.PlcOk; 
+      U     "PLC_SystemDB".Hardware.FireOk; 
+      U     "PLC_SystemDB".Hardware.SmokeOk; 
+      U     "PLC_SystemDB".Hardware.ExflapsOk; 
+//MW -Test      U     "SYS_PLCStartUpDelay"
+
+      L     "ASW_TimerSettings".Timer11; 
+      SE    "SYS_HWDelay"; 
+      UN    "SYS_HWDelay"; 
+      =     "PLC_SystemDB".HardwareStop.General; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C11
+
+      U     "A_1199_SHE01_I1"; 
+      O     "A_1199_SHE02_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Steeping; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C19
+
+      U     "A_19_A097Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.UnloadingSteeping; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C21
+
+      U     "A_2199_SHE01_I1"; 
+      O     "A_2199_SHE02_I1"; 
+      O     "A_21_A097Z1_I1"; 
+      O     "A_21_A098Z1_I1"; 
+      O     "A_21_A106Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Germinating_1; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C22
+
+      U     "A_2299_SHE01_I1"; 
+      O     "A_2299_SHE02_I1"; 
+      O     "A_22_A097Z1_I1"; 
+      O     "A_22_A098Z1_I1"; 
+      O     "A_22_A106Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Germinating_2; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C23
+
+      U     "A_2399_SHE01_I1"; 
+      O     "A_2399_SHE02_I1"; 
+      O     "A_23_A097Z1_I1"; 
+      O     "A_23_A098Z1_I1"; 
+      O     "A_23_A106Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Germinating_3; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C24
+
+      U     "A_2499_SHE01_I1"; 
+      O     "A_2499_SHE02_I1"; 
+      O     "A_24_A097Z1_I1"; 
+      O     "A_24_A098Z1_I1"; 
+      O     "A_24_A106Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Germinating_4; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C25
+
+      U     "A_2599_SHE01_I1"; 
+      O     "A_2599_SHE02_I1"; 
+      O     "A_25_A097Z1_I1"; 
+      O     "A_25_A098Z1_I1"; 
+      O     "A_25_A106Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.Germinating_5; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C26
+
+      U     "A_2699_SHE01_I1"; 
+      O     "A_2699_SHE02_I1"; 
+      O     "A_26_A097Z1_I1"; 
+      O     "A_26_A098Z1_I1"; 
+      O     "A_26_A106Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.Germinating_6; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C27
+
+      U     "A_2799_SHE01_I1"; 
+      O     "A_2799_SHE02_I1"; 
+      O     "A_27_A097Z1_I1"; 
+      O     "A_27_A098Z1_I1"; 
+      O     "A_27_A106Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.Germinating_7; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C28
+
+      U     "A_2899_SHE01_I1"; 
+      O     "A_2899_SHE02_I1"; 
+      O     "A_28_A097Z1_I1"; 
+      O     "A_28_A098Z1_I1"; 
+      O     "A_28_A106Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C29
+
+      U     "A_29_A097Z1_I1"; 
+      =     "PLC_SystemDB".HardwareStop.UnloadingGeminating; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C31
+
+      U     "A_3199_SHE01_I1"; 
+      O     "A_3199_SHE02_I1"; 
+      O     "A_31_A097Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.Kilning_1; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C32
+
+      U     "A_3299_SHE01_I1"; 
+      O     "A_3299_SHE02_I1"; 
+      O     "A_32_A097Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.Kilning_2; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C39
+
+      U     "A_39_A097Z1_I1"; 
+      =     "PLC_SystemDB".GlobalFlags.UnloadingKilning; 
+
+NETWORK
+TITLE =Stop from Hardware circuit cabinet +C28
+
+//BRT270410 - HW-Stop KK5 wird im NW17 gemacht!!!
+//      CLR   
+//      =     "PLC_SystemDB".HardwareStop.Germinating_5
+
+NETWORK
+TITLE =Section StaOffline 
+
+      NOP   0; 
+//-After newstart---
+      U     "SYS_PLCStartUpDelay"; 
+      L     "ASW_TimerSettings".Timer15; 
+      SV    "SYS_T_NStartOfflineTime"; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION
+

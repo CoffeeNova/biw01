@@ -1,0 +1,1095 @@
+FUNCTION_BLOCK FB 58
+TITLE =Flaker
+//COPYRIGHT:    (C) 2003  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Machine Flaker Control 
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB58.1.4      A.Smart             CDDP                        14-Apr-2004
+//              It is possible now to give CmdReleaseEngage and
+//              CmdSequenceStop at the same time to the BCFA, to trigger
+//              the correct emptying out sequence.
+//FB58.1.3      A.Smart             CDDP                        12-Aug-2003
+//              New Signal InFeedRoll to release the feed roll of the flaker
+//              There are particular situations where the flaker should stop
+//              the feedroll. The plant control can only know this. 
+//FB58.1.2      A.Smart             CDDP                        08-Jul-2003
+//              New Signal InNewJobWait to decide whether to wait for the
+//              Start Job Change Command from the BCFA machine
+//              (it is not required when starting the line from completely empty)
+//FB58.1.1      A.Smart             CDDP                        07-Jul-2003
+//              Bug fix for Vibro Feeder and Flap Position
+//FB58.1.0      A.Egli              CT3                         07-Apr-2003
+//              1st Release
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [DICxxMAN]
+//
+//RESTRICTIONS: S7
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  false
+// 2  true
+// 9  fault cancelled
+//10  fault device
+//11  fault true
+//12  fault false
+//13  prealarm true
+//14  prealarm false
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32  StFault                  StFault+InpFaultDev=0 
+//31  StFault.DEV              StFault+InpFaultDev=1 
+// 1  StFalse               
+//11  StFalse.Warning          StFalse+OutWarning
+//41  StFalse.HWStop           StFalse+HWStop 
+//51  StFalse.DPFault          StFalse+DPFault
+//61  StFalse.FaultDev         InLocal=1 +InpFaultDef +InpTrue=0
+// 2  StCtoTrue             
+//12  StCtoTrue.Warning     
+// 3  StTrue                
+//13  StTrue.Warning           StTrue+OutWarning
+//43  StTrue.HWStop            StTrue+InHWStop
+//53  StTrue.DPFault           StTrue+InDPFault
+//63  StTrue.FaultDev          InLocal=1 +InpFaultDef +InpTrue=1
+// 4  StCtoFalse             
+//14  StCtoFalse.Warning       StCtoFalse+OutWarning
+//
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : BCFA
+VERSION : 1.4
+
+
+VAR
+  Ma : STRUCT 	
+   StCode : INT ;	//Element state code
+   InEnable : BOOL ;	//Enable to run the element reverse   
+   InEngage : BOOL ;	//Enable to run engage  
+   InNewJobWait : BOOL ;	//Signal to wait for Start Job Change from the Operator
+   InFeedRoll : BOOL ;	//Enable to run the feed roll of the flaker
+   spare24 : BOOL ;	
+   CmdNewJob : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+   spare26 : BOOL ;	
+   spare27 : BOOL ;	
+   CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+   CmdOn : BOOL ;	//Pulse to start the element immediately (manual mode)
+   CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+   CmdFaultReset : BOOL ;	//Command to reset fault
+   InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+   InManual : BOOL ;	//1= Manual/ 0=Automatic
+   InReport : BOOL ;	//Report of all state transitions
+   InSeqStop : BOOL ;	//Stop automatically after idling time
+   spare40 : BOOL ;	
+   spare41 : BOOL ;	
+   InSimulation : BOOL ;	//DP:
+   OutComFault : BOOL ;	//Communication fault
+   spare44 : BOOL ;	
+   spare45 : BOOL ;	
+   spare46 : BOOL ;	
+   OutWarning : BOOL ;	//Warning
+   StStopped : BOOL ;	//BCFA in state Automatic.Stopped
+   StStarting : BOOL ;	//BCFA in state Automatic.Starting
+   StProduction : BOOL ;	//BCFA in state Automatic.Production
+   StStopping : BOOL ;	//BCFA in state Automatic.Stopping
+   StFaultCom : BOOL ;	
+   StStandby : BOOL ;	//BCFA in state Automatic.Standby
+   StService : BOOL ;	//BCFA is in mode Servive or Neutral
+   OutFaulted : BOOL ;	//Fault
+   ToBCFA : STRUCT 	
+    SP_GapLeft : INT ;	//Setpoint gap left
+    SP_GapRight : INT ;	//Setpoint gap right
+    SP_TempRoll : INT ;	//Setpoint water temperture
+    SP_FE_RollSpeed : INT ;	//Setpoint speed roll feeder
+    SP_FE_VibroSpeed : INT ;	//Setpoint speed vibro feeder
+    SP_RC_Option : INT ;	//Setpoint roll cooling option (1 = with, 2 = without)
+    res120 : INT ;	
+    res140 : INT ;	
+    res160 : INT ;	
+    res180 : INT ;	
+    CmdSequenceStart : BOOL ;	//Start flaker
+    CmdSequenceStop : BOOL ;	//Sequence stop flaker
+    CmdReleaseEngage : BOOL ;	//Plant release signal for engaging (=> E0.0) (e.q. release roll engage on site)
+    CmdDoneJobchange : BOOL ;	//Job change executed
+    CmdReleaseFeed : BOOL ;	//Plant release signal for feed roll
+    res205 : BOOL ;	
+    res206 : BOOL ;	
+    res207 : BOOL ;	
+    res210 : BOOL ;	
+    res211 : BOOL ;	
+    res212 : BOOL ;	
+    res213 : BOOL ;	
+    res214 : BOOL ;	
+    res215 : BOOL ;	
+    res216 : BOOL ;	
+    res217 : BOOL ;	
+    res220 : WORD ;	
+    res240 : WORD ;	
+    res260 : WORD ;	
+    res280 : WORD ;	
+    LineCheck : WORD ;	//Line check value from remote
+   END_STRUCT ;	
+   FromBCFA1 : STRUCT 	
+    RV_GapLeft : INT ;	//Actual gap value left
+    RV_GapRight : INT ;	//Actual gap value right
+    RV_TempRoll : INT ;	//Actual water temperature
+    RV_MM_1_Current : INT ;	//Actual current mainmotor 1
+    RV_MM_2_Current : INT ;	//Actual current mainmotor 2
+    RV_ForceLeft : INT ;	//Actual roll force left
+    RV_ForceRight : INT ;	//Actual roll force right
+    RV_FE_DSDC_Temp : INT ;	//Actual conditioner temperature
+    res480 : INT ;	
+    RV_SP_GapLeft : INT ;	//Actual setpoint gap left
+    RV_SP_GapRight : INT ;	//Actual setpoint gap right
+    RV_SP_TempRoll : INT ;	//Actual setpoint water temperture
+    RV_SP_FE_RollSpeed : INT ;	//Actual setpoint speed roll feeder
+    RV_SP_FE_VibroSpeed : INT ;	//Actual setpoint speed vibro feeder
+    RV_SP_RC_Option : INT ;	//Actual setpoint roll cooling option (1 = with, 2 = without)
+    res620 : INT ;	
+   END_STRUCT ;	
+   FromBCFA2 : STRUCT 	
+    Sta_Automatic : BYTE ;	//Status automatic mode
+    Sta_Calibration : BYTE ;	//Status calibration mode
+    Sta_OperationMode : BYTE ;	//Status operation mode
+    Sta_MM_1_On : BOOL ;	//Mainmotor 1 running
+    Sta_MM_1_Fault : BOOL ;	//Mainmotor 1 fault
+    Sta_MM_2_On : BOOL ;	//Mainmotor 2 running
+    Sta_MM_2_Fault : BOOL ;	//Mainmotor 2 fault
+    Sta_ROLL_On : BOOL ;	//Roll feeder running
+    Sta_ROLL_Fault : BOOL ;	//Roll feeder fault
+    Sta_Vibro_On : BOOL ;	//Vibro channel running
+    Sta_Vibro_Fault : BOOL ;	//Vibro cahnnel fault
+    Sta_RC_On : BOOL ;	//Roll cooling on
+    Sta_RC_Fault : BOOL ;	//Roll cooling fault
+    Sta_HD_On : BOOL ;	//Hydraulic running
+    Sta_HD_Fault : BOOL ;	//Hydraulic fault
+    Sta_Engaged_On : BOOL ;	//Roll position engaged
+    Sta_Engaged_Fault : BOOL ;	//Roll position fault
+    Sta_Flap_Production : BOOL ;	//Outlet flap production (DSDC option)
+    Sta_Flap_Fault : BOOL ;	//Outlet flap fault (DSDC option)
+    Sta_Flow_Ok : BOOL ;	//Flow detector ok
+    Sta_Flow_Fault : BOOL ;	//Flow detector fault
+    res700 : WORD ;	
+    res702 : WORD ;	
+    CmdStartJobchange : BOOL ;	//Start job change
+    res741 : BOOL ;	
+    res742 : BOOL ;	
+    res743 : BOOL ;	
+    res744 : BOOL ;	
+    res745 : BOOL ;	
+    res746 : BOOL ;	
+    res747 : BOOL ;	
+    res750 : BYTE ;	
+    Alarm : STRUCT 	//Aux. signal to retry fault message
+     A01System : BOOL ;	
+     A02Memory : BOOL ;	
+     A03SerialCom : BOOL ;	
+     A04MainMotor : BOOL ;	
+     A05MMotor1Range : BOOL ;	
+     A06MMotor2Range : BOOL ;	
+     A07Hydraulic : BOOL ;	
+     A08HydrPressTOut : BOOL ;	
+     A09 : BOOL ;	
+     A10GapAdjMotor : BOOL ;	
+     A11GapLeftEdpos : BOOL ;	
+     A12GapLeftRange : BOOL ;	
+     A13GapRightEndpos : BOOL ;	
+     A14GapRightRange : BOOL ;	
+     A15 : BOOL ;	
+     A16DryRunning : BOOL ;	
+     A17ProductNokWA : BOOL ;	
+     A18ProductNokAL : BOOL ;	
+     A19FeederMotor : BOOL ;	
+     A20WaterFlow : BOOL ;	
+     A21RollTpWA : BOOL ;	
+     A22RollTpMax : BOOL ;	
+     A23WaterTpRange : BOOL ;	
+     A24CondTpMinWA : BOOL ;	
+     A25CondTpMinAL : BOOL ;	
+     A26AirPressure : BOOL ;	
+     A27CondTpRange : BOOL ;	
+     A28ForceLeftRange : BOOL ;	
+     A29ForceRightRange : BOOL ;	
+     A30 : BOOL ;	
+     A31ProtectionKnife : BOOL ;	
+     A32ProtectionCover : BOOL ;	
+    END_STRUCT ;	
+    Message : DWORD ;	
+    res840 : WORD ;	
+    res860 : WORD ;	
+    res880 : WORD ;	
+    res900 : WORD ;	
+    res920 : WORD ;	
+    LineCheck : WORD ;	//Line check value to remote
+   END_STRUCT ;	
+   OutAlarmNr : INT ;	//Is read from MEAF ; Is transformed for MWEB like MEAF
+   OutAlarmNrLog : INT ;	//Last textnumber send to log
+   Par : STRUCT 	
+    ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+    ParMsgType : INT ;	//Is used for message (translation of state)
+    ParHornCode : INT ;	//Is used by horn module
+    ParLogOff : BOOL ;	//Report is off
+    ParManual : BOOL ;	//Manual mode without interlocking
+    ParIOByteNr : INT ;	//Address of first input and output byte
+    ParSpare : INT ;	
+    CopyData : STRUCT 	
+     Alarm : DWORD ;	
+     SP_GapLeft : INT ;	//Setpoint gap left
+     SP_GapRight : INT ;	//Setpoint gap right
+     SP_TempRoll : INT ;	//Setpoint water temperture
+     SP_FE_RollSpeed : INT ;	//Setpoint speed roll feeder
+     SP_FE_VibroSpeed : INT ;	//Setpoint speed vibro feeder
+     SP_RC_Option : INT ;	//Setpoint roll cooling option (1 = with, 2 = without)
+     res120 : INT ;	
+     res140 : INT ;	
+    END_STRUCT ;	
+    OutHelpFlags : STRUCT 	//Aux. signal to retry fault message
+     OutComFaultRead : BOOL ;	
+     OutComFaultSend : BOOL ;	
+     OutFaultedMsg : BOOL ;	
+     OutComFaultMsg : BOOL ;	
+    END_STRUCT ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+  Motor1 : FB 12;	
+  Motor2 : FB 12;	
+  Hydraulic : FB 12;	
+  Cooler : FB 12;	
+  Engaged : FB 12;	
+  RollFeeder : FB 12;	
+  VibroFeeder : FB 12;	
+  Flap : FB 13;	
+  ProductFlow : FB 14;	
+END_VAR
+VAR_TEMP
+  Src : ANY ;	//Must by at LB0
+  tmpSendData : STRUCT 	
+   SP_GAP_LEFT : INT ;	//Setpoint gap left
+   SP_GAP_RIGHT : INT ;	//Setpoint gap right
+   SP_TEMP_ROLL : INT ;	//Setpoint water temperture
+   SP_FE_ROLL_SPEED : INT ;	//Setpoint speed roll feeder
+   SP_FE_VIBRO_SPEED : INT ;	//Setpoint speed vibro feeder
+   SP_RC_OPTION : INT ;	//Setpoint roll cooling option (1 = with, 2 = without)
+   res120 : INT ;	
+   res140 : INT ;	
+   res160 : INT ;	
+   res180 : INT ;	
+   CMD_SEQUENCE_START : BOOL ;	//Start flaker
+   CMD_SEQUENCE_STOP : BOOL ;	//Sequence stop flaker
+   CMD_RELEASE : BOOL ;	//Plant release signal (=> E0.0) (e.q. release roll engage on site)
+   CMD_DONE_JOBCHANGE : BOOL ;	//Job change executed
+   res204 : BOOL ;	
+   res205 : BOOL ;	
+   res206 : BOOL ;	
+   res207 : BOOL ;	
+   res210 : BOOL ;	
+   res211 : BOOL ;	
+   res212 : BOOL ;	
+   res213 : BOOL ;	
+   res214 : BOOL ;	
+   res215 : BOOL ;	
+   res216 : BOOL ;	
+   res217 : BOOL ;	
+   res220 : WORD ;	
+   res240 : WORD ;	
+   res260 : WORD ;	
+   res280 : WORD ;	
+   GET_LINE_CHECK : WORD ;	//Line check value from remote
+  END_STRUCT ;	
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpAddr1 : WORD ;	//Number of the actual FB
+  tmpAddr2 : WORD ;	//Number of the actual FB
+  tmpReport : BOOL ;	//Global LOG all
+  tmpFault : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpReturn1 : INT ;	
+  tmpReturn2 : INT ;	
+  tmpLenDyn : INT ;	
+  tmpValue : DINT ;	
+  error : INT ;	
+  tmpAddrAlarm : DINT ;	
+  tmpAddrCopyAlarm : DINT ;	
+  tmpAlarmNr : INT ;	
+  tmpCopyAlarm : DWORD ;	
+  tmpALARM : STRUCT 	//Aux. signal to retry fault message
+   A01System : BOOL ;	
+   A02Memory : BOOL ;	
+   A03SerialCom : BOOL ;	
+   A04MainMotor : BOOL ;	
+   A05MMotor1Range : BOOL ;	
+   A06MMotor2Range : BOOL ;	
+   A07Hydraulic : BOOL ;	
+   A08HydrPressTOut : BOOL ;	
+   A09 : BOOL ;	
+   A10GapAdjMotor : BOOL ;	
+   A11GapLeftEdpos : BOOL ;	
+   A12GapLeftRange : BOOL ;	
+   A13GapRightEndpos : BOOL ;	
+   A14GapRightRange : BOOL ;	
+   A15 : BOOL ;	
+   A16DryRunning : BOOL ;	
+   A17ProductNokWA : BOOL ;	
+   A18ProductNokAL : BOOL ;	
+   A19FeederMotor : BOOL ;	
+   A20WaterFlow : BOOL ;	
+   A21RollTpWA : BOOL ;	
+   A22RollTpMax : BOOL ;	
+   A23WaterTpRange : BOOL ;	
+   A24CondTpMinWA : BOOL ;	
+   A25CondTpMinAL : BOOL ;	
+   A26AirPressure : BOOL ;	
+   A27CondTpRange : BOOL ;	
+   A28ForceLeftRange : BOOL ;	
+   A29ForceRightRange : BOOL ;	
+   A30 : BOOL ;	
+   A31ProtectionKnife : BOOL ;	
+   A32ProtectionCover : BOOL ;	
+  END_STRUCT ;	
+  tmpEnable : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     110; 
+      T     #tmpLenDyn; 
+//Pointer  P##FromBCFA2.ALARM
+      TAR2  ; 
+      L     P#82.0; //  P##FromBCFA2.ALARM 
+      +D    ; 
+      T     #tmpAddrAlarm; 
+//Pointer  P##tmpAddrCopyAlarm
+      L     P##tmpCopyAlarm; 
+      T     #tmpAddrCopyAlarm; 
+//Copy Old Alarm Pattern
+      L     #Ma.Par.CopyData.Alarm; 
+      T     #tmpCopyAlarm; 
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     DB3.DBW   50; //PCControl.ObjectNo
+      L     #Ma.Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   CTRL; 
+//=== Test OType      ========================
+      L     2058; //Input object type
+      L     DB3.DBW   48; //PCControl.ObjectType
+      <>I   ; 
+      SPB   CTRL; 
+//=== Test Handshake =========================
+      U     DB3.DBX   43.3; //Handshake.FExamine
+      SPB   pExa; 
+      U     DB3.DBX   43.0; //Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     DB3.DBX   43.1; //Handshake.FDefinePara
+      SPB   pPar; 
+      SPB   CTRL; //[1.1]
+pIni: L     2; //FcInit
+      UC    FC     3; 
+      SPA   CTRL; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: U     DB3.DBX   52.5; //Cmd1[5]  =CmdNewJob
+      S     #Ma.CmdNewJob; 
+      U     DB3.DBX   52.1; //Cmd1[1]  =CmdEngage
+      S     #Ma.InEngage; 
+      U     DB3.DBX   54.1; //Cmd1[1]  =CmdDisengage
+      R     #Ma.InEngage; 
+      U     DB3.DBX   53.0; //Cmd1[8]  =CmdOff
+      S     #Ma.CmdOff; 
+      U     DB3.DBX   53.1; //Cmd1[9]  =CmdOn
+      S     #Ma.CmdOn; 
+      U     DB3.DBX   53.3; //Cmd1[11] =CmdFaultReset
+      S     #Ma.CmdFaultReset; 
+      U     DB3.DBX   53.5; //Cmd1[13] =CmdManualOn
+      S     #Ma.InManual; 
+      U     DB3.DBX   55.5; //Cmd2[13] =CmdManualOff
+      R     #Ma.InManual; 
+      U     DB3.DBX   53.6; //Cmd1[14] =CmdReportOn
+      S     #Ma.InReport; 
+      U     DB3.DBX   55.6; //Cmd2[14] =CmdReportOff
+      R     #Ma.InReport; 
+      SPA   pIni; 
+pExa: TAR2  ; //Address dynamic datas
+      T     DB3.DBD   24; //-->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; //Length dynamic datas
+      T     DB3.DBW   22; //-->PCControl.GC.InDynLen
+      L     0; 
+      T     DB3.DBD   30; //-->PCControl.GC.InParaAddr
+      T     DB3.DBW   28; //-->PCControl.GC.InParaLen
+      L     1; //Code FcExamine
+      UC    FC     3; 
+      L     10; //Revision
+      T     DB3.DBW   34; 
+CTRL: NOP   0; 
+NETWORK
+TITLE =(Profibus) Read data and store Data 
+
+      L     #Ma.Par.ParIOByteNr; 
+      T     #tmpAddr1; 
+      +     32; 
+      T     #tmpAddr2; 
+      U     #Ma.InSimulation; 
+      SPB   rSim; 
+      CALL SFC   14 (
+           LADDR                    := #tmpAddr1,
+           RET_VAL                  := #tmpReturn1,
+           RECORD                   := #Ma.FromBCFA1);
+      CALL SFC   14 (
+           LADDR                    := #tmpAddr2,
+           RET_VAL                  := #tmpReturn2,
+           RECORD                   := #Ma.FromBCFA2);
+      L     #tmpReturn1; 
+      L     0; 
+      <>I   ; 
+      O(    ; 
+      L     #tmpReturn2; 
+      L     0; 
+      <>I   ; 
+      )     ; 
+      =     #Ma.Par.OutHelpFlags.OutComFaultRead; 
+      SPA   rcv0; 
+//read from Simulation
+rSim: R     #Ma.Par.OutHelpFlags.OutComFaultRead; 
+      U     M     11.1; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   DB    16; 
+      L     P#DBX 0.0; 
+rDB1: L     #Ma.Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      T     LD     6; //->Src.BitAddress 
+      L     W#16#1002; //S7 word
+      T     LW     0; //->Src.type
+      L     32; //Length in byte
+      T     LW     2; //->Src.factor
+      L     DBNO; 
+      U     M     11.1; 
+      SPB   rDB2; 
+      L     0; 
+rDB2: T     LW     4; //->Src.DB
+      CALL SFC   20 (
+           SRCBLK                   := #Src,
+           RET_VAL                  := #error,
+           DSTBLK                   := #Ma.FromBCFA1);
+      L     LD     6; //->Src.BitAddress 
+      L     P#32.0; 
+      +D    ; 
+      T     LD     6; //->Src.BitAddress 
+      CALL SFC   20 (
+           SRCBLK                   := #Src,
+           RET_VAL                  := #error,
+           DSTBLK                   := #Ma.FromBCFA2);
+rcv0: NOP   0; 
+NETWORK
+TITLE = All State Init
+
+      NOP   0; 
+//===Global Group Orders===
+      U     M     12.5; //Gr.OutManualOn
+      S     #Ma.InManual; 
+      U     M     12.4; //Gr.OutManualOff
+      R     #Ma.InManual; 
+      U     #Ma.InManual; 
+      S     M     13.5; //Gr.InManualMode
+//---FaultReset is on---
+      U     M     12.3; //Gr.OutOutFaultReset
+      S     #Ma.CmdFaultReset; 
+//---Report is on---
+      U     M     12.6; //Gr.OutReportAll
+      O     #Ma.InReport; 
+      =     #tmpReport; 
+//---Local---
+      U     #Ma.InLocal; 
+      UN    #Ma.InManual; 
+      =     #tmpLocal; 
+//---tmpEnable---
+      U     #Ma.InEnable; 
+      O     #Ma.Par.ParManual; 
+      UN    #Ma.CmdOff; 
+      U     #Ma.InManual; 
+      O     ; 
+      UN    #Ma.InManual; 
+      U     #Ma.InEnable; 
+      =     #tmpEnable; 
+//--- New Job
+      U     #Ma.CmdNewJob; // 1.2
+      U(    ; // 1.2
+      U     #Ma.FromBCFA2.CmdStartJobchange; // 1.2
+      ON    #Ma.InNewJobWait; // 1.2
+      )     ; // 1.2
+      SPBN  iEnd; // 1.2
+      SET   ; // 1.2
+      R     #Ma.CmdNewJob; 
+      L     0; 
+      T     #Ma.Par.CopyData.SP_GapLeft; 
+      T     #Ma.Par.CopyData.SP_GapRight; 
+      T     #Ma.Par.CopyData.SP_TempRoll; 
+      T     #Ma.Par.CopyData.SP_FE_RollSpeed; 
+      T     #Ma.Par.CopyData.SP_FE_VibroSpeed; 
+      T     #Ma.Par.CopyData.SP_RC_Option; 
+iEnd: NOP   0; 
+NETWORK
+TITLE =Status to ASW
+
+      NOP   0; 
+//=======================================
+//OutComFault 
+//=======================================
+      U     #Ma.Par.OutHelpFlags.OutComFaultRead; 
+      O     #Ma.Par.OutHelpFlags.OutComFaultSend; 
+      O     #Ma.OutComFault; 
+      UN    #tmpLocal; 
+      UN    #Ma.CmdFaultReset; 
+      =     #Ma.OutComFault; 
+//=======================================
+//Fault   
+//=======================================
+// --- Copy FromBCFA2.ALARM to tmpAlarm
+      L     DID [#tmpAddrAlarm]; //FromBCFA2.ALARM
+      LAR1  P##tmpALARM; 
+      T     LD [AR1,P#0.0]; //-->tmpAlarm
+// --- Reset Warning bits in tmpAlarm
+      SET   ; 
+      R     #tmpALARM.A17ProductNokWA; 
+      R     #tmpALARM.A21RollTpWA; 
+      R     #tmpALARM.A24CondTpMinWA; 
+// --- Check Faulted
+      LAR1  P##tmpALARM; 
+      L     LD [AR1,P#0.0]; //tmpAlarm
+      L     0; 
+      <>D   ; 
+      U(    ; 
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     1; //Stopped
+      ==I   ; 
+      O(    ; 
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     5; //Stopping
+      ==I   ; 
+      )     ; 
+      )     ; 
+      O     #Ma.OutComFault; 
+      UN    #tmpLocal; 
+      =     #Ma.OutFaulted; 
+// --- Check Warning
+      L     DID [#tmpAddrAlarm]; //FromBCFA2.ALARM
+      L     0; 
+      <>D   ; 
+      UN    #Ma.OutFaulted; 
+      UN    #tmpLocal; 
+      =     #Ma.OutWarning; 
+//=======================================
+//Command for BCFA
+//=======================================
+      U     #Ma.CmdNext; 
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      O     #Ma.ToBCFA.CmdSequenceStart; 
+      U     #tmpEnable; 
+      =     #Ma.ToBCFA.CmdSequenceStart; 
+
+      U     #Ma.InSeqStop; 
+      UN    #Ma.InManual; 
+      =     #Ma.ToBCFA.CmdSequenceStop; 
+
+      U     #Ma.CmdNext; 
+      UN    #Ma.InSeqStop; // [1.4]
+      UN    #Ma.InManual; 
+      O     #Ma.CmdOn; 
+      O     #Ma.ToBCFA.CmdReleaseEngage; 
+      U     #tmpEnable; 
+      U     #Ma.InEngage; 
+//      AN    #Ma.InSeqStop             // [1.4]
+      =     #Ma.ToBCFA.CmdReleaseEngage; 
+
+      U     #Ma.FromBCFA2.CmdStartJobchange; 
+      =     #Ma.ToBCFA.CmdDoneJobchange; 
+
+      U     #Ma.InFeedRoll; // [1.3]
+      =     #Ma.ToBCFA.CmdReleaseFeed; // [1.3]
+NETWORK
+TITLE = StFault
+
+      U     #Ma.OutComFault; 
+      =     #Ma.StFaultCom; 
+NETWORK
+TITLE = StService
+
+      L     #Ma.FromBCFA2.Sta_OperationMode; 
+      L     1; //Neutral
+      ==I   ; 
+      O(    ; 
+      L     #Ma.FromBCFA2.Sta_OperationMode; 
+      L     2; //Service
+      ==I   ; 
+      )     ; 
+      UN    #Ma.StFaultCom; 
+      FP    #Ma.StService; 
+      SPB   LOGX; 
+NETWORK
+TITLE = StStopped
+
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     1; 
+      ==I   ; 
+      UN    #Ma.StFaultCom; 
+      UN    #Ma.StService; 
+      FP    #Ma.StStopped; 
+      R     #Ma.ToBCFA.CmdSequenceStart; 
+      R     #Ma.ToBCFA.CmdReleaseEngage; 
+      SPB   LOGX; 
+NETWORK
+TITLE = StStarting
+
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     2; 
+      ==I   ; 
+      UN    #Ma.StFaultCom; 
+      UN    #Ma.StService; 
+      =     #Ma.StStarting; 
+NETWORK
+TITLE = StStandby
+
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     3; 
+      ==I   ; 
+      UN    #Ma.StFaultCom; 
+      UN    #Ma.StService; 
+      =     #Ma.StStandby; 
+NETWORK
+TITLE = StProduction
+
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     4; 
+      ==I   ; 
+      UN    #Ma.StFaultCom; 
+      UN    #Ma.StService; 
+      FP    #Ma.StProduction; 
+      SPB   LOGX; 
+NETWORK
+TITLE = StStopping
+
+      L     #Ma.FromBCFA2.Sta_Automatic; 
+      L     5; 
+      ==I   ; 
+      UN    #Ma.StFaultCom; 
+      UN    #Ma.StService; 
+      =     #Ma.StStopping; 
+NETWORK
+TITLE =LOG
+
+      NOP   0; 
+//-- Transition to Faulted
+      U     #Ma.OutFaulted; 
+      UN    #Ma.Par.OutHelpFlags.OutFaultedMsg; 
+      SPBN  S4; 
+//--Transition to StFault----
+      S     #Ma.Par.OutHelpFlags.OutFaultedMsg; 
+      S     M     13.7; //Gr.InFaultFlag
+      CALL FC     4 (
+           FcCode                   := 1,
+           ParObjectType            := 2058,
+           ParObjectNo              := #Ma.Par.ParObjectNo,
+           ParHornCode              := #Ma.Par.ParHornCode);
+//---Condition for Fault Cancelled
+S4:   U     #Ma.OutFaulted; 
+      FN    #Ma.Par.OutHelpFlags.OutFaultedMsg; 
+      L     B#(4, 0); //Message ('fault cancelled')
+      SPB   LOG; 
+//--------------------
+//Log Alarm Communication
+//--------------------
+      L     B#(1, 96); 
+      U     #Ma.OutComFault; 
+      UN    #tmpLocal; 
+      FP    #Ma.Par.OutHelpFlags.OutComFaultMsg; 
+      SPB   LOG; 
+//--------------------
+//LOG Alarm message
+//--------------------
+      L     #tmpCopyAlarm; 
+      L     DID [#tmpAddrAlarm]; //FromBCFA2.ALARM
+      UD    ; 
+      T     #tmpCopyAlarm; //CopyData.ALARM
+      L     0; 
+      L     DID [#tmpAddrAlarm]; //FromBCFA2.ALARM
+      ==D   ; 
+      O     #tmpLocal; 
+      SPB   M014; 
+      L     #tmpCopyAlarm; //CopyData.ALARM
+      ==D   ; 
+      SPB   M014; //-->No new Alarm
+      L     1; 
+      T     #tmpAlarmNr; 
+M032: U     DIX [#tmpAddrAlarm]; //FromBCFA2.ALARM
+      UN    L [#tmpAddrCopyAlarm]; //CopyData.ALARM
+      S     L [#tmpAddrCopyAlarm]; //CopyData.ALARM
+      SPB   M033; 
+      L     #tmpAddrAlarm; 
+      +     L#1; 
+      T     #tmpAddrAlarm; 
+      L     #tmpAddrCopyAlarm; 
+      +     L#1; 
+      T     #tmpAddrCopyAlarm; 
+      L     #tmpAlarmNr; 
+      +     1; 
+      T     #tmpAlarmNr; 
+      L     32; 
+      <=I   ; 
+      SPB   M032; //-->Loop Alarm
+      SPA   M014; //-->No new Alarm
+//Alarm-Nr 1..80
+M033: L     #tmpAlarmNr; 
+      T     #Ma.OutAlarmNr; 
+      L     B#(1, 0); 
+      OW    ; 
+      SPA   LOG; //Alarms 1..80
+//===============================================
+//State Transition
+LOGX: UN    #tmpReport; 
+      SPB   M014; 
+      U     #Ma.StStopped; 
+      L     B#(4, 91); //Message ('Stopped')
+      SPB   LOG; 
+      U     #Ma.StProduction; 
+      L     B#(4, 94); //Message ('Production')
+      SPB   LOG; 
+      U     #Ma.StService; 
+      L     B#(4, 95); //Message ('Service')
+      SPB   LOG; 
+      SPB   M014; 
+LOG:  U     #Ma.Par.ParLogOff; //---Set LOG Message
+      SPB   M014; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #Ma.OutAlarmNrLog; 
+      CALL FC    45 (//LOG Message Converter / Entry
+           ObjectNo                 := #Ma.Par.ParObjectNo,
+           MsgType                  := #Ma.Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 2058);
+
+NETWORK
+TITLE =Global End
+//---Clear commands
+M014: SET   ; 
+      R     #Ma.CmdFaultReset; 
+      R     #Ma.CmdNext; 
+      R     #Ma.CmdOn; 
+      R     #Ma.CmdOff; 
+      L     #tmpCopyAlarm; 
+      T     #Ma.Par.CopyData.Alarm; 
+NETWORK
+TITLE =(Profibus) Send Data
+
+      NOP   0; 
+//---------------------------
+//Prepare Send Data
+//---------------------------
+      L     #Ma.FromBCFA2.LineCheck; 
+      T     #Ma.ToBCFA.LineCheck; 
+      CALL SFC   20 (
+           SRCBLK                   := #Ma.ToBCFA,
+           RET_VAL                  := #tmpReturn1,
+           DSTBLK                   := #tmpSendData);
+//---------------------------
+//Send only value with modification
+//---------------------------
+// --Value1
+      L     #Ma.Par.CopyData.SP_GapLeft; 
+      L     #Ma.ToBCFA.SP_GapLeft; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M018; 
+      L     0; 
+M018: T     #tmpSendData.SP_GAP_LEFT; 
+      L     #Ma.ToBCFA.SP_GapLeft; 
+      L     #Ma.FromBCFA1.RV_SP_GapLeft; 
+      <>I   ; 
+      SPB   M019; 
+      T     #Ma.Par.CopyData.SP_GapLeft; 
+// --Value2
+M019: L     #Ma.Par.CopyData.SP_GapRight; 
+      L     #Ma.ToBCFA.SP_GapRight; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M020; 
+      L     0; 
+M020: T     #tmpSendData.SP_GAP_RIGHT; 
+      L     #Ma.ToBCFA.SP_GapRight; 
+      L     #Ma.FromBCFA1.RV_SP_GapRight; 
+      <>I   ; 
+//      AN    #Ma.CmdNewJob               // 1.2
+      SPB   M025; 
+      T     #Ma.Par.CopyData.SP_GapRight; 
+// --Value3
+M025: L     #Ma.Par.CopyData.SP_TempRoll; 
+      L     #Ma.ToBCFA.SP_TempRoll; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M026; 
+      L     0; 
+M026: T     #tmpSendData.SP_TEMP_ROLL; 
+      L     #Ma.ToBCFA.SP_TempRoll; 
+      L     #Ma.FromBCFA1.RV_SP_TempRoll; 
+      <>I   ; 
+      SPB   M021; 
+      T     #Ma.Par.CopyData.SP_TempRoll; 
+// --Value4
+M021: L     #Ma.Par.CopyData.SP_FE_RollSpeed; 
+      L     #Ma.ToBCFA.SP_FE_RollSpeed; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M027; 
+      L     0; 
+M027: T     #tmpSendData.SP_FE_ROLL_SPEED; 
+      L     #Ma.ToBCFA.SP_FE_RollSpeed; 
+      L     #Ma.FromBCFA1.RV_SP_FE_RollSpeed; 
+      <>I   ; 
+      SPB   M022; 
+      T     #Ma.Par.CopyData.SP_FE_RollSpeed; 
+// --Value5
+M022: L     #Ma.Par.CopyData.SP_FE_VibroSpeed; 
+      L     #Ma.ToBCFA.SP_FE_VibroSpeed; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M023; 
+      L     0; 
+M023: T     #tmpSendData.SP_FE_VIBRO_SPEED; 
+      L     #Ma.ToBCFA.SP_FE_VibroSpeed; 
+      L     #Ma.FromBCFA1.RV_SP_FE_VibroSpeed; 
+      <>I   ; 
+      SPB   M024; 
+      T     #Ma.Par.CopyData.SP_FE_VibroSpeed; 
+// --Value6
+M024: L     #Ma.Par.CopyData.SP_RC_Option; 
+      L     #Ma.ToBCFA.SP_RC_Option; 
+      <>I   ; 
+      UN    #Ma.CmdNewJob; 
+      SPB   M028; 
+      L     0; 
+M028: T     #tmpSendData.SP_RC_OPTION; 
+      L     #Ma.ToBCFA.SP_RC_Option; 
+      L     #Ma.FromBCFA1.RV_SP_RC_Option; 
+      <>I   ; 
+      SPB   M029; 
+      T     #Ma.Par.CopyData.SP_RC_Option; 
+M029: NOP   0; 
+//---------------------------
+// Send to Hardware
+//---------------------------
+      U     #Ma.InSimulation; 
+      SPB   M010; 
+      CALL SFC   15 (
+           LADDR                    := #tmpAddr1,
+           RECORD                   := #tmpSendData,
+           RET_VAL                  := #tmpReturn2);
+      L     #tmpReturn2; 
+      L     0; 
+      <>I   ; 
+      =     #Ma.Par.OutHelpFlags.OutComFaultSend; 
+      SPA   M011; 
+//---------------------------
+// Send to Simulation
+//---------------------------
+M010: R     #Ma.Par.OutHelpFlags.OutComFaultSend; 
+      U     M     11.1; 
+      L     P#A 0.0; 
+      SPB   M031; 
+      AUF   DB    17; 
+      L     P#DBX 0.0; 
+M031: L     #Ma.Par.ParIOByteNr; 
+      SLD   3; 
+      +D    ; 
+      T     LD     6; //->Src.BitAddress 
+      L     W#16#1002; //S7 word
+      T     LW     0; //->Src.type
+      L     32; //Length in byte
+      T     LW     2; //->Src.factor
+      L     DBNO; 
+      U     M     11.1; 
+      SPB   M030; 
+      L     0; 
+M030: T     LW     4; //->Src.DB
+      CALL SFC   20 (
+           SRCBLK                   := #tmpSendData,
+           RET_VAL                  := #error,
+           DSTBLK                   := #Src);
+M011: NOP   0; 
+NETWORK
+TITLE =State Code
+
+      L     1; //Code: StStopped
+      U     #Ma.StStopped; 
+      SPB   STC1; 
+      L     2; //Code: StStarting
+      U     #Ma.StStarting; 
+      SPB   STC1; 
+      L     3; //Code: StStandby
+      U     #Ma.StStandby; 
+      SPB   STC1; 
+      L     4; //Code: StProduction
+      U     #Ma.StProduction; 
+      SPB   STC1; 
+      L     5; //Code: StStopping
+      U     #Ma.StStopping; 
+      SPB   STC1; 
+      L     6; //Code: StCalibation
+      U     #Ma.StService; 
+      SPB   STC1; 
+      U     #tmpLocal; 
+      L     31; //Code: StFaultCom.Local
+      SPB   STC; 
+      L     32; //Code: StFaultCom.Active
+      SPB   STC; 
+STC1: UN    #Ma.OutFaulted; 
+      SPB   STCW; 
+      +     20; //StXxxx.Faulted
+      SPA   STC; 
+STCW: UN    #Ma.OutWarning; 
+      SPB   STC; 
+      +     10; //StXxxx.Warning
+STC:  L     #Ma.StCode; //Old state code
+      TAK   ; 
+      T     #Ma.StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    FC     2; 
+
+
+NETWORK
+TITLE =Call Motor1
+
+      U     #Ma.FromBCFA2.Sta_MM_1_On; 
+      =     #Motor1.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_MM_1_Fault; 
+      =     #Motor1.InpFaultDev; 
+      NOT   ; 
+      =     #Motor1.InLocal; 
+      SET   ; 
+      S     #Motor1.Par.ParLogOff; 
+      CALL #Motor1 ;
+
+NETWORK
+TITLE =Call Motor2
+
+      U     #Ma.FromBCFA2.Sta_MM_2_On; 
+      =     #Motor2.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_MM_2_Fault; 
+      =     #Motor2.InpFaultDev; 
+      NOT   ; 
+      =     #Motor2.InLocal; 
+      SET   ; 
+      S     #Motor2.Par.ParLogOff; 
+      CALL #Motor2 ;
+
+NETWORK
+TITLE =Call Hydraulic
+
+      U     #Ma.FromBCFA2.Sta_HD_On; 
+      =     #Hydraulic.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_HD_Fault; 
+      =     #Hydraulic.InpFaultDev; 
+      NOT   ; 
+      =     #Hydraulic.InLocal; 
+      SET   ; 
+      S     #Hydraulic.Par.ParLogOff; 
+      CALL #Hydraulic ;
+
+NETWORK
+TITLE =Call Cooler
+
+      U     #Ma.FromBCFA2.Sta_RC_On; 
+      =     #Cooler.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_RC_Fault; 
+      =     #Cooler.InpFaultDev; 
+      NOT   ; 
+      =     #Cooler.InLocal; 
+      SET   ; 
+      S     #Cooler.Par.ParLogOff; 
+      CALL #Cooler ;
+
+NETWORK
+TITLE =Call Engaged
+
+      U     #Ma.FromBCFA2.Sta_Engaged_On; 
+      =     #Engaged.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_Engaged_Fault; 
+      =     #Engaged.InpFaultDev; 
+      NOT   ; 
+      =     #Engaged.InLocal; 
+      SET   ; 
+      S     #Engaged.Par.ParLogOff; 
+      CALL #Engaged ;
+
+NETWORK
+TITLE =Call Feeder
+
+      U     #Ma.FromBCFA2.Sta_ROLL_On; 
+      =     #RollFeeder.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_ROLL_Fault; 
+      =     #RollFeeder.InpFaultDev; 
+      NOT   ; 
+      =     #RollFeeder.InLocal; 
+      SET   ; 
+      S     #RollFeeder.Par.ParLogOff; 
+      CALL #RollFeeder ;
+
+NETWORK
+TITLE =Call Vibro
+
+      U     #Ma.FromBCFA2.Sta_Vibro_On; //[1.1]
+      =     #VibroFeeder.InpRunFwd; 
+      U     #Ma.FromBCFA2.Sta_Vibro_Fault; //[1.1]
+      =     #VibroFeeder.InpFaultDev; 
+      NOT   ; 
+      =     #VibroFeeder.InLocal; 
+      SET   ; 
+      S     #VibroFeeder.Par.ParLogOff; 
+      CALL #VibroFeeder ;
+
+NETWORK
+TITLE =Call Flap
+
+      U     #Ma.FromBCFA2.Sta_Flap_Production; 
+      =     #Flap.InpHN; 
+      NOT   ; 
+      =     #Flap.InpLN; 
+      U     #Ma.FromBCFA2.Sta_Flap_Fault; 
+      =     #Flap.InpFaultDev; 
+      NOT   ; 
+      =     #Flap.InLocal; 
+      SET   ; 
+      S     #Flap.Par.ParLogOff; 
+      CALL #Flap ;
+
+NETWORK
+TITLE =Call ProductFlow
+
+      U     #Ma.FromBCFA2.Sta_Flow_Ok; 
+      =     #ProductFlow.InpTrue; 
+      U     #Ma.FromBCFA2.Sta_Flow_Fault; 
+      =     #ProductFlow.InpFaultDev; 
+      NOT   ; 
+      =     #ProductFlow.InLocal; 
+      SET   ; 
+      S     #ProductFlow.Par.ParLogOff; 
+      CALL #ProductFlow ;
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,73 @@
+	DATA_BLOCK DB176
+	TITLE =DBG076M  CO2 FAN AND FESH AIR FLAP STEEPING 21
+	//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+	//
+	//PRODUCT:      WinCoS_BIW01_09
+	//
+	//TITLE:        CO2 FAN AND FESH AIR FLAP STEEPING 21
+	//                Machine group DB
+	//                Maschinengruppen-DB
+	//
+	//-------------------------------------------------------------------------
+	//
+	//IDENT:        AUTHOR:             DEPT:             DATE:
+	//
+	//P01_DB176.1.0 K.Renz              CSB41             13.Jan.2010
+	//              1st Release
+	//
+	//-------------------------------------------------------------------------
+	//
+	//PURPOSE: 
+	//
+	//MANUAL : 
+	//
+	//RESTRICTIONS: 
+	//
+	//-------------------------------------------------------------------------
+	AUTHOR  : KR      
+	FAMILY  : USW
+	NAME    : DBG076M 
+	VERSION : 00.00
+	
+	FB176
+	BEGIN
+	      #Gr.Par.ParObjectNo 	:=7600; 
+	      #Gr.Par.ParIdling      	:=2; 
+	      #Gr.Par.ParMgr	        :=True; 
+	      #Gr.Par.ParWgr	        :=False; 
+	      #Gr.Par.ParGgr	        :=False; 
+	      #Gr.Par.ParEmptyingTime 	:=0; 
+	      #Gr.Par.ParHornCode       :=1;
+	//Parameter =A-1131-MXZ11 : CO2 FAN ST 21
+	      #A_1131_MXZ11.Par.ParObjectNo                             :=7601;
+	      #A_1131_MXZ11.Par.ParMsgType                              :=7053;
+	      #A_1131_MXZ11.Par.ParHornCode                             :=1;
+	      #A_1131_MXZ11.Par.ParMonTime                              :=20;
+	      #A_1131_MXZ11.Par.ParStartingTime                         :=20;
+	      #A_1131_MXZ11.Par.ParStoppingTime                         :=0;
+	      #A_1131_MXZ11.Par.ParIdlingTime                           :=0;
+	      #A_1131_MXZ11.Par.ParDelayTime                            :=10;
+	      #A_1131_MXZ11.Par.ParLogOff                               :=False;
+	      #A_1131_MXZ11.Par.ParManual                               :=True;
+	      #A_1131_MXZ11.Par.ParRestartDelay                         :=False;
+	      #A_1131_MXZ11.Par.Par2Speed                               :=False;
+	      #A_1131_MXZ11.Par.ParHeavyStartup                         :=False;
+	//
+	//
+	//Parameter =A-1181-MXZ/BZS01/02 : CO2 VALVE ST 21
+	      #A_1181_MXZ_BZS01_02.Par.ParObjectNo                             :=7602;
+	      #A_1181_MXZ_BZS01_02.Par.ParMsgType                              :=7081;
+	      #A_1181_MXZ_BZS01_02.Par.ParHornCode                             :=1;
+	      #A_1181_MXZ_BZS01_02.Par.ParMonTime                              :=200;
+	      #A_1181_MXZ_BZS01_02.Par.ParPulseTimeHN                          :=0;
+	      #A_1181_MXZ_BZS01_02.Par.ParPulseTimeLN                          :=0;
+	      #A_1181_MXZ_BZS01_02.Par.ParIdlingTime                           :=0;
+	      #A_1181_MXZ_BZS01_02.Par.ParDelayTime                            :=10;
+	      #A_1181_MXZ_BZS01_02.Par.ParLogOff                               :=False;
+	      #A_1181_MXZ_BZS01_02.Par.ParManual                               :=True;
+	      #A_1181_MXZ_BZS01_02.Par.ParPulseValve                           :=True;
+	      #A_1181_MXZ_BZS01_02.Par.ParContValve                            :=False;
+	      #A_1181_MXZ_BZS01_02.Par.ParManualFlap                           :=False;
+	//
+	//
+	END_DATA_BLOCK

@@ -1,0 +1,1268 @@
+FUNCTION_BLOCK "GCS7_E_Motor_TEST"
+TITLE =Motor Control
+//
+//COPYRIGHT:    (C) 1996  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7
+//
+//TITLE:        Motor Control
+//
+//REVISION:     11  (GCPROVB)
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                       DATE:
+//FB12.5.1      I.Salzhenitsin      KIPA                        22-sept-2014
+//              - added cmdCalibrate
+//              - changed cmd3. Not for Par.InOutManPulseLen. Will use for
+//              Par.ToleranceValue
+//              - set new state: stCalibrating
+//FB12.5.0      A. Egli             CT3                         13-Mar-2008
+//              - OutpFaultReset 
+//              (Software is compatible to 4.7 only GCPROVB has new revision)
+//FB12.4.7      A. Egli             CT3                         04-Oct-2007
+//              Interlocked Manual Mode: Use direction InOutManRev  
+//FB12.4.6      A. Egli             CT3                         09-Mar-2005
+//              StStopped--> StFault: Log Text 13 (not stopped)
+//FB12.4.5      A. Egli             CT3                         26-Mar-2004
+//              Manual Mode: Stop Motor when InHWStop or InDPFault
+//FB12.4.4      A. Egli             CT3                         07-Nov-2003
+//              Reset CmdOn, CmdNext when CmdOff
+//FB12.4.3      A. Egli             CT3                         22-Aug-2003
+//              No Start request  if InLocal
+//FB12.4.2      A. Egli             CT3                         24-Jul-2003
+//              Report: StStopped 
+//FB12.4.1      A. Egli             CT3                         18-Jun-2003
+//              Message Fault Started=Text Nr 11 
+//FB12.4.0      A. Egli             CT3                         17-Jun-2002
+//              New Release with one block 
+//FB12.3.2      A.Egli              CT3                         22-Mai-2002
+//              StStopped: Error 11: Fault stopping    
+//FB12.3.1      A.Egli              CT3                         09-Nov-2001
+//              Transition StStopping-->Starting in Local mode (InpFaultDev=0)    
+//              Transition StStopping-->Stopped  in Local mode (InpFaultDev=1)    
+//FB12.3.0      A.Egli              CT3                         28-Okt-2001
+//              StCode 30: InpFaultDev=1 and InLocal=1              
+//              StCode 31: InpFaultDev=1 and InLocal=0              
+//FB12.2.11     A.Egli              CT3                         13-Mar-2001
+//              Transition StStarting-->StFault in Local mode              
+//FB12.2.10     A.Egli              CT3                         22-Jan-2001
+//              Transition StStarting-->StFault after t0              
+//              Interlocking PC Direct Control command with Gr.OutManualOff
+//FB12.2.9      S. Kalberer         CT3                         28-Nov-2000
+//              Condition for StStarting: No #tmpHeavyStartup (Netzwerk 8)      
+//FB12.2.8      A. Egli             CT3                         24-Jul-2000
+//              Local mode:  Transition Stopping -> Starting adapted
+//FB12.2.7      S. Kalberer         CT3                         15-Mar-2000
+//              Manual mode: Transition Stopping -> Starting adapted
+//FB12.2.6      S. Kalberer         CT3                         02-Nov-1999
+//              Count stopping time in StFault, StCode with InLocal adapted
+//FB12.2E       S. Kalberer         CT3                         07-Apr-1999
+//              Set outputs in StStarted Passive -> Active
+//FB12.2D       A. Egli             CT3                         21-Dec-1998
+//              StStopping by change speed if ParRestartDelay is true
+//              Local mode: stay in StStopped if InpFaultDev = 1
+//FB12.2C       A. Egli             CT3                         23-Nov-1998
+//              InLocal; StStartedFdw or StStartedRev if input is set
+//FB12.2B       A. Egli             CT3                         17-Jul-1998
+//              Run Monitoring Time by changing speed
+//FB12.2A       A. Egli             CT3                         04-Mai-1998
+//              StFault = StCode 32
+//FB12.1A       S. Kalberer         AEE61                       14-Jul-1997
+//              1st Release in S7
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [MxxMAN]
+//
+//RESTRICTIONS: S7
+//              ACCU2: Pointer to dynamic datas of the element
+//              ACCU1: Pointer to parameter datas of the element
+//              CmdOff, CmdOn: always active unless local mode
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+// 0  stopped
+// 2  started forward
+// 5  started reverse
+// 9  fault cancelled
+//10  fault device
+//11  fault running
+//12  fault starting
+//13  fault stopping
+//
+//=======================================================
+//StCode:  State               
+//------------------------------------------------------
+//32 StFault+InpFaultDev=0     fault
+//31 StFault+InpFaultDev=1     fault Device        (Active)
+// 1 StStopped                 Stopped
+//41 Stopped.HWStop            StStopped + InHWStop 
+//51 Stopped.DPFault           StStopped + DPFault
+//61 StStopped.FaultDev        StStopped + FaultDevice (Passiv)
+// 2 StStarting                starting
+// 3 StStartedFwdSlow          started forward slow
+// 4 StStartedFwdFast          started forward fast
+// 5 StStartedRevSlow          started reverse slow
+// 6 StStartedRevFast          started reverse fast
+// 7 StStopping                stopping
+// 9 StStartRequest            StStopped+CmdNext
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : Motor
+VERSION : 5.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  InEnableRev : BOOL ;	//Enable to run the element reverse   
+  InEnableFwd : BOOL ;	//Enable to run the element forward
+  InSlow : BOOL ;	//Speed mode: 1= slow / 0= fast
+  InpRunSlow : BOOL ;	//Digital input: 1= element is running slow
+  InpRunFast : BOOL ;	//Digital input: 1= element is running fast
+  InpRunRev : BOOL ;	//Digital input: 1= element is running reverse
+  InpRunFwd : BOOL ;	//Digital input: 1= element is running forward
+  InpFaultDev : BOOL ;	//Digital input: 1= overload or fault frequency converter
+  CmdOff : BOOL ;	//Pulse to stop the element immediately (manual mode)
+  CmdOn : BOOL ;	//Pulse to start the element immediately (manual mode)
+  CmdNext : BOOL ;	//Pulse to start the element in automatic mode (see global flags)
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  InManual : BOOL ;	//1= Manual/ 0=Automatic
+  InReport : BOOL ;	//Report of all state transitions
+  InSeqStop : BOOL ;	//Stop automatically after idling time
+  InHWStop : BOOL ;	//HW stop is detected, no fault
+  InDPFault : BOOL ;	//DP-Fault is detected, no fault
+  OutIdling : BOOL ;	//Idling is active
+  OutpRunSlow : BOOL ;	//Digital output to run slow
+  OutpRunFast : BOOL ;	//Digital output to run fast
+  OutpRunRev : BOOL ;	//Digital output to run reverse
+  OutpRunFwd : BOOL ;	//Digital output to run forward
+  OutpFaultReset : BOOL ;	//Reset Alarm (e.g.Softstart)
+  StStopped : BOOL ;	//Element is stopped
+  StStarting : BOOL ;	//Element is starting
+  StStartedFwd : BOOL ;	//Element is started forward: Next element can start
+  StStopping : BOOL ;	//Element is stopping
+  StFault : BOOL ;	//Element has a fault
+  StStartedRev : BOOL ;	//Element is started reverse: Next Element can start
+  InOutManSlow : BOOL ;	//Manual speed mode: 1= slow / 0= fast
+  InOutManRev : BOOL ;	//Manual direction mode: 1= reverse / 0= forward
+  StCalibrating : BOOL ;	
+  CalibrateComplete : BOOL ;	
+  spdImpLeft : BOOL ;	
+  spdImpRight : BOOL ;	
+  CalibrateSpeed : BOOL ;	
+  OutAlarmNrLog : INT ;	//Last textnumber send to log
+  IncCntLeft : DINT ;	
+  IncCntRight : DINT ;	
+  SpeedValuePc : INT ;	
+  SpeedValuePcPrev : INT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParManual : BOOL ;	//Manual mode without interlocking
+   ParRestartDelay : BOOL ;	//No restart possible in StStopping
+   Par2Speed : BOOL ;	//Element with 2 speeds
+   ParHeavyStartup : BOOL ;	//Element with heavy startup
+   spare45 : BOOL ;	
+   spare46 : BOOL ;	
+   OutEdgeFaultReset : BOOL ;	//Internal used
+   OutDelayFault : BOOL ;	//Delay time is running: Changing speed
+   OutFlagFaultDev : BOOL ;	//Flag InpFaultDev
+   ParMonTime : INT ;	//After this time outputs must be equal inputs
+   ParStartingTime : INT ;	//Delay time, until the element is ready to start production
+   ParStoppingTime : INT ;	//Delay time, until the element has come to a standstill
+   ParIdlingTime : INT ;	//Requested idling time to stop element in automatic mode
+   ParDelayTime : INT ;	//Requested fault delay time by negative flag of input
+   OutMonTime : INT ;	//Actual time: Monitoring
+   OutTransitionTime : INT ;	//Actual time: Starting, stopping, change direction, idling
+   OutDelayTime : INT ;	//Actual time: DelayTime
+   InOutManPulseLen : INT ;	//Pulse length to start a the motor
+   ToleranceValue : INT ;	
+   CalLenCount : INT ;	
+   CalibrateLen : INT ;	
+   MonSpdTime : INT ;	
+   MonSpdCount : INT ;	
+   MonSpdLeft : DINT ;	
+   MonSpdRight : DINT ;	
+   CalSpdValue : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpLenDyn : DINT ;	
+  tmpMonSpdValue : DINT ;	
+  tmpMonSpdTime : INT ;	
+  tmpReport : BOOL ;	//Global LOG all
+  tmpEnableRev : BOOL ;	//Global enable reverse
+  tmpEnableFwd : BOOL ;	//Global enable forward
+  tmpEnable : BOOL ;	//Global enable
+  tmpSlow : BOOL ;	//Global slow speed flag
+  tmpDelayOver : BOOL ;	//Delay time is over
+  tmpMonOver : BOOL ;	//Monitoring time is over
+  tmpTimeClear : BOOL ;	//Delay- and monitoring time must be cleared
+  tmpStop : BOOL ;	//States to clear outputs
+  tmpInpOutpDiff : BOOL ;	//Inpputs ar different to outputs
+  tmpInpFault : BOOL ;	//Fault variable
+  tmpInpRunSlow : BOOL ;	//Variable to simulate InpRunSlow
+  tmpHeavyStartup : BOOL ;	//Any element is starting with HeavyStartup
+  tmpLocal : BOOL ;	
+  tmpFaultDelayDone : BOOL ;	
+  tmpStarted : BOOL ;	
+  tmpUnsuccessfulCal : BOOL ;	
+  tmpFaultSpdLeft : BOOL ;	
+  tmpFaultSpdRight : BOOL ;	
+  tmpFCSpeedChanged : BOOL ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      L     34; 
+      T     #tmpLenDyn; //--> Len dynamic data in byte
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      JC    Ctrl; 
+//=== Test OType      ========================
+      L     1012; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      JC    Ctrl; 
+//=== Test Handshake =========================
+      A     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      JC    pExa; 
+      A     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      JC    pCmd; 
+      A     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      JC    pPar; 
+pIni: L     2; // FcInit
+      UC    "SYS_DirectCtrl"; 
+      JU    Ctrl; 
+// Write parameter 
+pPar: LAR1  P#DBX 58.0; 
+      L     P##Par; 
+      L     DW#16#FFFFF; 
+      AD    ; 
+      +AR1  ; 
+      L     DBW [AR1,P#8.0]; 
+      T     #Par.ParMonTime; 
+      L     DBW [AR1,P#10.0]; 
+      T     #Par.ParStartingTime; 
+      L     DBW [AR1,P#12.0]; 
+      T     #Par.ParStoppingTime; 
+      L     DBW [AR1,P#14.0]; 
+      T     #Par.ParIdlingTime; 
+      L     DBW [AR1,P#16.0]; 
+      T     #Par.ParDelayTime; 
+// Write new commands from PC to Interface object
+pCmd: A     "SYS_DirectCtrlDB".PC.Cmd1[6]; // CmdManSlowOn
+      AN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #InOutManSlow; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[4]; //CmdCalibrate
+      A     #tmpStarted; 
+      S     #StCalibrating; 
+      L     DB3.DBW   56; //"SYS_PCControl".PC.Cmd3
+      T     #Par.ToleranceValue; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[7]; // CmdManRevOn;
+      AN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #InOutManRev; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[8]; // CmdOff
+      AN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #CmdOff; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[9]; // CmdOn
+      AN    "GCS7_Gr_OutManualOff"; //Global.OutManualOff  [2.10]
+      S     #CmdOn; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[10]; // CmdNext
+      S     #CmdNext; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[11]; // CmdFaultReset
+      S     #CmdFaultReset; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[13]; // CmdManualOn
+      S     #InManual; 
+      A     "SYS_DirectCtrlDB".PC.Cmd1[14]; // CmdReportOn
+      S     #InReport; 
+      A     "SYS_DirectCtrlDB".PC.Cmd2[6]; // CmdManSlowOff
+      R     #InOutManSlow; 
+      A     "SYS_DirectCtrlDB".PC.Cmd2[7]; // CmdManRevOff;
+      R     #InOutManRev; 
+      A     "SYS_DirectCtrlDB".PC.Cmd2[13]; // CmdManualOff
+      R     #InManual; 
+      A     "SYS_DirectCtrlDB".PC.Cmd2[14]; // CmdReportOff
+      R     #InReport; 
+//<=IS.23.09.2014
+//      AN    "SYS_DirectCtrlDB".PC.Cmd1[1]    // CmdOnTickFwd
+//      O     "GCS7_Gr_OutManualOff"      //Global.OutManualOff
+//      JC    pIni
+//      L     DB3.DBW   56                // "SYS_PCControl".PC.Cmd3
+//      T     #Par.InOutManPulseLen
+//=>IS.23.09.2014
+      JU    pIni; 
+pExa: TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     #tmpLenDyn; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     11; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable, when nessecary
+Ctrl: CLR   ; 
+      =     #tmpTimeClear; 
+//===Global Group Orders===
+      A     "GCS7_Gr_OutManualOn"; //Global.OutManualOn
+      S     #InManual; 
+      A     "GCS7_Gr_OutManualOff"; //Global.OutManualOff
+      R     #InManual; 
+      A     #InManual; 
+      S     "GCS7_Gr_InManual"; //Global.InManualMode
+      AN    #InManual; 
+      A     #InLocal; 
+      =     #tmpLocal; 
+//---Report is on---
+      O     "GCS7_Gr_OutReportAll"; //---Global OutReportAll
+      O     #InReport; 
+      =     #tmpReport; 
+//---Heavy Startup---
+      A     "GCS7_Gr_InHeavyStartup"; //---Global InHeavyStartup
+      A     #Par.ParHeavyStartup; 
+      =     #tmpHeavyStartup; 
+//===Global Enable and Speed===
+      A     #CmdOff; //[4.4]
+      R     #CmdOn; //[4.4]
+      R     #CmdNext; //[4.4]
+//---Enable / Manual No Interlocking Mode---
+      AN    #InManual; 
+      JC    AUT; 
+      A(    ; //[4.5]
+      A     #InEnableFwd; 
+      AN    #InOutManRev; //[4.7]
+      AN    #Par.ParManual; 
+      O     ; 
+      AN    #InOutManRev; 
+      A     #Par.ParManual; 
+      )     ; //[4.5]
+      AN    #InHWStop; //[4.5]
+      AN    #InDPFault; //[4.5]
+      =     #tmpEnableFwd; 
+      A(    ; //[4.5]
+      A     #InEnableRev; 
+      A     #InOutManRev; //[4.7]
+      AN    #Par.ParManual; 
+      O     ; 
+      A     #InOutManRev; 
+      A     #Par.ParManual; 
+      )     ; //[4.5]
+      AN    #InHWStop; //[4.5]
+      AN    #InDPFault; //[4.5]
+      =     #tmpEnableRev; 
+//---Speed / Manual No Interlocking Mode---
+      A     #InOutManSlow; 
+      ON    #Par.Par2Speed; 
+      =     #tmpSlow; 
+      JU    ENAB; 
+//---Enable / Automatic Interlocking Mode---
+AUT:  A     #InEnableFwd; 
+      AN    #InHWStop; 
+      AN    #InDPFault; 
+      AN    #InLocal; 
+      =     #tmpEnableFwd; 
+      A     #InEnableRev; 
+      AN    #InHWStop; 
+      AN    #InDPFault; 
+      AN    #InLocal; 
+      =     #tmpEnableRev; 
+//---Speed / Automatic Interlocking Mode---
+      A     #InSlow; 
+      ON    #Par.Par2Speed; 
+      =     #tmpSlow; 
+//---Enable / HardwareStop---
+ENAB: X     #tmpEnableFwd; //---Global Enable
+      X     #tmpEnableRev; 
+      =     #tmpEnable; 
+//---For one speed, no Inp nessecary: Simulate InpRunSlow
+      AN    #Par.Par2Speed; 
+      A     #OutpRunSlow; 
+      =     #tmpInpRunSlow; 
+// Check Input different to Output
+      A     #InpRunFwd; 
+      X     #OutpRunFwd; 
+      O(    ; 
+      A     #InpRunRev; 
+      X     #OutpRunRev; 
+      )     ; 
+      O(    ; 
+      A     #InpRunFast; 
+      X     #OutpRunFast; 
+      )     ; 
+      O(    ; 
+      O     #InpRunSlow; 
+      O     #tmpInpRunSlow; 
+      X     #OutpRunSlow; 
+      )     ; 
+      =     #tmpInpOutpDiff; 
+//---Both Inputs or InpFaultDevice active
+      A     #InpRunFwd; // local StStarting
+      A     #InpRunRev; 
+      O     ; 
+      A     #InpRunSlow; // local StStarting
+      A     #InpRunFast; 
+      =     #tmpInpFault; 
+//[5.1]Check FC speed change
+      SET   ; 
+      L     #SpeedValuePc; 
+      L     #SpeedValuePcPrev; 
+      ==I   ; 
+      NOT   ; 
+      =     #tmpFCSpeedChanged; 
+//[5.1] save value pc state for next cycle
+      L     #SpeedValuePc; 
+      T     #SpeedValuePcPrev; 
+NETWORK
+TITLE =Start as Pulse
+
+      AN    #tmpEnable; 
+      ON    #InManual; 
+      O     #CmdOff; 
+      JC    STP1; 
+      L     0; 
+      L     #Par.InOutManPulseLen; 
+      >=I   ; 
+      JC    STP2; 
+      S     #CmdOn; 
+      AN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      JC    STP2; 
+      +     -2; 
+      T     #Par.InOutManPulseLen; 
+      L     0; 
+      >I    ; 
+      JC    STP2; 
+      S     #CmdOff; 
+STP1: L     0; 
+      T     #Par.InOutManPulseLen; 
+STP2: NOP   0; 
+
+NETWORK
+TITLE =Fault delay time: ParDelayTime 
+
+//Test or Running delay time ====================
+//---Condition for Delay Fault
+      AN    #tmpInpOutpDiff; 
+      AN    #InpFaultDev; 
+      O     #InHWStop; 
+      O     #InDPFault; 
+      JC    TFDO; 
+      A     #StStartedFwd; 
+      O     #StStartedRev; 
+      AN    #Par.OutDelayFault; 
+      O     #StStopped; 
+      A     #tmpInpOutpDiff; 
+      O     #InpFaultDev; 
+      JC    TFF1; 
+TFDO: R     #tmpFaultDelayDone; 
+      L     0; 
+      T     #Par.OutDelayTime; 
+      JU    TFF0; 
+TFF1: AN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutDelayTime; 
+      JC    TFF3; 
+      +     2; 
+TFF3: T     #Par.OutDelayTime; 
+      L     #Par.ParDelayTime; 
+      >=I   ; 
+      =     #tmpFaultDelayDone; 
+      JCN   TFF0; 
+      T     #Par.OutDelayTime; 
+TFF0: NOP   0; 
+
+NETWORK
+TITLE =Speed Control
+//[5.1] Igor Salzhenitsin
+      A     #StCalibrating; 
+      AN    #tmpStarted; 
+      R     #StCalibrating; 
+
+      A     #StCalibrating; 
+      A     #tmpStarted; 
+      JCN   c1; 
+      R     #CalibrateComplete; 
+      L     #Par.CalibrateLen; 
+      JU    c2; 
+c1:   L     #Par.MonSpdTime; 
+c2:   T     #tmpMonSpdTime; 
+//just update monitoring count when StCalibrating set or rst
+//or FC speed changed
+      A(    ; 
+      FP    #StCalibrating; 
+      )     ; 
+      O(    ; 
+      FN    #StCalibrating; 
+      )     ; 
+      O     #tmpFCSpeedChanged; 
+      JCN   c3; 
+      T     #Par.MonSpdCount; 
+c3:   NOP   0; 
+
+
+
+      AN    #tmpStarted; 
+      JC    sc0; 
+//count signal from left side and store them
+      A     #tmpStarted; 
+      FP    #spdImpLeft; 
+      JCN   sc1; 
+      L     #IncCntLeft; 
+      L     1; 
+      +I    ; 
+      T     #IncCntLeft; 
+//and from right side
+sc1:  A     #tmpStarted; 
+      FP    #spdImpRight; 
+      JCN   sc3; 
+      L     #IncCntRight; 
+      L     1; 
+      +I    ; 
+      T     #IncCntRight; 
+//every #Par.SpdMonitoringTime seconds save value
+//when calibrating - every #CalibrateLen seconds
+sc3:  A     #tmpStarted; 
+      AN    "GCS7_Gr_OutTick1s"; 
+      JC    sc5; 
+      L     #Par.MonSpdCount; 
+      L     1; 
+      -I    ; 
+      T     #Par.MonSpdCount; 
+      L     0; 
+      >I    ; 
+      JC    sc5; 
+//calculate Speed coefficient left side     
+      L     #IncCntLeft; 
+//devide result into speed monitoring time
+      DTR   ; 
+      L     #Par.MonSpdTime; 
+      DTR   ; 
+      TAK   ; 
+      /R    ; 
+//and multiply by speed value percent
+      L     #SpeedValuePc; 
+      DTR   ; 
+      *R    ; 
+      T     #Par.MonSpdLeft; 
+//calculate Speed coefficient right side
+      L     #IncCntRight; 
+//devide result into speed monitoring time
+      DTR   ; 
+      L     #Par.MonSpdTime; 
+      DTR   ; 
+      TAK   ; 
+      /R    ; 
+//and multiply by speed value percent
+      L     #SpeedValuePc; 
+      DTR   ; 
+      *R    ; 
+      T     #Par.MonSpdRight; 
+
+//save lowest value when calibrate
+//the values should be approximately equal (+/- 10%) otherwise error
+      A     #StCalibrating; 
+      A     #tmpStarted; 
+      A     #CalibrateComplete; 
+      JCN   sc6; 
+      L     #Par.MonSpdLeft; 
+      L     #Par.MonSpdRight; 
+      >=R   ; 
+      JC    sc7; 
+      TAK   ; 
+sc7:  T     #tmpMonSpdValue; 
+      TAK   ; 
+      -R    ; 
+      /R    ; 
+      L     1.000000e-001; //10%
+      >=R   ; 
+      =     #tmpUnsuccessfulCal; 
+      JC    xxS4; 
+      L     #tmpMonSpdValue; 
+      T     #Par.CalSpdValue; 
+      R     #StCalibrating; 
+sc6:  NOP   0; 
+
+//compare speed    
+//quotient must be 
+      AN    #StCalibrating; 
+      L     #Par.CalSpdValue; 
+      L     #Par.MonSpdLeft; 
+      -R    ; 
+      /R    ; 
+      ABS   ; 
+      L     100; //to persent(%)
+      *R    ; 
+      L     #Par.ToleranceValue; 
+      >=R   ; 
+      =     #tmpFaultSpdLeft; 
+      JC    xxS4; 
+      AN    #StCalibrating; 
+      L     #Par.CalSpdValue; 
+      L     #Par.MonSpdRight; 
+      -R    ; 
+      /R    ; 
+      ABS   ; 
+      L     100; //to persent(%)
+      *R    ; 
+      L     #Par.ToleranceValue; 
+      >=R   ; 
+      =     #tmpFaultSpdRight; 
+      JC    xxS4; 
+
+//reset counts
+sc0:  L     0; 
+      T     #IncCntLeft; 
+      T     #IncCntRight; 
+      L     #tmpMonSpdTime; 
+      T     #Par.MonSpdCount; 
+sc5:  NOP   0; 
+NETWORK
+TITLE =States
+
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      =     #tmpStarted; 
+      A     #StStopped; //===State machine===
+      JC    S0; 
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      JC    S2; 
+      A     #StStopping; 
+      JC    S3; 
+      A     #StStarting; 
+      JC    S1; 
+      A     #StFault; 
+      JC    S4; 
+      S     #StStopped; //Initialise: goto StStopped
+
+NETWORK
+TITLE =StStopped
+
+//---Condition for StFault
+S0:   A     #tmpFaultDelayDone; // [4.0]
+      O     #tmpInpFault; 
+      AN    #tmpLocal; //2D:
+      JC    S0S4; 
+//---Condition for StStarting: local
+      AN    #tmpLocal; 
+      JC    S0J1; 
+      X     #InpRunFwd; 
+      X     #InpRunRev; 
+      JC    S0S1; 
+      JU    SAVE; 
+//---Condition for StStopped
+S0J1: O     #CmdOff; 
+      ON    #tmpEnable; 
+      JC    SAVE; 
+//---Condition for StStarting: automatic
+      O     #CmdNext; 
+      O     #CmdOn; 
+      AN    #InManual; 
+      AN    #InSeqStop; 
+      AN    #tmpHeavyStartup; 
+      JC    S0S1; 
+//---Condition for StStarting: manual 
+      A     #InManual; 
+      A     #CmdOn; 
+      JCN   SAVE; 
+//---Transition -> StStarting
+S0S1: R     #StStopped; 
+      JU    xxS1; 
+//---Transition -> StFault
+S0S4: R     #StStopped; 
+      R     #tmpEnable; //[4.6]
+      JU    xxS4; 
+
+NETWORK
+TITLE =StStarting
+//== Any transition to StStarting
+xxS1: SET   ; 
+      S     #StStarting; 
+      L     #Par.ParMonTime; // Set actual vaule of timer
+      T     #Par.OutMonTime; 
+      L     #Par.ParStartingTime; 
+      T     #Par.OutTransitionTime; 
+      A     #tmpLocal; // No output set in local mode
+      JC    SAVE; 
+      A     #Par.ParHeavyStartup; // Set Global InHeavyStartup
+      S     "GCS7_Gr_InHeavyStartup"; 
+      A     #tmpEnableFwd; // Set direction
+      =     #OutpRunFwd; 
+      A     #tmpEnableRev; 
+      =     #OutpRunRev; 
+      A     #tmpSlow; // Set speed
+      =     #OutpRunSlow; 
+      NOT   ; 
+      =     #OutpRunFast; 
+      JU    SAVE; 
+
+//== Logic ====
+//---Condition for StFault
+S1:   A     #tmpInpFault; 
+      O     #tmpFaultDelayDone; // [4.0]
+      AN    #tmpLocal; 
+      JC    S1S4; 
+//---Condition for StStopped  local mode
+      AN    #tmpLocal; 
+      JC    S11; 
+      A     #InpRunRev; 
+      XN    #InpRunFwd; 
+      JC    S1S3; 
+      JU    S12; 
+//---Condition for StStopped  other modes
+S11:  ON    #tmpEnable; 
+      O     #CmdOff; 
+      O     ; 
+      A     #InSeqStop; 
+      AN    #InManual; 
+      O     ; 
+      AN    #OutpRunFwd; 
+      AN    #OutpRunRev; 
+      JC    S1S3; 
+//---Condition for StStarting
+S12:  AN    "GCS7_Gr_OutTick200ms"; 
+      L     #Par.OutTransitionTime; // Set Timer 
+      JC    S13; 
+      L     #Par.OutMonTime; 
+      +     -2; 
+      T     #Par.OutMonTime; 
+      L     #Par.OutTransitionTime; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S13:  L     0; 
+      <=I   ; //---Condition for StStarted
+      =     #tmpDelayOver; // Starting time over
+      A     #tmpDelayOver; // Started forward
+      A     #tmpEnableFwd; 
+      AN    #tmpInpOutpDiff; 
+      O     ; 
+      A     #tmpDelayOver; // Started forward local  
+      A     #InpRunFwd; 
+      A     #tmpLocal; 
+      JC    S1S2; 
+      A     #tmpDelayOver; // Started reverse
+      A     #tmpEnableRev; 
+      AN    #tmpInpOutpDiff; 
+      O     ; 
+      A     #tmpDelayOver; // Started reverse local  
+      A     #InpRunRev; 
+      A     #tmpLocal; 
+      JC    S15; 
+      L     #Par.OutMonTime; //---Condition for StFault
+      L     0; // Monitoring time over
+      <=I   ; 
+//      U     #tmpDelayOver; // Starting time over [2.10]
+      AN    #tmpLocal; //[2.11]
+      A     #tmpInpOutpDiff; // Inp not equal Outp
+      JC    S1S4; 
+      JU    SAVE; 
+S1S2: R     #StStarting; //---Transition -> StStartedFwd
+      S     #StStartedFwd; 
+      S     #tmpTimeClear; // Reset actual timer value
+      A     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      JU    LOG1; 
+S15:  R     #StStarting; //---Transition -> StStartedRev
+      S     #StStartedRev; 
+      S     #tmpTimeClear; // Reset actual timer value
+      A     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      JU    LOG1; 
+//---Transition -> StStopping
+S1S3: R     #StStarting; 
+      A     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      JU    xxS3; 
+//---Transition -> StFault
+S1S4: R     #StStarting; 
+      A     #tmpHeavyStartup; // Clear Global InHeavyStartup
+      R     "GCS7_Gr_InHeavyStartup"; 
+      JU    xxS4; 
+
+NETWORK
+TITLE =StStarted
+
+S2:   A     #tmpInpFault; //---Condition for StFault
+      O     #tmpFaultDelayDone; // [4.0]
+      AN    #tmpLocal; 
+      JC    S2S4; 
+//---Condition for StStopping and StFault (if StCalibrating): local mode
+      AN    #tmpLocal; 
+      JC    S2J1; // no speed changing and no idling 
+      AN    #StCalibrating; 
+      A     #StStartedFwd; // Input Fwd goes off
+      AN    #InpRunFwd; 
+      O     ; 
+      AN    #StCalibrating; 
+      A     #StStartedRev; // Input Rev goes off
+      AN    #InpRunRev; 
+      JC    S2S3; //to stopping
+//if state stCalibrating then fault
+      A     #StCalibrating; //[5.1]
+      A     #StStartedFwd; // Input Fwd goes off
+      AN    #InpRunFwd; 
+      O     ; 
+      A     #StCalibrating; 
+      A     #StStartedRev; // Input Rev goes off
+      AN    #InpRunRev; 
+      JC    S2S4; //[5.1] to fault
+//if change FC speed when calibrating then fault [5.1]
+      A     #StCalibrating; //[5.1]
+      A(    ; 
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      )     ; 
+      A     #tmpFCSpeedChanged; 
+      JC    S2S4; 
+      JU    SAVE; 
+//---Condition for StStopping and StFault (if StCalibrating): autmatic
+S2J1: A     #StCalibrating; //[Rel 2D -->
+      JC    S2C1; 
+      A     #Par.Par2Speed; 
+      A     #Par.ParRestartDelay; 
+      A     #tmpSlow; 
+      AN    #OutpRunSlow; 
+      O     ; 
+      A     #Par.Par2Speed; 
+      A     #Par.ParRestartDelay; 
+      AN    #tmpSlow; 
+      A     #OutpRunSlow; 
+      JC    S2S3; // Condition for StStoppping  Rel 2D <--]
+      ON    #tmpEnable; // other modes
+      O     #CmdOff; 
+      O     ; 
+      A     #OutpRunFwd; // Change direction: Fwd --> Rev
+      A     #tmpEnableRev; 
+      O     ; 
+      A     #OutpRunRev; // Change direction: Rev --> Fwd
+      A     #tmpEnableFwd; 
+      JC    S2S3; 
+//same but fault [5.1]
+S2C1: A     #Par.Par2Speed; 
+      A     #Par.ParRestartDelay; 
+      A     #tmpSlow; 
+      AN    #OutpRunSlow; 
+      O     ; 
+      A     #Par.Par2Speed; 
+      A     #Par.ParRestartDelay; 
+      AN    #tmpSlow; 
+      A     #OutpRunSlow; 
+      JC    S2S4; 
+      ON    #tmpEnable; // other modes
+      O     #CmdOff; 
+      O     ; 
+      A     #OutpRunFwd; // Change direction: Fwd --> Rev
+      A     #tmpEnableRev; 
+      O     ; 
+      A     #OutpRunRev; // Change direction: Rev --> Fwd
+      A     #tmpEnableFwd; 
+      JC    S2S4; 
+//if change FC speed when calibrating then fault [5.1]
+      A     #StCalibrating; //[5.1]
+      A(    ; 
+      O     #StStartedFwd; 
+      O     #StStartedRev; 
+      )     ; 
+      A     #tmpFCSpeedChanged; 
+      JC    S2S4; 
+//2E:---Condition for StStarted: set direction outputs
+      A     #tmpEnableFwd; 
+      =     #OutpRunFwd; 
+      A     #tmpEnableRev; 
+      =     #OutpRunRev; 
+//---Condition for StStarted: speed changing
+      A     #OutpRunSlow; 
+      AN    #tmpSlow; 
+      A     #Par.Par2Speed; // Doubt only one speed
+      AN    #Par.OutDelayFault; 
+      O     ; 
+      A     #OutpRunFast; //---Condition for StStarted: speed changing
+      A     #tmpSlow; 
+      A     #Par.Par2Speed; // Doubt only one speed
+      AN    #Par.OutDelayFault; 
+      JCN   S2F1; 
+      AN    #StCalibrating; //[5.1]
+      JCN   S2S4; //[5.1] to fault
+      S     #Par.OutDelayFault; 
+      L     #Par.ParMonTime; 
+      L     #Par.ParDelayTime; 
+      <=I   ; 
+      JC    S2F2; 
+      L     #Par.ParMonTime; 
+S2F2: T     #Par.OutMonTime; 
+      JU    SAVE; 
+S2F1: A     #InpRunSlow; 
+      O     #InpRunFast; 
+      ON    #Par.Par2Speed; // Doubt only one speed
+      JC    S2J2; 
+      A     #tmpSlow; // Set speed
+      =     #OutpRunSlow; 
+      NOT   ; 
+      =     #OutpRunFast; 
+//Test or Running delay time ====================
+S2J2: A     #tmpInpOutpDiff; //---Condition for Delay Fault
+      A     #Par.OutDelayFault; // Set OutDelayFault Bit
+      JC    S2T1; 
+      A     #InpRunFast; 
+      O     #InpRunSlow; 
+      ON    #Par.Par2Speed; // Doubt only one speed
+      A     #Par.OutDelayFault; 
+      JCN   S2J3; // Check Idling
+      R     #Par.OutDelayFault; 
+      S     #tmpTimeClear; 
+      JU    SAVE; 
+S2T1: AN    "GCS7_Gr_OutTick200ms"; // Decrement all 200ms
+      L     #Par.OutMonTime; 
+      JC    S2T3; 
+      +     -2; 
+      T     #Par.OutMonTime; 
+S2T3: L     0; 
+      <=I   ; 
+      R     #Par.OutDelayFault; 
+      JCN   SAVE; 
+      A     #tmpEnable; // Condition for StFault
+      JC    S2S4; 
+      JU    S2S3; // Condition for StStoppping
+//---Idling time ----------------------
+S2J3: O     #InSeqStop; 
+      ON    #OutIdling; // Condition to reset Idling-Time
+      JC    S2I1; 
+      R     #OutIdling; 
+      S     #tmpTimeClear; // Reset actual timer value
+      JU    SAVE; 
+S2I1: ON    #InSeqStop; // Idling time active ?
+      O     #InManual; 
+      JC    SAVE; 
+      A     #OutIdling; 
+      JC    S2I2; 
+      S     #OutIdling; // Preset Idling Time
+      L     #Par.ParIdlingTime; 
+      T     #Par.OutTransitionTime; 
+S2I2: AN    "GCS7_Gr_OutTick200ms"; // Set Idling Time
+      L     #Par.OutTransitionTime; 
+      JC    S2I3; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S2I3: L     0; 
+      >I    ; // Idling time over
+      JC    SAVE; 
+S2S3: R     #StStartedFwd; //---Transition -> StStopping
+      R     #StStartedRev; 
+      R     #Par.OutDelayFault; 
+      R     #StCalibrating; //[5.1]
+      JU    xxS3; 
+S2S4: R     #StStartedFwd; //---Transition -> StFault
+      R     #StStartedRev; 
+      R     #Par.OutDelayFault; 
+      R     #OutIdling; 
+      R     #StCalibrating; //[5.1]
+      JU    xxS4; 
+NETWORK
+TITLE =StStopping
+//===Any transition to StStopping
+xxS3: SET   ; 
+      S     #StStopping; 
+      R     #OutIdling; 
+      L     #Par.ParMonTime; // Set monitoring time
+      T     #Par.OutMonTime; 
+      L     #Par.ParStoppingTime; // Set stopping time
+      T     #Par.OutTransitionTime; 
+      JU    SAVE; 
+//===Logic =======================
+//---Condition for StFault
+S3:   A     #tmpInpFault; 
+      O     #tmpFaultDelayDone; // [4.0]
+      AN    #tmpLocal; //[2.8] 
+      JC    S3S4; 
+//---Condition for StStarting in InLocal
+//[3.1]      U     #tmpInpFault                //[2.8]
+//[3.1]      U     #tmpLocal                   //[2.8] 
+//[3.1]      SPB   SAVE                        //[2.8]  
+      X     #InpRunFwd; //[2.8]
+      X     #InpRunRev; //[2.8]
+      AN    #tmpInpFault; //[3.1]
+      A     #tmpLocal; //[2.8] 
+      JC    S3S1; //[2.8] Transition -> StStarting 
+//---Condition for StStarting: no Restart
+      A     #Par.ParRestartDelay; 
+      O     #tmpHeavyStartup; //[2.9]
+      JC    S3J2; 
+      O     #CmdNext; // automatic StStarting
+      O     #CmdOn; 
+      AN    #InManual; 
+      AN    #InSeqStop; 
+      A     #tmpEnable; 
+      AN    #tmpLocal; //[3.1] 
+      JC    S3S1; 
+      A     #InManual; // manual StStarting
+      A     #CmdOn; 
+      A     #tmpEnable; // [2.7]
+      JC    S3S1; 
+//---Condition for StStopping
+S3J2: AN    "GCS7_Gr_OutTick200ms"; 
+      L     #Par.OutTransitionTime; // Set Timer 
+      JC    S3J3; 
+      L     #Par.OutMonTime; //---Condition for StStopped
+      +     -2; // Set actual timer
+      T     #Par.OutMonTime; 
+      L     #Par.OutTransitionTime; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S3J3: L     0; 
+      <=I   ; // Stopping time over
+      =     #tmpDelayOver; 
+      A     #tmpDelayOver; // Stopped
+      AN    #tmpInpOutpDiff; // Inp equal Outp
+      JC    S3S0; 
+      L     #Par.OutMonTime; 
+      L     0; // Monitoring time over
+      <=I   ; 
+      =     #tmpMonOver; 
+      A     #tmpMonOver; 
+      A     #tmpDelayOver; // Stopping time over
+      AN    #tmpInpOutpDiff; // Inp equal Outp
+      JC    S3S0; 
+      A     #tmpMonOver; //---Condition for StFault
+      A     #tmpInpOutpDiff; 
+      O     ; 
+      A     #tmpMonOver; 
+      A     #tmpDelayOver; 
+      A     #tmpInpOutpDiff; 
+      JCN   SAVE; 
+//---Transtition -> StFault
+S3S4: R     #StStopping; 
+      JU    xxS4; 
+//---Transition -> StStarting
+S3S1: R     #StStopping; 
+      JU    xxS1; 
+//---Transition -> StStopped
+S3S0: R     #StStopping; 
+      S     #StStopped; 
+      S     #tmpTimeClear; // Reset actual timer value
+      JU    LOG1; 
+
+NETWORK
+TITLE = StFault
+// Any transiton to Fault  
+xxS4: SET   ; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; // Global.InFaultFlag
+//    S     #tmpTimeClear               // Reset actual timer value
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1012,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+      L     0; //2.6
+      T     #Par.OutMonTime; 
+      L     #Par.ParStoppingTime; 
+      T     #Par.OutTransitionTime; 
+      SET   ; 
+S4S4: JU    LOG4; 
+//===logic
+S4:   L     0; //---Condition to count stopping time
+      L     #Par.OutTransitionTime; // Set Timer 
+      >=I   ; 
+      ON    "GCS7_Gr_OutTick200ms"; 
+      JC    S4J1; 
+      +     -2; 
+      T     #Par.OutTransitionTime; 
+S4J1: A     #InpFaultDev; 
+      A     #tmpFaultDelayDone; // [4.0]
+      AN    #tmpLocal; 
+      FP    #Par.OutFlagFaultDev; 
+      JC    S4S4; 
+      AN    #CmdFaultReset; //---Condition for StFault
+      AN    "GCS7_Gr_OutFaultReset"; // OutFaultReset
+      AN    #tmpLocal; 
+      JC    SAVE; 
+      A     #InpFaultDev; //---Condition for StFault with LOG
+      O     #tmpInpFault; // MessageClass Error Fault stopping
+      O     #tmpInpOutpDiff; 
+      AN    #tmpLocal; 
+      JC    S4S4; 
+      R     #StFault; //---Transition -> StStopping
+      S     #StStopping; 
+      R     #OutIdling; 
+      L     #Par.ParMonTime; // Set monitoring time
+      T     #Par.OutMonTime; 
+      JU    LOG9; 
+
+NETWORK
+TITLE =LOG Message
+
+//LOG transition to StStopped,StStartedXxx
+LOG1: AN    #tmpReport; // ReportAll?
+      JC    SAVE; 
+      A     #StStartedFwd; 
+      L     B#(4, 2); // MessageClass Info started fwd
+      JC    LOG; 
+      A     #StStartedRev; 
+      L     B#(4, 5); // MessageClass Info started rev
+      JC    LOG; 
+      A     #StStopped; 
+      L     B#(4, 0); // MessageClass Info stopped
+      JC    LOG; // [4.2]
+      JU    SAVE; 
+//LOG transition to fault
+LOG4: A     #InpFaultDev; 
+      =     #Par.OutFlagFaultDev; //[4.0]
+      L     B#(1, 10); // MessageClass Error fault device
+      JC    LOG; 
+      A     #tmpStarted; 
+      L     B#(1, 11); // MessageClass Error fault started
+      JC    LOG; 
+      AN    #tmpEnable; //Fault Stopping
+      L     B#(1, 13); 
+      JC    LOG; 
+      L     B#(1, 12); // MessageClass Error fault starting
+      JU    LOG; 
+//Log fault cancelled
+LOG9: L     B#(3, 9); // MessageClass Operater "fault cancelled"
+LOG:  A     #Par.ParLogOff; //---Set LOG Message
+      JC    SAVE; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      AW    ; 
+      T     #OutAlarmNrLog; 
+      CALL "GCS7_LogConvert" (// LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1012);
+
+NETWORK
+TITLE =State Code
+
+//--Stopped, Substate ---
+SAVE: AN    #StStopped; 
+      JC    STC2; 
+      L     41; //Code: StStopped.HWStop
+      A     #InHWStop; 
+      JC    STC9; 
+      L     51; //Code: StStopped.DPFault
+      A     #InDPFault; 
+      JC    STC9; 
+      A     #InpFaultDev; // 
+      L     30; //Code: StStopped.InpFaultDev
+      JC    STC9; // 
+      A     #CmdNext; 
+      AN    #tmpLocal; //[4.3]
+      L     9; // Code: starting requested
+      JC    STC9; 
+      L     1; // Code: stopped
+      JC    STC9; 
+//--------------------
+STC2: A     #StStarting; 
+      L     2; // Code: starting
+      JC    STC9; 
+      A     #StCalibrating; //[5.1] 
+      JCN   STC5; 
+      L     10; //Code: Calibrating
+      JU    STC9; 
+STC5: AN    #StStartedFwd; 
+      JC    STC3; 
+      L     3; // 2.6 Code: started forward slow
+      A     #InLocal; 
+      A     #InpRunSlow; 
+      O     #OutpRunSlow; 
+      ON    #Par.Par2Speed; 
+      JC    STC9; 
+      L     4; // Code: started forward fast
+      JU    STC9; 
+//--------------------
+STC3: AN    #StStartedRev; 
+      JC    STC4; 
+      L     5; // 2.6: Code: started reverse slow
+      A     #InLocal; 
+      A     #InpRunSlow; 
+      O     #OutpRunSlow; 
+      ON    #Par.Par2Speed; 
+      JC    STC9; 
+      L     6; // Code: started reverse fast
+      JU    STC9; 
+//--------------------
+STC4: A     #StStopping; 
+      L     7; // Code: stopping
+      JC    STC9; 
+      A     #InpFaultDev; // [3.0]
+      L     31; // [3.0]
+      JC    STC9; // [3.0]
+      L     32; // Code: fault
+STC9: L     #StCode; // Old state code
+      TAK   ; 
+      T     #StCode; // Save state code
+      <>I   ; 
+      L     3; // Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+
+NETWORK
+TITLE =Global End
+
+      A     #CmdFaultReset; //[5.0]
+      S     #Par.OutEdgeFaultReset; //[5.0]
+      A     "GCS7_Gr_OutTick1s"; //[5.0]
+      R     #OutpFaultReset; //[5.0]
+      A     "GCS7_Gr_OutTick1s"; //[5.0]
+      A     #Par.OutEdgeFaultReset; //[5.0]
+      R     #Par.OutEdgeFaultReset; //[5.0]
+      S     #OutpFaultReset; //[5.0]
+//---Clear all commands
+      CLR   ; 
+      =     #CmdOn; 
+      =     #CmdOff; 
+      =     #CmdNext; 
+      =     #CmdFaultReset; 
+      O     #StStopped; //---Reset Hardware Outputs
+      O     #StStopping; 
+      O     #StFault; 
+      =     #tmpStop; 
+      ON    #tmpEnableFwd; // Output Forward
+      O     #tmpStop; 
+      R     #OutpRunFwd; 
+      ON    #tmpEnableRev; // Output Reverse
+      O     #tmpStop; 
+      R     #OutpRunRev; 
+      ON    #tmpSlow; // Output Slow
+      O     #tmpStop; 
+      R     #OutpRunSlow; 
+      O     #tmpSlow; // Output Fast
+      O     #tmpStop; 
+      R     #OutpRunFast; 
+
+//--Output for group 
+      AN    #InLocal; 
+      O     #InManual; 
+      A     #InDPFault; 
+      S     "GCS7_Gr_InDPFault"; 
+
+      AN    #InLocal; 
+      O     #InManual; 
+      A     #InHWStop; 
+      S     "GCS7_Gr_InHWStop"; 
+
+//---Reset actual timer values
+      AN    #tmpTimeClear; 
+      BEC   ; 
+      L     0; 
+      T     #Par.OutMonTime; 
+      T     #Par.OutTransitionTime; 
+END_FUNCTION_BLOCK
+

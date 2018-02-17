@@ -1,0 +1,411 @@
+FUNCTION_BLOCK "G242M_Code"
+TITLE =G242M LIFTING DEVICE GERM 8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        LIFTING DEVICE GERM 8
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB342.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : "GCS7_GrpCtrlSub";	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2815_BZS22 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2815_BZS23 : "GCS7_E_DigInput";	// DigInpCont 
+  A_2815_MXZ21 : "GCS7_E_Motor";	// Motor 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     "GCS7_GrCtrlDB".ParMGR[242]; 
+      R     "GCS7_GrCtrlDB".ParWGR[242]; 
+      R     "GCS7_GrCtrlDB".ParGGR[242]; 
+      R     "GCS7_GrCtrlDB".ParFeed[242]; 
+      R     "GCS7_GrCtrlDB".ParShare[242]; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      U     "GCS7_GrCtrlDB".OutEnable[242]; 
+      O(    ; 
+      UN    "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      =     #Gr.InEnableGr; 
+      U     "GCS7_GrCtrlDB".OutOccupied[242]; 
+      O(    ; 
+      UN    "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      UN    "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      )     ; 
+      =     #Gr.InOccupied; 
+      U     "GCS7_GrCtrlDB".CmdFaultReset[242]; 
+      R     "GCS7_GrCtrlDB".CmdFaultReset[242]; 
+      S     #Gr.CmdFaultReset; 
+      U     "GCS7_GrCtrlDB".CmdNext[242]; 
+      O     "G247M".A_2815_KCL01I1.OutTrue; // pushbutton backwall lifting
+      O     "G247M".A_2815_KCL01I2.OutTrue; // pushbutton backwall lowering
+      R     "GCS7_GrCtrlDB".CmdNext[242]; 
+      S     #Gr.CmdNext; 
+
+      U     "GCS7_GrCtrlDB".CmdManualOff[242]; 
+      UN    #Gr.InManual; 
+      SET   ; // No PC-Direct-Controll!!!
+      S     #Gr.CmdManualOff; 
+      U     "GCS7_GrCtrlDB".CmdManualOff[242]; 
+      R     "GCS7_GrCtrlDB".CmdManualOff[242]; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[242]
+//      O     "GCS7_GrCtrlDB".OutOccupied[242]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[242]
+//      S     #Gr.CmdManualOff
+
+      U     "GCS7_GrCtrlDB".CmdContinue[242]; 
+      R     "GCS7_GrCtrlDB".CmdContinue[242]; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      U     "GCS7_GrCtrlDB".ParShare[242]; 
+      SPBN  WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      SPB   IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      U     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      U     #Gr.CmdNext; 
+      U     #Gr.OutAutostart; 
+      UN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #tmpHWStop; 
+
+      U     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2815-BZS22 : LIFTING DEVICE DOWN
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2815_BZS22.InLocal; 
+// 
+//-Monitoring---
+      U     "MAL1S024Par".Par.FlagFunction_1.StepLoading; 
+      O     "MAL1S024Par".Par.FlagProcess.ProcessActive; 
+      =     #A_2815_BZS22.InMonTrue; 
+      CLR   ; 
+      =     #A_2815_BZS22.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2815_BZS22.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2815_BZS22.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2815_BZS22.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2815_BZS22_I1"; 
+      =     #A_2815_BZS22.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #A_2815_BZS22.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[82]; 
+      =     #A_2815_BZS22.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2815_BZS22 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2815-BZS23 : LIFTING DEVICE END POSITION STOP
+
+      NOP   0; 
+//-InLocal---
+      U     #tmpLocal; 
+      =     #A_2815_BZS23.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2815_BZS23.InMonTrue; 
+      CLR   ; 
+      =     #A_2815_BZS23.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2815_BZS23.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2815_BZS23.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2815_BZS23.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      U     "A_2815_BZS23_I1"; 
+      =     #A_2815_BZS23.InpTrue; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #A_2815_BZS23.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[82]; 
+      =     #A_2815_BZS23.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2815_BZS23 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2815-MXZ21 : WALL LIFTING DRIVE
+
+      NOP   0; 
+//-InLocal--- 
+      U     #tmpLocal; 
+      =     #A_2815_MXZ21.InLocal; 
+
+//-Interlocking--- 
+      U     #Gr.OutEnableEl; 
+      U     "G247M".A_2815_KCL01I2.InpTrue; // pushbutton wall lowering
+      UN    #A_2815_BZS22.StTrue; // wall bottom pos
+      =     #A_2815_MXZ21.InEnableFwd; 
+
+      U     #Gr.OutEnableEl; 
+      U(    ; 
+      U     "MAL1S024Par".Par.FlagFunction_1.StepUnloading; // Step unloading
+      U     "G245M".Gr.OutEnablePrevGr; // horizontal screw started
+      O     "MAL1S024".PCRead.Step.StIdling; 
+      O     "MAL1S024".PCRead.Step.StPassive; 
+      )     ; 
+      U     "G247M".A_2815_KCL01I1.StCtoTrue; // pushbutton wall lifting
+      UN    #A_2815_BZS23.StTrue; // wall upper pos
+      =     #A_2815_MXZ21.InEnableRev; 
+// 
+      U     #tmpCmdNext; 
+      S     #A_2815_MXZ21.CmdNext; 
+// 
+      U     #Gr.OutSeqStop; 
+      =     #A_2815_MXZ21.InSeqStop; 
+// 
+//-Read inputs---
+      U     "A_2815_MXZ21_I1"; 
+      =     #A_2815_MXZ21.InpRunFwd; 
+      U     "A_2715_MXZ21_I2"; 
+      =     #A_2815_MXZ21.InpRunRev; 
+      U     "PLC_SystemDB".GlobalFlags.Germinating_8; 
+      =     #A_2815_MXZ21.InHWStop; 
+      U     "PLC_DPInfo".Master[1].SlavesError[82]; 
+      =     #A_2815_MXZ21.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2815_MXZ21 ;
+// 
+//-Write outputs---
+      U     #A_2815_MXZ21.OutpRunFwd; 
+      =     "A_2815_MXZ21_O1"; 
+      U     #A_2815_MXZ21.OutpRunRev; 
+      =     "A_2815_MXZ21_O2"; 
+
+NETWORK
+TITLE =Test Fault
+
+      U     #A_2815_BZS22.StFault; 
+      O     #A_2815_BZS23.StFault; 
+      O     #A_2815_MXZ21.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//    U     #A_2815_MXZ21.StStopped
+      UN    #Gr.VarStarted; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+//      U(    
+//      O     #A_2815_MXZ21.StStartedFwd
+//      O     #A_2815_MXZ21.StStartedRev
+//      )     
+//      UN    #Gr.VarStopped
+//      UN    #Gr.VarFault
+//      =     #Gr.VarStarted
+//
+      U     #Gr.InOccupied; 
+      U(    ; 
+      O(    ; 
+      UN    "MAL1S024Par".Par.FlagFunction_1.StepUnloading; 
+      U     #A_2815_BZS22.StTrue; // wall bottom pos
+      )     ; 
+      O(    ; 
+      U     "MAL1S024Par".Par.FlagFunction_1.StepUnloading; 
+      O     "MAL1S024Par".Par.FlagFunction_1.FinishUnloading; 
+      O     "MAL1S024Par".Par.FlagMachine_0.CmdTurnRevAfterUnloading; 
+      UN    #A_2815_BZS22.StTrue; // wall bottom pos
+      U     #A_2815_BZS23.StTrue; // wall top pos
+      )     ; 
+      )     ; 
+      UN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+
+NETWORK
+TITLE =Enable Previous Group
+
+      U     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      U     #Gr.StStopped; 
+      =     "GCS7_GrCtrlDB".InStopped[242]; 
+      U     #Gr.StStarted; 
+      =     "GCS7_GrCtrlDB".InStarted[242]; 
+      U     #Gr.StFault; 
+      =     "GCS7_GrCtrlDB".InFault[242]; 
+      U     #Gr.OutWarning; 
+      =     "GCS7_GrCtrlDB".InWarning[242]; 
+      U     #Gr.OutManual; 
+      =     "GCS7_GrCtrlDB".InManual[242]; 
+      U     #Gr.OutHWStop; 
+      =     "GCS7_GrCtrlDB".InHWStop[242]; 
+      U     #Gr.OutDPFault; 
+      =     "GCS7_GrCtrlDB".InDPFault[242]; 
+      U     #Gr.OutLoaded; 
+      =     "GCS7_GrCtrlDB".InLoaded[242]; 
+      U     #Gr.OutAutostart; 
+      =     "GCS7_GrCtrlDB".InAutoStart[242]; 
+      U     #Gr.VarStartwarning; 
+      =     "GCS7_GrCtrlDB".InStartWarning[242]; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

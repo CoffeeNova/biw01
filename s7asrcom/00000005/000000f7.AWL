@@ -1,0 +1,2328 @@
+FUNCTION_BLOCK "GCS7_E_MDDx_DP"
+TITLE =MDDx Serial Communication
+//  
+//COPYRIGHT:    (C) 1998  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      GCS7R1
+//
+//TITLE:        Element Control MDDx Serial Communication
+//
+//REVISION:     10
+//
+//-------------------------------------------------------------------------
+//
+//IDENT:        AUTHOR:             DEPT:                      DATE:
+//
+//FB37.1.0      A. Egli             CT3                        11-Jun-2005
+//              New Release R1
+//
+//-------------------------------------------------------------------------
+//
+//PURPOSE:      MANUAL : see [SSW-EL-MDDX_MAN_en]
+//
+//RESTRICTIONS: S7
+//              ParFault and ParWarning may be set together!
+//
+//
+//-------------------------------------------------------------------------
+//=======================================================
+//Log Message: 
+//------------------------------------------------------
+//
+//=======================================================
+//StCode:  State Communication               
+//------------------------------------------------------
+//43  StComFault.Local
+// 3  StComOk                    
+//32  StFault                 
+//=======================================================
+//StCode:  State Passage
+//------------------------------------------------------
+// 1  StDisengaged 
+//11  StDisengaged.Warning 
+//41  StDisengaged.DPFault
+// 4  StEngaged
+//14  StEngaged.Warning 
+//44  StEngaged.DPFault
+//32  StFault                 
+//
+AUTHOR : EA
+FAMILY : GCS7LL
+NAME : MDDxDP
+VERSION : 1.0
+
+
+VAR
+  StCode : INT ;	//Element state code
+  spare20 : BOOL ;	
+  spare21 : BOOL ;	
+  InOverrideHL : BOOL ;	//Override HL Inlet
+  CmdNewJob : BOOL ;	//Send Target Value to LC, even if in manual mode
+  CmdNewValue : BOOL ;	//Send Target Values
+  spare25 : BOOL ;	
+  spare26 : BOOL ;	
+  spare27 : BOOL ;	
+  spare30 : BOOL ;	
+  spare31 : BOOL ;	
+  spare32 : BOOL ;	
+  CmdFaultReset : BOOL ;	//Command to reset fault
+  InLocal : BOOL ;	//1= Local mode (no fault by start with service switch)
+  spare35 : BOOL ;	//Warning is active
+  spare36 : BOOL ;	
+  spare37 : BOOL ;	
+  InSimulation : BOOL ;	//Simulation with DPSim
+  OutComFault : BOOL ;	//Communication fault
+  VarEdgeStFault : BOOL ;	
+  OutWarning : BOOL ;	
+  OutFaultRelevant : BOOL ;	//Relavant faultfor group
+  OutEdgeComFault : BOOL ;	//Alarm reason
+  spare46 : BOOL ;	
+  spare47 : BOOL ;	
+  spare50 : BOOL ;	
+  spare51 : BOOL ;	
+  StOk : BOOL ;	//Element is ok
+  spare53 : BOOL ;	
+  StFault : BOOL ;	//Element has a communication or device fault
+  PCWrite : STRUCT 	
+   Hsk : STRUCT 	
+    AckRegisterSide1 : BOOL ;	
+    AckRollChangeDoneSide1 : BOOL ;	//Acknowledge roll change
+    AckRegisterSide2 : BOOL ;	
+    AckRollChangeDoneSide2 : BOOL ;	//Acknowledge roll change
+   END_STRUCT ;	
+  END_STRUCT ;	
+  PCRead : STRUCT 	
+   Hsk : STRUCT 	
+    ReqRegisterSide1 : BOOL ;	
+    ReqRollChangeDoneSide1 : BOOL ;	//Announcement roll change has be done
+    ReqRegisterSide2 : BOOL ;	
+    ReqRollChangeDoneSide2 : BOOL ;	//Announcement roll change has be done
+   END_STRUCT ;	
+  END_STRUCT ;	
+  Side1 : STRUCT 	
+   StCode : INT ;	
+   InEnableDosing : BOOL ;	//Signal to engage the rolls and start dosing
+   InRestdischarge : BOOL ;	//Signal to activate restdischarge mode
+   CmdNewJob : BOOL ;	//Send Target Value to LC, even if in manual mode
+   CmdNewValue : BOOL ;	//Send new Values to LC
+   OutLCFault : BOOL ;	//LC has a relevant fault
+   OutLCWarning : BOOL ;	//LC has a relevant fault
+   OutAlarmNoValid : BOOL ;	
+   OutManual : BOOL ;	//LC Manual Mode
+   VarEdgeStFault : BOOL ;	
+   StDisenaged : BOOL ;	//Element is ok
+   StEngaged : BOOL ;	//Element is ok
+   StFault : BOOL ;	//Element has a communication or device fault
+   In : STRUCT 	//Only without MDEF
+    InRollsUpCurrent : INT ;	//de: Aktuelle Stromaufnahme Motor 1 [0.1 A]
+    InRollsLowCurrent : INT ;	//de: Aktuelle Stromaufnahme Motor 2 [0.1 A]
+    InGapTopLeft : INT ;	//de:  Sollwert Mahlspalt oben links
+    InGapTopRight : INT ;	//de:  Sollwert Mahlspalt oben rechts
+    InGapBottomLeft : INT ;	//de:  Sollwert Mahlspalt unten links
+    InGapBottomRight : INT ;	//de:  Sollwert Mahlspalt unten rechts
+    InRollsLowUsed : BOOL ;	//MDDT: 1=Engage also lower rolls
+    InRollsUpUsed : BOOL ;	//MDDT: 1=Engage also upper rolls
+    spare2 : INT ;	
+   END_STRUCT ;	
+   Out : STRUCT 	//Only without MDEF
+    OutRollsUpLoad : INT ;	//Is read from LC [%]
+    OutRollsUpCurrent : INT ;	//Is read from LC [0.1 A]
+    OutRollsLowLoad : INT ;	//Is read from LC [%]
+    OutRollsLowCurrent : INT ;	//Is read from LC [0.1 A]
+    OutFeedRollSpeed : INT ;	//Is read from LC [Hz]
+    OutGrindingRollsUpSpeed : INT ;	//Is read from LC [0..999 RPM]
+    OutGrindingRollsLowSpeed : INT ;	//Is read from LC [0..999 RPM]
+    spare : INT ;	
+    OutAlarmNo : INT ;	//Is read from LC [0..9999]
+    OutGapAdjustmentStatus : INT ;	//0=Off;1=Manual;2=Automatic;3=Referencing;4=Aligment;5=Save
+    OutGapTopLeftAct : INT ;	//de:  Istwert Mahlspalt oben links
+    OutGapTopRightAct : INT ;	//de:  Istwert Mahlspalt oben rechts
+    OutGapBottomLeftAct : INT ;	//de:  Istwert Mahlspalt unten links
+    OutGapBottomRightAct : INT ;	//de:  Istwert Mahlspalt unten rechts
+    OutProductLevel : INT ;	//Is read from LC [+-500]
+    OutTemperatureHoot : INT ;	//Is read from LC [°C]
+    OutRunningTimeEngage : INT ;	//Is read from LC [h]
+    OutRunningTimeRollsUp : INT ;	//Is read from LC [h]
+    OutRunningTimeRollsLow : INT ;	//Is read from LC [h]
+    OutCntEngage : INT ;	//Is read from LC []
+    OutStatus : STRUCT 	//Is read from LC 
+     OutMDDR : BOOL ;	
+     OutHLBackupLeft : BOOL ;	
+     OutHLBackupRight : BOOL ;	
+    END_STRUCT ;	
+    OutLCAlarm : "GCS7_FB37_DP_Alarm";	
+    tmpLCAlarm : "GCS7_FB37_DP_Alarm";	
+   END_STRUCT ;	
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  Side2 : STRUCT 	
+   StCode : INT ;	
+   InEnableDosing : BOOL ;	//Signal to engage the rolls and start dosing
+   InRestdischarge : BOOL ;	//Signal to activate restdischarge mode
+   CmdNewJob : BOOL ;	//Send Target Value to LC, even if in manual mode
+   CmdNewValue : BOOL ;	//Send new Values to LC
+   OutLCFault : BOOL ;	//LC has a relevant fault
+   OutLCWarning : BOOL ;	//LC has a relevant fault
+   OutAlarmNoValid : BOOL ;	
+   OutManual : BOOL ;	//LC Manual Mode
+   VarEdgeStFault : BOOL ;	
+   StDisenaged : BOOL ;	//Element is ok
+   StEngaged : BOOL ;	//Element is ok
+   StFault : BOOL ;	//Element has a communication or device fault
+   In : STRUCT 	//Only without MDEF
+    InRollsUpCurrent : INT ;	//de: Aktuelle Stromaufnahme Motor 1 [0.1 A]
+    InRollsLowCurrent : INT ;	//de: Aktuelle Stromaufnahme Motor 2 [0.1 A]
+    InGapTopLeft : INT ;	//de:  Sollwert Mahlspalt oben links
+    InGapTopRight : INT ;	//de:  Sollwert Mahlspalt oben rechts
+    InGapBottomLeft : INT ;	//de:  Sollwert Mahlspalt unten links
+    InGapBottomRight : INT ;	//de:  Sollwert Mahlspalt unten rechts
+    InRollsLowUsed : BOOL ;	//MDDT: 1=Engage also lower rolls
+    InRollsUpUsed : BOOL ;	//MDDT: 1=Engage also upper rolls
+    spare2 : INT ;	
+   END_STRUCT ;	
+   Out : STRUCT 	//Only without MDEF
+    OutRollsUpLoad : INT ;	//Is read from LC [%]
+    OutRollsUpCurrent : INT ;	//Is read from LC [0.1 A]
+    OutRollsLowLoad : INT ;	//Is read from LC [%]
+    OutRollsLowCurrent : INT ;	//Is read from LC [0.1 A]
+    OutFeedRollSpeed : INT ;	//Is read from LC [HZ]
+    OutGrindingRollsUpSpeed : INT ;	//Is read from LC [0..999 RPM]
+    OutGrindingRollsLowSpeed : INT ;	//Is read from LC [0..999 RPM]
+    spare : INT ;	
+    OutAlarmNo : INT ;	//Is read from LC [0..9999]
+    OutGapAdjustmentStatus : INT ;	//0=Off;1=Manual;2=Automatic;3=Referencing;4=Aligment;5=Save
+    OutGapTopLeftAct : INT ;	//de:  Istwert Mahlspalt oben links
+    OutGapTopRightAct : INT ;	//de:  Istwert Mahlspalt oben rechts
+    OutGapBottomLeftAct : INT ;	//de:  Istwert Mahlspalt unten links
+    OutGapBottomRightAct : INT ;	//de:  Istwert Mahlspalt unten rechts
+    OutProductLevel : INT ;	//Is read from LC [+-500]
+    OutTemperatureHoot : INT ;	//Is read from LC [°C]
+    OutRunningTimeEngage : INT ;	//Is read from LC [h]
+    OutRunningTimeRollsUp : INT ;	//Is read from LC [h]
+    OutRunningTimeRollsLow : INT ;	//Is read from LC [h]
+    OutCntEngage : INT ;	//Is read from LC []
+    OutStatus : STRUCT 	//Is read from LC 
+     OutMDDR : BOOL ;	
+     OutHLBackupLeft : BOOL ;	
+     OutHLBackupRight : BOOL ;	
+    END_STRUCT ;	
+    OutLCAlarm : "GCS7_FB37_DP_Alarm";	
+    tmpLCAlarm : "GCS7_FB37_DP_Alarm";	
+   END_STRUCT ;	
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  Side1Divide : STRUCT 	
+   StCode : INT ;	
+   OutLCFault : BOOL ;	//LC has a relevant fault
+   OutLCWarning : BOOL ;	//LC has a relevant fault
+   OutAlarmNoValid : BOOL ;	
+   VarEdgeStFault : BOOL ;	
+   StDisenaged : BOOL ;	//Element is ok
+   StEngaged : BOOL ;	//Element is ok
+   StFault : BOOL ;	//Element has a communication or device fault
+   Out : STRUCT 	
+    OutProductLevel : INT ;	//Is read from LC [+-500]
+    OutFeedRollSpeed : INT ;	//Is read from LC [0..999 RPM]
+    OutHLInlet : BOOL ;	//de:Einlaufsonde Left
+    OutAlarmNo : INT ;	//Is read from LC [0..9999]
+    OutLCAlarm : "GCS7_FB37_DP_Alarm";	
+    tmpLCAlarm : "GCS7_FB37_DP_Alarm";	
+   END_STRUCT ;	
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  Side2Divide : STRUCT 	
+   StCode : INT ;	
+   OutLCFault : BOOL ;	//LC has a relevant fault
+   OutLCWarning : BOOL ;	//LC has a relevant fault
+   OutAlarmNoValid : BOOL ;	
+   VarEdgeStFault : BOOL ;	
+   StDisenaged : BOOL ;	//Element is ok
+   StEngaged : BOOL ;	//Element is ok
+   StFault : BOOL ;	//Element has a communication or device fault
+   Out : STRUCT 	
+    OutProductLevel : INT ;	//Is read from LC [+-500]
+    OutFeedRollSpeed : INT ;	//Is read from LC [0..999 RPM]
+    OutHLInlet : BOOL ;	//de:Einlaufsonde Left
+    OutAlarmNo : INT ;	//Is read from LC [0..9999]
+    OutLCAlarm : "GCS7_FB37_DP_Alarm";	
+    tmpLCAlarm : "GCS7_FB37_DP_Alarm";	
+   END_STRUCT ;	
+   OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+   OutCntFault : DINT ;	//Not errasable counter of faults
+  END_STRUCT ;	
+  OutAlarmNoLog : INT ;	//Last textnumber send to log
+  OutTimeFaulted : DINT ;	//[s] Not errasable time "Faulted"
+  OutCntFault : DINT ;	//Not errasable counter of faults
+  Command : STRUCT 	
+   S1Start : BOOL ;	//de: Start/Stop Links
+   spare01 : BOOL ;	
+   S1RestDischarge : BOOL ;	//de: Restentleeren Links
+   spare03 : BOOL ;	
+   spare04 : BOOL ;	
+   S1AckNewGapStatus : BOOL ;	//Acknowledge reading data
+   spare06 : BOOL ;	
+   AcceptNewDataReady : BOOL ;	//de: Quittierung neue Werte Bereit
+   S2Start : BOOL ;	//de: Start/Stop Rechts
+   spare11 : BOOL ;	
+   S2RestDischarge : BOOL ;	//de: Restentleeren Rechts
+   spare13 : BOOL ;	
+   spare14 : BOOL ;	
+   S2AckNewGapStatus : BOOL ;	//Acknowledge reading data
+   spare16 : BOOL ;	
+   spare17 : BOOL ;	//de: Quittierung neue Werte Bereit
+   spare20 : BYTE ;	
+   CommandReady : BOOL ;	//de: Steuersignale gültig
+   spare31 : BOOL ;	
+   spare32 : BOOL ;	
+   spare33 : BOOL ;	
+   spare34 : BOOL ;	
+   ResetAlarm : BOOL ;	//de: Alarm löschen
+   NewSendData : BOOL ;	//de: Aenderung Sendedaten
+   AcceptNewRcvData : BOOL ;	//de: Quittierung Aenderung Empfangsdatensatz
+  END_STRUCT ;	
+  Status : STRUCT 	
+   S1Operation : BOOL ;	//de: Betrieb
+   S1Disengaged : BOOL ;	//de: 1=Ausgerückt
+   S1RestdischargeLocal : BOOL ;	//de: 1=Restentleeren Local
+   S1DisengagedManual : BOOL ;	//Rolls manually disengaged: 1=Manually disengaged
+   S1EnableMotors : BOOL ;	//de: Freigabe Mahlmotoren
+   S1NewGapStatus : BOOL ;	//Request for PC to upload data
+   spare06 : BOOL ;	
+   NewDataReady : BOOL ;	//de: Neue Werte Bereit
+   S2Operation : BOOL ;	//de: Betrieb
+   S2Disengaged : BOOL ;	//de: 1=Ausgerückt
+   S2RestdischargeLocal : BOOL ;	//de: 1=Restentleeren Local
+   S2DisengagedManual : BOOL ;	//Rolls manually disengaged: 1=Manually disengaged
+   S2EnableMotors : BOOL ;	//de: Freigabe Mahlmotoren
+   S2NewGapStatus : BOOL ;	//Request for PC to upload data
+   spare16 : BOOL ;	
+   spare17 : BOOL ;	//de: Neue Werte Bereit
+   S1HLInlet : BOOL ;	//de: Einlaufsonde
+   S1HLOutlet1 : BOOL ;	//de: Auslaufsonde
+   S1HLOutlet2 : BOOL ;	//de: Auslaufsonde
+   S1HLOutlet3 : BOOL ;	//de: Auslaufsonde
+   S2HLInlet : BOOL ;	//de: Einlaufsonde1
+   S2HLOutlet1 : BOOL ;	//de: Auslaufsonde
+   S2HLOutlet2 : BOOL ;	//de: Auslaufsonde
+   S2HLOutlet3 : BOOL ;	//de: Auslaufsonde
+   spare30 : BOOL ;	
+   spare31 : BOOL ;	
+   spare32 : BOOL ;	
+   RemoteControl : BOOL ;	//de: Sollwertvorgabe Remote
+   WrongValue : BOOL ;	//de: Falscher Sollwert
+   SumFault : BOOL ;	//de: Sammelalarm
+   AcceptNewSendData : BOOL ;	//de: Quittierung Aenderung Sendedaten
+   NewRcvData : BOOL ;	//de: Aenderung Empfangsdaten
+  END_STRUCT ;	
+  Par : STRUCT 	
+   ParObjectNo : INT ;	//Is used for communication with PC, e.g. for message
+   ParMsgType : INT ;	//Is used for message (translation of state)
+   ParHornCode : INT ;	//Is used by horn module
+   ParLogOff : BOOL ;	//Report is off
+   ParSide1Divided : BOOL ;	//Side 1 is divided
+   ParSide2Divided : BOOL ;	//Side 2 is divided
+   ParFilter : "GCS7_FB37_DP_Alarm";	//Filter to alarm 1=Ignore alarm    
+   ParFilterWarning : "GCS7_FB37_DP_Alarm";	//Filter to set alarm type (0=Fault;Suspend/1=Warning)
+   ParIOByteNo : INT ;	//PROFIBUS: Address of first input and output byte
+   HelpFlags : STRUCT 	
+    CmdNewValueS1 : BOOL ;	
+    CmdNewValueS2 : BOOL ;	
+    CmdFaultReset : BOOL ;	
+    OutTestNewAlarm : BOOL ;	//Aux. signal to retry fault message
+    OutComFaultRead : BOOL ;	
+    OutComFaultSend : BOOL ;	
+   END_STRUCT ;	
+   OutNoSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   OutIdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   OutNoRcvDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   OutIdxRcvDataSet : BYTE ;	//de: Index Sendedatensatz
+   spare1 : DINT ;	
+  END_STRUCT ;	
+END_VAR
+VAR_TEMP
+  tmpAddrOffset : DWORD ;	//store the Instance Pointer
+  tmpLOGvalue : WORD ;	//LOG value
+  tmpCommand : INT ;	
+  tmpFault : BOOL ;	
+  tmpWarning : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpHornOn : BOOL ;	
+  tmpSendDone : BOOL ;	//Send Index is Equal receive Index
+  tmpBit : BOOL ;	
+  tmpPxFault : BOOL ;	
+  tmpPxWarning : BOOL ;	
+  tmpPxAlarmNoValid : BOOL ;	
+  tmpAllAlarmNoValide : BOOL ;	
+  tmpAddrParFilter : DWORD ;	//Pointer to ParFilter
+  tmpAddrParFilterWarning : DWORD ;	//Pointer to ParFilterWarning
+  tmpIdx : INT ;	
+  tmpNewAlarm : "GCS7_FB37_DP_Alarm";	
+  tmpOldAlarm : "GCS7_FB37_DP_Alarm";	
+  tmpParFilterWarning : "GCS7_FB37_DP_Alarm";	
+  tmpInt : INT ;	
+  tmpAddr : WORD ;	
+  tmpAddrIO : DINT ;	
+  tmpReturn : INT ;	
+  DPData : STRUCT 	
+   StatusCommand : DWORD ;	
+   NoSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   IdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   NoRcvDataSet : BYTE ;	//de: Nummer Empfangsdatensatz
+   IdxRcvDataSet : BYTE ;	//de: Index Empfangsdatensatz
+   Data : STRUCT 	
+    Byte8_9 : INT ;	
+    Byte10_11 : INT ;	
+    Byte12_13 : INT ;	
+    Byte14_15 : INT ;	
+    Byte16_17 : INT ;	
+    Byte18_19 : INT ;	
+    Byte20_21 : INT ;	
+    Byte22 : BYTE ;	
+    Byte23 : BYTE ;	
+   END_STRUCT ;	
+  END_STRUCT ;	
+  DPData16 : STRUCT 	
+   StatusCommand : DWORD ;	
+   NoSndDataSet : BYTE ;	//de: Nummer Sendedatensatz
+   IdxSndDataSet : BYTE ;	//de: Index Sendedatensatz
+   NoRcvDataSet : BYTE ;	//de: Nummer Empfangsdatensatz
+   IdxRcvDataSet : BYTE ;	//de: Index Empfangsdatensatz
+   Data : ARRAY  [1 .. 4 ] OF DINT ;	
+  END_STRUCT ;	
+  DPData_Alarm : ARRAY  [0 .. 127 ] OF BOOL ;	
+  tmpAddrSide1OutLCAlarm : DWORD ;	
+  tmpAddrSide2OutLCAlarm : DWORD ;	
+  tmpAddrSide3OutLCAlarm : DWORD ;	
+  tmpAddrSide4OutLCAlarm : DWORD ;	
+  tmpAddrOut_OutLCAlarm : DWORD ;	
+  tmpAddrOut_tmpLCAlarm : DWORD ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE = Start Global
+
+      TAR2  ; 
+      L     DW#16#FFFFFF; 
+      UD    ; 
+      T     #tmpAddrOffset; //-->Addr Para
+      L     P##Par; //[3.1]
+      +D    ; //[3.1]
+      L     P#8.0; 
+      +D    ; 
+      T     #tmpAddrParFilter; //-->Pointer to Par.ParFilter
+      L     P#6.0; 
+      +D    ; 
+      T     #tmpAddrParFilterWarning; //-->Pointer to Par.ParFilterWarning
+      SET   ; 
+      R     #tmpHornOn; 
+      CALL "SYS_BitAddress" (
+           Source                   := #Side1.Out.OutLCAlarm,
+           OutBitAddr               := #tmpAddrSide1OutLCAlarm);
+      CALL "SYS_BitAddress" (
+           Source                   := #Side2.Out.OutLCAlarm,
+           OutBitAddr               := #tmpAddrSide2OutLCAlarm);
+      CALL "SYS_BitAddress" (
+           Source                   := #Side1Divide.Out.OutLCAlarm,
+           OutBitAddr               := #tmpAddrSide3OutLCAlarm);
+      CALL "SYS_BitAddress" (
+           Source                   := #Side2Divide.Out.OutLCAlarm,
+           OutBitAddr               := #tmpAddrSide4OutLCAlarm);
+
+NETWORK
+TITLE =PC Control
+//=== Test Object number =====================
+      L     "SYS_DirectCtrlDB".PC.ObjectNo; //PCControl.ObjectNo
+      L     #Par.ParObjectNo; //Input ObjectNo
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test OType      ========================
+      L     1012; //Input object type
+      L     "SYS_DirectCtrlDB".PC.ObjectType; //PCControl.ObjectType
+      <>I   ; 
+      SPB   Ctrl; 
+//=== Test Handshake =========================
+      U     "SYS_DirectCtrlDB".PC.Hsk.FExamine; // Handshake.FExamine
+      SPB   pExa; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefineCmd; // Handshake.FDefineCmd
+      SPB   pCmd; 
+      U     "SYS_DirectCtrlDB".PC.Hsk.FDefinePara; // Handshake.FDefinePara
+      SPB   pPar; 
+      SPA   pIni; 
+pIni: L     2; //FcInit
+      UC    "SYS_DirectCtrl"; 
+      SPA   Ctrl; 
+//Write parameter 
+pPar: NOP   0; 
+//Write new commands from PC to Interface of group 
+pCmd: U     "SYS_DirectCtrlDB".PC.Cmd1[11]; //CmdFaultReset
+      S     #CmdFaultReset; 
+//------------------------------------------
+pExa: NOP   0; 
+      TAR2  ; // Address Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynAddr; // -->PCControl.GC.InDynAddr
+      L     288; // Length Dynamic datas
+      T     "SYS_DirectCtrlDB".GC.InDynLen; // -->PCControl.GC.InDynLen
+      L     0; 
+      T     "SYS_DirectCtrlDB".GC.InParaAddr; // -->PCControl.GC.InParaAddr
+      T     "SYS_DirectCtrlDB".GC.InParaLen; // -->PCControl.GC.InParaLen
+      L     1; // Code FcExamine
+      UC    "SYS_DirectCtrl"; 
+      L     10; //Revision
+      T     "SYS_DirectCtrlDB".GC.Revision; 
+Ctrl: NOP   0; 
+NETWORK
+TITLE =(Profibus) Read data and store Data 
+
+      L     #Par.ParIOByteNo; 
+      T     #tmpAddr; 
+      U     #InSimulation; 
+      SPB   rSim; 
+      CALL "SIEMENS_DPRD_DAT" (
+           LADDR                    := #tmpAddr,
+           RET_VAL                  := #tmpReturn,
+           RECORD                   := #DPData);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultRead; 
+      SPB   rcv0; 
+      SPA   rDP; 
+//read from Simulation
+rSim: R     #Par.HelpFlags.OutComFaultRead; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#E 0.0; 
+      SPB   rDB1; 
+      AUF   "TEST_IOSimuliInput"; 
+      L     P#DBX 0.0; 
+rDB1: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      T     #tmpAddrIO; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#0.0]; 
+      T     #DPData.StatusCommand; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#4.0]; 
+      LAR1  P##DPData; 
+      T     LD [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#8.0]; 
+      LAR1  P##DPData; 
+      T     LD [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#12.0]; 
+      LAR1  P##DPData; 
+      T     LD [AR1,P#12.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#16.0]; 
+      LAR1  P##DPData; 
+      T     D [AR1,P#16.0]; 
+      LAR1  #tmpAddrIO; 
+      L     D [AR1,P#20.0]; 
+      LAR1  P##DPData; 
+      T     D [AR1,P#20.0]; 
+//===Test Send Data
+rDP:  L     #DPData.NoSndDataSet; 
+      L     #Par.OutNoSndDataSet; 
+      ==I   ; 
+      U(    ; 
+      L     #DPData.IdxSndDataSet; 
+      L     #Par.OutIdxSndDataSet; 
+      ==I   ; 
+      )     ; 
+      =     #tmpSendDone; 
+//==Copy Status===============
+      L     #DPData.NoRcvDataSet; 
+      L     0; 
+      ==I   ; 
+      SPB   R01A; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.StatusCommand,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #Status);
+      UN    #Status.NewRcvData; 
+      U     #InSimulation; 
+      SPB   rcv0; 
+//===============================
+//Answer Dataset 001
+      L     #DPData.NoRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r02; 
+//Answer Dataset 001 Index 1
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r01B; 
+      L     #DPData.Data.Byte8_9; 
+      T     #Side1.Out.OutRollsUpLoad; 
+      L     #DPData.Data.Byte10_11; 
+      T     #Side1.Out.OutRollsUpCurrent; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side1.Out.OutRollsLowLoad; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side1.Out.OutRollsLowCurrent; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side1.Out.OutFeedRollSpeed; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side1.Out.OutGrindingRollsUpSpeed; 
+      L     #DPData.Data.Byte20_21; 
+      T     #Side1.Out.OutGrindingRollsLowSpeed; 
+      L     #DPData.Data.Byte23; 
+      T     #Side1.Out.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #Side1.OutAlarmNoValid; 
+      SPB   r1Ax; 
+      S     #Side1.OutAlarmNoValid; 
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpReturn,
+           BLK                      := #Side1.Out.OutLCAlarm);
+r1Ax: NOP   0; 
+      SPA   R01B; 
+//Answer Dataset 001 Index 2
+r01B: L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r01C; 
+      L     #DPData.Data.Byte8_9; 
+      T     #Side2.Out.OutRollsUpLoad; 
+      L     #DPData.Data.Byte10_11; 
+      T     #Side2.Out.OutRollsUpCurrent; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side2.Out.OutRollsLowLoad; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side2.Out.OutRollsLowCurrent; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side2.Out.OutFeedRollSpeed; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side2.Out.OutGrindingRollsUpSpeed; 
+      L     #DPData.Data.Byte20_21; 
+      T     #Side2.Out.OutGrindingRollsLowSpeed; 
+      L     #DPData.Data.Byte23; 
+      T     #Side2.Out.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #Side2.OutAlarmNoValid; 
+      SPB   r1Bx; 
+      S     #Side2.OutAlarmNoValid; 
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpReturn,
+           BLK                      := #Side2.Out.OutLCAlarm);
+r1Bx: NOP   0; 
+      SPA   R01C; 
+//Answer Dataset 001 Index 3
+r01C: L     #DPData.IdxRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      SPB   r02; 
+//--Side1 Ext
+      L     #DPData.Data.Byte8_9; 
+      T     #Side1Divide.Out.OutProductLevel; 
+      L     #DPData.Data.Byte10_11; 
+      T     #Side1Divide.Out.OutFeedRollSpeed; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side1Divide.Out.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #Side1Divide.OutAlarmNoValid; 
+      SPB   r1Cx; 
+      S     #Side1Divide.OutAlarmNoValid; 
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpReturn,
+           BLK                      := #Side1Divide.Out.OutLCAlarm);
+r1Cx: NOP   0; 
+      L     #DPData.Data.Byte23; 
+      L     2#1; 
+      UW    ; 
+      L     0; 
+      <>I   ; 
+      =     #Side1Divide.Out.OutHLInlet; 
+//--Side2 Ext
+      L     #DPData.Data.Byte16_17; 
+      T     #Side2Divide.Out.OutProductLevel; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side2Divide.Out.OutFeedRollSpeed; 
+      L     #DPData.Data.Byte20_21; 
+      T     #Side2Divide.Out.OutAlarmNo; 
+      L     0; 
+      <>I   ; 
+      U     #Side2Divide.OutAlarmNoValid; 
+      SPB   r1Dx; 
+      S     #Side2Divide.OutAlarmNoValid; 
+      L     0; 
+      T     #tmpInt; 
+      CALL "SIEMENS_FILL" (
+           BVAL                     := #tmpInt,
+           RET_VAL                  := #tmpReturn,
+           BLK                      := #Side2Divide.Out.OutLCAlarm);
+r1Dx: NOP   0; 
+      L     #DPData.Data.Byte23; 
+      L     2#10000; 
+      UW    ; 
+      L     0; 
+      <>I   ; 
+      =     #Side2Divide.Out.OutHLInlet; 
+      SPA   R02A; 
+//===============================
+//Answer Dataset 002
+r02:  L     #DPData.NoRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r03; 
+//Answer Dataset 002 Index 1
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r02B; //[5.0]
+      L     #DPData.Data.Byte8_9; 
+      T     #Side1.Out.OutProductLevel; 
+      L     #DPData.Data.Byte10_11; 
+      T     #Side1.Out.OutTemperatureHoot; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side1.Out.OutRunningTimeEngage; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side1.Out.OutRunningTimeRollsUp; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side1.Out.OutRunningTimeRollsLow; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side1.Out.OutCntEngage; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data.Byte20_21,
+           RET_VAL                  := #tmpInt,
+           DSTBLK                   := #Side1.Out.OutStatus);
+      SPA   R02B; 
+//Answer Dataset 002 Index 1
+r02B: L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r03; //[5.0]
+      L     #DPData.Data.Byte8_9; 
+      T     #Side2.Out.OutProductLevel; 
+      L     #DPData.Data.Byte10_11; 
+      T     #Side2.Out.OutTemperatureHoot; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side2.Out.OutRunningTimeEngage; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side2.Out.OutRunningTimeRollsUp; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side2.Out.OutRunningTimeRollsLow; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side2.Out.OutCntEngage; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data.Byte20_21,
+           RET_VAL                  := #tmpInt,
+           DSTBLK                   := #Side2.Out.OutStatus);
+      SPA   R03A; 
+//===============================
+//Answer Dataset 003
+r03:  L     #DPData.NoRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      SPB   r11; 
+//Answer Dataset 003 Index 1
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r03B; //[5.0]
+      L     #DPData.Data.Byte8_9; 
+      SRW   8; 
+      T     #Side1.Out.OutGapAdjustmentStatus; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side1.Out.OutGapTopLeftAct; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side1.Out.OutGapTopRightAct; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side1.Out.OutGapBottomLeftAct; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side1.Out.OutGapBottomRightAct; 
+      SPA   R03B; 
+//Answer Dataset 002 Index 1
+r03B: L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r11; //[5.0]
+      L     #DPData.Data.Byte8_9; 
+      SRW   8; 
+      T     #Side2.Out.OutGapAdjustmentStatus; 
+      L     #DPData.Data.Byte12_13; 
+      T     #Side2.Out.OutGapTopLeftAct; 
+      L     #DPData.Data.Byte14_15; 
+      T     #Side2.Out.OutGapTopRightAct; 
+      L     #DPData.Data.Byte16_17; 
+      T     #Side2.Out.OutGapBottomLeftAct; 
+      L     #DPData.Data.Byte18_19; 
+      T     #Side2.Out.OutGapBottomRightAct; 
+      SPA   R11; 
+//===Answer  dataset 11 ====
+//===Answer  dataset 12 ====
+r11:  L     #DPData.NoRcvDataSet; 
+      L     11; 
+      <>I   ; 
+      SPB   rLCB; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData16.Data);
+// Answer Dataset 11
+      L     '  '; 
+      T     "SYS_DirectCtrlLCDB".PC.Value[1]; 
+      L     #DPData16.Data[1]; 
+      T     DB10.DBD   60; 
+      L     #DPData16.Data[2]; 
+      T     DB10.DBD   64; 
+      L     #DPData16.Data[3]; 
+      T     DB10.DBD   68; 
+      L     #DPData16.Data[4]; 
+      T     DB10.DBD   72; 
+      L     #DPData.IdxRcvDataSet; 
+      L     255; 
+      ==I   ; 
+      SPB   rLCE; 
+      S     "SYS_DirectCtrlLCDB".GC.Set11Done; 
+      L     12; 
+      T     #DPData.NoRcvDataSet; 
+      L     0; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; //--> Read dataset 12
+// Answer Dataset 12
+rLCB: L     #DPData.NoRcvDataSet; 
+      L     12; 
+      <>I   ; 
+      SPB   r120; 
+      L     #DPData16.Data[1]; 
+      T     DB10.DBD   76; 
+      L     #DPData16.Data[2]; 
+      T     DB10.DBD   80; 
+      L     #DPData16.Data[3]; 
+      T     DB10.DBD   84; 
+      L     #DPData16.Data[4]; 
+      T     DB10.DBD   86; 
+      UN    "SYS_DirectCtrlLCDB".GC.Set11Done; 
+      SPB   R20A; 
+rLCE: L     12; 
+      CALL "SYS_DirectCtrl" ;
+      SPA   R20A; 
+//===============================
+//Answer Dataset 002
+r120: L     #DPData.NoRcvDataSet; 
+      L     120; 
+      <>I   ; 
+      SPB   r28A; 
+      CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #DPData.Data,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData_Alarm);
+//Prepare Alarm Pattern
+      LAR1  P##tmpNewAlarm; 
+      L     0; 
+      T     LD [AR1,P#0.0]; 
+      T     LW [AR1,P#4.0]; 
+      U     #DPData_Alarm[1]; 
+      =     #tmpNewAlarm.A001Eprom; 
+      U     #DPData_Alarm[2]; 
+      =     #tmpNewAlarm.A002RAM; 
+      U     #DPData_Alarm[3]; 
+      =     #tmpNewAlarm.A003RTIME; 
+      U     #DPData_Alarm[4]; 
+      =     #tmpNewAlarm.A004SWDog; 
+      U     #DPData_Alarm[5]; 
+      =     #tmpNewAlarm.A005No24V; 
+      U     #DPData_Alarm[6]; 
+      =     #tmpNewAlarm.A006LostMemory; 
+      U     #DPData_Alarm[30]; 
+      =     #tmpNewAlarm.A030Zero; 
+      U     #DPData_Alarm[31]; 
+      =     #tmpNewAlarm.A031Range; 
+      U     #DPData_Alarm[32]; 
+      =     #tmpNewAlarm.A032ROD; 
+      U     #DPData_Alarm[50]; 
+      =     #tmpNewAlarm.A050FRoll1; 
+      U     #DPData_Alarm[51]; 
+      =     #tmpNewAlarm.A051FRoll2; 
+      U     #DPData_Alarm[52]; 
+      =     #tmpNewAlarm.A052RollUp; 
+      U     #DPData_Alarm[53]; 
+      =     #tmpNewAlarm.A053RollLow; 
+      U     #DPData_Alarm[54]; 
+      =     #tmpNewAlarm.A054MotUp; 
+      U     #DPData_Alarm[55]; 
+      =     #tmpNewAlarm.A055MotLow; 
+      U     #DPData_Alarm[56]; 
+      =     #tmpNewAlarm.A056STBYUP; 
+      U     #DPData_Alarm[57]; 
+      =     #tmpNewAlarm.A057STBYDN; 
+      U     #DPData_Alarm[58]; 
+      =     #tmpNewAlarm.A058M_Stop; 
+      U     #DPData_Alarm[59]; 
+      =     #tmpNewAlarm.A059M_Stop; 
+      U     #DPData_Alarm[60]; 
+      =     #tmpNewAlarm.A060HLInlet; 
+      U     #DPData_Alarm[61]; 
+      =     #tmpNewAlarm.A061HLOut1; 
+      U     #DPData_Alarm[62]; 
+      =     #tmpNewAlarm.A062HLOut2; 
+      U     #DPData_Alarm[63]; 
+      =     #tmpNewAlarm.A063HLOut3; 
+      U     #DPData_Alarm[64]; 
+      =     #tmpNewAlarm.A064HLBackupLeft; 
+      U     #DPData_Alarm[65]; 
+      =     #tmpNewAlarm.W065HLBackupLeft; 
+      U     #DPData_Alarm[66]; 
+      =     #tmpNewAlarm.A066HLBackupRight; 
+      U     #DPData_Alarm[67]; 
+      =     #tmpNewAlarm.W067HLBackupRight; 
+      U     #DPData_Alarm[68]; 
+      =     #tmpNewAlarm.A068InletFull; 
+      U     #DPData_Alarm[69]; 
+      =     #tmpNewAlarm.A069DosMax; 
+      U     #DPData_Alarm[70]; 
+      =     #tmpNewAlarm.A070CANCOM; 
+      U     #DPData_Alarm[71]; 
+      =     #tmpNewAlarm.A071CANMOD; 
+      U     #DPData_Alarm[72]; 
+      =     #tmpNewAlarm.A072CANDOUT; 
+      U     #DPData_Alarm[75]; 
+      =     #tmpNewAlarm.W075WarnTemp; 
+      U     #DPData_Alarm[76]; 
+      =     #tmpNewAlarm.A076HighTemp; 
+//Answer Dataset 120 Index 1
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r20B; 
+      S     #Side1.OutAlarmNoValid; 
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrSide1OutLCAlarm; 
+      T     DID [AR1,P#0.0]; 
+      SPA   R20B; 
+//Answer Dataset 120 Index 2
+r20B: L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   r20C; 
+      S     #Side2.OutAlarmNoValid; 
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrSide2OutLCAlarm; 
+      T     DID [AR1,P#0.0]; 
+      SPA   R20C; 
+//Answer Dataset 120 Index 3
+r20C: L     #DPData.IdxRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      SPB   r20D; 
+      S     #Side1Divide.OutAlarmNoValid; 
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrSide3OutLCAlarm; 
+      T     DID [AR1,P#0.0]; 
+      SPA   R20D; 
+//Answer Dataset 120 Index 3
+r20D: L     #DPData.IdxRcvDataSet; 
+      L     4; 
+      <>I   ; 
+      SPB   r28A; 
+      S     #Side2Divide.OutAlarmNoValid; 
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrSide4OutLCAlarm; 
+      T     DID [AR1,P#0.0]; 
+      SPA   R28A; 
+//===============================
+//Answer  dataset 128
+r28A: L     #DPData.NoRcvDataSet; 
+      L     128; 
+      <>I   ; 
+      SPB   R01A; 
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   r28B; 
+
+
+      SPA   R28B; 
+r28B: L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   R01A; 
+
+      SPA   R01A; 
+//===============================
+//Read Dataset 001 Index 1
+R01A: L     1; 
+      T     #DPData.NoRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 001   Index 2
+R01B: L     1; 
+      T     #DPData.NoRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 001   Index 3
+R01C: UN    #Par.ParSide1Divided; 
+      UN    #Par.ParSide2Divided; 
+      SPB   R02A; 
+      L     1; 
+      T     #DPData.NoRcvDataSet; 
+      L     3; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 002 Index 1
+R02A: L     2; 
+      T     #DPData.NoRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 001   Index 2
+R02B: L     2; 
+      T     #DPData.NoRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 003 Index 1
+R03A: L     3; 
+      T     #DPData.NoRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 003   Index 2
+R03B: L     3; 
+      T     #DPData.NoRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//LC Parameter: Reading dataset 11
+R11:  L     "SYS_DirectCtrlLCDB".PC.ObjectNo; 
+      L     #Par.ParObjectNo; 
+      <>D   ; 
+      SPB   R20A; 
+      UN    "SYS_DirectCtrlLCDB".PC.Hsk.FExamineFirst; 
+      UN    "SYS_DirectCtrlLCDB".PC.Hsk.FExamineNext; 
+      SPB   R20A; 
+// -- Start Reading with Dataset 11
+      L     11; 
+      T     #DPData.NoRcvDataSet; 
+      L     253; //First
+      U     "SYS_DirectCtrlLCDB".PC.Hsk.FExamineFirst; 
+      SPB   rLC9; 
+      L     254; //Next
+rLC9: T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 120   Index 1
+R20A: L     #Side1.Out.OutAlarmNo; 
+      L     0; 
+      ==I   ; 
+      SPB   R20B; 
+      L     120; 
+      T     #DPData.NoRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//Read Dataset 120   Index 2
+R20B: L     #Side2.Out.OutAlarmNo; 
+      L     0; 
+      ==I   ; 
+      SPB   R20C; 
+      L     120; 
+      T     #DPData.NoRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//Read Dataset 120   Index 3
+R20C: L     #Side1Divide.Out.OutAlarmNo; 
+      L     0; 
+      ==I   ; 
+      SPB   R20D; 
+      L     120; 
+      T     #DPData.NoRcvDataSet; 
+      L     3; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//Read Dataset 120   Index 4
+R20D: L     #Side2Divide.Out.OutAlarmNo; 
+      L     0; 
+      ==I   ; 
+      SPB   R28A; 
+      L     120; 
+      T     #DPData.NoRcvDataSet; 
+      L     4; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+//Read Dataset 128 Index 1
+R28A: SPA   R01A; 
+      L     128; 
+      T     #DPData.NoRcvDataSet; 
+      L     1; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+R28B: L     128; 
+      T     #DPData.NoRcvDataSet; 
+      L     2; 
+      T     #DPData.IdxRcvDataSet; 
+      SPA   rcv0; 
+//===============================
+rcv0: NOP   0; 
+NETWORK
+TITLE = All State Init
+//===Clear tmp Variable
+//===Global Group Orders===
+      U     #InLocal; 
+      =     #tmpLocal; 
+//---Force Off------
+//---FaultReset is on---
+      U     "GCS7_Gr_OutFaultReset"; //Gr.OutFaultReset
+      S     #CmdFaultReset; 
+//---CmdNewJob
+      U     #CmdNewJob; 
+      S     #Side1.CmdNewJob; 
+      S     #Side2.CmdNewJob; 
+      R     #CmdNewJob; 
+//---CmdNewValue
+      U     #CmdNewValue; 
+      S     #Side1.CmdNewValue; 
+      S     #Side2.CmdNewValue; 
+      R     #CmdNewValue; 
+//OutManual
+      L     #Side1.Out.OutGapAdjustmentStatus; 
+      L     2; //Manual
+      ==I   ; 
+      =     #Side1.OutManual; 
+      L     #Side2.Out.OutGapAdjustmentStatus; 
+      L     2; //Manual
+      ==I   ; 
+      =     #Side2.OutManual; 
+//OutComFault
+      U     #Par.HelpFlags.OutComFaultRead; 
+      O     #Par.HelpFlags.OutComFaultSend; 
+      =     #OutComFault; 
+NETWORK
+TITLE =Analyse Alarm and Log Entry
+
+      L     1; 
+LAJ0: T     #tmpIdx; 
+      L     1; 
+      <>I   ; 
+      SPB   LAP2; 
+      L     #tmpAddrSide1OutLCAlarm; 
+      T     #tmpAddrOut_OutLCAlarm; 
+      U     #Side1.OutAlarmNoValid; 
+      =     #tmpPxAlarmNoValid; 
+      SPA   LAJ1; 
+LAP2: L     2; //Passage Right
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAP3; 
+      L     #tmpAddrSide2OutLCAlarm; 
+      T     #tmpAddrOut_OutLCAlarm; 
+      U     #Side2.OutAlarmNoValid; 
+      =     #tmpPxAlarmNoValid; 
+      SPA   LAJ1; 
+LAP3: L     3; //Passage Divide Left
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAP4; 
+      L     #tmpAddrSide3OutLCAlarm; 
+      T     #tmpAddrOut_OutLCAlarm; 
+      U     #Side1Divide.OutAlarmNoValid; 
+      =     #tmpPxAlarmNoValid; 
+      SPA   LAJ1; 
+LAP4: L     4; //Passage Divide Right
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAJ9; 
+      L     #tmpAddrSide4OutLCAlarm; 
+      T     #tmpAddrOut_OutLCAlarm; 
+      U     #Side2Divide.OutAlarmNoValid; 
+      =     #tmpPxAlarmNoValid; 
+      SPA   LAJ1; 
+//Check Alarm Mumber
+LAJ1: NOP   0; 
+//--------------------------------------------
+//Copy New Alarm from current index to stack tmpNewAlarm
+      L     #tmpAddrOut_OutLCAlarm; 
+      L     P#4.0; 
+      +D    ; 
+      T     #tmpAddrOut_tmpLCAlarm; 
+      LAR1  #tmpAddrOut_OutLCAlarm; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  #tmpAddrParFilter; 
+      L     DID [AR1,P#0.0]; //#Par.ParFilter;
+      INVD  ; //Invers filter mask
+      UD    ; //Resetfiltered bits
+      LAR1  P##tmpNewAlarm; 
+      T     LD [AR1,P#0.0]; //-->tmpNewAlarm 
+
+      LAR1  #tmpAddrOut_OutLCAlarm; 
+      L     DIW [AR1,P#4.0]; 
+      LAR1  #tmpAddrParFilter; 
+      L     DIW [AR1,P#4.0]; //#Par.ParFilter;
+      INVD  ; //Invers filter mask
+      UD    ; //Resetfiltered bits
+      LAR1  P##tmpNewAlarm; 
+      T     LW [AR1,P#4.0]; //-->tmpNewAlarm 
+//Copy Old Alarm from current index to stack tmpOldAlarm
+      LAR1  #tmpAddrOut_tmpLCAlarm; 
+      L     DID [AR1,P#0.0]; 
+      LAR1  P##tmpOldAlarm; 
+      T     LD [AR1,P#0.0]; //tmpOldAlarm 
+      LAR1  #tmpAddrOut_tmpLCAlarm; 
+      L     DIW [AR1,P#4.0]; 
+      LAR1  P##tmpOldAlarm; 
+      T     LW [AR1,P#4.0]; //tmpOldAlarm 
+//Copy Par.ParFilterWarning to tmpParFilterWarning;
+      LAR1  #tmpAddrParFilterWarning; 
+      L     DID [AR1,P#0.0]; //Par.ParFilterWarning
+      LAR1  P##tmpParFilterWarning; 
+      T     LD [AR1,P#0.0]; //tmpParFilterWarning
+      LAR1  #tmpAddrParFilterWarning; 
+      L     DIW [AR1,P#4.0]; //Par.ParFilterWarning
+      LAR1  P##tmpParFilterWarning; 
+      T     LW [AR1,P#4.0]; //tmpParFilterWarning
+      U     #InOverrideHL; 
+      S     #tmpParFilterWarning.A060HLInlet; 
+//-------------
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; //-->tmpNewAlarm 
+      LAR1  P##tmpParFilterWarning; 
+      L     LD [AR1,P#0.0]; //tmpParFilterWarning
+      INVD  ; //Invers filter mask
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      O(    ; 
+      LAR1  P##tmpNewAlarm; 
+      L     LW [AR1,P#4.0]; //-->tmpNewAlarm 
+      LAR1  P##tmpParFilterWarning; 
+      L     LW [AR1,P#4.0]; //tmpParFilterWarning
+      INVD  ; //Invers filter mask
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      )     ; 
+      =     #tmpPxFault; 
+      LAR1  P##tmpNewAlarm; 
+      L     LD [AR1,P#0.0]; //-->tmpNewAlarm 
+      LAR1  P##tmpParFilterWarning; 
+      L     LD [AR1,P#0.0]; //tmpParFilterWarning
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      O(    ; 
+      LAR1  P##tmpNewAlarm; 
+      L     LW [AR1,P#0.0]; //-->tmpNewAlarm 
+      LAR1  P##tmpParFilterWarning; 
+      L     LW [AR1,P#0.0]; //#Par.ParFilterWarning;
+      UD    ; 
+      L     0; 
+      <>D   ; 
+      )     ; 
+      =     #tmpPxWarning; 
+//-------------
+//Check New Message
+      U     #tmpPxFault; 
+      U     #tmpPxAlarmNoValid; 
+      UN    #tmpLocal; 
+      SPB   LANM; 
+//Clear old Message
+      L     0; 
+      LAR1  P##tmpOldAlarm; 
+      T     LD [AR1,P#0.0]; 
+      SPA   LAST; //-Store Data
+//-------------
+LANM: L     B#(4, 1); 
+      U     #tmpNewAlarm.A001Eprom; 
+      FP    #tmpOldAlarm.A001Eprom; 
+      SPB   LALG; 
+      L     B#(4, 2); 
+      U     #tmpNewAlarm.A002RAM; 
+      FP    #tmpOldAlarm.A002RAM; 
+      SPB   LALG; 
+      L     B#(4, 3); 
+      U     #tmpNewAlarm.A003RTIME; 
+      FP    #tmpOldAlarm.A003RTIME; 
+      SPB   LALG; 
+      L     B#(4, 4); 
+      U     #tmpNewAlarm.A004SWDog; 
+      FP    #tmpOldAlarm.A004SWDog; 
+      SPB   LALG; 
+      L     B#(4, 5); 
+      U     #tmpNewAlarm.A005No24V; 
+      FP    #tmpOldAlarm.A005No24V; 
+      SPB   LALG; 
+      L     B#(4, 6); 
+      U     #tmpNewAlarm.A006LostMemory; 
+      FP    #tmpOldAlarm.A006LostMemory; 
+      SPB   LALG; 
+      L     B#(4, 10); 
+      U     #tmpNewAlarm.A030Zero; 
+      FP    #tmpOldAlarm.A030Zero; 
+      SPB   LALG; 
+      L     B#(4, 11); 
+      U     #tmpNewAlarm.A031Range; 
+      FP    #tmpOldAlarm.A031Range; 
+      SPB   LALG; 
+      L     B#(4, 12); 
+      U     #tmpNewAlarm.A032ROD; 
+      FP    #tmpOldAlarm.A032ROD; 
+      SPB   LALG; 
+      L     B#(4, 20); 
+      U     #tmpNewAlarm.A050FRoll1; 
+      FP    #tmpOldAlarm.A050FRoll1; 
+      SPB   LALG; 
+      L     B#(4, 21); 
+      U     #tmpNewAlarm.A051FRoll2; 
+      FP    #tmpOldAlarm.A051FRoll2; 
+      SPB   LALG; 
+      L     B#(4, 22); 
+      U     #tmpNewAlarm.A052RollUp; 
+      FP    #tmpOldAlarm.A052RollUp; 
+      SPB   LALG; 
+      L     B#(4, 23); 
+      U     #tmpNewAlarm.A053RollLow; 
+      FP    #tmpOldAlarm.A053RollLow; 
+      SPB   LALG; 
+      L     B#(4, 24); 
+      U     #tmpNewAlarm.A054MotUp; 
+      FP    #tmpOldAlarm.A054MotUp; 
+      SPB   LALG; 
+      L     B#(4, 25); 
+      U     #tmpNewAlarm.A055MotLow; 
+      FP    #tmpOldAlarm.A055MotLow; 
+      SPB   LALG; 
+      L     B#(4, 26); 
+      U     #tmpNewAlarm.A056STBYUP; 
+      FP    #tmpOldAlarm.A056STBYUP; 
+      SPB   LALG; 
+      L     B#(4, 27); 
+      U     #tmpNewAlarm.A057STBYDN; 
+      FP    #tmpOldAlarm.A057STBYDN; 
+      SPB   LALG; 
+      L     B#(4, 28); 
+      U     #tmpNewAlarm.A058M_Stop; 
+      FP    #tmpOldAlarm.A058M_Stop; 
+      SPB   LALG; 
+      L     B#(4, 29); 
+      U     #tmpNewAlarm.A059M_Stop; 
+      FP    #tmpOldAlarm.A059M_Stop; 
+      SPB   LALG; 
+      L     B#(4, 30); 
+      U     #tmpNewAlarm.A060HLInlet; 
+      FP    #tmpOldAlarm.A060HLInlet; 
+      SPB   LALG; 
+      L     B#(4, 31); 
+      U     #tmpNewAlarm.A061HLOut1; 
+      FP    #tmpOldAlarm.A061HLOut1; 
+      SPB   LALG; 
+      L     B#(4, 32); 
+      U     #tmpNewAlarm.A062HLOut2; 
+      FP    #tmpOldAlarm.A062HLOut2; 
+      SPB   LALG; 
+      L     B#(4, 33); 
+      U     #tmpNewAlarm.A063HLOut3; 
+      FP    #tmpOldAlarm.A063HLOut3; 
+      SPB   LALG; 
+      L     B#(4, 34); 
+      U     #tmpNewAlarm.A064HLBackupLeft; 
+      FP    #tmpOldAlarm.A064HLBackupLeft; 
+      SPB   LALG; 
+      L     B#(4, 35); 
+      U     #tmpNewAlarm.W065HLBackupLeft; 
+      FP    #tmpOldAlarm.W065HLBackupLeft; 
+      SPB   LALG; 
+      L     B#(4, 36); 
+      U     #tmpNewAlarm.A066HLBackupRight; 
+      FP    #tmpOldAlarm.A066HLBackupRight; 
+      SPB   LALG; 
+      L     B#(4, 37); 
+      U     #tmpNewAlarm.W067HLBackupRight; 
+      FP    #tmpOldAlarm.W067HLBackupRight; 
+      SPB   LALG; 
+      L     B#(4, 38); 
+      U     #tmpNewAlarm.A068InletFull; 
+      FP    #tmpOldAlarm.A068InletFull; 
+      SPB   LALG; 
+      L     B#(4, 39); 
+      U     #tmpNewAlarm.A069DosMax; 
+      FP    #tmpOldAlarm.A069DosMax; 
+      SPB   LALG; 
+      L     B#(4, 40); 
+      U     #tmpNewAlarm.A070CANCOM; 
+      FP    #tmpOldAlarm.A070CANCOM; 
+      SPB   LALG; 
+      L     B#(4, 41); 
+      U     #tmpNewAlarm.A071CANMOD; 
+      FP    #tmpOldAlarm.A071CANMOD; 
+      SPB   LALG; 
+      L     B#(4, 43); 
+      U     #tmpNewAlarm.A072CANDOUT; 
+      FP    #tmpOldAlarm.A072CANDOUT; 
+      SPB   LALG; 
+      L     B#(4, 45); 
+      U     #tmpNewAlarm.W075WarnTemp; 
+      FP    #tmpOldAlarm.W075WarnTemp; 
+      SPB   LALG; 
+      L     B#(4, 46); 
+      U     #tmpNewAlarm.A076HighTemp; 
+      FP    #tmpOldAlarm.A076HighTemp; 
+      SPB   LALG; 
+      SPA   LAJ8; 
+//Enter Log message
+LALG: U     #Par.ParLogOff; 
+      SPB   LAST; 
+      T     #tmpLOGvalue; 
+      L     #tmpIdx; 
+      +     -1; 
+      L     50; 
+      *I    ; 
+      L     #tmpLOGvalue; 
+      +I    ; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1037);
+//============================================================
+//Store Old Alarm from stack tmpOldAlarm to current index to stack
+LAST: LAR1  P##tmpOldAlarm; 
+      L     LD [AR1,P#0.0]; 
+      LAR1  #tmpAddrOut_tmpLCAlarm; 
+      T     DID [AR1,P#0.0]; 
+//Store Data of Index
+      UN    #tmpPxAlarmNoValid; 
+      SPB   LAJ8; 
+      L     1; 
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAI2; 
+      U     #tmpPxFault; 
+      =     #Side1.OutLCFault; 
+      U     #tmpPxWarning; 
+      =     #Side1.OutLCWarning; 
+      SPA   LAJ8; 
+LAI2: L     2; 
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAI3; 
+      U     #tmpPxFault; 
+      =     #Side2.OutLCFault; 
+      U     #tmpPxWarning; 
+      =     #Side2.OutLCWarning; 
+      SPA   LAJ8; 
+LAI3: L     3; 
+      L     #tmpIdx; 
+      <>I   ; 
+      SPB   LAI4; 
+      U     #tmpPxFault; 
+      =     #Side1Divide.OutLCFault; 
+      U     #tmpPxWarning; 
+      =     #Side1Divide.OutLCWarning; 
+      SPA   LAJ8; 
+LAI4: U     #tmpPxFault; 
+      =     #Side2Divide.OutLCFault; 
+      U     #tmpPxWarning; 
+      =     #Side2Divide.OutLCWarning; 
+      SPA   LAJ8; 
+//---Next Passage-----
+LAJ8: L     #tmpIdx; //Next Index
+      +     1; 
+      SPA   LAJ0; 
+LAJ9: NOP   0; 
+NETWORK
+TITLE =Side1 Upload Recipe: Save Position  
+
+      NOP   0; 
+//Answer Dataset 003 Index 1
+      L     #DPData.NoRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      O(    ; 
+      L     #DPData.IdxRcvDataSet; 
+      L     1; 
+      <>I   ; 
+      )     ; 
+      R     #Command.S1AckNewGapStatus; 
+      SPB   GC1E; 
+//Side1: Handshake with PC : AckRegister
+      L     #Side1.Out.OutGapAdjustmentStatus; 
+      L     5; 
+      ==I   ; 
+      UN    #PCWrite.Hsk.AckRegisterSide1; 
+      S     #PCRead.Hsk.ReqRegisterSide1; 
+      <>I   ; 
+      O     #PCWrite.Hsk.AckRegisterSide1; 
+      R     #PCRead.Hsk.ReqRegisterSide1; 
+      <>I   ; 
+      ON    #Status.S1NewGapStatus; 
+      R     #PCWrite.Hsk.AckRegisterSide1; 
+//Side 1 Handshake with PC RollChangeDone
+      L     #Side1.Out.OutGapAdjustmentStatus; 
+      L     6; 
+      ==I   ; 
+      UN    #PCWrite.Hsk.AckRollChangeDoneSide1; 
+      S     #PCRead.Hsk.ReqRollChangeDoneSide1; 
+      <>I   ; 
+      O     #PCWrite.Hsk.AckRollChangeDoneSide1; 
+      R     #PCRead.Hsk.ReqRollChangeDoneSide1; 
+      <>I   ; 
+      ON    #Status.S1NewGapStatus; 
+      R     #PCWrite.Hsk.AckRollChangeDoneSide1; 
+//Handshake with MDDO
+      U     #PCWrite.Hsk.AckRegisterSide1; 
+      ON    #PCRead.Hsk.ReqRegisterSide1; 
+      U(    ; 
+      U     #PCWrite.Hsk.AckRollChangeDoneSide1; 
+      ON    #PCRead.Hsk.ReqRollChangeDoneSide1; 
+      )     ; 
+      U     #Status.S1NewGapStatus; 
+      =     #Command.S1AckNewGapStatus; 
+GC1E: NOP   0; 
+NETWORK
+TITLE =Side2 Upload Recipe: Save Position  
+
+      NOP   0; 
+//Answer Dataset 003 Index 2
+      L     #DPData.NoRcvDataSet; 
+      L     3; 
+      <>I   ; 
+      O(    ; 
+      L     #DPData.IdxRcvDataSet; 
+      L     2; 
+      <>I   ; 
+      )     ; 
+      R     #Command.S2AckNewGapStatus; 
+      SPB   GC2E; 
+//Side2: Handshake with PC : AckRegister
+      L     #Side2.Out.OutGapAdjustmentStatus; 
+      L     5; 
+      ==I   ; 
+      UN    #PCWrite.Hsk.AckRegisterSide2; 
+      S     #PCRead.Hsk.ReqRegisterSide2; 
+      <>I   ; 
+      O     #PCWrite.Hsk.AckRegisterSide2; 
+      R     #PCRead.Hsk.ReqRegisterSide2; 
+      <>I   ; 
+      ON    #Status.S2NewGapStatus; 
+      R     #PCWrite.Hsk.AckRegisterSide2; 
+//Side2 Handshake with PC RollChangeDone
+      L     #Side2.Out.OutGapAdjustmentStatus; 
+      L     6; 
+      ==I   ; 
+      UN    #PCWrite.Hsk.AckRollChangeDoneSide2; 
+      S     #PCRead.Hsk.ReqRollChangeDoneSide2; 
+      <>I   ; 
+      O     #PCWrite.Hsk.AckRollChangeDoneSide2; 
+      R     #PCRead.Hsk.ReqRollChangeDoneSide2; 
+      <>I   ; 
+      ON    #Status.S1NewGapStatus; 
+      R     #PCWrite.Hsk.AckRollChangeDoneSide2; 
+//Handshake with MDDO
+      U     #PCWrite.Hsk.AckRegisterSide1; 
+      ON    #PCRead.Hsk.ReqRegisterSide1; 
+      U(    ; 
+      U     #PCWrite.Hsk.AckRollChangeDoneSide1; 
+      ON    #PCRead.Hsk.ReqRollChangeDoneSide1; 
+      )     ; 
+      U(    ; 
+      U     #PCWrite.Hsk.AckRegisterSide2; 
+      ON    #PCRead.Hsk.ReqRegisterSide2; 
+      )     ; 
+      U(    ; 
+      U     #PCWrite.Hsk.AckRollChangeDoneSide2; 
+      ON    #PCRead.Hsk.ReqRollChangeDoneSide2; 
+      )     ; 
+      U     #Status.S2NewGapStatus; 
+      =     #Command.S2AckNewGapStatus; 
+GC2E: NOP   0; 
+NETWORK
+TITLE =Command to MDDR
+
+      NOP   0; 
+//==============================
+      U     #CmdFaultReset; 
+      R     #Par.HelpFlags.OutTestNewAlarm; 
+      U     #tmpSendDone; 
+      U     #Command.ResetAlarm; 
+      R     #Command.ResetAlarm; 
+      S     #Par.HelpFlags.OutTestNewAlarm; 
+      U     #tmpSendDone; 
+      U     #CmdFaultReset; 
+      R     #CmdFaultReset; 
+      S     #Command.ResetAlarm; 
+      R     #Side1.OutAlarmNoValid; 
+      R     #Side2.OutAlarmNoValid; 
+      R     #Side1Divide.OutAlarmNoValid; 
+      R     #Side2Divide.OutAlarmNoValid; 
+//==============================
+      U     #Side1.InEnableDosing; 
+      =     #Command.S1Start; 
+      U     #Side1.InRestdischarge; 
+      =     #Command.S1RestDischarge; 
+//==============================
+      U     #Side2.InEnableDosing; 
+      =     #Command.S2Start; 
+      U     #Side2.InRestdischarge; 
+      =     #Command.S2RestDischarge; 
+//==============================
+      U     #Status.NewDataReady; 
+      =     #Command.AcceptNewDataReady; 
+//==============================
+      SET   ; 
+      =     #Command.CommandReady; 
+//==============================
+      U     #Status.NewRcvData; 
+      =     #Command.AcceptNewRcvData; 
+//==============================
+      UN    #Status.AcceptNewSendData; 
+      =     #Command.NewSendData; 
+NETWORK
+TITLE =(Profibus) Send Data
+
+      NOP   0; 
+//------------------------------------------------
+//Test Done: Send Dataset 128 Index 1
+      L     #DPData.NoSndDataSet; 
+      L     128; 
+      <>I   ; 
+      SPB   S28A; 
+      L     #DPData.IdxSndDataSet; 
+      L     1; 
+      <>I   ; 
+      SPB   s28B; 
+      UN    #Status.WrongValue; 
+      U     #Par.HelpFlags.CmdNewValueS1; 
+      R     #Par.HelpFlags.CmdNewValueS1; 
+      R     #Side1.CmdNewValue; 
+      R     #Side1.CmdNewJob; 
+      SPA   S28B; //-->Send 128 Index 2
+//------------------------------------------------
+//Test Done: Send Dataset 128 Index 2
+s28B: L     #DPData.IdxSndDataSet; 
+      L     2; 
+      <>I   ; 
+      SPB   S28A; 
+      UN    #Status.WrongValue; 
+      U     #Par.HelpFlags.CmdNewValueS2; 
+      R     #Par.HelpFlags.CmdNewValueS2; 
+      R     #Side2.CmdNewValue; 
+      R     #Side2.CmdNewJob; 
+      SPA   S28A; //-->Send 128 Index 1
+//==================================================
+//Send Dataset 128 Index 1
+S28A: L     128; 
+      T     #DPData.NoSndDataSet; 
+      L     1; 
+      T     #DPData.IdxSndDataSet; 
+      L     #Side1.In.InRollsUpCurrent; 
+      T     #DPData.Data.Byte8_9; 
+      L     #Side1.In.InRollsLowCurrent; 
+      T     #DPData.Data.Byte10_11; 
+      L     0; 
+      LAR1  P##DPData; 
+      T     LD [AR1,P#12.0]; 
+      T     LD [AR1,P#16.0]; 
+      T     LD [AR1,P#20.0]; 
+      UN    #Side1.OutManual; 
+      U     #Side1.CmdNewValue; 
+      O     #Side1.CmdNewJob; 
+      SPBN  S28K; 
+      =     #Par.HelpFlags.CmdNewValueS1; 
+      L     #Side1.In.InGapTopLeft; 
+      T     #DPData.Data.Byte12_13; 
+      L     #Side1.In.InGapTopRight; 
+      T     #DPData.Data.Byte14_15; 
+      L     #Side1.In.InGapBottomLeft; 
+      T     #DPData.Data.Byte16_17; 
+      L     #Side1.In.InGapBottomRight; 
+      T     #DPData.Data.Byte18_19; 
+S28K: L     0; 
+      UN    #Side1.In.InRollsUpUsed; 
+      SPB   S28M; 
+      L     W#16#100; 
+      +I    ; 
+S28M: UN    #Side1.In.InRollsLowUsed; 
+      SPB   S28N; 
+      L     W#16#200; 
+      +I    ; 
+S28N: T     #DPData.Data.Byte20_21; 
+      SPA   send; 
+//==================================================
+//Send Dataset 128 Index 2
+S28B: L     128; 
+      T     #DPData.NoSndDataSet; 
+      L     2; 
+      T     #DPData.IdxSndDataSet; 
+      L     #Side2.In.InRollsUpCurrent; 
+      T     #DPData.Data.Byte8_9; 
+      L     #Side2.In.InRollsLowCurrent; 
+      T     #DPData.Data.Byte10_11; 
+      L     0; 
+      LAR1  P##DPData; 
+      T     LD [AR1,P#12.0]; 
+      T     LD [AR1,P#16.0]; 
+      T     LD [AR1,P#20.0]; 
+      UN    #Side2.OutManual; 
+      U     #Side2.CmdNewValue; 
+      O     #Side2.CmdNewJob; 
+      SPBN  S28k; 
+      =     #Par.HelpFlags.CmdNewValueS2; 
+      L     #Side2.In.InGapTopLeft; 
+      T     #DPData.Data.Byte12_13; 
+      L     #Side2.In.InGapTopRight; 
+      T     #DPData.Data.Byte14_15; 
+      L     #Side2.In.InGapBottomLeft; 
+      T     #DPData.Data.Byte16_17; 
+      L     #Side2.In.InGapBottomRight; 
+      T     #DPData.Data.Byte18_19; 
+S28k: L     0; 
+      UN    #Side2.In.InRollsUpUsed; 
+      SPB   S28m; 
+      L     W#16#100; 
+      +I    ; 
+S28m: UN    #Side2.In.InRollsLowUsed; 
+      SPB   S28n; 
+      L     W#16#200; 
+      +I    ; 
+S28n: T     #DPData.Data.Byte20_21; 
+      SPA   send; 
+//======================================================
+//Send Dataset to Profibus
+send: CALL "SIEMENS_BLKMOV" (
+           SRCBLK                   := #Command,
+           RET_VAL                  := #tmpReturn,
+           DSTBLK                   := #DPData.StatusCommand);
+      L     #DPData.NoSndDataSet; 
+      T     #Par.OutNoSndDataSet; 
+      L     #DPData.IdxSndDataSet; 
+      T     #Par.OutIdxSndDataSet; 
+      L     #DPData.NoRcvDataSet; 
+      T     #Par.OutNoRcvDataSet; 
+      L     #DPData.IdxRcvDataSet; 
+      T     #Par.OutIdxRcvDataSet; 
+      U     #InSimulation; 
+      SPB   sSim; 
+      CALL "SIEMENS_DPWR_DAT" (
+           LADDR                    := #tmpAddr,
+           RECORD                   := #DPData,
+           RET_VAL                  := #tmpReturn);
+      L     #tmpReturn; 
+      L     0; 
+      <>I   ; 
+      =     #Par.HelpFlags.OutComFaultSend; 
+      SPA   DP_C; 
+//write to Simulation
+sSim: R     #Par.HelpFlags.OutComFaultSend; 
+      U     "GCS7_Gr_SimDPtoImage"; 
+      L     P#A 0.0; 
+      SPB   rDB2; 
+      AUF   "TEST_IOSimuliOutput"; 
+      L     P#DBX 0.0; 
+rDB2: L     #Par.ParIOByteNo; 
+      SLD   3; 
+      +D    ; 
+      T     #tmpAddrIO; 
+      L     #DPData.StatusCommand; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#0.0]; 
+      LAR1  P##DPData; 
+      L     LD [AR1,P#4.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#4.0]; 
+      LAR1  P##DPData; 
+      L     LD [AR1,P#8.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#8.0]; 
+      LAR1  P##DPData; 
+      L     LD [AR1,P#12.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#12.0]; 
+      LAR1  P##DPData; 
+      L     LD [AR1,P#16.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#16.0]; 
+      LAR1  P##DPData; 
+      L     LD [AR1,P#20.0]; 
+      LAR1  #tmpAddrIO; 
+      T     D [AR1,P#20.0]; 
+DP_C: NOP   0; 
+NETWORK
+TITLE =Init Flag #tmpAllAlarmNoValide
+
+      U     #Side1.OutAlarmNoValid; 
+      U     #Side2.OutAlarmNoValid; 
+      U(    ; 
+      U     #Side1Divide.OutAlarmNoValid; 
+      ON    #Par.ParSide1Divided; 
+      )     ; 
+      U(    ; 
+      U     #Side2Divide.OutAlarmNoValid; 
+      ON    #Par.ParSide2Divided; 
+      )     ; 
+      =     #tmpAllAlarmNoValide; 
+NETWORK
+TITLE =States Communication
+//
+//
+      NOP   0; 
+//--- tmpFault   
+      U     #OutComFault; 
+      ON    #Status.RemoteControl; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+//===================================
+//StOK
+//===================================
+CS2:  UN    #StOk; 
+      SPB   CS4; 
+//-Transition to StFault
+      U     #tmpFault; //-->StFault
+      SPB   CxS4; 
+      SPA   CJ9; //-->StOK
+//===================================
+//StFault
+//===================================
+CxS4: R     #StOk; 
+      S     #StFault; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #tmpHornOn; 
+      R     #OutEdgeComFault; //reLOG fault
+//---Condition for StOk
+CS4:  UN    #StFault; 
+      S     #StOk; //Init
+      SPB   CS2; 
+      U     #tmpAllAlarmNoValide; 
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      UN    #tmpFault; 
+      O     #InLocal; 
+      S     #StOk; 
+      R     #StFault; 
+      R     #CmdFaultReset; 
+      SPB   CJ9; //-->StOK
+      U     #tmpAllAlarmNoValide; 
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      R     #OutEdgeComFault; //reLOG fault
+CJ9:  NOP   0; 
+NETWORK
+TITLE =States Side 1
+
+      NOP   0; 
+//--- tmpFault   
+      U     #Side1.OutLCFault; 
+      O     #OutComFault; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+//==================================
+//StDisengaged
+//==================================
+P1S0: UN    #Side1.StDisenaged; 
+      SPB   P1S2; 
+      U     #tmpFault; 
+      SPB   P1X4; //--> StFault
+      UN    #Status.S1Disengaged; 
+      R     #Side1.StDisenaged; 
+      S     #Side1.StEngaged; //--> StEngaged
+      SPA   P1J9; 
+//==================================
+//StEngaged
+//==================================
+P1S2: UN    #Side1.StEngaged; 
+      SPB   P1S4; 
+      U     #tmpFault; 
+      SPB   P1X4; //--> StFault
+      U     #Status.S1Disengaged; 
+      R     #Side1.StEngaged; 
+      S     #Side1.StDisenaged; //--> StDisenaged
+      SPA   P1J9; 
+//==================================
+//StFault
+//==================================
+P1X4: S     #Side1.StFault; 
+      R     #Side1.StEngaged; 
+      R     #Side1.StDisenaged; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #tmpHornOn; 
+P1S4: UN    #Side1.StFault; 
+      S     #Side1.StDisenaged; 
+      SPB   P1S0; 
+      UN    #tmpFault; 
+      U     #Side1.OutAlarmNoValid; 
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      O     #tmpLocal; 
+      R     #Side1.StFault; 
+      S     #Side1.StDisenaged; //--> StDisenaged
+      SPB   P1S0; 
+P1J9: NOP   0; 
+NETWORK
+TITLE =States Side 2
+
+      NOP   0; 
+//--- tmpFault   
+      U     #Side2.OutLCFault; 
+      O     #OutComFault; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+//==================================
+//StDisengaged
+//==================================
+P2S0: UN    #Side2.StDisenaged; 
+      SPB   P2S2; 
+      U     #tmpFault; 
+      SPB   P2X4; //--> StFault
+      UN    #Status.S2Disengaged; 
+      R     #Side2.StDisenaged; 
+      S     #Side2.StEngaged; //--> StEngaged
+      SPA   P2J9; 
+//==================================
+//StEngaged
+//==================================
+P2S2: UN    #Side2.StEngaged; 
+      SPB   P2S4; 
+      U     #tmpFault; 
+      SPB   P2X4; //--> StFault
+      U     #Status.S2Disengaged; 
+      R     #Side2.StEngaged; 
+      S     #Side2.StDisenaged; //--> StDisenaged
+      SPA   P2J9; 
+//==================================
+//StFault
+//==================================
+P2X4: S     #Side2.StFault; 
+      R     #Side2.StEngaged; 
+      R     #Side2.StDisenaged; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #tmpHornOn; 
+P2S4: UN    #Side2.StFault; 
+      S     #Side2.StDisenaged; 
+      SPB   P2S0; 
+      UN    #tmpFault; 
+      U     #Side2.OutAlarmNoValid; 
+      U     #Par.HelpFlags.OutTestNewAlarm; 
+      O     #tmpLocal; 
+      R     #Side2.StFault; 
+      S     #Side2.StDisenaged; //--> StDisenaged
+      SPB   P2S0; 
+P2J9: NOP   0; 
+NETWORK
+TITLE =States Side1Divide
+
+      NOP   0; 
+//--- tmpFault   
+      U     #Side1Divide.OutLCFault; 
+      O     #OutComFault; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+//==================================
+//StDisengaged
+//==================================
+P3S0: UN    #Side1Divide.StDisenaged; 
+      SPB   P3S2; 
+      U     #tmpFault; 
+      U     #Par.ParSide1Divided; 
+      SPB   P3X4; //--> StFault
+      UN    #Status.S1Disengaged; 
+      U     #Par.ParSide1Divided; 
+      R     #Side1Divide.StDisenaged; 
+      S     #Side1Divide.StEngaged; //--> StEngaged
+      SPA   P3J9; 
+//==================================
+//StEngaged
+//==================================
+P3S2: UN    #Side1Divide.StEngaged; 
+      SPB   P3S4; 
+      U     #tmpFault; 
+      SPB   P3X4; //--> StFault
+      U     #Status.S1Disengaged; 
+      ON    #Par.ParSide1Divided; 
+      R     #Side1Divide.StEngaged; 
+      S     #Side1Divide.StDisenaged; //--> StDisenaged
+      SPA   P3J9; 
+//==================================
+//StFault
+//==================================
+P3X4: S     #Side1Divide.StFault; 
+      R     #Side1Divide.StEngaged; 
+      R     #Side1Divide.StDisenaged; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #tmpHornOn; 
+P3S4: UN    #Side1Divide.StFault; 
+      S     #Side1Divide.StDisenaged; 
+      SPB   P3S0; 
+      UN    #tmpFault; 
+      U     #Side1Divide.OutAlarmNoValid; 
+      O     #tmpLocal; 
+      ON    #Par.ParSide1Divided; 
+      R     #Side1Divide.StFault; 
+      S     #Side1Divide.StDisenaged; //--> StDisenaged
+      SPB   P3S0; 
+P3J9: NOP   0; 
+NETWORK
+TITLE =States Side2Divide
+
+      NOP   0; 
+//--- tmpFault   
+      U     #Side2Divide.OutLCFault; 
+      O     #OutComFault; 
+      UN    #tmpLocal; 
+      =     #tmpFault; 
+//==================================
+//StDisengaged
+//==================================
+P4S0: UN    #Side2Divide.StDisenaged; 
+      SPB   P4S2; 
+      U     #tmpFault; 
+      U     #Par.ParSide2Divided; 
+      SPB   P4X4; //--> StFault
+      UN    #Status.S2Disengaged; 
+      U     #Par.ParSide2Divided; 
+      R     #Side2Divide.StDisenaged; 
+      S     #Side2Divide.StEngaged; //--> StEngaged
+      SPA   P4J9; 
+//==================================
+//StEngaged
+//==================================
+P4S2: UN    #Side2Divide.StEngaged; 
+      SPB   P4S4; 
+      U     #tmpFault; 
+      SPB   P4X4; //--> StFault
+      U     #Status.S2Disengaged; 
+      ON    #Par.ParSide2Divided; 
+      R     #Side2Divide.StEngaged; 
+      S     #Side2Divide.StDisenaged; //--> StDisenaged
+      SPA   P4J9; 
+//==================================
+//StFault
+//==================================
+P4X4: S     #Side2Divide.StFault; 
+      R     #Side2Divide.StEngaged; 
+      R     #Side2Divide.StDisenaged; 
+      S     "GCS7_Gr_InFaultFlag"; //Gr.InFaultFlag
+      S     #tmpHornOn; 
+P4S4: UN    #Side2Divide.StFault; 
+      S     #Side2Divide.StDisenaged; 
+      SPB   P4S0; 
+      UN    #tmpFault; 
+      U     #Side2Divide.OutAlarmNoValid; 
+      O     #tmpLocal; 
+      ON    #Par.ParSide2Divided; 
+      R     #Side2Divide.StFault; 
+      S     #Side2Divide.StDisenaged; //--> StDisenaged
+      SPB   P4S0; 
+P4J9: NOP   0; 
+NETWORK
+TITLE =Warning/ Horn On
+
+      NOP   0; 
+//---tmpWarning
+      U     #Side1.OutLCWarning; 
+      UN    #Side1.StFault; 
+      O     ; 
+      U     #Side2.OutLCWarning; 
+      UN    #Side1.StFault; 
+      O     ; 
+      U     #Side1Divide.OutLCWarning; 
+      UN    #Side1Divide.StFault; 
+      O     ; 
+      U     #Side2Divide.OutLCWarning; 
+      UN    #Side2Divide.StFault; 
+      FP    #OutWarning; 
+      UN    #tmpLocal; 
+      S     #tmpHornOn; 
+//---Horn On-----------------------------
+      UN    #tmpHornOn; 
+      O     #tmpLocal; 
+      SPB   HOJ9; 
+      CALL "SYS_Horn_Code" (
+           FcCode                   := 1,
+           ParObjectType            := 1037,
+           ParObjectNo              := #Par.ParObjectNo,
+           ParHornCode              := #Par.ParHornCode);
+HOJ9: NOP   0; 
+NETWORK
+TITLE =Log2: OutFaultRelevant / Message ComFault / FaultCanceled
+
+//MessageClass Fault Canceled
+      U     #Side1.StFault; 
+      O     #Side2.StFault; 
+      O     #Side1Divide.StFault; 
+      O     #Side2Divide.StFault; 
+      O     #StFault; 
+      FN    #OutFaultRelevant; 
+      L     B#(3, 255); // MessageClass Operate fault cancelled
+      SPB   LOG; 
+      U     #StFault; 
+      FP    #OutEdgeComFault; 
+      SPBN  LOUT; 
+      L     B#(1, 250); //Fault Remote Control DP Mode
+      UN    #Status.RemoteControl; 
+      UN    #OutComFault; 
+      SPB   LOG; 
+      L     B#(1, 251); //Comunication Fault
+LOG:  U     #Par.ParLogOff; //---Set LOG Message
+      SPB   LOUT; 
+      T     #tmpLOGvalue; 
+      L     W#16#FF; 
+      UW    ; 
+      T     #OutAlarmNoLog; 
+      CALL "GCS7_LogConvert" (//LOG Message Converter / Entry
+           ObjectNo                 := #Par.ParObjectNo,
+           MsgType                  := #Par.ParMsgType,
+           ClassMsgTxt              := #tmpLOGvalue,//Contains Class and TextNo
+           OType                    := 1037);
+LOUT: NOP   0; 
+NETWORK
+TITLE =State Code Element
+
+      L     43; //Code: #StOk.DPFault
+      U     #OutComFault; 
+      U     #StOk; 
+      SPB   STC; 
+      L     3; //Code: #StOk
+      U     #StOk; 
+      SPB   STC; 
+      L     32; //Code: fault
+STC:  L     #StCode; //Old state code
+      TAK   ; 
+      T     #StCode; //Save state code
+      <>I   ; 
+      L     3; //Load code for CBit methode
+      CC    "SYS_CBitCtrl"; 
+NETWORK
+TITLE =State Code Side 1
+
+      L     44; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side1.StEngaged; 
+      SPB   S1C; 
+      L     14; //Code: StEnaged.Warning
+      U     #Side1.OutLCWarning; 
+      U     #Side1.StEngaged; 
+      SPB   S1C; 
+      L     4; //Code: StEnaged
+      U     #Side1.StEngaged; 
+      SPB   S1C; 
+      L     41; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side1.StDisenaged; 
+      SPB   S1C; 
+      L     11; //Code: StDisenaged.Warning
+      U     #Side1.OutLCWarning; 
+      U     #Side1.StDisenaged; 
+      SPB   S1C; 
+      L     1; //Code: StDisenaged
+      U     #Side1.StDisenaged; 
+      SPB   S1C; 
+      L     32; //Code: StFault
+S1C:  T     #Side1.StCode; // Save state code
+NETWORK
+TITLE =State Code Side 2
+
+      L     44; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side2.StEngaged; 
+      SPB   S2C; 
+      L     14; //Code: StEnaged.Warning
+      U     #Side2.OutLCWarning; 
+      U     #Side2.StEngaged; 
+      SPB   S2C; 
+      L     4; //Code: StEnaged
+      U     #Side2.StEngaged; 
+      SPB   S2C; 
+      L     41; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side2.StDisenaged; 
+      SPB   S2C; 
+      L     11; //Code: StDisenaged.Warning
+      U     #Side2.OutLCWarning; 
+      U     #Side2.StDisenaged; 
+      SPB   S2C; 
+      L     1; //Code: StDisenaged
+      U     #Side2.StDisenaged; 
+      SPB   S2C; 
+      L     32; //Code: StFault
+S2C:  T     #Side2.StCode; // Save state code
+NETWORK
+TITLE =State Code Side1Divide
+
+      L     44; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side1Divide.StEngaged; 
+      SPB   S3C; 
+      L     14; //Code: StEnaged.Warning
+      U     #Side1Divide.OutLCWarning; 
+      U     #Side1Divide.StEngaged; 
+      SPB   S3C; 
+      L     4; //Code: StEnaged
+      U     #Side1Divide.StEngaged; 
+      SPB   S3C; 
+      L     41; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side1Divide.StDisenaged; 
+      SPB   S3C; 
+      L     11; //Code: StDisenaged.Warning
+      U     #Side1Divide.OutLCWarning; 
+      U     #Side1Divide.StDisenaged; 
+      SPB   S3C; 
+      L     1; //Code: StDisenaged
+      U     #Side1Divide.StDisenaged; 
+      SPB   S3C; 
+      L     32; //Code: StFault
+S3C:  T     #Side1Divide.StCode; // Save state code
+NETWORK
+TITLE =State Code Side2Divide
+
+      L     44; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side2Divide.StEngaged; 
+      SPB   S4C; 
+      L     14; //Code: StEnaged.Warning
+      U     #Side2Divide.OutLCWarning; 
+      U     #Side2Divide.StEngaged; 
+      SPB   S4C; 
+      L     4; //Code: StEnaged
+      U     #Side2Divide.StEngaged; 
+      SPB   S4C; 
+      L     41; //Code: StDisenaged.DPFault
+      U     #OutComFault; 
+      U     #Side2Divide.StDisenaged; 
+      SPB   S4C; 
+      L     11; //Code: StDisenaged.Warning
+      U     #Side2Divide.OutLCWarning; 
+      U     #Side2Divide.StDisenaged; 
+      SPB   S4C; 
+      L     1; //Code: StDisenaged
+      U     #Side2Divide.StDisenaged; 
+      SPB   S4C; 
+      L     32; //Code: StFault
+S4C:  T     #Side2Divide.StCode; // Save state code
+NETWORK
+TITLE =Comunication : Maintanance Counter 
+
+// Maintanance Counter OutCntFault
+      U     #StFault; 
+      FP    #VarEdgeStFault; 
+      SPBN  MCJO; 
+      L     #OutCntFault; 
+      +     L#1; 
+      T     #OutCntFault; 
+// Maintanance Counter Fault Time
+MCJO: ON    #StFault; 
+      ON    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   MCJ2; 
+      L     #OutTimeFaulted; 
+      +     L#1; 
+      T     #OutTimeFaulted; 
+MCJ2: NOP   0; 
+NETWORK
+TITLE =Side1: Maintanance Counter 
+
+// Maintanance Counter OutCntFault
+      U     #Side1.StFault; 
+      FP    #Side1.VarEdgeStFault; 
+      SPBN  M1JO; 
+      L     #Side1.OutCntFault; 
+      +     L#1; 
+      T     #Side1.OutCntFault; 
+// Maintanance Counter Fault Time
+M1JO: ON    #Side1.StFault; 
+      ON    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   M1J2; 
+      L     #Side1.OutTimeFaulted; 
+      +     L#1; 
+      T     #Side1.OutTimeFaulted; 
+M1J2: NOP   0; 
+NETWORK
+TITLE =Side2: Maintanance Counter 
+
+// Maintanance Counter OutCntFault
+      U     #Side2.StFault; 
+      FP    #Side2.VarEdgeStFault; 
+      SPBN  M2JO; 
+      L     #Side2.OutCntFault; 
+      +     L#1; 
+      T     #Side2.OutCntFault; 
+// Maintanance Counter Fault Time
+M2JO: ON    #Side2.StFault; 
+      ON    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   M2J2; 
+      L     #Side2.OutTimeFaulted; 
+      +     L#1; 
+      T     #Side2.OutTimeFaulted; 
+M2J2: NOP   0; 
+NETWORK
+TITLE =Side1Divide Maintanance Counter 
+
+// Maintanance Counter OutCntFault
+      U     #Side1Divide.StFault; 
+      FP    #Side1Divide.VarEdgeStFault; 
+      SPBN  M3JO; 
+      L     #Side1Divide.OutCntFault; 
+      +     L#1; 
+      T     #Side1Divide.OutCntFault; 
+// Maintanance Counter Fault Time
+M3JO: ON    #Side1Divide.StFault; 
+      ON    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   M3J2; 
+      L     #Side1Divide.OutTimeFaulted; 
+      +     L#1; 
+      T     #Side1Divide.OutTimeFaulted; 
+M3J2: NOP   0; 
+NETWORK
+TITLE =Side2Divide Maintanance Counter 
+
+// Maintanance Counter OutCntFault
+      U     #Side2Divide.StFault; 
+      FP    #Side2Divide.VarEdgeStFault; 
+      SPBN  M4JO; 
+      L     #Side2Divide.OutCntFault; 
+      +     L#1; 
+      T     #Side2Divide.OutCntFault; 
+// Maintanance Counter Fault Time
+M4JO: ON    #Side2Divide.StFault; 
+      ON    "GCS7_Gr_OutTick1s"; // Increment all s
+      SPB   M4J2; 
+      L     #Side2Divide.OutTimeFaulted; 
+      +     L#1; 
+      T     #Side2Divide.OutTimeFaulted; 
+M4J2: NOP   0; 
+NETWORK
+TITLE =Global End 
+
+      NOP   0; 
+//Clear Flag
+      U     #tmpAllAlarmNoValide; 
+      R     #Par.HelpFlags.OutTestNewAlarm; 
+//--Output for group 
+      UN    #InLocal; 
+      U     #OutComFault; 
+      S     "GCS7_Gr_InDPFault"; 
+      NOP   0; 
+END_FUNCTION_BLOCK
+
