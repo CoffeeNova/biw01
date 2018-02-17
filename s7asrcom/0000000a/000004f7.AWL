@@ -1,0 +1,691 @@
+FUNCTION_BLOCK FB 351
+TITLE =G251M FRESH AIR LOUVER GERM 8
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        FRESH AIR LOUVER GERM 8
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB351.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : FB 10;	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user
+  A_2851_BZS01 : FB 14;	// DigInpCont 
+  A_2851_BZS02 : FB 14;	// DigInpCont 
+  A_2851_MXZ01 : FB 20;	// VLS4Ctrl 
+  A_2852_BZS01 : FB 14;	// DigInpCont 
+  A_2852_BZS02 : FB 14;	// DigInpCont 
+  A_2852_MXZ01 : FB 20;	// VLS4Ctrl 
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     DB9.DBX   81.2; 
+      R     DB9.DBX  121.2; 
+      R     DB9.DBX  161.2; 
+      R     DB9.DBX   41.2; 
+      R     DB9.DBX  201.2; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      A     DB9.DBX  321.2; 
+      =     #Gr.InEnableGr; 
+      A     DB9.DBX  281.2; 
+      =     #Gr.InOccupied; 
+      A     DB9.DBX  401.2; 
+      R     DB9.DBX  401.2; 
+      S     #Gr.CmdFaultReset; 
+      A     DB9.DBX  361.2; 
+      R     DB9.DBX  361.2; 
+      S     #Gr.CmdNext; 
+
+      A     DB9.DBX  441.2; 
+      AN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      A     DB9.DBX  441.2; 
+      R     DB9.DBX  441.2; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[251]
+//      O     "GCS7_GrCtrlDB".OutOccupied[251]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[251]
+//      S     #Gr.CmdManualOff
+
+      A     DB9.DBX  761.2; 
+      R     DB9.DBX  761.2; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      A     DB9.DBX  201.2; 
+      JCN   WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      JC    IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      A     #Gr.InManual; 
+      JC    ILO6; 
+      L     0; // 0.0%
+      O     DB824.DBX  111.6; 
+      O     DB824.DBX  111.0; 
+      JC    PE; 
+      A     DB914.DBX  410.0; 
+      O(    ; 
+      A     DB914.DBX  412.1; // germinating Process finished  
+      AN    DB824.DBX  111.4; 
+      )     ; 
+      JCN   M003; 
+      NOP   0; 
+//BRT100310      L     "MAL1S024Par".StepAct.PosFreshAirFlapBasic
+//      L     "MAL1S024Par".Par.ParIntMachine.TargetPosFreshAir    //BRT100310 
+//      L     10                          // convert to 0.1%
+//      *I    
+PE:   NOP   0; 
+
+      A     DB351.DBX  131.5; 
+      JC    Man1; 
+//->20.01.2012 IS. have made regulating like on the others germ plants. dont know what wrong with this one.
+      L     DB914.DBW  352; //BRT100310 
+//     L     "MAL1S024Par".Par.ParIntProcess.Value29    // Target Position FreshAir 2
+//   +I    
+// L     2
+///I    
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+//-> 09.01.2012 IS. Start regulating from current position when switch to automatic
+Man1: L     #A_2851_MXZ01.InPositionMiddle; 
+      L     10; 
+      /D    ; 
+      T     DB914.DBW  352; 
+//<-
+      NOP   0; 
+      A     DB351.DBX  259.5; 
+      JC    Man2; 
+      L     DB914.DBW  254; // Target Position FreshAir 2
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+
+//-> 09.01.2012 IS. Start regulating from current position when switch to automatic
+Man2: L     #A_2852_MXZ01.InPositionMiddle; 
+      L     10; 
+      /D    ; 
+      T     DB914.DBW  254; 
+//<-
+      NOP   0; 
+M003: NOP   0; 
+      JU    En06; 
+ILO6: NOP   0; 
+      L     DB914.DBW  230; 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+      T     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+En06: NOP   0; 
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      A     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      A     #Gr.CmdNext; 
+      A     #Gr.OutAutostart; 
+      AN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      A     DB50.DBX   32.2; 
+//BRT100310 - HW-Stop nur bei NOT-AUS +C28 oder Customer, nicht bei NOT-AUS Maschine!
+      A(    ; 
+      O     I    801.0; 
+      O     I    801.1; 
+      O     I    800.3; 
+      )     ; 
+      =     #tmpHWStop; 
+
+      A     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2851-BZS01 : FRESH AIR FLAP 1 100% CIRCULATION AIR
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2851_BZS01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2851_BZS01.InMonTrue; 
+      CLR   ; 
+      =     #A_2851_BZS01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2851_BZS01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2851_BZS01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2851_BZS01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     I    864.6; 
+      =     #A_2851_BZS01.InpTrue; 
+      A     DB51.DBX   10.7; 
+      =     #A_2851_BZS01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2851_BZS01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2851-BZS02 : FRESH AIR FLAP 1 100% FRESH AIR
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2851_BZS02.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2851_BZS02.InMonTrue; 
+      CLR   ; 
+      =     #A_2851_BZS02.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2851_BZS02.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2851_BZS02.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2851_BZS02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     I    864.7; 
+      =     #A_2851_BZS02.InpTrue; 
+      A     DB51.DBX   10.7; 
+      =     #A_2851_BZS02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2851_BZS02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2851-MXZ01 : FRESH AIR FLAP 1
+
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2851_MXZ01.StLN; 
+      =     #A_2851_MXZ01.InLocal; 
+
+//-Interlocking---
+      A     #A_2851_MXZ01.Par.ParManual; 
+      A     #A_2851_MXZ01.InManual; 
+      JC    man1; 
+      A(    ; 
+      L     0; 
+      L     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2851_MXZ01.InLN; 
+
+      A(    ; 
+      L     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2851_MXZ01.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2851_MXZ01.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2851_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2851_MXZ01.CmdHN; 
+man1: NOP   0; 
+
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    864.6; 
+      =     DB351.DBX  130.4; 
+      CLR   ; 
+      =     DB351.DBX  130.5; 
+      A     I    864.7; 
+      =     DB351.DBX  130.7; 
+
+//      U     #A_2851_BZS02.StTrue        // 100% Frischluft
+//      SPBN  FL1
+//      L     1000
+//      SPA   INP1
+//FL1:  NOP   0
+//      U     #A_2851_BZS01.StTrue        // 100% Umluft
+//      SPBN  RL1
+//      L     0
+//      SPA   INP1
+//RL1:  NOP   0
+//      L     "A_2851_BEE01_AI1"
+//INP1: T     #A_2851_MXZ01.InpPosition
+//<====BRT060310
+//BRT110310      U     "PLC_SystemDB".HardwareStop.Germinating_8
+      A     #tmpHWStop; //BRT110310
+      =     #A_2851_MXZ01.InHWStop; 
+      A     DB51.DBX   10.7; 
+      =     #A_2851_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2851_MXZ01 ;
+// 
+//-Write outputs---
+      A     #A_2851_MXZ01.OutpLN; 
+      =     Q    864.5; 
+      A     #A_2851_MXZ01.OutpHN; 
+      =     Q    864.4; 
+
+NETWORK
+TITLE ==A-2852-BZS01 : FRESH AIR FLAP 2 100% CIRCULATION AIR
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2852_BZS01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2852_BZS01.InMonTrue; 
+      CLR   ; 
+      =     #A_2852_BZS01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2852_BZS01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2852_BZS01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2852_BZS01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     I    865.2; 
+      =     #A_2852_BZS01.InpTrue; 
+      A     DB51.DBX   10.7; 
+      =     #A_2852_BZS01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2852_BZS01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2852-BZS02 : FRESH AIR FLAP 2 100% FRESH AIR
+
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2852_BZS02.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2852_BZS02.InMonTrue; 
+      CLR   ; 
+      =     #A_2852_BZS02.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2852_BZS02.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2852_BZS02.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2852_BZS02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+      A     I    865.3; 
+      =     #A_2852_BZS02.InpTrue; 
+      A     DB51.DBX   10.7; 
+      =     #A_2852_BZS02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2852_BZS02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2852-MXZ01 : FRESH AIR FLAP 2
+
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2852_MXZ01.StLN; 
+      =     #A_2852_MXZ01.InLocal; 
+
+//-Interlocking---
+      A     #A_2852_MXZ01.Par.ParManual; 
+      A     #A_2852_MXZ01.InManual; 
+      JC    man2; 
+      A(    ; 
+      L     0; 
+      L     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2852_MXZ01.InLN; 
+
+      A(    ; 
+      L     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2852_MXZ01.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2852_MXZ01.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2852_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2852_MXZ01.CmdHN; 
+man2: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    865.2; 
+      =     DB351.DBX  258.4; 
+      CLR   ; 
+      =     DB351.DBX  258.5; 
+      A     I    865.3; 
+      =     DB351.DBX  258.7; 
+
+//      U     #A_2852_BZS02.StTrue        // 100% Frischluft
+//      SPBN  FL2
+//      L     1000
+//      SPA   INP2
+//FL2:  NOP   0
+//      U     #A_2852_BZS01.StTrue        // 100% Umluft
+//      SPBN  RL2
+//      L     0
+//      SPA   INP2
+//RL2:  NOP   0
+//      L     "A_2852_BEE01_AI1"
+//INP2: T     #A_2852_MXZ01.InpPosition
+//<====BRT100310
+//BRT110310      U     "PLC_SystemDB".HardwareStop.Germinating_8
+      A     #tmpHWStop; //BRT110310
+      =     #A_2852_MXZ01.InHWStop; 
+      A     DB51.DBX   10.7; 
+      =     #A_2852_MXZ01.InDPFault; 
+// 
+
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2852_MXZ01 ;
+// 
+//-Write outputs---
+      A     #A_2852_MXZ01.OutpLN; 
+      =     Q    865.1; 
+      A     #A_2852_MXZ01.OutpHN; 
+      =     Q    865.0; 
+
+NETWORK
+TITLE =Test Fault
+
+      A     #A_2851_BZS01.StFault; 
+      O     #A_2851_BZS02.StFault; 
+      O     #A_2851_MXZ01.StFault; 
+      O     #A_2852_BZS01.StFault; 
+      O     #A_2852_BZS02.StFault; 
+      O     #A_2852_MXZ01.StFault; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+
+//BRT100310       U     #A_2851_MXZ01.StLN
+//BRT100310       U     #A_2852_MXZ01.StLN
+//BRT100310       UN    #Gr.VarFault
+      AN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      AN    #A_2851_MXZ01.StLN; 
+      AN    #A_2851_MXZ01.StFault; 
+      AN    #A_2851_MXZ01.StNoPosition; 
+      AN    #A_2852_MXZ01.StLN; 
+      AN    #A_2852_MXZ01.StFault; 
+      AN    #A_2852_MXZ01.StNoPosition; 
+//BRT100310      UN    #Gr.VarStopped
+      AN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      A     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      A     #Gr.StStopped; 
+      =     DB9.DBX  481.2; 
+      A     #Gr.StStarted; 
+      =     DB9.DBX  521.2; 
+      A     #Gr.StFault; 
+      =     DB9.DBX  561.2; 
+      A     #Gr.OutWarning; 
+      =     DB9.DBX  601.2; 
+      A     #Gr.OutManual; 
+      =     DB9.DBX  641.2; 
+      A     #Gr.OutHWStop; 
+      =     DB9.DBX  881.2; 
+      A     #Gr.OutDPFault; 
+      =     DB9.DBX  841.2; 
+      A     #Gr.OutLoaded; 
+      =     DB9.DBX  801.2; 
+      A     #Gr.OutAutostart; 
+      =     DB9.DBX  921.2; 
+      A     #Gr.VarStartwarning; 
+      =     DB9.DBX  961.2; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,2127 @@
+FUNCTION_BLOCK FB 271
+TITLE =G171M FRESH AIR LOUVER GERM 4
+//COPYRIGHT:    (C) 2009  BUHLER AG, CH-9240 UZWIL, SWITZERLAND
+//
+//PRODUCT:      WinCoS_BIW01_09
+//
+//TITLE:        FRESH AIR LOUVER GERM 4
+//                Machine group control
+//                Maschinengruppensteuerung
+// 
+//--------------------------------------------------------------------------------
+// 
+//IDENT:        AUTHOR:             DEPT:                              DATE:
+// 
+//P01_FB271.1.0 K.Renz              CSB41                              13.Jan.2010
+//             1st Release
+// 
+//--------------------------------------------------------------------------------
+// 
+//PURPOSE: 
+// 
+//MANUAL : 
+// 
+//RESTRICTIONS: 
+// 
+//--------------------------------------------------------------------------------
+AUTHOR : KR
+FAMILY : USW
+VERSION : 9.9
+
+
+VAR
+  Gr : FB 10;	//Standard interface to group
+  InOutValue1 : DINT ;	//Data for user
+  InOutValue2 : DINT ;	//Data for user
+  OutWayConflict : BOOL ;	//Data for user
+  OutSelectionOk : BOOL ;	//Data for user
+  CmdNewValue : BOOL ;	//Data for user
+  CmdNewJob : BOOL ;	//Data for user
+  OutCodeOK : BOOL ;	//Data for user
+  InEndOfJob : BOOL ;	//Data for user
+  staWayOk : BOOL ;	//Data for user
+  EdgeStartRelease : BOOL ;	//Data for user
+  USW8 : BOOL ;	//Data for user
+  USW9 : BOOL ;	//Data for user
+  USW10 : BOOL ;	//Data for user
+  USW11 : BOOL ;	//Data for user
+  USW12 : BOOL ;	//Data for user
+  USW13 : BOOL ;	//Data for user
+  USW14 : BOOL ;	//Data for user
+  USW15 : BOOL ;	//Data for user 
+  A_2451_BZS01 : FB 14;	// DigInpCont 
+  A_2451_BZS02 : FB 14;	// DigInpCont 
+  A_2451_MXZ01 : FB 22;	// VLS4Ctrl
+//2451_MXZ01AI : "GCS7_E_AnalogInput";	
+//2451_XZ01AO : "GCS7_E_AnalogOut
+  A_2451_BZS03 : FB 14;	// DigInpCont 
+  A_2451_BZS04 : FB 14;	// DigInpCont  
+  A_2451_MXZ02 : FB 22;	// VLS4Ctrl
+//2451_MXZ02AI : "GCS7_E_AnalogInput";	
+//2451_MXZ02AO : "GCS7_E_AnalogOu
+  A_2451_BZS05 : FB 14;	// DigInpCont 
+  A_2451_BZS06 : FB 14;	// DigInpCont
+  A_2451_MXZ03 : FB 22;	// VLS4Ctrl 
+//2451_MXZ03AI : "GCS7_E_AnalogInput";	
+//2451_MXZ03AO : "GCS7_E_AnalogO
+  A_2452_BZS01 : FB 14;	// DigInpCont 
+  A_2452_BZS02 : FB 14;	// DigInpCont
+  A_2452_MXZ01 : FB 22;	// VLS4Ctrl 
+//2452_MXZ01AI : "GCS7_E_AnalogInput";	
+//2452_MXZ01AO : "GCS7_E_AnalogO
+  A_2452_BZS03 : FB 14;	// DigInpCont 
+  A_2452_BZS04 : FB 14;	// DigInpCont	 
+  A_2452_MXZ02 : FB 22;	// VLS4Ctrl 
+//2452_MXZ02AI : "GCS7_E_AnalogInput";	
+//2452_MXZ02AO : "GCS7_E_AnalogO
+  A_2452_BZS05 : FB 14;	// DigInpCont 
+  A_2452_BZS06 : FB 14;	// DigInpCont	 
+  A_2452_MXZ03 : FB 22;	// VLS4Ctrl 
+//2452_MXZ03AI : "GCS7_E_AnalogInput";	
+//2452_MXZ03AO : "GCS7_E_AnalogO
+  A_2451_MXZ01AI : FB 19;	
+  A_2451_MXZ01AO : FB 17;	
+  A_2451_MXZ02AI : FB 19;	
+  A_2451_MXZ02AO : FB 17;	
+  A_2451_MXZ03AI : FB 19;	
+  A_2451_MXZ03AO : FB 17;	
+  A_2452_MXZ01AI : FB 19;	
+  A_2452_MXZ01AO : FB 17;	
+  A_2452_MXZ02AI : FB 19;	
+  A_2452_MXZ02AO : FB 17;	
+  A_2452_MXZ03AI : FB 19;	
+  A_2452_MXZ03AO : FB 17;	
+END_VAR
+VAR_TEMP
+  tmpEnable : BOOL ;	
+  tmpFlag : BOOL ;	
+  tmpCmdNext : BOOL ;	
+  tmpLocal : BOOL ;	
+  tmpAspOk : BOOL ;	
+  tmpHWStop : BOOL ;	
+  tmpInstanzDBNo : INT ;	
+  tmpLouver1SetpointIn : DINT ;	
+  tmpLouver1SetpointOut : DINT ;	
+  tmpLouver1ActualValueIn : DINT ;	
+  tmpLouver1ActualValueOut : DINT ;	
+  tmp : BOOL ;	
+  tmpLouver2SetpointIn : DINT ;	
+  tmpLouver2SetpointOut : DINT ;	
+  tmpLouver2ActualValueIn : DINT ;	
+  tmpLouver2ActualValueOut : DINT ;	
+  tmpLouver3SetpointIn : DINT ;	
+  tmpLouver3SetpointOut : DINT ;	
+  tmpLouver3ActualValueIn : DINT ;	
+  tmpLouver3ActualValueOut : DINT ;	
+  tmpLouver4SetpointIn : DINT ;	
+  tmpLouver4SetpointOut : DINT ;	
+  tmpLouver4ActualValueIn : DINT ;	
+  tmpLouver4ActualValueOut : DINT ;	
+  tmpLouver5SetpointIn : DINT ;	
+  tmpLouver5SetpointOut : DINT ;	
+  tmpLouver5ActualValueIn : DINT ;	
+  tmpLouver5ActualValueOut : DINT ;	
+  tmpLouver6SetpointIn : DINT ;	
+  tmpLouver6SetpointOut : DINT ;	
+  tmpLouver6ActualValueIn : DINT ;	
+  tmpLouver6ActualValueOut : DINT ;	
+END_VAR
+BEGIN
+NETWORK
+TITLE =
+
+
+
+NETWORK
+TITLE =Read command from group control
+//Parameter
+      SET   ; 
+      S     DB9.DBX   71.2; 
+      R     DB9.DBX  111.2; 
+      R     DB9.DBX  151.2; 
+      R     DB9.DBX   31.2; 
+      R     DB9.DBX  191.2; 
+      S     #Gr.Par.ParMgr; 
+      R     #Gr.Par.ParWgr; 
+      R     #Gr.Par.ParGgr; 
+//Command
+      A     DB9.DBX  311.2; 
+      =     #Gr.InEnableGr; 
+      A     DB9.DBX  271.2; 
+      =     #Gr.InOccupied; 
+      A     DB9.DBX  391.2; 
+      R     DB9.DBX  391.2; 
+      S     #Gr.CmdFaultReset; 
+      A     DB9.DBX  351.2; 
+      R     DB9.DBX  351.2; 
+      S     #Gr.CmdNext; 
+
+      A     DB9.DBX  431.2; 
+      AN    #Gr.InManual; 
+      S     #Gr.CmdManualOff; 
+      A     DB9.DBX  431.2; 
+      R     DB9.DBX  431.2; 
+
+//      U     "GCS7_GrCtrlDB".CmdManualOff[171]
+//      O     "GCS7_GrCtrlDB".OutOccupied[171]
+//      R     "GCS7_GrCtrlDB".CmdManualOff[171]
+//      S     #Gr.CmdManualOff
+
+      A     DB9.DBX  751.2; 
+      R     DB9.DBX  751.2; 
+      S     #Gr.CmdContinue; 
+//Init Line Number
+      A     DB9.DBX  191.2; 
+      JCN   WE00; 
+      L     0; 
+      T     #Gr.InLine; 
+WE00: NOP   0; 
+NETWORK
+TITLE =Call Methode Control
+// 1. Handle Interface PCControl      
+// 2. Prepare mode --> ModePassive,ModeActive,ModeIdling      
+// 3. Reset global flags of the group
+      CALL #Gr (
+           FcCode                   := 1);
+NETWORK
+TITLE =Restart Idling Time
+
+      L     #Gr.Par.ParIdling; 
+      L     2; 
+      >=I   ; 
+      JC    IdTm; 
+      T     #Gr.Par.ParIdling; 
+IdTm: NOP   0; 
+      CLR   ; 
+      S     #Gr.CmdRestartIdling; 
+NETWORK
+TITLE =Prepare global flags
+
+
+
+NETWORK
+TITLE =Set Pattern (Target position)
+
+      A     #Gr.InManual; 
+      JC    ILO6; 
+      L     0; // 0.0%
+//      AN    "MAL1S020Par".Par.FlagProcess.ProcessActive
+      O     DB820.DBX  111.6; 
+      O     DB820.DBX  111.0; 
+      O     DB910.DBX  407.0; 
+      JC    M003; 
+      A     DB910.DBX  410.0; 
+      O(    ; 
+      A     DB910.DBX  412.1; // germinating Process finished  
+      AN    DB820.DBX  111.4; 
+      )     ; 
+      JCN   M003; 
+      NOP   0; 
+//BRT100310      L     "MAL1S020Par".StepAct.PosFreshAirFlapBasic
+//      L     "MAL1S020Par".Par.ParIntMachine.TargetPosFreshAir    //BRT100310 
+//      L     10                          // convert to 0.1%
+//      *I    
+      NOP   0; 
+
+      A     DB271.DBX  131.5; 
+      JC    Man1; 
+      L     DB910.DBW  352; //BRT100310 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+
+Man1: NOP   0; 
+      A     DB271.DBX  259.5; 
+      JC    Man2; 
+      L     DB910.DBW  352; //BRT100310 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+
+Man2: NOP   0; 
+      A     DB271.DBX  387.5; 
+      JC    Man3; 
+
+      L     DB910.DBW  352; //BRT100310 
+      L     10; // convert to 0.1%
+      *I    ; 
+      L     1000; 
+      TAK   ; 
+      -I    ; 
+      T     #A_2451_MXZ03.InPositionMiddle; 
+
+Man3: NOP   0; 
+//      L     #A_2451_MXZ01.InPositionMiddle
+//      L     10
+//      /D    
+//      T     "MAL1S020Par".Par.ParIntMachine.TargetPosFreshAir
+
+      A     DB271.DBX  515.5; 
+      JC    Man4; 
+      L     DB910.DBW  254; // Target Position FreshAir 2
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+
+
+Man4: NOP   0; 
+      A     DB271.DBX  643.5; 
+      JC    Man5; 
+      L     DB910.DBW  254; // Target Position FreshAir 2
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+
+
+Man5: NOP   0; 
+      A     DB271.DBX  771.5; 
+      JC    Man6; 
+      L     DB910.DBW  254; // Target Position FreshAir 2
+      L     10; // convert to 0.1%
+      *I    ; 
+      L     1000; 
+      TAK   ; 
+      -I    ; 
+      T     #A_2452_MXZ03.InPositionMiddle; 
+
+Man6: NOP   0; 
+      JU    En06; 
+M003: NOP   0; 
+      A     DB271.DBX  131.5; 
+      JC    man7; 
+      T     #A_2451_MXZ01.InPositionMiddle; 
+man7: A     DB271.DBX  259.5; 
+      JC    man8; 
+      T     #A_2451_MXZ02.InPositionMiddle; 
+man8: A     DB271.DBX  387.5; 
+      JC    man9; 
+      T     #A_2451_MXZ03.InPositionMiddle; 
+man9: A     DB271.DBX  515.5; 
+      JC    ma10; 
+      T     #A_2452_MXZ01.InPositionMiddle; 
+ma10: A     DB271.DBX  643.5; 
+      JC    ma11; 
+      T     #A_2452_MXZ02.InPositionMiddle; 
+ma11: A     DB271.DBX  771.5; 
+      JC    ma12; 
+      T     #A_2452_MXZ03.InPositionMiddle; 
+
+ma12: JU    En06; 
+ILO6: NOP   0; 
+      L     DB910.DBW  230; 
+      L     10; // convert to 0.1%
+      *I    ; 
+      T     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+      T     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+      T     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+      T     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+
+      L     1000; 
+      TAK   ; 
+      -I    ; 
+      T     #A_2451_MXZ03.InPositionMiddle; // setpoint element
+      T     #A_2452_MXZ03.InPositionMiddle; // setpoint element
+
+En06: NOP   0; 
+
+NETWORK
+TITLE =Interlocking WayOk
+
+
+
+NETWORK
+TITLE =Interlocking Autostart
+
+      CLR   ; 
+      R     #Gr.OutAutostart; 
+NETWORK
+TITLE =Interlocking Enable
+
+      A     #Gr.InEnableGr; 
+      =     #Gr.OutEnableEl; 
+
+NETWORK
+TITLE =Interlocking Next
+
+      A     #Gr.CmdNext; 
+      A     #Gr.OutAutostart; 
+      AN    #Gr.OutNewWay; 
+      =     #tmpCmdNext; 
+
+NETWORK
+TITLE =Interlocking Local / HWStop
+
+      A     DB50.DBX   31.6; 
+//BRT100310 - HW-Stop nur bei NOT-AUS +C24 oder Customer, nicht bei NOT-AUS Maschine!
+      A(    ; 
+      O     I    401.0; 
+      O     I    401.1; 
+      O     I    400.3; 
+      )     ; 
+      =     #tmpHWStop; 
+
+      A     #Gr.ModePassive; 
+      O     #tmpHWStop; 
+      =     #tmpLocal; 
+
+NETWORK
+TITLE ==A-2451-BZS01 : OUTSIDE FRONT LOUVER 1 CLOSED
+//1
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS01.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2451_BZS01_I1"
+      L     #A_2451_MXZ01AI.OutValueUnits; 
+      L     250; 
+      <=I   ; 
+      =     #A_2451_BZS01.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-BZS02 : OUTSIDE FRONT LOUVER 1 OPENED 100%
+//1
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS02.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS02.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS02.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS02.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS02.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//    A     "A_2451_BZS02_I1"
+      L     #A_2451_MXZ01AI.OutValueUnits; 
+      L     27600; 
+      >=I   ; 
+      =     #A_2451_BZS02.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-MXZ01AI : OUTSIDE FRONT LOUVER 1 ACTUAL VALUE
+//1
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ01AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2451_MXZ01AI.InMonLL; 
+      CLR   ; 
+      =     #A_2451_MXZ01AI.InMonL; 
+      CLR   ; 
+      =     #A_2451_MXZ01AI.InMonMid; 
+      CLR   ; 
+      =     #A_2451_MXZ01AI.InMonH; 
+      CLR   ; 
+      =     #A_2451_MXZ01AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   444; 
+//     L     5530    //       model value for minimum (2V)
+      L     350; //difference value
+      -I    ; 
+      T     #A_2451_MXZ01AI.InpValue; 
+
+      A     #tmpHWStop; 
+      =     #A_2451_MXZ01AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ01AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ01AI ;
+// 
+//-Write outputs---
+
+      L     #A_2451_MXZ01.InPositionMiddle; 
+      T     #tmpLouver1SetpointIn; 
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver1SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver1SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2451_MXZ01AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver1ActualValueOut);
+
+//      L     #tmpLouverActualValueOut
+//      L     26000
+//      >I    
+//      JCN   JMP1
+//      L     27800
+//      T     #tmpLouverActualValueOut
+      NOP   0; 
+
+NETWORK
+TITLE ==A-2451-MXZ01AO : OUTSIDE FRONT LOUVER 1 SET POINT
+//1
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ01AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2451_MXZ01AO.InDisable; 
+
+//-Values and parameters---
+//      L     #A_2451_MXZ01.InPositionMiddle
+      L     #tmpLouver1SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2451_MXZ01AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2451_MXZ01AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ01AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ01AO ;
+// 
+//-Write outputs---
+      L     #A_2451_MXZ01AO.OutpValue; 
+//      L     550                         //difference value
+//      +I    
+      T     PQW  444; 
+
+NETWORK
+TITLE ==A-2451-MXZ01 : OUTSIDE FRONT LOUVER 1
+//1
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2451_MXZ01.StLN; 
+      =     #A_2451_MXZ01.InLocal; 
+
+//-Interlocking---
+      A     #A_2451_MXZ01.Par.ParManual; 
+      A     #A_2451_MXZ01.InManual; 
+      JC    ma01; 
+      A(    ; 
+      L     0; 
+      L     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2451_MXZ01.InLN; 
+
+      A(    ; 
+      L     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ01.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2451_MXZ01.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2451_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ01.CmdHN; 
+ma01: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    419.0; 
+      =     DB271.DBX  130.4; 
+      CLR   ; 
+      =     DB271.DBX  130.5; 
+      A     I    419.1; 
+      =     DB271.DBX  130.7; 
+      SET   ; 
+//      L     #A_2451_MXZ01AI.OutValueUnits
+
+      L     #tmpLouver1ActualValueOut; 
+      T     #A_2451_MXZ01.InpPosition; 
+
+      A     #tmpHWStop; //BRT110310
+      =     #A_2451_MXZ01.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ01 ;
+// 
+//-Write outputs---
+      A     #A_2451_MXZ01.OutpLN; 
+      O     #A_2451_MXZ01.OutpHN; 
+      SET   ; 
+      =     Q    419.0; 
+NETWORK
+TITLE ==A-2451-BZS03 : OUTSIDE REAR LOUVER 1 CLOSED
+//2
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS03.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS03.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS03.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS03.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS03.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS03.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2451_BZS03_I1"
+      L     #A_2451_MXZ02AI.OutValueUnits; 
+      L     200; 
+      <=I   ; 
+      =     #A_2451_BZS03.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS03.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS03 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-BZS04 : OUTSIDE REAR LOUVER 1 OPENED 100%
+//2
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS04.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS04.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS04.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS04.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS04.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS04.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2451_BZS04_I1"
+      L     #A_2451_MXZ02AI.OutValueUnits; 
+      L     27600; 
+      >=I   ; 
+      =     #A_2451_BZS04.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS04.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS04 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-MXZ02AI : OUTSIDE REAR LOUVER 1 ACTUAL VALUE
+//2
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ02AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2451_MXZ02AI.InMonLL; 
+      CLR   ; 
+      =     #A_2451_MXZ02AI.InMonL; 
+      CLR   ; 
+      =     #A_2451_MXZ02AI.InMonMid; 
+      CLR   ; 
+      =     #A_2451_MXZ02AI.InMonH; 
+      CLR   ; 
+      =     #A_2451_MXZ02AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   448; 
+      L     240; 
+      -I    ; 
+      T     #A_2451_MXZ02AI.InpValue; 
+      A     #tmpHWStop; 
+      =     #A_2451_MXZ02AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ02AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ02AI ;
+// 
+//-Write outputs---
+      L     #A_2451_MXZ02.InPositionMiddle; 
+      T     #tmpLouver2SetpointIn; 
+
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver2SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver2SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2451_MXZ02AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver2ActualValueOut);
+
+NETWORK
+TITLE ==A-2451-MXZ02AO : OUTSIDE REAR LOUVER 1 SET POINT
+//2
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ02AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2451_MXZ02AO.InDisable; 
+
+//-Values and parameters---
+//      L     #A_2451_MXZ02.InPositionMiddle
+      L     #tmpLouver2SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2451_MXZ02AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2451_MXZ02AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ02AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ02AO ;
+// 
+//-Write outputs---
+      L     #A_2451_MXZ02AO.OutpValue; 
+//      L     550
+//      +I    
+      T     QW   448; 
+NETWORK
+TITLE ==A-2451-MXZ02 : OUTSIDE REAR LOUVER 1
+//2
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2451_MXZ02.StLN; 
+      =     #A_2451_MXZ02.InLocal; 
+
+//-Interlocking---
+      A     #A_2451_MXZ02.Par.ParManual; 
+      A     #A_2451_MXZ02.InManual; 
+      JC    ma02; 
+      A(    ; 
+      L     0; 
+      L     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2451_MXZ02.InLN; 
+
+      A(    ; 
+      L     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ02.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2451_MXZ02.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2451_MXZ02.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ02.CmdHN; 
+ma02: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    420.0; 
+      =     DB271.DBX  258.4; 
+      CLR   ; 
+      =     DB271.DBX  258.5; 
+      A     I    420.1; 
+      =     DB271.DBX  258.7; 
+      SET   ; 
+//      L     #A_2451_MXZ02AI.OutValueUnits
+      L     #tmpLouver2ActualValueOut; 
+      T     #A_2451_MXZ02.InpPosition; 
+
+      A     #A_2451_MXZ02AI.OutFaulted; 
+      =     #A_2451_MXZ02.InpFaultAI; 
+
+      A     #tmpHWStop; 
+      =     #A_2451_MXZ02.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_MXZ02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ02 ;
+// 
+//-Write outputs---
+      A     #A_2451_MXZ02.OutpLN; 
+      O     #A_2451_MXZ02.OutpHN; 
+      SET   ; 
+      =     Q    419.1; 
+
+NETWORK
+TITLE ==A-2451-BZS05 : INSIDE LOUVER GERM 1 CLOSED
+//3
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS05.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS05.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS05.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS05.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS05.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS05.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2451_BZS05_I1"
+      L     #A_2451_MXZ03AI.OutValueUnits; 
+      L     150; 
+      <=I   ; 
+      =     #A_2451_BZS05.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS05.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-BZS06 : INSIDE LOUVER GERM 1 OPENED 100%
+//3
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2451_BZS06.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2451_BZS06.InMonTrue; 
+      CLR   ; 
+      =     #A_2451_BZS06.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2451_BZS06.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2451_BZS06.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2451_BZS06.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2451_BZS06_I1"
+      L     #A_2451_MXZ03AI.OutValueUnits; 
+      L     27600; 
+      >=I   ; 
+      =     #A_2451_BZS06.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_BZS06.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_BZS06 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2451-MXZ03AI : INSIDE LOUVER 1 ACTUAL VALUE
+//3
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2451_MXZ03AI.InMonLL; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InMonL; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InMonMid; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InMonH; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   452; 
+      L     140; 
+      -I    ; 
+      T     #A_2451_MXZ03AI.InpValue; 
+      A     #tmpHWStop; 
+      =     #A_2451_MXZ03AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ03AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ03AI ;
+// 
+//-Write outputs---
+      L     #A_2451_MXZ03.InPositionMiddle; 
+      T     #tmpLouver3SetpointIn; 
+
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver3SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver3SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2451_MXZ03AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver3ActualValueOut);
+
+NETWORK
+TITLE ==A-2451-MXZ03AO : INSIDE LOUVER 1 SET POINT
+//3
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2451_MXZ03AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2451_MXZ03AO.InDisable; 
+
+//-Values and parameters---
+//      L     #A_2451_MXZ03.InPositionMiddle
+      L     #tmpLouver3SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2451_MXZ03AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2451_MXZ03AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2451_MXZ03AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ03AO ;
+// 
+//-Write outputs---
+      L     #A_2451_MXZ03AO.OutpValue; 
+//      L     450
+//      +I    
+      T     PQW  452; 
+NETWORK
+TITLE ==A-2451-MXZ03 : INSIDE LOUVER GERM 1
+//3
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2451_MXZ03.StLN; 
+      =     #A_2451_MXZ03.InLocal; 
+
+//-Interlocking---
+      A     #A_2451_MXZ03.Par.ParManual; 
+      A     #A_2451_MXZ03.InManual; 
+      JC    ma03; 
+      A(    ; 
+      L     0; 
+      L     #A_2451_MXZ03.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2451_MXZ03.InLN; 
+
+      A(    ; 
+      L     #A_2451_MXZ03.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2451_MXZ03.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ03.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2451_MXZ03.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2451_MXZ03.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2451_MXZ03.CmdHN; 
+ma03: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    421.0; 
+      =     DB271.DBX  386.4; 
+      CLR   ; 
+      =     DB271.DBX  386.5; 
+      A     I    421.1; 
+      =     DB271.DBX  386.7; 
+      SET   ; 
+// L     #A_2451_MXZ03AI.OutValueUnits
+      L     #tmpLouver3ActualValueOut; 
+      T     #A_2451_MXZ03.InpPosition; 
+
+      A     #A_2451_MXZ03AI.OutFaulted; 
+      =     #A_2451_MXZ03.InpFaultAI; 
+
+
+      A     #tmpHWStop; 
+      =     #A_2451_MXZ03.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2451_MXZ03.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2451_MXZ03 ;
+// 
+//-Write outputs---
+      A     #A_2451_MXZ03.OutpLN; 
+      O     #A_2451_MXZ03.OutpHN; 
+      SET   ; 
+      =     Q    419.2; 
+
+NETWORK
+TITLE ==A-2452-BZS01 : OUTSIDE FRONT LOUVER 2 CLOSED
+//4
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS01.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS01.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS01.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS01.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS01.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS01.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2452_BZS01_I1"
+      L     #A_2452_MXZ01AI.OutValueUnits; 
+      L     80; 
+      <=I   ; 
+      =     #A_2452_BZS01.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS01 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-BZS02 : OUTSIDE FRONT LOUVER 2 OPENED 100%
+//4
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS02.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS02.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS02.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS02.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS02.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS02.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//A     "A_2452_BZS02_I1"
+      L     #A_2452_MXZ01AI.OutValueUnits; 
+      L     27300; 
+      >=I   ; 
+      =     #A_2452_BZS02.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS02 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-MXZ01AI : OUTSIDE FRONT LOUVER 2 ACTUAL VALUE
+//4
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ01AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2452_MXZ01AI.InMonLL; 
+      CLR   ; 
+      =     #A_2452_MXZ01AI.InMonL; 
+      CLR   ; 
+      =     #A_2452_MXZ01AI.InMonMid; 
+      CLR   ; 
+      =     #A_2452_MXZ01AI.InMonH; 
+      CLR   ; 
+      =     #A_2452_MXZ01AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   446; 
+      L     60; 
+      -I    ; 
+      T     #A_2452_MXZ01AI.InpValue; 
+      A     #tmpHWStop; 
+      =     #A_2452_MXZ01AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ01AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ01AI ;
+// 
+//-Write outputs---
+      L     #A_2452_MXZ01.InPositionMiddle; 
+      T     #tmpLouver4SetpointIn; 
+
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver4SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver4SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2452_MXZ01AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver4ActualValueOut);
+
+NETWORK
+TITLE ==A-2452-MXZ01AO : OUTSIDE FRONT LOUVER 2 SET POINT
+//4
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ01AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2452_MXZ01AO.InDisable; 
+
+//-Values and parameters---
+//      L     #A_2452_MXZ01.InPositionMiddle
+      L     #tmpLouver4SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2452_MXZ01AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2452_MXZ01AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ01AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ01AO ;
+// 
+//-Write outputs---
+      L     #A_2452_MXZ01AO.OutpValue; 
+//      L     200
+//      +I    
+      T     QW   446; 
+NETWORK
+TITLE ==A-2452-MXZ01 : OUTSIDE FRONT LOUVER 2
+//4
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2452_MXZ01.StLN; 
+      =     #A_2452_MXZ01.InLocal; 
+
+//-Interlocking---
+      A     #A_2452_MXZ01.Par.ParManual; 
+      A     #A_2452_MXZ01.InManual; 
+      JC    ma04; 
+      A(    ; 
+      L     0; 
+      L     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2452_MXZ01.InLN; 
+
+      A(    ; 
+      L     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ01.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2452_MXZ01.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2452_MXZ01.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ01.CmdHN; 
+ma04: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    419.2; 
+      =     DB271.DBX  514.4; 
+      CLR   ; 
+      =     DB271.DBX  514.5; 
+      A     I    419.3; 
+      =     DB271.DBX  514.7; 
+      SET   ; 
+// L     #A_2452_MXZ01AI.OutValueUnits
+      L     #tmpLouver4ActualValueOut; 
+      T     #A_2452_MXZ01.InpPosition; 
+
+      A     #A_2452_MXZ01AI.OutFaulted; 
+      =     #A_2452_MXZ01.InpFaultAI; 
+
+      A     #A_2451_MXZ01AI.OutFaulted; 
+      =     #A_2451_MXZ01.InpFaultAI; 
+
+
+//BRT110310      U     "PLC_SystemDB".HardwareStop.Germinating_4
+      A     #tmpHWStop; //BRT110310
+      =     #A_2452_MXZ01.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_MXZ01.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ01 ;
+// 
+//-Write outputs---
+      A     #A_2452_MXZ01.OutpLN; 
+      A     #A_2452_MXZ01.OutpHN; 
+      SET   ; 
+      =     Q    420.0; 
+
+NETWORK
+TITLE ==A-2452-BZS03 : OUTSIDE REAR LOUVER 2 CLOSED
+//5
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS03.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS03.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS03.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS03.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS03.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS03.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// A     "A_2452_BZS03_I1"
+      L     #A_2452_MXZ02AI.OutValueUnits; 
+      L     150; 
+      <=I   ; 
+      =     #A_2452_BZS03.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS03.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS03 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-BZS04 : OUTSIDE REAR LOUVER 2 OPENED 100%
+//5
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS04.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS04.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS04.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS04.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS04.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS04.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2452_BZS04_I1"
+      L     #A_2452_MXZ02AI.OutValueUnits; 
+      L     27400; 
+      >=I   ; 
+      =     #A_2452_BZS04.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS04.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS04 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-MXZ02AI : OUTSIDE REAR LOUVER 2 ACTUAL VALUE
+//5
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ02AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2452_MXZ02AI.InMonLL; 
+      CLR   ; 
+      =     #A_2452_MXZ02AI.InMonL; 
+      CLR   ; 
+      =     #A_2452_MXZ02AI.InMonMid; 
+      CLR   ; 
+      =     #A_2452_MXZ02AI.InMonH; 
+      CLR   ; 
+      =     #A_2452_MXZ02AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   450; 
+//    L     220
+//    -I    
+      T     #A_2452_MXZ02AI.InpValue; 
+      A     #tmpHWStop; 
+      =     #A_2452_MXZ02AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ02AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ02AI ;
+// 
+//-Write outputs---
+      CALL #A_2451_MXZ01AI ;
+
+      L     #A_2452_MXZ02.InPositionMiddle; 
+      T     #tmpLouver5SetpointIn; 
+
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver5SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver5SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2452_MXZ02AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver5ActualValueOut);
+
+NETWORK
+TITLE ==A-2452-MXZ02AO : OUTSIDE REAR LOUVER 2 SET POINT
+//5
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ02AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2452_MXZ02AO.InDisable; 
+
+//-Values and parameters---
+//L     #A_2452_MXZ02.InPositionMiddle
+      L     #tmpLouver5SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2452_MXZ02AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2452_MXZ02AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ02AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ02AO ;
+// 
+//-Write outputs---
+      L     #A_2452_MXZ02AO.OutpValue; 
+//      L     400
+//      +I    
+      T     PQW  450; 
+NETWORK
+TITLE ==A-2452-MXZ02 : OUTSIDE REAR LOUVER 2
+//5
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2452_MXZ02.StLN; 
+      =     #A_2452_MXZ02.InLocal; 
+
+//-Interlocking---
+      A     #A_2452_MXZ02.Par.ParManual; 
+      A     #A_2452_MXZ02.InManual; 
+      JC    ma05; 
+      A(    ; 
+      L     0; 
+      L     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2452_MXZ02.InLN; 
+
+      A(    ; 
+      L     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ02.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2452_MXZ02.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2452_MXZ02.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ02.CmdHN; 
+ma05: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    420.2; 
+      =     DB271.DBX  642.4; 
+      CLR   ; 
+      =     DB271.DBX  642.5; 
+      A     I    420.3; 
+      =     DB271.DBX  642.7; 
+      SET   ; 
+//  L     #A_2452_MXZ02AI.OutValueUnits
+      L     #tmpLouver5ActualValueOut; 
+      T     #A_2452_MXZ02.InpPosition; 
+
+      A     #A_2452_MXZ02AI.OutFaulted; 
+      =     #A_2452_MXZ02.InpFaultAI; 
+
+      A     #tmpHWStop; //BRT110310
+      =     #A_2452_MXZ02.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_MXZ02.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ02 ;
+// 
+//-Write outputs---
+      A     #A_2452_MXZ02.OutpLN; 
+      A     #A_2452_MXZ02.OutpHN; 
+      SET   ; 
+      =     Q    420.1; 
+
+NETWORK
+TITLE ==A-2452-BZS05 : INSIDE LOUVER 2 CLOSED
+//6
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS05.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS05.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS05.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS05.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS05.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS05.CmdRunTimeOutTime
+// 
+//-Read inputs---
+// A     "A_2452_BZS05_I1"
+      L     #A_2452_MXZ03AI.OutValueUnits; 
+      L     150; 
+      <=I   ; 
+      =     #A_2452_BZS05.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS05.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS05 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-BZS06 : INSIDE LOUVER 2 OPENED 100%
+//6
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      =     #A_2452_BZS06.InLocal; 
+// 
+//-Monitoring---
+      CLR   ; 
+      =     #A_2452_BZS06.InMonTrue; 
+      CLR   ; 
+      =     #A_2452_BZS06.InMonFalse; 
+// 
+//-PreAlarm---
+      CLR   ; 
+      =     #A_2452_BZS06.InPreAlarmTrue; 
+      CLR   ; 
+      =     #A_2452_BZS06.InPreAlarmFalse; 
+// 
+//-Additional commands---
+//      CLR
+//      S     #A_2452_BZS06.CmdRunTimeOutTime
+// 
+//-Read inputs---
+//      A     "A_2452_BZS06_I1"
+      L     #A_2452_MXZ03AI.OutValueUnits; 
+      L     27600; 
+      >=I   ; 
+      =     #A_2452_BZS06.InpTrue; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_BZS06.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_BZS06 ;
+// 
+//-Write outputs---
+NETWORK
+TITLE ==A-2452-MXZ03AI : INSIDE LOUVER 2 ACTUAL VALUE
+//6
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ03AI.InLocal; 
+
+//-Monitoring--- 
+      SET   ; 
+      =     #A_2452_MXZ03AI.InMonLL; 
+      CLR   ; 
+      =     #A_2452_MXZ03AI.InMonL; 
+      CLR   ; 
+      =     #A_2452_MXZ03AI.InMonMid; 
+      CLR   ; 
+      =     #A_2452_MXZ03AI.InMonH; 
+      CLR   ; 
+      =     #A_2451_MXZ03AI.InMonHH; 
+// 
+//-Read inputs---
+
+      L     IW   454; 
+      L     250; 
+      -I    ; 
+      T     #A_2452_MXZ03AI.InpValue; 
+      A     #tmpHWStop; 
+      =     #A_2452_MXZ03AI.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ03AI.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ03AI ;
+// 
+//-Write outputs---
+      L     #A_2452_MXZ03.InPositionMiddle; 
+      T     #tmpLouver6SetpointIn; 
+
+
+      CALL FC   112 (
+           louverPositionIn         := #tmpLouver6SetpointIn,
+           louverPositionMax        := 1.000000e+003,
+           Control                  := TRUE,
+           louverPositionOut        := #tmpLouver6SetpointOut);
+
+
+      CALL FC   112 (
+           louverPositionIn         := #A_2452_MXZ03AI.OutValueUnits,
+           louverPositionMax        := 2.760000e+004,
+           Control                  := FALSE,
+           louverPositionOut        := #tmpLouver6ActualValueOut);
+
+NETWORK
+TITLE ==A-2452-MXZ03AO : INSIDE LOUVER 2 SET POINT
+//6
+      NOP   0; 
+//-InLocal---
+      A     #tmpLocal; 
+      CLR   ; 
+      =     #A_2452_MXZ03AO.InLocal; 
+
+//-Interlocking---
+      CLR   ; 
+      =     #A_2452_MXZ03AO.InDisable; 
+
+//-Values and parameters---
+//  L     #A_2452_MXZ03.InPositionMiddle
+      L     #tmpLouver6SetpointOut; 
+      L     10; 
+      *I    ; 
+      T     #A_2452_MXZ03AO.InOutValuePc; 
+// 
+//-Read inputs---
+      CLR   ; 
+      =     #A_2452_MXZ03AO.InHWStop; 
+      A     DB51.DBX    5.2; 
+      =     #A_2452_MXZ03AO.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ03AO ;
+// 
+//-Write outputs---
+      L     #A_2452_MXZ03AO.OutpValue; 
+//      L     400
+//      +I    
+      T     PQW  454; 
+NETWORK
+TITLE ==A-2452-MXZ03 : INSIDE LOUVER 2
+//6
+      NOP   0; 
+//-InLocal---
+      A(    ; 
+      A     #tmpLocal; 
+      O     ; 
+      A     #Gr.InManual; 
+      AN    #Gr.InOutAutostartMan; 
+      )     ; 
+      A     #A_2452_MXZ03.StLN; 
+      =     #A_2452_MXZ03.InLocal; 
+
+//-Interlocking---
+      A     #A_2452_MXZ03.Par.ParManual; 
+      A     #A_2452_MXZ03.InManual; 
+      JC    ma06; 
+      A(    ; 
+      L     0; 
+      L     #A_2452_MXZ03.InPositionMiddle; // setpoint element
+      ==I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      =     #A_2452_MXZ03.InLN; 
+
+      A(    ; 
+      L     #A_2452_MXZ03.InPositionMiddle; // setpoint element
+      L     0; 
+      >I    ; 
+      )     ; 
+      A(    ; 
+      L     #A_2452_MXZ03.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      <I    ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ03.CmdMiddle1; 
+
+      CLR   ; 
+      =     #A_2452_MXZ03.CmdMiddle2; 
+
+      A(    ; 
+      AN    #Gr.InOccupied; 
+      AN    #Gr.InManual; 
+      )     ; 
+      O(    ; 
+      L     #A_2452_MXZ03.InPositionMiddle; // setpoint element
+      L     1000; // 100,0%
+      >=I   ; 
+      )     ; 
+      A(    ; 
+      A     #Gr.InManual; 
+      A     #Gr.InOutAutostartMan; 
+      ON    #Gr.InManual; 
+      )     ; 
+      A     #Gr.OutEnableEl; 
+      S     #A_2452_MXZ03.CmdHN; 
+ma06: NOP   0; 
+// 
+//-Read inputs---
+//====>BRT060310 - Regeln auf Zeit, ohne Auswertung Rückmeldung
+      A     I    421.2; 
+      =     DB271.DBX  770.4; 
+      CLR   ; 
+      =     DB271.DBX  770.5; 
+      A     I    421.3; 
+      =     DB271.DBX  770.7; 
+      SET   ; 
+//   L     #A_2452_MXZ03AI.OutValueUnits
+      L     #tmpLouver6ActualValueOut; 
+      T     #A_2452_MXZ03.InpPosition; 
+
+      A     #A_2452_MXZ03AI.OutFaulted; 
+      =     #A_2452_MXZ03.InpFaultAI; 
+
+
+      A     #tmpHWStop; //BRT110310
+      =     #A_2452_MXZ03.InHWStop; 
+      A     DB51.DBX    5.7; 
+      =     #A_2452_MXZ03.InDPFault; 
+// 
+//-Set Parameters---
+// 
+//-Call object control---
+      CALL #A_2452_MXZ03 ;
+// 
+//-Write outputs---
+      A     #A_2452_MXZ03.OutpLN; 
+      A     #A_2452_MXZ03.OutpHN; 
+      SET   ; 
+      =     Q    420.2; 
+
+NETWORK
+TITLE =Test Fault
+
+//A     #A_2451_BZS01.StFault
+//O     #A_2451_BZS02.StFault
+//O     #A_2451_MXZ01.StFault
+
+//O     #A_2451_BZS03.StFault
+//O     #A_2451_BZS04.StFault
+//O     #A_2451_MXZ02.StFault
+
+//O     #A_2451_BZS05.StFault
+//O     #A_2451_BZS06.StFault
+//O     #A_2451_MXZ03.StFault
+
+//O     #A_2452_BZS01.StFault
+//O     #A_2452_BZS02.StFault
+//O     #A_2452_MXZ01.StFault
+
+//O     #A_2452_BZS03.StFault
+//O     #A_2452_BZS04.StFault
+//O     #A_2452_MXZ02.StFault
+
+//O     #A_2452_BZS05.StFault
+//O     #A_2452_BZS06.StFault
+//O     #A_2452_MXZ03.StFault
+      CLR   ; 
+      =     #Gr.VarFault; 
+NETWORK
+TITLE =Test Warning
+
+      CLR   ; 
+      =     #Gr.OutWarning; 
+NETWORK
+TITLE =Test Stopped
+//BRT100310       U     #A_2451_MXZ01.StLN
+//BRT100310       U     #A_2452_MXZ01.StLN
+//BRT100310       UN    #Gr.VarFault
+      AN    #Gr.VarStarted; 
+      =     #Gr.VarStopped; 
+NETWORK
+TITLE =Test Started
+
+      AN    #A_2451_MXZ01.StLN; 
+      AN    #A_2451_MXZ01.StFault; 
+      AN    #A_2451_MXZ01.StNoPosition; 
+
+      AN    #A_2451_MXZ02.StLN; 
+      AN    #A_2451_MXZ02.StFault; 
+      AN    #A_2451_MXZ02.StNoPosition; 
+
+      AN    #A_2451_MXZ03.StLN; 
+      AN    #A_2451_MXZ03.StFault; 
+      AN    #A_2451_MXZ03.StNoPosition; 
+
+      AN    #A_2452_MXZ01.StLN; 
+      AN    #A_2452_MXZ01.StFault; 
+      AN    #A_2452_MXZ01.StNoPosition; 
+
+      AN    #A_2452_MXZ02.StLN; 
+      AN    #A_2452_MXZ02.StFault; 
+      AN    #A_2452_MXZ02.StNoPosition; 
+
+      AN    #A_2452_MXZ03.StLN; 
+      AN    #A_2452_MXZ03.StFault; 
+      AN    #A_2452_MXZ03.StNoPosition; 
+
+
+      AN    #Gr.VarFault; 
+      =     #Gr.VarStarted; 
+NETWORK
+TITLE =Enable Previous Group
+
+      A     #Gr.VarStarted; 
+      =     #Gr.OutEnablePrevGr; 
+NETWORK
+TITLE =Call Methode State
+//1. Make State of the group: This function use the signals:
+//        Gr.VarStopped, Gr.VarStarted, Gr.VarFault
+//2.Reset Commands to group: e.g.CmdFaultReset
+      CALL #Gr (
+           FcCode                   := 2);
+NETWORK
+TITLE =Init
+
+      SET   ; 
+      R     #CmdNewValue; 
+      R     #CmdNewJob; 
+NETWORK
+TITLE =Write data to group control
+
+      A     #Gr.StStopped; 
+      =     DB9.DBX  471.2; 
+      A     #Gr.StStarted; 
+      =     DB9.DBX  511.2; 
+      A     #Gr.StFault; 
+      =     DB9.DBX  551.2; 
+      A     #Gr.OutWarning; 
+      =     DB9.DBX  591.2; 
+      A     #Gr.OutManual; 
+      =     DB9.DBX  631.2; 
+      A     #Gr.OutHWStop; 
+      =     DB9.DBX  871.2; 
+      A     #Gr.OutDPFault; 
+      =     DB9.DBX  831.2; 
+      A     #Gr.OutLoaded; 
+      =     DB9.DBX  791.2; 
+      A     #Gr.OutAutostart; 
+      =     DB9.DBX  911.2; 
+      A     #Gr.VarStartwarning; 
+      =     DB9.DBX  951.2; 
+NETWORK
+TITLE =End of block
+
+      BE    ; 
+
+END_FUNCTION_BLOCK
+
