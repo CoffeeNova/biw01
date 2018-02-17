@@ -829,6 +829,7 @@ TITLE ==A-2111-MXZ41MA : TRAVELING DRIVE
 acp2: NOP   0; 
 //<====BRT170310
 
+
 // 
       A     "MAL1S017".ToASW.InfDataReady; 
 //       U     "MAL1S017".PCRead.Step.StReady;
@@ -865,6 +866,8 @@ acp2: NOP   0;
       =     #A_2111_MXZ41MA.A_2111_MXZ41BLH.InHWStop; 
       A     "PLC_SystemDB".HardwareStop.Germinating_1; 
       =     #A_2111_MXZ41MA.A_2111_MXZ41SM.InHWStop; 
+      A     I      1.0; 
+      =     #A_2111_MXZ41MA.A_2111_MXZ41.spdImpLeft; 
 // 
 //-Set Parameters---
 // Monitoring time speed monitor 
